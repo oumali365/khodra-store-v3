@@ -243,7 +243,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-        {/* Modal Card - تقليل الزوايا الدائرية وتحسين التباين */}
+        {/* Modal Card */}
         <div className="relative bg-[#FDFBF7] border border-[#D5CBB5] rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200">
 
           {/* Header */}
@@ -270,7 +270,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           {/* Scrollable Form Body */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-right">
 
-            {/* ─── ملخص السلة المحسن بعناية وتباين عالٍ ─── */}
+            {/* ملخص السلة */}
             <div className="bg-white border border-[#DCD4C4] rounded-2xl p-4 sm:p-5 shadow-xs">
               <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D1]">
                 <span className="text-sm sm:text-base font-black text-[#1B3420] flex items-center gap-2">
@@ -302,7 +302,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 ))}
               </div>
 
-              {/* تفاصيل التوصيل والإجمالي (تم حذف المجموع الفرعي) */}
+              {/* تفاصيل التوصيل والإجمالي */}
               <div className="pt-3 border-t border-[#E8E1D1] space-y-2">
                 <div className="flex justify-between text-xs sm:text-sm">
                   <span className="text-[#453F33] font-bold flex items-center gap-1.5">
@@ -326,9 +326,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* ─── قسم عنوان التوصيل بالدار البيضاء (يشمل معلومات المستلم) ─── */}
+            {/* قسم عنوان التوصيل بالدار البيضاء */}
             <div className="space-y-3.5">
-              <div className="bg-gradient-to-l from-[#F7F4EC] to-[#FFF9F0] border border-[#DCD4C4] rounded-2xl p-4 sm:p-5 shadow-xs">
+              <div className="bg-white border border-[#DCD4C4] rounded-2xl p-4 sm:p-5 shadow-xs">
                 <h3 className="text-sm sm:text-base font-black text-[#1B3420] flex items-center gap-2 pb-3 border-b border-[#E8E1D1]">
                   <MapPin className="w-5 h-5 text-[#C25E12]" />
                   <span>عنوان التوصيل بالدار البيضاء</span>
@@ -369,7 +369,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {errors.phone && <p className="text-red-600 text-xs font-semibold mt-1">{errors.phone}</p>}
                   </div>
 
-                  {/* 1. الشارع / الزنقة */}
+                  {/* الشارع / الزنقة */}
                   <div>
                     <label className="block text-xs font-bold text-[#191816] mb-1">
                       الشارع / الزنقة <span className="text-red-500">*</span>
@@ -386,7 +386,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {errors.street && <p className="text-red-600 text-xs font-semibold mt-1">{errors.street}</p>}
                   </div>
 
-                  {/* 2. رقم العمارة / المنزل / الطابق */}
+                  {/* رقم العمارة */}
                   <div>
                     <label className="block text-xs font-bold text-[#191816] mb-1">
                       رقم العمارة / المنزل / الطابق <span className="text-[#736B58] font-normal">(اختياري)</span>
@@ -400,7 +400,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     />
                   </div>
 
-                  {/* 3. زر [حدد موقعك الحالي📍] عبر GPS */}
+                  {/* زر تحديد الموقع */}
                   <div className="pt-2 border-t border-[#E8E1D1]">
                     <button
                       type="button"
@@ -430,7 +430,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       )}
                     </button>
 
-                    {/* رسالة تنبيه الخطأ عند تعذر تحديد الموقع */}
                     {locationError && (
                       <p className="text-xs text-amber-900 bg-amber-50 border border-amber-300 rounded-lg p-2 mt-2 flex items-center gap-1.5 font-semibold">
                         <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
@@ -438,7 +437,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </p>
                     )}
 
-                    {/* بطاقة رابط Google Maps المولد تلقائياً */}
                     {currentMapsUrl && (
                       <div className="mt-2.5">
                         <a
@@ -457,64 +455,60 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* ─── وقت التسليم مع خلفية منسقة ─── */}
-            <div className="space-y-3 pt-2">
-              <div className="bg-gradient-to-r from-[#1E4327] to-[#2A5D35] rounded-2xl p-4 sm:p-5 shadow-md">
-                <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4 text-[#E8B93F]" />
-                  <span>وقت التسليم المفضل</span>
-                </h3>
+            {/* وقت التسليم - التصميم الأصلي */}
+            <div className="space-y-3 pt-2 border-t border-[#E8E1D1]">
+              <h3 className="text-sm sm:text-base font-black text-[#1B3420] flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#C25E12]" />
+                <span>وقت التسليم المفضل</span>
+              </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {DELIVERY_SLOTS.map((slot) => {
-                    const isPassed = slot.cutoffHour !== null && currentHour >= slot.cutoffHour;
-                    const isSelected = deliverySlot === slot.id;
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {DELIVERY_SLOTS.map((slot) => {
+                  const isPassed = slot.cutoffHour !== null && currentHour >= slot.cutoffHour;
+                  const isSelected = deliverySlot === slot.id;
 
-                    return (
-                      <label
-                        key={slot.id}
-                        className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                          isPassed
-                            ? 'opacity-40 bg-gray-800 border-gray-600 cursor-not-allowed'
-                            : isSelected
-                            ? 'bg-white/20 border-[#E8B93F] ring-2 ring-[#E8B93F]/30 shadow-xs backdrop-blur-sm'
-                            : 'bg-white/10 border-white/20 hover:border-[#E8B93F] hover:bg-white/15'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="deliverySlot"
-                          value={slot.id}
-                          disabled={isPassed}
-                          checked={isSelected}
-                          onChange={() => setDeliverySlot(slot.id)}
-                          className="mt-1 accent-[#E8B93F] w-4 h-4 cursor-pointer"
-                        />
-                        <div className="flex flex-col">
-                          <span className={`text-xs sm:text-sm font-black ${isPassed ? 'text-gray-400' : 'text-white'}`}>
-                            {slot.label}
+                  return (
+                    <label
+                      key={slot.id}
+                      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                        isPassed
+                          ? 'opacity-40 bg-gray-100 border-gray-200 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-emerald-50/70 border-[#2E6B39] ring-2 ring-[#2E6B39]/20 shadow-xs'
+                          : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3]'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="deliverySlot"
+                        value={slot.id}
+                        disabled={isPassed}
+                        checked={isSelected}
+                        onChange={() => setDeliverySlot(slot.id)}
+                        className="mt-1 accent-[#2E6B39] w-4 h-4 cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs sm:text-sm font-black text-[#191816]">{slot.label}</span>
+                        {isPassed && (
+                          <span className="text-xs text-red-600 font-bold mt-0.5 flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            انتهى حجز هذه الفترة
                           </span>
-                          {isPassed && (
-                            <span className="text-xs text-red-300 font-bold mt-0.5 flex items-center gap-1">
-                              <AlertCircle className="w-3.5 h-3.5" />
-                              انتهى حجز هذه الفترة
-                            </span>
-                          )}
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-                {errors.deliverySlot && (
-                  <p className="text-red-300 text-xs font-semibold flex items-center gap-1 mt-2">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{errors.deliverySlot}</span>
-                  </p>
-                )}
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
+              {errors.deliverySlot && (
+                <p className="text-red-600 text-xs font-semibold flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>{errors.deliverySlot}</span>
+                </p>
+              )}
             </div>
 
-            {/* ─── طريقة الدفع ─── */}
+            {/* طريقة الدفع */}
             <div className="space-y-3 pt-2 border-t border-[#E8E1D1]">
               <h3 className="text-sm sm:text-base font-black text-[#1B3420] flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-[#C25E12]" />
@@ -730,7 +724,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               )}
             </div>
 
-            {/* ─── زر التأكيد ─── */}
+            {/* زر التأكيد */}
             <div className="pt-3 border-t border-[#E8E1D1] space-y-3">
               <button
                 type="submit"
