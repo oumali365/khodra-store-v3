@@ -1,0 +1,102 @@
+# ============================================================
+# ملف: robots.txt – لمتجر خُضرة (khodrafresh.vercel.app)
+# ============================================================
+
+User-agent: *
+Allow: /
+
+# ─── منع الزحف إلى الصفحات غير المرغوب فيها ───
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /private/
+Disallow: /temp/
+Disallow: /tmp/
+Disallow: /backup/
+Disallow: /logs/
+
+# ─── منع الزحف إلى الملفات غير المرغوب فيها ───
+Disallow: /*.json$
+Disallow: /*.xml$
+Disallow: /*.csv$
+Disallow: /*.log$
+Disallow: /*.sql$
+Disallow: /*.env$
+Disallow: /*.lock$
+Disallow: /*.map$
+
+# ─── منع الزحف إلى صفحات النتائج والفلترة ───
+Disallow: /*?*
+Disallow: /*&*
+Disallow: /*?s=
+Disallow: /*?page=
+Disallow: /*?sort=
+Disallow: /*?filter=
+Disallow: /*?category=
+Disallow: /*?search=
+Disallow: /*?query=
+
+# ─── منع الزحف إلى صفحات المستخدم والطلبات ───
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /order/
+Disallow: /profile/
+Disallow: /account/
+Disallow: /login/
+Disallow: /signup/
+Disallow: /register/
+
+# ─── خريطة الموقع (Sitemap) ───
+Sitemap: https://khodrafresh.vercel.app/sitemap.xml
+
+# ─── وقت إعادة الزحف ───
+Crawl-delay: 1
+
+# ─── محركات البحث المحددة ───
+# Googlebot
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0.5
+
+# Bingbot
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 0.5
+
+# Baiduspider
+User-agent: Baiduspider
+Allow: /
+Crawl-delay: 1
+
+# Yandex
+User-agent: Yandex
+Allow: /
+Crawl-delay: 1
+
+# ─── أدوات الزحف الاجتماعية ───
+User-agent: Facebookbot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# ─── الزحف للصور ───
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot-Image
+Allow: /
+
+# ─── الزحف للفيديو ───
+User-agent: Googlebot-Video
+Allow: /
+
+# ─── الأدوات والأرشفة ───
+User-agent: archive.org_bot
+Allow: /
+Crawl-delay: 2
+
+# ─── نهاية الملف ───

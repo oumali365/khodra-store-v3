@@ -1,0 +1,10 @@
+{
+  "name": "khodra-store-v2",
+  "description": "Imported from GitHub: oumali365/khodra-store",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

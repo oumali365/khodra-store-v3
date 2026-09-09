@@ -1,0 +1,413 @@
+import { Product, ProductCategory } from '../types';
+
+export const CATEGORIES_CONFIG: { id: ProductCategory; name: string; icon: string; description: string }[] = [
+  { id: 'all', name: 'الكل', icon: '🌟', description: 'جميع المنتجات المتوفرة بجودة عالية وطراوة يومية مضمونة.' },
+  { id: 'veg', name: 'خضروات', icon: '🥬', description: 'خضروات طازجة منتقاة بعناية من الحقول المغربية تصلكم مباشرة.' },
+  { id: 'fruit', name: 'فواكه', icon: '🍎', description: 'أشهى الفواكه الموسمية الغنية بالفيتامينات والانتعاش الطبيعي.' },
+  { id: 'dairy', name: 'ألبان وأجبان', icon: '🥛', description: 'ألبان مبسترة، جبن بلدي، بيض حر، وزبدة بلدية أصلية.' },
+  { id: 'grocery', name: 'بقالة ومونة', icon: '🛒', description: 'زيت زيتون بكر، عسل حر، حبوب وشاي أصيل وكل ما يلزم مائدتك.' },
+  { id: 'drinks', name: 'عصائر ومشروبات', icon: '🥤', description: 'عصائر طازجة يومية ومياه معدنية طبيعية.' },
+  { id: 'cleaning', name: 'نظافة وعناية', icon: '🧴', description: 'أجود المنظفات المنزلية والصابون البلدي لبيت نظيف ومعقم.' },
+];
+
+export const INITIAL_PRODUCTS: Product[] = [
+  // الخضروات (Vegetables)
+  {
+    id: 1,
+    name: 'طماطم طازجة (سلاطة)',
+    category: 'veg',
+    type: 'weight',
+    price: 6.5,
+    stock: 85,
+    icon: '🍅',
+    active: true,
+    description: 'طماطم حمراء ناضجة ومقرمشة، مثالية للسلطات والطبخ المغربي.',
+    origin: 'شتوكة آيت باها'
+  },
+  {
+    id: 2,
+    name: 'بطاطس بلدية ممتازة',
+    category: 'veg',
+    type: 'weight',
+    price: 5.0,
+    stock: 120,
+    icon: '🥔',
+    active: true,
+    description: 'بطاطس لذيذة ومناسبة للقلي ولأطباق الطاجين والمأكولات اليومية.',
+    origin: 'الشاوية / تادلة'
+  },
+  {
+    id: 3,
+    name: 'بصل أحمر حلو',
+    category: 'veg',
+    type: 'weight',
+    price: 5.5,
+    stock: 90,
+    icon: '🧅',
+    active: true,
+    description: 'بصل أحمر طازج ذو نكهة قوية وغني بالفوائد الصحية.',
+    origin: 'سايس / فاس'
+  },
+  {
+    id: 4,
+    name: 'جزر بلدي طري',
+    category: 'veg',
+    type: 'weight',
+    price: 6.0,
+    stock: 65,
+    icon: '🥕',
+    active: true,
+    description: 'جزر برتقالي حلو ومقرمش، ممتاز للعصائر وأطباق الخضار المشكلة.',
+    origin: 'دكالة'
+  },
+  {
+    id: 5,
+    name: 'خيار مغربي مقرمش',
+    category: 'veg',
+    type: 'weight',
+    price: 7.0,
+    stock: 45,
+    icon: '🥒',
+    active: true,
+    description: 'خيار طري ومنعش، منقى بعناية للاستهلاك اليومي.',
+    origin: 'بركان'
+  },
+  {
+    id: 6,
+    name: 'فلفل حلو ملون (أحمر، أخضر، أصفر)',
+    category: 'veg',
+    type: 'weight',
+    price: 9.0,
+    stock: 35,
+    icon: '🫑',
+    active: true,
+    description: 'فلفل رومي مشكل غني بفيتامين C، مثالي للشواء والسلطات.',
+    origin: 'أكادير سوس'
+  },
+  {
+    id: 7,
+    name: 'باذنجان رومي طري',
+    category: 'veg',
+    type: 'weight',
+    price: 6.5,
+    stock: 40,
+    icon: '🍆',
+    active: true,
+    description: 'باذنجان أسود لامع وخالٍ من المرارة، ممتاز لزعلوك والتحمير.',
+    origin: 'الغرب'
+  },
+  {
+    id: 8,
+    name: 'قرع أحمر حلو للكسكس',
+    category: 'veg',
+    type: 'weight',
+    price: 8.0,
+    stock: 30,
+    icon: '🎃',
+    active: true,
+    description: 'قرع أحمر حلو وغني بالنكهة، أساسي لكسكس الجمعة والحساء.',
+    origin: 'تادلة'
+  },
+  {
+    id: 9,
+    name: 'باقة ربيع (قزبور ومعدنوس وكرفس)',
+    category: 'veg',
+    type: 'unit',
+    unit_label: 'باقة ثلاثية',
+    price: 3.5,
+    stock: 50,
+    icon: '🌿',
+    active: true,
+    description: 'أعشاب طازجة معطرة مقطوفة صبيحة اليوم، ركن أساسي للحريرة والشوربات.',
+    origin: 'مزارع المحمدية'
+  },
+
+  // الفواكه (Fruits)
+  {
+    id: 10,
+    name: 'تفاح أطلس أحمر فاخر',
+    category: 'fruit',
+    type: 'weight',
+    price: 14.0,
+    stock: 55,
+    icon: '🍎',
+    active: true,
+    description: 'تفاح أحمر حلو ومقرمش من بساتين الأطلس المتوسط.',
+    origin: 'ميدلت'
+  },
+  {
+    id: 11,
+    name: 'موز بلدي مغربي',
+    category: 'fruit',
+    type: 'weight',
+    price: 12.5,
+    stock: 70,
+    icon: '🍌',
+    active: true,
+    description: 'موز طبيعي ناضج ولذيذ، غني بالبوتاسيوم والطاقة.',
+    origin: 'سوس ماسة'
+  },
+  {
+    id: 12,
+    name: 'برتقال فالنسيا للعصير',
+    category: 'fruit',
+    type: 'weight',
+    price: 6.0,
+    stock: 110,
+    icon: '🍊',
+    active: true,
+    description: 'برتقال كثير العصارة ومنعش، ممتاز لعصير الصباح المنشط.',
+    origin: 'بركان'
+  },
+  {
+    id: 13,
+    name: 'فراولة فريش حلوة',
+    category: 'fruit',
+    type: 'unit',
+    unit_label: 'علبة 500غ',
+    price: 15.0,
+    stock: 25,
+    icon: '🍓',
+    active: true,
+    description: 'فراولة حمراء نضرة وعطرة، منتقاة حبة بحبة.',
+    origin: 'العرائش'
+  },
+  {
+    id: 14,
+    name: 'أفوكادو هاس دسم',
+    category: 'fruit',
+    type: 'weight',
+    price: 28.0,
+    stock: 20,
+    icon: '🥑',
+    active: true,
+    description: 'أفوكادو غني ومخملي الملمس، مثالي للعصائر وسلطات الطاقة.',
+    origin: 'الغرب'
+  },
+  {
+    id: 15,
+    name: 'ليمون حامض بلدي',
+    category: 'fruit',
+    type: 'weight',
+    price: 8.0,
+    stock: 45,
+    icon: '🍋',
+    active: true,
+    description: 'حامض بلدي فواح ذو عصارة وفيرة، ضروري للطبخ والمشروبات.',
+    origin: 'تارودانت'
+  },
+
+  // ألبان وأجبان (Dairy)
+  {
+    id: 16,
+    name: 'حليب مبستر كامل الدسم',
+    category: 'dairy',
+    type: 'unit',
+    unit_label: 'قارورة 1 لتر',
+    price: 8.0,
+    stock: 60,
+    icon: '🥛',
+    active: true,
+    description: 'حليب طازج معقم يحافظ على كامل قيمته الغذائية ونكهته الأصيلة.',
+    origin: 'تعاونية الحليب'
+  },
+  {
+    id: 17,
+    name: 'جبن بلدي طري بالأعشاب',
+    category: 'dairy',
+    type: 'unit',
+    unit_label: 'علبة 250غ',
+    price: 18.0,
+    stock: 30,
+    icon: '🧀',
+    active: true,
+    description: 'جبن تقليدي طبيعي محضر من حليب البقر المصفى مع لمسة زعتر جبلي.',
+    origin: 'الشاوية'
+  },
+  {
+    id: 18,
+    name: 'بيض بلدي حر طبيعي',
+    category: 'dairy',
+    type: 'unit',
+    unit_label: 'طبق 30 بيضة',
+    price: 45.0,
+    stock: 25,
+    icon: '🥚',
+    active: true,
+    description: 'بيض مزارع طبيعية من دجاج يقتات على حبوب طبيعية وخالٍ من الهرمونات.',
+    origin: 'دكالة'
+  },
+  {
+    id: 19,
+    name: 'زبدة بلدية حرة ممتازة',
+    category: 'dairy',
+    type: 'weight',
+    price: 75.0,
+    stock: 15,
+    icon: '🧈',
+    active: true,
+    description: 'زبدة بلدية مخوضة تقليدياً بدون إضافات، مثالية للفطور والحلويات.',
+    origin: 'سوس'
+  },
+  {
+    id: 20,
+    name: 'لبن رايب بلدي أصيل',
+    category: 'dairy',
+    type: 'unit',
+    unit_label: 'قارورة 1 لتر',
+    price: 9.0,
+    stock: 35,
+    icon: '🍶',
+    active: true,
+    description: 'رايب بلدي مهدئ ومنعش، رفيق طبق الكسكس المغربي المفضل.',
+    origin: 'تادلة'
+  },
+
+  // بقالة ومونة (Grocery)
+  {
+    id: 21,
+    name: 'زيت زيتون بكر ممتاز عصرة أولى',
+    category: 'grocery',
+    type: 'unit',
+    unit_label: 'قارورة زجاج 1 لتر',
+    price: 85.0,
+    stock: 40,
+    icon: '🫒',
+    active: true,
+    description: 'زيت زيتون خالص عصرة على البارد بنسبة حموضة أقل من 0.8%.',
+    origin: 'قلعة السراغنة'
+  },
+  {
+    id: 22,
+    name: 'شاي أخضر مغربي فاخر (شعرة)',
+    category: 'grocery',
+    type: 'unit',
+    unit_label: 'علبة 250غ',
+    price: 18.0,
+    stock: 50,
+    icon: '🍵',
+    active: true,
+    description: 'شاي أخضر رفيع ذو أوراق كاملة لنكهة أتاي مغربي منعنع ومثالي.',
+    origin: 'استيراد ممتاز'
+  },
+  {
+    id: 23,
+    name: 'دقيق القمح الكامل بنخالته',
+    category: 'grocery',
+    type: 'weight',
+    price: 9.0,
+    stock: 60,
+    icon: '🌾',
+    active: true,
+    description: 'دقيق قمح صلب مطحون على الحجر وغني بالألياف لخبز صحي ولذيذ.',
+    origin: 'مطاحن تقليدية'
+  },
+  {
+    id: 24,
+    name: 'عسل حر طبيعي 100% (أعشاب)',
+    category: 'grocery',
+    type: 'unit',
+    unit_label: 'مرطبان 500غ',
+    price: 95.0,
+    stock: 18,
+    icon: '🍯',
+    active: true,
+    description: 'عسل نحل خالص من جبال الأطلس، طبيعي وبدون سكر مضاف.',
+    origin: 'إيموزار كندر'
+  },
+  {
+    id: 25,
+    name: 'كسكس مغربي بالقمح الصلب',
+    category: 'grocery',
+    type: 'unit',
+    unit_label: 'كيس 1 كغ',
+    price: 14.0,
+    stock: 45,
+    icon: '🥣',
+    active: true,
+    description: 'حبات كسكس متوسطة الحجم مفتولة بحرفية لطهي سهل ومذاق أصيل.',
+    origin: 'صناعة مغربية'
+  },
+
+  // عصائر ومشروبات (Drinks)
+  {
+    id: 26,
+    name: 'عصير برتقال طبيعي معصور صبيحة اليوم',
+    category: 'drinks',
+    type: 'unit',
+    unit_label: 'قارورة 1 لتر',
+    price: 18.0,
+    stock: 30,
+    icon: '🧃',
+    active: true,
+    description: 'عصير برتقال صافٍ بدون ماء ولا سكر مضاف، يعصر يومياً عند الطلب.',
+    origin: 'خضرة فريش'
+  },
+  {
+    id: 27,
+    name: 'ماء معدني طبيعي عين سايس',
+    category: 'drinks',
+    type: 'unit',
+    unit_label: 'حزمة 6 قارورات × 1.5 لتر',
+    price: 26.0,
+    stock: 50,
+    icon: '💧',
+    active: true,
+    description: 'ماء معدني نقي متوازن المعادن من ينابيع الأطلس.',
+    origin: 'عين سايس'
+  },
+  {
+    id: 28,
+    name: 'عصير ليمون ونعناع فريش',
+    category: 'drinks',
+    type: 'unit',
+    unit_label: 'قارورة 1 لتر',
+    price: 16.0,
+    stock: 25,
+    icon: '🥤',
+    active: true,
+    description: 'مشروب منعش محضر من الحامض البلدي والنعناع الأخضر الطري.',
+    origin: 'خضرة فريش'
+  },
+
+  // نظافة وعناية (Cleaning)
+  {
+    id: 29,
+    name: 'سائل غسيل الأواني برائحة الليمون',
+    category: 'cleaning',
+    type: 'unit',
+    unit_label: 'قارورة 750 مل',
+    price: 14.5,
+    stock: 40,
+    icon: '🧼',
+    active: true,
+    description: 'تركيبة فعالة تزيل الدهون الصعبة وتحافظ على نعومة اليدين.',
+    origin: 'جودة معتمدة'
+  },
+  {
+    id: 30,
+    name: 'منظف ومعطر الأرضيات بالخزامى',
+    category: 'cleaning',
+    type: 'unit',
+    unit_label: 'قارورة 1 لتر',
+    price: 19.0,
+    stock: 35,
+    icon: '🧴',
+    active: true,
+    description: 'مطهر ومعطر للأرضيات يدوم شذاه العطر في أرجاء البيت.',
+    origin: 'جودة معتمدة'
+  },
+  {
+    id: 31,
+    name: 'صابون بلدي مغربي بزيت الزيتون',
+    category: 'cleaning',
+    type: 'unit',
+    unit_label: 'علبة 500غ',
+    price: 12.0,
+    stock: 45,
+    icon: '🫧',
+    active: true,
+    description: 'صابون أسود تقليدي أصيل طبيعي 100% غني بفيتامين E.',
+    origin: 'مراكش'
+  }
+];

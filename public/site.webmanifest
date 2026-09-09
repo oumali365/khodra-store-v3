@@ -1,0 +1,76 @@
+{
+  "name": "خُضرة - متجر الخضار والفواكه الطازجة",
+  "short_name": "خُضرة",
+  "description": "تسوق أفضل الخضروات، الفواكه، الألبان، ومنتجات البقالة اليومية مع خدمة التوصيل السريع إلى باب منزلك في الدار البيضاء.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFDF8",
+  "theme_color": "#2E7D32",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "تصفح المنتجات",
+      "short_name": "المنتجات",
+      "description": "تصفح جميع المنتجات المتوفرة",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/web-app-manifest-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "سلة المشتريات",
+      "short_name": "السلة",
+      "description": "عرض سلة المشتريات",
+      "url": "/?cart=true",
+      "icons": [
+        {
+          "src": "/web-app-manifest-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-home.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "الصفحة الرئيسية"
+    },
+    {
+      "src": "/screenshots/mobile-products.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "تصفح المنتجات"
+    }
+  ],
+  "categories": ["shopping", "food", "lifestyle"],
+  "prefer_related_applications": false
+}
