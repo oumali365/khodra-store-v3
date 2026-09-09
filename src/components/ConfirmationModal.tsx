@@ -62,7 +62,6 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   // Build formatted WhatsApp message
   const waLines = [
     `🛒 *طلب جديد من متجر خُضرة ${order.orderCode}*`,
-    `👤 *الاسم:* ${order.customerName}`,
     `📞 *الهاتف:* ${order.phone}`,
     `📍 *عنوان التوصيل:* ${order.address}`,
     order.mapsLink ? `🗺️ *رابط Google Maps للسائق:*\n${order.mapsLink}` : '',
@@ -134,33 +133,46 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
           {/* Order Details Brief */}
           <div className="bg-white border border-[#D4C8B5] rounded-2xl p-4 text-right space-y-3 shadow-xs">
-            <div className="flex items-start gap-2 text-xs sm:text-sm text-[#2D271E]">
-              <MapPin className="w-4 h-4 text-[#C25E12] shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <div>
-                  <span className="font-bold">العنوان: </span>
-                  <span className="font-black text-[#112616]">{order.address}</span>
-                </div>
-                {order.mapsLink && (
-                  <div className="mt-1.5">
-                    <a
-                      href={order.mapsLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[#1E4327] border border-emerald-200 text-xs font-bold transition-colors"
-                    >
-                      <span>🗺️ فتح الموقع على Google Maps للسائق</span>
-                      <span className="text-[10px]">↗</span>
-                    </a>
+            {/* قسم عنوان التوصيل بالدار البيضاء */}
+            <div className="bg-gradient-to-l from-[#F7F4EC] to-[#FFF9F0] border border-[#D4C8B5] rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-5 h-5 text-[#C25E12]" />
+                <span className="font-black text-[#C25E12] text-sm">عنوان التوصيل بالدار البيضاء</span>
+              </div>
+              <div className="flex items-start gap-2 text-xs sm:text-sm text-[#2D271E]">
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">العنوان:</span>
+                    <span className="font-black text-[#112616]">{order.address}</span>
                   </div>
-                )}
+                  {order.mapsLink && (
+                    <div className="mt-1.5">
+                      <a
+                        href={order.mapsLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[#1E4327] border border-emerald-200 text-xs font-bold transition-colors"
+                      >
+                        <span>🗺️ فتح الموقع على Google Maps للسائق</span>
+                        <span className="text-[10px]">↗</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-[#2D271E]">
-              <Clock className="w-4 h-4 text-[#1E4327] shrink-0" />
-              <span className="font-bold">وقت التسليم:</span>
-              <span className="font-black text-[#112616]">{order.deliverySlot}</span>
+            {/* قسم وقت التسليم المفضل مع خلفية منسقة */}
+            <div className="bg-gradient-to-r from-[#1E4327] to-[#2A5D35] rounded-xl p-4 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 rounded-full p-2">
+                  <Clock className="w-5 h-5 text-[#E8B93F]" />
+                </div>
+                <div className="flex-1 text-right">
+                  <span className="text-[#E8B93F] font-bold text-xs block mb-1">وقت التسليم المفضل</span>
+                  <span className="font-black text-white text-sm sm:text-base">{order.deliverySlot}</span>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-xs sm:text-sm text-[#2D271E]">
