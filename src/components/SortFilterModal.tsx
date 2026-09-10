@@ -51,7 +51,7 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
               <ArrowDownWideNarrow className="w-4 h-4 stroke-[2.3]" />
             </div>
             <h3 id="sort-modal-title" className="text-base font-black text-[#112616]">
-              فرز وتصفية المنتجات
+              تصفية المنتجات
             </h3>
           </div>
           <button
@@ -183,7 +183,7 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
               </div>
               <div>
                 <span className="block text-sm font-black text-[#112616]">
-                  المتوفر في المخزن فقط
+                  المتوفر في المخزون فقط
                 </span>
                 <span className="block text-xs text-[#2D271E] font-medium">
                   إخفاء المنتجات التي نفد مخزونها
@@ -215,7 +215,7 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
               className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-[#D4C8B5] bg-white hover:bg-red-50 text-red-700 text-xs font-black transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>إلغاء الفرز</span>
+              <span>إلغاء التصفية
             </button>
           )}
 
