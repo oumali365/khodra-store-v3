@@ -1,57 +1,68 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import './index.css';
 
-// ─── تسجيل Service Worker ───
-const registerServiceWorker = () => {
-  // التحقق من دعم Service Worker في المتصفح
-  if ('serviceWorker' in navigator) {
-    // الانتظار حتى تحميل الصفحة بالكامل
-    window.addEventListener('load', () => {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('✅ Service Worker مسجل بنجاح!', registration);
-          
-          // التحقق من وجود تحديث
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('🔄 تم تحديث Service Worker، يرجى تحديث الصفحة');
-                }
-              });
-            }
-          });
-        })
-        .catch((error) => {
-          console.log('❌ فشل تسجيل Service Worker:', error);
+// ─── إدارة Service Worker بحماية كاملة ضد التعليق ───
+const manageServiceWorker = () => {
+  if (!('serviceWorker' in navigator)) return;
+
+  const isDev =
+    import.meta.env.DEV ||
+    window.location.hostname === 'localhost' ||
+    window.location.hostname.includes('ais-dev');
+
+  if (isDev) {
+    // في بيئة التطوير التجريبية، نلغي أي Service Worker لتجنب تداخل الكاش مع التحديثات الحية
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const reg of registrations) {
+        reg.unregister().then(() => {
+          console.log('🧹 تم إلغاء Service Worker في بيئة التطوير.');
         });
+      }
     });
-  } else {
-    console.log('⚠️ المتصفح لا يدعم Service Worker');
+    return;
   }
+
+  // في بيئة الإنتاج الفعلية
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        // التحقق التلقائي من التحديثات
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('🔄 يتوفر تحديث جديد للمتجر');
+              }
+            });
+          }
+        });
+      })
+      .catch((err) => {
+        console.warn('تعذر تسجيل Service Worker:', err);
+      });
+  });
 };
 
-// ─── تشغيل التطبيق ───
+// ─── تشغيل التطبيق محمي بـ ErrorBoundary ───
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );
 
-// ─── تسجيل Service Worker بعد تحميل التطبيق ───
-registerServiceWorker();
+// تشغيل إدارة الـ Service Worker
+manageServiceWorker();
 
-// ─── (اختياري) الاستماع لحدث التثبيت ───
+// ─── معالجة حدث التثبيت للتطبيق (PWA) ───
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
-  console.log('📲 يمكن تثبيت التطبيق');
-});
-
-// ─── (اختياري) الاستماع لحدث التثبيت الناجح ───
-window.addEventListener('appinstalled', () => {
-  console.log('✅ تم تثبيت التطبيق بنجاح!');
+  // الاحتفاظ بالحدث للاستخدام لاحقاً إن دعت الحاجة
+  (window as unknown as { deferredPrompt: unknown }).deferredPrompt = e;
 });

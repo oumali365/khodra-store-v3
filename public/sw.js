@@ -1,9 +1,9 @@
 // ============================================================
-// ملف: sw.js – Service Worker لتطبيق خُضرة
+// ملف: sw.js – Service Worker لتطبيق خُضرة (نسخة محسنة ضد الأعطال)
 // ============================================================
 
-const CACHE_NAME = 'khodra-v2';
-const ASSETS = [
+const CACHE_NAME = 'khodra-v4-fresh';
+const CORE_ASSETS = [
   '/',
   '/index.html',
   '/site.webmanifest',
@@ -15,58 +15,124 @@ const ASSETS = [
   '/web-app-manifest-512x512.png'
 ];
 
-// ─── تثبيت Service Worker ───
+// ─── تثبيت Service Worker وتخزين الأساسيات ───
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('✅ تم تخزين الملفات في الكاش');
-        return cache.addAll(ASSETS);
-      })
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => {
+      // محاولة إضافة الملفات بشكل فردي حتى لا يفشل التثبيت إذا تعذر ملف واحد
+      return Promise.allSettled(
+        CORE_ASSETS.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn(`تعذر تخزين ${url} في الكاش:`, err);
+          })
+        )
+      );
+    })
   );
 });
 
-// ─── تفعيل Service Worker ───
+// ─── تفعيل Service Worker وتنظيف الكاش القديم فوراً ───
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('🗑️ حذف الكاش القديم:', cache);
+            console.log('🗑️ تنظيف الكاش القديم:', cache);
             return caches.delete(cache);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-// ─── اعتراض الطلبات ───
+// ─── استراتيجية التعامل مع الطلبات (Resilient Fetch Strategy) ───
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
+  const request = event.request;
+
+  // 1. تجاهل أي طلب غير GET أو غير http/https
+  if (request.method !== 'GET' || !request.url.startsWith('http')) {
+    return;
+  }
+
+  const url = new URL(request.url);
+
+  // 2. تجاهل طلبات API الخارجية وSupabase وGoogle Analytics حتى لا تتعطل البيانات المباشرة
+  if (
+    url.hostname.includes('supabase.co') ||
+    url.hostname.includes('googletagmanager') ||
+    url.hostname.includes('google-analytics') ||
+    url.pathname.startsWith('/api/')
+  ) {
+    return;
+  }
+
+  // 3. لطلبات الصفحات والتنقل (HTML / Navigation): نعتمد Network-First
+  // نطلب دائماً من الخادم أولاً لضمان الحصول على آخر تحديث، ومع العودة للكاش فقط عند انقطاع الإنترنت
+  if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          // في حالة عدم وجود إنترنت فقط، نقدم النسخة المخزنة
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          const fallback = await caches.match('/index.html') || await caches.match('/');
+          return fallback || Response.error();
+        })
+    );
+    return;
+  }
+
+  // 4. لملفات الصور والأيقونات والخطوط: Stale-While-Revalidate أو Cache-First
+  const isStaticAsset =
+    url.pathname.match(/\.(png|jpg|jpeg|svg|webp|ico|woff|woff2|ttf|eot)$/i) ||
+    url.pathname.includes('/assets/images/');
+
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
+          // تحديث الكاش في الخلفية
+          fetch(request)
+            .then((networkResponse) => {
+              if (networkResponse && networkResponse.status === 200) {
+                caches.open(CACHE_NAME).then((cache) => {
+                  cache.put(request, networkResponse);
+                });
+              }
+            })
+            .catch(() => {});
           return cachedResponse;
         }
-        return fetch(event.request)
-          .then((response) => {
-            // تخزين الملفات الجديدة
-            if (event.request.url.includes('/icons/') || 
-                event.request.url.includes('/web-app-manifest-')) {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseClone);
-              });
-            }
-            return response;
-          });
+
+        return fetch(request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return networkResponse;
+        });
       })
-      .catch(() => {
-        return caches.match('/');
-      })
+    );
+    return;
+  }
+
+  // 5. لملفات الجافاسكريبت وCSS وباقي الطلبات: نطلبها من الشبكة مباشرة لمنع تقديم HTML بدلاً من JS
+  event.respondWith(
+    fetch(request).catch(() => caches.match(request))
   );
 });
 

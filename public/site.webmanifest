@@ -1,7 +1,7 @@
 {
   "name": "خُضرة - متجر الخضار والفواكه الطازجة",
   "short_name": "خُضرة",
-  "description": "تسوق أفضل الخضروات، الفواكه، الألبان، ومنتجات البقالة اليومية مع خدمة التوصيل السريع إلى باب منزلك في الدار البيضاء.",
+  "description": "تسوق أفضل الخضروات، الفواكه، الألبان، ومنتجات البقالة اليومية مع خدمة التوصيل السريع إلى باب منزلك في مدينة فاس ونواحيها.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -55,20 +55,6 @@
           "type": "image/png"
         }
       ]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/mobile-home.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "label": "الصفحة الرئيسية"
-    },
-    {
-      "src": "/screenshots/mobile-products.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "label": "تصفح المنتجات"
     }
   ],
   "categories": ["shopping", "food", "lifestyle"],
