@@ -47,7 +47,6 @@ export async function fetchProducts(): Promise<Product[]> {
 export async function submitOrder(order: OrderSubmission): Promise<{ success: boolean; message?: string }> {
   const client = getSupabase();
 
-  // Save to localStorage as backup
   try {
     const existingOrders = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
     existingOrders.unshift(order);
@@ -159,7 +158,6 @@ export async function submitCustomerReview(review: {
 }): Promise<{ success: boolean; data?: DbReview; message?: string }> {
   const client = getSupabase();
 
-  // Save to local storage as fallback/cache
   try {
     const cached = JSON.parse(localStorage.getItem('khodra_customer_reviews') || '[]');
     const localReview = {
@@ -222,7 +220,6 @@ export async function submitCustomerReview(review: {
 export async function deleteCustomerReview(reviewId: string): Promise<{ success: boolean; message?: string }> {
   const client = getSupabase();
 
-  // Save to list of deleted review IDs in localStorage to persist deletion across reloads
   try {
     const deletedIds: string[] = JSON.parse(localStorage.getItem('khodra_deleted_review_ids') || '[]');
     if (!deletedIds.includes(String(reviewId))) {
@@ -230,7 +227,6 @@ export async function deleteCustomerReview(reviewId: string): Promise<{ success:
       localStorage.setItem('khodra_deleted_review_ids', JSON.stringify(deletedIds));
     }
 
-    // Also remove from cached reviews
     const cached = JSON.parse(localStorage.getItem('khodra_customer_reviews') || '[]');
     const updated = cached.filter((item: any) => String(item.id) !== String(reviewId));
     localStorage.setItem('khodra_customer_reviews', JSON.stringify(updated));
@@ -288,7 +284,6 @@ export interface DbOrder {
   created_at: string;
 }
 
-// توحيد الحالات القديمة (نصوص عربية) والجديدة (رموز إنجليزية)
 function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
   const s = (raw || '').trim().toLowerCase();
   if (!s) return 'pending';
@@ -301,7 +296,6 @@ function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
 export async function fetchOrders(): Promise<DbOrder[]> {
   const client = getSupabase();
 
-  // Fallback محلي
   if (!client) {
     try {
       const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
@@ -369,7 +363,6 @@ export async function updateOrderStatus(
 ): Promise<{ success: boolean; message?: string }> {
   const client = getSupabase();
 
-  // Fallback محلي
   if (!client) {
     try {
       const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
@@ -382,7 +375,6 @@ export async function updateOrderStatus(
     return { success: true, message: 'تم التحديث محلياً' };
   }
 
-  // لا نحدّث الطلبات المحلية في Supabase
   if (String(orderId).startsWith('local-')) {
     return { success: true, message: 'طلب محلي (غير موجود في Supabase)' };
   }
@@ -401,6 +393,83 @@ export async function updateOrderStatus(
   } catch (err) {
     console.warn('Network error while updating order status:', err);
     return { success: false, message: 'تعذّر الاتصال بالخادم' };
+  }
+}
+
+// ─── حذف طلب نهائياً ───
+export async function deleteOrder(
+  orderId: string | number
+): Promise<{ success: boolean; message?: string }> {
+  const client = getSupabase();
+
+  // طلب محلي
+  if (String(orderId).startsWith('local-')) {
+    try {
+      const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
+      const idx = Number(String(orderId).replace('local-', ''));
+      if (!isNaN(idx)) {
+        local.splice(idx, 1);
+        localStorage.setItem('khodra_recent_orders', JSON.stringify(local));
+      }
+    } catch { /* ignore */ }
+    return { success: true, message: 'تم حذف الطلب المحلي' };
+  }
+
+  if (!client) {
+    return { success: false, message: 'لا يوجد اتصال بقاعدة البيانات' };
+  }
+
+  try {
+    const { error } = await client
+      .from('orders')
+      .delete()
+      .eq('id', orderId);
+
+    if (error) {
+      console.warn('deleteOrder error:', error.message);
+      return { success: false, message: error.message };
+    }
+    return { success: true, message: 'تم حذف الطلب نهائياً' };
+  } catch (err) {
+    console.warn('Network error while deleting order:', err);
+    return { success: false, message: 'تعذّر الاتصال بالخادم' };
+  }
+}
+
+// ─── جلب عدد الطلبات الجديدة (pending) ───
+export async function fetchPendingOrdersCount(): Promise<number> {
+  const client = getSupabase();
+
+  if (!client) {
+    try {
+      const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
+      return local.filter((o: any) => !o.status || o.status === 'pending').length;
+    } catch {
+      return 0;
+    }
+  }
+
+  try {
+    // نجرب أولاً استخدام status
+    const { count, error } = await client
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['pending']);
+
+    if (!error && typeof count === 'number') {
+      return count;
+    }
+
+    // fallback: عدّ الطلبات ذات status = 'جديد' أو NULL
+    const { count: fallbackCount } = await client
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .or('status.is.null,status.eq.جديد,status.eq.pending');
+
+    return fallbackCount || 0;
+  } catch (err) {
+    console.warn('Network error while counting pending orders:', err);
+    return 0;
   }
 }
 
