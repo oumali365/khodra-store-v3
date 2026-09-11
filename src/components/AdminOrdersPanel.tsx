@@ -1,15 +1,13 @@
-// ============================================================
-// AdminOrdersPanel.tsx – نافذة إدارة الطلبات للمدير
-// ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, Package, Clock, CheckCircle2, XCircle, Search, Loader2,
   Phone, MapPin, MessageCircle, RefreshCw, ShoppingBag, ExternalLink,
-  User, TrendingUp, Calendar, AlertCircle, Inbox,
+  User, TrendingUp, Calendar, AlertCircle, Inbox, Copy, Trash2, Check,
 } from 'lucide-react';
 import {
   fetchOrders,
   updateOrderStatus,
+  deleteOrder,
   DbOrder,
   OrderStatus,
 } from '../services/supabaseService';
@@ -17,6 +15,7 @@ import {
 interface AdminOrdersPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onOrdersChange?: (counts: { total: number; pending: number }) => void;
 }
 
 const STATUS_CONFIG: Record<OrderStatus, {
@@ -63,7 +62,6 @@ const STATUS_CONFIG: Record<OrderStatus, {
 
 const STATUS_ORDER: OrderStatus[] = ['pending', 'prepared', 'delivered', 'cancelled'];
 
-// تنظيف رقم الهاتف لرابط واتساب
 function toWhatsApp(phone: string): string {
   const digits = (phone || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -72,7 +70,6 @@ function toWhatsApp(phone: string): string {
   return digits;
 }
 
-// الوقت النسبي
 function timeAgo(dateStr: string): string {
   try {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -103,14 +100,63 @@ function formatDateTime(dateStr: string): string {
   }
 }
 
-export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onClose }) => {
+function buildOrderText(order: DbOrder): string {
+  const lines: string[] = [];
+  lines.push(`🛒 طلب ${order.order_code}`);
+  lines.push(`👤 العميل: ${order.customer_name}`);
+  lines.push(`📞 الهاتف: ${order.phone}`);
+  lines.push(`📍 العنوان: ${order.address}`);
+
+  if (order.note) {
+    order.note.split(' | ').forEach((part) => {
+      lines.push(`• ${part}`);
+    });
+  }
+
+  lines.push('');
+  lines.push('📦 المنتجات:');
+  if (order.items.length === 0) {
+    lines.push('  (لا توجد تفاصيل)');
+  } else {
+    order.items.forEach((it) => {
+      const variant = it.variantLabel ? ` (${it.variantLabel})` : '';
+      lines.push(`  - ${it.name}${variant} × ${it.qty} = ${Number(it.lineTotal).toFixed(2)} DH`);
+    });
+  }
+
+  lines.push('');
+  lines.push(`🚚 التوصيل: ${order.delivery_fee.toFixed(2)} DH`);
+  lines.push(`💰 الإجمالي: ${order.total.toFixed(2)} DH`);
+  lines.push('');
+  lines.push(`🕐 تاريخ الطلب: ${formatDateTime(order.created_at)}`);
+  lines.push(`📌 الحالة: ${STATUS_CONFIG[order.status].label}`);
+
+  return lines.join('\n');
+}
+
+export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onClose, onOrdersChange }) => {
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | number | null>(null);
+  const [deletingId, setDeletingId] = useState<string | number | null>(null);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // نسخ
+  const [copiedId, setCopiedId] = useState<string | number | null>(null);
+
+  // تأكيد الحذف
+  const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<DbOrder | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // ─── إبلاغ الأب بأي تغيير ───
+  useEffect(() => {
+    if (!onOrdersChange) return;
+    const pending = orders.filter((o) => o.status === 'pending').length;
+    onOrdersChange({ total: orders.length, pending });
+  }, [orders, onOrdersChange]);
 
   // جلب الطلبات عند الفتح
   useEffect(() => {
@@ -135,47 +181,90 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
     }
   }, [isOpen]);
 
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     const data = await fetchOrders();
     setOrders(data);
     setIsRefreshing(false);
-    setToast({ type: 'success', message: `تم تحديث القائمة (${data.length} طلب)` });
-    setTimeout(() => setToast(null), 2500);
+    showToast('success', `تم تحديث القائمة (${data.length} طلب)`);
   };
 
   const handleStatusChange = async (orderId: string | number, newStatus: OrderStatus) => {
     const previous = orders.find((o) => o.id === orderId);
     if (!previous || previous.status === newStatus) return;
 
-    // تحديث متفائل (Optimistic)
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
     setUpdatingId(orderId);
 
     const res = await updateOrderStatus(orderId, newStatus);
 
     if (!res.success) {
-      // إرجاع الحالة السابقة عند الفشل
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: previous.status } : o)));
-      setToast({ type: 'error', message: `فشل التحديث: ${res.message || 'خطأ غير معروف'}` });
+      showToast('error', `فشل التحديث: ${res.message || 'خطأ غير معروف'}`);
     } else {
-      setToast({
-        type: 'success',
-        message: `تم تحديث الطلب ${previous.order_code} إلى "${STATUS_CONFIG[newStatus].label}"`,
-      });
+      showToast('success', `تم تحديث الطلب ${previous.order_code} إلى "${STATUS_CONFIG[newStatus].label}"`);
     }
     setUpdatingId(null);
-    setTimeout(() => setToast(null), 3000);
   };
 
-  // إحصائيات
+  // ─── نسخ تفاصيل الطلب ───
+  const handleCopyOrder = async (order: DbOrder) => {
+    const text = buildOrderText(order);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(order.id);
+      showToast('success', `تم نسخ تفاصيل الطلب ${order.order_code}`);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        setCopiedId(order.id);
+        showToast('success', `تم نسخ تفاصيل الطلب ${order.order_code}`);
+        setTimeout(() => setCopiedId(null), 2000);
+      } catch {
+        showToast('error', 'تعذّر النسخ، حاول مرة أخرى');
+      }
+    }
+  };
+
+  // ─── تنفيذ الحذف ───
+  const handleExecuteDelete = async () => {
+    if (!deleteConfirmOrder) return;
+    setIsDeleting(true);
+    setDeletingId(deleteConfirmOrder.id);
+
+    const res = await deleteOrder(deleteConfirmOrder.id);
+
+    if (res.success) {
+      setOrders((prev) => prev.filter((o) => o.id !== deleteConfirmOrder.id));
+      showToast('success', `تم حذف الطلب ${deleteConfirmOrder.order_code} نهائياً`);
+      setDeleteConfirmOrder(null);
+    } else {
+      showToast('error', `فشل الحذف: ${res.message || 'خطأ غير معروف'}`);
+    }
+
+    setIsDeleting(false);
+    setDeletingId(null);
+  };
+
   const stats = useMemo(() => {
     const counts = { pending: 0, prepared: 0, delivered: 0, cancelled: 0 };
     orders.forEach((o) => { counts[o.status]++; });
     return counts;
   }, [orders]);
 
-  // الطلبات المفلترة
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return orders.filter((o) => {
@@ -271,7 +360,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
           })}
         </div>
 
-        {/* ─── Search + Filter status ─── */}
+        {/* ─── Search ─── */}
         <div className="p-3 sm:p-4 bg-[#FAF8F4] border-b border-[#E8E1D3] flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
@@ -331,19 +420,23 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
               const cfg = STATUS_CONFIG[order.status];
               const PillIcon = cfg.Icon;
               const isUpdating = updatingId === order.id;
+              const isBeingDeleted = deletingId === order.id;
               const wa = toWhatsApp(order.phone);
               const itemsCount = order.items.reduce((s, i) => s + (Number(i.qty) || 1), 0);
+              const isCopied = copiedId === order.id;
 
               return (
                 <article
                   key={order.id}
                   className={`bg-white rounded-2xl border-2 p-3.5 sm:p-4 transition-all ${
-                    isUpdating ? 'border-amber-400 shadow-md' : 'border-[#E8E1D3] hover:border-[#D4C8B5]'
-                  }`}
+                    isUpdating || isBeingDeleted
+                      ? 'border-amber-400 shadow-md'
+                      : 'border-[#E8E1D3] hover:border-[#D4C8B5]'
+                  } ${isBeingDeleted ? 'opacity-60' : ''}`}
                 >
-                  {/* Row 1: Order code + Status badge + time */}
+                  {/* Row 1 */}
                   <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-[#F0E9DA]">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <span className="text-sm sm:text-base font-black text-[#112616] shrink-0">
                         {order.order_code}
                       </span>
@@ -359,9 +452,8 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                     </span>
                   </div>
 
-                  {/* Row 2: Customer info + total */}
+                  {/* Row 2 */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    {/* Left: customer */}
                     <div className="space-y-1.5 text-xs">
                       <div className="flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5 text-[#C25E12] shrink-0" />
@@ -377,7 +469,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       </div>
                     </div>
 
-                    {/* Right: order summary */}
                     <div className="bg-[#FAF8F4] rounded-xl p-2.5 border border-[#E8E1D3]">
                       <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="text-stone-600 font-bold flex items-center gap-1">
@@ -400,7 +491,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                     </div>
                   </div>
 
-                  {/* Note (delivery slot / payment method / notes) */}
+                  {/* Note */}
                   {order.note && (
                     <div className="mb-3 p-2 rounded-lg bg-amber-50/50 border border-amber-200 text-[11px] text-amber-950 space-y-0.5">
                       {order.note.split(' | ').map((part, i) => (
@@ -412,8 +503,8 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                     </div>
                   )}
 
-                  {/* Quick actions: WhatsApp + Maps */}
-                  <div className="flex items-center gap-2 mb-3">
+                  {/* Quick actions */}
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
                     {wa && (
                       <a
                         href={`https://wa.me/${wa}?text=${encodeURIComponent(`السلام عليكم ${order.customer_name}، بخصوص طلبكم ${order.order_code} من متجر خُضرة:`)}`}
@@ -425,6 +516,31 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                         <span>واتساب</span>
                       </a>
                     )}
+
+                    {/* 📋 زر النسخ */}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyOrder(order)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
+                        isCopied
+                          ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
+                          : 'bg-stone-50 hover:bg-stone-100 text-stone-800 border-stone-300'
+                      }`}
+                      title="نسخ تفاصيل الطلب كاملة"
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>تم النسخ</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>نسخ التفاصيل</span>
+                        </>
+                      )}
+                    </button>
+
                     {order.maps_link && (
                       <a
                         href={order.maps_link}
@@ -436,12 +552,21 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                         <span>الخريطة</span>
                       </a>
                     )}
-                    <span className="text-[10px] text-stone-400 mr-auto font-medium" title={formatDateTime(order.created_at)}>
-                      {formatDateTime(order.created_at)}
-                    </span>
+
+                    {/* 🗑️ زر الحذف */}
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirmOrder(order)}
+                      disabled={isBeingDeleted}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 border border-red-300 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 mr-auto"
+                      title="حذف الطلب نهائياً"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                      <span>حذف الطلب</span>
+                    </button>
                   </div>
 
-                  {/* ─── Status change buttons ─── */}
+                  {/* Status buttons */}
                   <div className="pt-3 border-t border-[#F0E9DA]">
                     <div className="text-[11px] font-black text-stone-600 mb-2 flex items-center gap-1">
                       <span>تغيير الحالة إلى:</span>
@@ -455,7 +580,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                           <button
                             key={s}
                             type="button"
-                            disabled={isActive || isUpdating}
+                            disabled={isActive || isUpdating || isBeingDeleted}
                             onClick={() => handleStatusChange(order.id, s)}
                             className={`py-2 px-2 rounded-lg border-2 text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all active:scale-95 touch-manipulation ${
                               isActive
@@ -491,6 +616,78 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
         </div>
 
       </div>
+
+      {/* ─── نافذة تأكيد حذف الطلب ─── */}
+      {deleteConfirmOrder && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => !isDeleting && setDeleteConfirmOrder(null)}
+          />
+
+          <div className="relative bg-white border border-red-300 rounded-3xl w-full max-w-sm shadow-2xl z-10 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200">
+
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-black text-base text-[#112616] text-center mb-1">
+              تأكيد حذف الطلب
+            </h3>
+            <p className="text-xs text-stone-500 text-center mb-4 leading-relaxed">
+              هل أنت متأكد من حذف الطلب
+              <strong className="text-stone-800"> {deleteConfirmOrder.order_code} </strong>
+              للعميل
+              <strong className="text-stone-800"> {deleteConfirmOrder.customer_name} </strong>
+              نهائياً؟
+              <br />
+              <span className="text-red-600 font-bold">لا يمكن التراجع عن هذا الإجراء.</span>
+            </p>
+
+            <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 mb-4 text-xs text-stone-700 space-y-1">
+              <div className="flex justify-between">
+                <span className="font-bold">الهاتف:</span>
+                <span dir="ltr">{deleteConfirmOrder.phone}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-bold">الإجمالي:</span>
+                <span className="font-black text-[#C25E12]">{deleteConfirmOrder.total.toFixed(2)} DH</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleExecuteDelete}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm shadow-sm active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري الحذف...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>نعم، حذف نهائي</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirmOrder(null)}
+                className="py-2.5 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer active:scale-95 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
