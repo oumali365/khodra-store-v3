@@ -225,19 +225,19 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={onToggleMenu}
-                className={`w-11 h-11 rounded-xl bg-[#1E4327] hover:bg-[#112616] flex items-center justify-center text-white transition-all duration-300 shadow-md hover:shadow-lg hover:scale-[1.05] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#C25E12]/40 ${
+                className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-[#1E4327] hover:bg-[#112616] flex items-center justify-center text-white transition-all duration-150 shadow-md hover:shadow-lg active:scale-90 focus:outline-none focus:ring-2 focus:ring-[#C25E12]/40 touch-manipulation select-none cursor-pointer shrink-0 ${
                   isMenuOpen ? 'bg-[#C25E12] hover:bg-[#9C4505]' : ''
                 }`}
                 aria-label="فتح القائمة الرئيسية"
                 aria-expanded={isMenuOpen}
               >
-                {isMenuOpen ? <X className="w-8 h-8" /> : <Menu className="w-8 h-8" />}
+                {isMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
               </button>
 
               <button
                 type="button"
                 onClick={() => onOpenPage(null)}
-                className="flex items-center gap-2 group cursor-pointer text-right flex-1 sm:flex-none justify-center"
+                className="flex items-center gap-2 group cursor-pointer text-right flex-1 sm:flex-none justify-center touch-manipulation select-none active:opacity-80 transition-opacity"
               >
                 <div>
                   <span className="text-xl sm:text-2xl font-black bg-gradient-to-r from-[#112616] via-[#1E4327] to-[#2E5336] bg-clip-text text-transparent font-['Almarai'] block leading-none text-center sm:text-right">
@@ -265,7 +265,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     type="button"
                     onClick={() => onSearchChange('')}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A4338] hover:text-[#1A1814] text-xs p-1 rounded-full hover:bg-[#EAE2D2] transition-colors"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A4338] hover:text-[#1A1814] text-xs p-1.5 rounded-full hover:bg-[#EAE2D2] active:scale-90 transition-all touch-manipulation select-none cursor-pointer"
                     aria-label="مسح البحث"
                   >
                     ✕
@@ -279,7 +279,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => setShowMobileSearch(!showMobileSearch)}
-                className="md:hidden w-10 h-10 rounded-xl bg-white border-2 border-[#C25E12] text-[#C25E12] hover:bg-[#F7F4EC] hover:border-[#9C4505] hover:text-[#9C4505] flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md hover:scale-[1.05] active:scale-95"
+                className="md:hidden w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-white border-2 border-[#C25E12] text-[#C25E12] hover:bg-[#F7F4EC] hover:border-[#9C4505] hover:text-[#9C4505] flex items-center justify-center transition-all duration-150 shadow-sm hover:shadow-md active:scale-90 touch-manipulation select-none cursor-pointer shrink-0"
                 aria-label="بحث عن منتج"
               >
                 <Search className="w-5 h-5 stroke-[2.5]" />
@@ -289,7 +289,7 @@ export const Header: React.FC<HeaderProps> = ({
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366]/15 text-[#145A25] border border-[#25D366]/40 hover:bg-[#25D366]/25 transition-colors text-xs font-black font-['Almarai'] shadow-xs"
+                className="hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366]/15 text-[#145A25] border border-[#25D366]/40 hover:bg-[#25D366]/25 active:scale-95 transition-all text-xs font-black font-['Almarai'] shadow-xs touch-manipulation select-none"
               >
                 <Phone className="w-3.5 h-3.5 fill-current" />
                 <span>واتساب مباشر</span>
@@ -299,7 +299,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={onOpenCart}
-                className="relative flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C25E12] to-[#9C4505] text-white shadow-md hover:shadow-lg hover:scale-[1.03] active:scale-95 transition-all duration-300 font-extrabold font-['Almarai']"
+                className="relative flex items-center gap-2 px-4 sm:px-5 py-2.5 min-h-[44px] rounded-xl bg-gradient-to-r from-[#C25E12] to-[#9C4505] text-white shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 font-extrabold font-['Almarai'] touch-manipulation select-none cursor-pointer shrink-0"
                 aria-label={`سلة المشتريات (${cartCount} منتجات)`}
               >
                 <div className="relative">
@@ -367,16 +367,16 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={onCloseMenu}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center text-white transition-all cursor-pointer touch-manipulation select-none"
                 aria-label="إغلاق القائمة"
               >
-                <X className="w-4.5 h-4.5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* الفئات */}
             <div className="p-4 sm:p-4 flex-1">
-              <div className="text-[12px] font-black text-[#1A1814] uppercase tracking-wider mb-2 font-['Almarai']">
+              <div className="text-[12px] font-black text-[#1A1814] uppercase tracking-wider mb-2 font-['Almarai'] select-none">
                 تصفح الأقسام
               </div>
               <div className="space-y-0.5">
@@ -389,7 +389,7 @@ export const Header: React.FC<HeaderProps> = ({
                       onOpenPage(null);
                       onCloseMenu();
                     }}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-[#F7F4EC] text-[#1A1814] hover:text-[#112616] font-extrabold text-sm transition-colors text-right font-['Tajawal'] cursor-pointer"
+                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] hover:text-[#112616] font-extrabold text-sm transition-colors text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none"
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="text-lg w-7 text-center">{cat.icon}</span>
@@ -402,7 +402,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* ─── روابط مهمة (بما فيها تحميل التطبيق) ─── */}
               <div className="border-t border-[#E8E1D3] my-3 pt-3">
-                <div className="text-[12px] font-black text-[#1A1814] uppercase tracking-wider mb-2 font-['Almarai']">
+                <div className="text-[12px] font-black text-[#1A1814] uppercase tracking-wider mb-2 font-['Almarai'] select-none">
                   روابط مهمة
                 </div>
                 <div className="space-y-0.5">
@@ -412,7 +412,7 @@ export const Header: React.FC<HeaderProps> = ({
                       onOpenPage('about');
                       onCloseMenu();
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#F7F4EC] text-[#1A1814] font-extrabold text-sm text-right font-['Tajawal'] cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] font-extrabold text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none"
                   >
                     <Info className="w-4 h-4 text-[#1E4327]" />
                     <span>من نحن</span>
@@ -423,7 +423,7 @@ export const Header: React.FC<HeaderProps> = ({
                       onOpenPage('policy');
                       onCloseMenu();
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#F7F4EC] text-[#1A1814] font-extrabold text-sm text-right font-['Tajawal'] cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] font-extrabold text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none"
                   >
                     <RefreshCw className="w-4 h-4 text-[#C25E12]" />
                     <span>سياسة الإرجاع</span>
@@ -434,7 +434,7 @@ export const Header: React.FC<HeaderProps> = ({
                       onOpenPage('privacy');
                       onCloseMenu();
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#F7F4EC] text-[#1A1814] font-extrabold text-sm text-right font-['Tajawal'] cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] font-extrabold text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none"
                   >
                     <ShieldCheck className="w-4 h-4 text-[#1E4327]" />
                     <span>سياسة الخصوصية</span>
@@ -446,10 +446,10 @@ export const Header: React.FC<HeaderProps> = ({
                       type="button"
                       onClick={handleDownloadClick}
                       disabled={downloadStatus === 'downloading'}
-                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-extrabold text-sm transition-all duration-300 text-right font-['Tajawal'] group cursor-pointer ${
+                      className={`w-full flex items-center gap-3 px-3 py-3 min-h-[48px] rounded-xl font-extrabold text-sm transition-all duration-150 text-right font-['Tajawal'] group cursor-pointer touch-manipulation select-none ${
                         downloadStatus === 'downloading'
                           ? 'bg-[#E8E1D3] text-[#4A4338] cursor-wait'
-                          : 'bg-gradient-to-r from-[#1E4327] to-[#2E5336] hover:from-[#112616] hover:to-[#1E4327] text-white shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95'
+                          : 'bg-gradient-to-r from-[#1E4327] to-[#2E5336] hover:from-[#112616] hover:to-[#1E4327] text-white shadow-md hover:shadow-lg active:scale-95'
                       }`}
                     >
                       {/* أيقونة التحميل */}

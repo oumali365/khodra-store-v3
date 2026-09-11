@@ -51,7 +51,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 role="tab"
                 aria-selected={isSelected}
                 onClick={() => onSelectCategory(cat.id)}
-                className={`flex flex-col items-center justify-center p-3 rounded-[18px] border transition-all cursor-pointer relative overflow-hidden group ${
+                className={`flex flex-col items-center justify-center p-3 rounded-[18px] border transition-all cursor-pointer relative overflow-hidden group touch-manipulation select-none active:scale-95 ${
                   isSelected
                     ? 'bg-gradient-to-b from-[#1E4327] to-[#112616] text-white border-[#112616] shadow-md -translate-y-1 scale-[1.02]'
                     : 'bg-[#F7F4EC] hover:bg-white text-[#112616] border-[#D4C8B5] hover:border-[#C25E12] shadow-xs'

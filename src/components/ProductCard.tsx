@@ -209,13 +209,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               type="button"
               onClick={handleIncrement}
-              className="w-8 h-8 rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-colors active:scale-95 cursor-pointer shadow-xs"
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
               aria-label="زيادة الكمية"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
             </button>
 
-            <div className="flex flex-col items-center leading-none">
+            <div className="flex flex-col items-center leading-none select-none">
               <span dir="ltr" className="text-sm font-extrabold text-[#112616]">
                 {selectedQty} {isWeight ? 'kg' : ''}
               </span>
@@ -224,7 +224,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               type="button"
               onClick={handleDecrement}
-              className="w-8 h-8 rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-colors active:scale-95 cursor-pointer shadow-xs"
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
               aria-label="إنقاص الكمية"
             >
               <Minus className="w-4 h-4 stroke-[2.5]" />
@@ -237,14 +237,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           type="button"
           disabled={isSoldOut}
           onClick={handleAdd}
-          className={`w-full py-2.5 px-3 rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer ${
+          className={`w-full min-h-[44px] py-2.5 px-3 rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition-all duration-150 shadow-md hover:shadow-lg cursor-pointer touch-manipulation select-none ${
             isSoldOut
               ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed'
               : isJustAdded
               ? 'bg-[#1B4323] text-white scale-[1.02] shadow-lg'
               : inCartQty > 0
-              ? 'bg-[#1E4327]/10 text-[#112616] border-2 border-[#1E4327]/40 hover:bg-[#1E4327]/20 hover:border-[#1E4327]/60'
-              : 'bg-gradient-to-r from-[#C25E12] to-[#9C4505] text-white hover:scale-[1.02] hover:shadow-xl active:scale-95'
+              ? 'bg-[#1E4327]/10 text-[#112616] border-2 border-[#1E4327]/40 hover:bg-[#1E4327]/20 hover:border-[#1E4327]/60 active:scale-95'
+              : 'bg-gradient-to-r from-[#C25E12] to-[#9C4505] text-white hover:scale-[1.01] hover:shadow-xl active:scale-95'
           }`}
         >
           {isSoldOut ? (

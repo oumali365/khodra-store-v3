@@ -5,10 +5,20 @@
     scroll-behavior: smooth;
     background-color: #F2EEE4;
     color: #1A1814;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     font-family: 'Tajawal', 'Cairo', system-ui, -apple-system, sans-serif;
     background-color: #F2EEE4;
     color: #1A1814;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* تحسين استجابة أزرار اللمس لمنع أي تأخير وإزالة اللون الرمادي عند النقر */
+  button,
+  [role="button"],
+  a {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }

@@ -127,9 +127,9 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
           </div>
         </div>
 
-        {/* عداد الكمية بحجم مدمج */}
+        {/* عداد الكمية بحجم مدمج وسهل اللمس */}
         <div 
-          className="flex items-center gap-1 bg-[#F7F4EC] border border-[#D4C8B5] rounded-lg p-0.5 shrink-0"
+          className="flex items-center gap-1 bg-[#F7F4EC] border border-[#D4C8B5] rounded-lg p-0.5 shrink-0 select-none touch-manipulation"
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
         >
@@ -139,13 +139,13 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
               e.stopPropagation();
               onUpdateQty(item.key, -1);
             }}
-            className="w-6 h-6 rounded-md bg-white text-[#112616] hover:bg-[#EAE2D2] flex items-center justify-center font-black text-[10px] transition-colors cursor-pointer shadow-2xs border border-[#D4C8B5]"
+            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#112616] hover:bg-[#EAE2D2] active:scale-85 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-2xs border border-[#D4C8B5] touch-manipulation select-none"
             aria-label="إنقاص الكمية"
           >
-            <Minus className="w-3 h-3 stroke-[2.5]" />
+            <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
 
-          <span className="text-xs font-black text-[#112616] min-w-[20px] text-center select-none">
+          <span className="text-xs font-black text-[#112616] min-w-[22px] text-center select-none">
             {item.qty}
           </span>
 
@@ -155,10 +155,10 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
               e.stopPropagation();
               onUpdateQty(item.key, 1);
             }}
-            className="w-6 h-6 rounded-md bg-white text-[#112616] hover:bg-[#EAE2D2] flex items-center justify-center font-black text-[10px] transition-colors cursor-pointer shadow-2xs border border-[#D4C8B5]"
+            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#112616] hover:bg-[#EAE2D2] active:scale-85 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-2xs border border-[#D4C8B5] touch-manipulation select-none"
             aria-label="زيادة الكمية"
           >
-            <Plus className="w-3 h-3 stroke-[2.5]" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
         </div>
 
@@ -171,11 +171,11 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
             e.stopPropagation();
             onRemoveItem(item.key);
           }}
-          className="w-7 h-7 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 active:scale-85 flex items-center justify-center transition-all cursor-pointer shrink-0 touch-manipulation select-none"
           aria-label={`حذف ${item.name} من السلة`}
           title="حذف من السلة"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-4 h-4" />
         </button>
       </motion.div>
     </motion.div>

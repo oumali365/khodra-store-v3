@@ -57,7 +57,7 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white hover:bg-[#EAE2D2] border border-[#D4C8B5] text-[#2D271E] flex items-center justify-center transition-colors cursor-pointer"
+            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-white hover:bg-[#EAE2D2] active:scale-90 border border-[#D4C8B5] text-[#2D271E] flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none"
             aria-label="إغلاق النافذة"
           >
             <X className="w-4 h-4" />
@@ -73,7 +73,7 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
             onClick={() => {
               onSortChange(sortBy === 'price-asc' ? 'default' : 'price-asc');
             }}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer text-right group ${
+            className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer text-right group touch-manipulation select-none active:scale-[0.98] ${
               sortBy === 'price-asc'
                 ? 'bg-emerald-50/80 border-[#1E4327] shadow-xs'
                 : 'bg-[#F7F4EC] hover:bg-white border-[#D4C8B5]'
@@ -117,7 +117,7 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
             onClick={() => {
               onSortChange(sortBy === 'price-desc' ? 'default' : 'price-desc');
             }}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer text-right group ${
+            className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer text-right group touch-manipulation select-none active:scale-[0.98] ${
               sortBy === 'price-desc'
                 ? 'bg-emerald-50/80 border-[#1E4327] shadow-xs'
                 : 'bg-[#F7F4EC] hover:bg-white border-[#D4C8B5]'
@@ -138,7 +138,7 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
                   الأعلى سعراً
                 </span>
                 <span className="block text-xs text-[#2D271E] font-medium">
-                  ترتيب من الأعلى إلى الأقل سعراً
+                  ترتيب من الأعلى سعراً إلى الأرخص
                 </span>
               </div>
             </div>
@@ -155,17 +155,11 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
           </button>
 
           {/* المفتاح 3: المتوفر في المخزن فقط */}
-          <div
+          <button
+            type="button"
+            id="filter-in-stock-key"
             onClick={onToggleOnlyInStock}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onToggleOnlyInStock();
-              }
-            }}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer text-right ${
+            className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer text-right touch-manipulation select-none active:scale-[0.98] ${
               onlyInStock
                 ? 'bg-emerald-50/80 border-[#1E4327] shadow-xs'
                 : 'bg-[#F7F4EC] hover:bg-white border-[#D4C8B5]'
@@ -193,7 +187,7 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
 
             {/* مفتاح التبديل (Toggle Switch) */}
             <div
-              className={`w-12 h-6 rounded-full p-0.5 transition-colors relative flex items-center ${
+              className={`w-12 h-6 rounded-full p-0.5 transition-colors relative flex items-center pointer-events-none ${
                 onlyInStock ? 'bg-[#1E4327]' : 'bg-[#D4C8B5]'
               }`}
             >
@@ -203,7 +197,7 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
                 }`}
               />
             </div>
-          </div>
+          </button>
         </div>
 
         {/* أسفل النافذة: أزرار التطبيق وإعادة الضبط */}
@@ -212,17 +206,17 @@ export const SortFilterModal: React.FC<SortFilterModalProps> = ({
             <button
               type="button"
               onClick={onReset}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-[#D4C8B5] bg-white hover:bg-red-50 text-red-700 text-xs font-black transition-colors cursor-pointer"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] py-2.5 px-3 rounded-xl border border-[#D4C8B5] bg-white hover:bg-red-50 active:scale-95 text-red-700 text-xs font-black transition-all cursor-pointer touch-manipulation select-none"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>إلغاء التصفية
+              <span>إلغاء التصفية</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-black text-xs sm:text-sm shadow-xs transition-colors cursor-pointer text-center"
+            className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl bg-[#1E4327] hover:bg-[#112616] active:scale-95 text-white font-black text-xs sm:text-sm shadow-xs transition-all cursor-pointer text-center touch-manipulation select-none"
           >
             تطبيق
           </button>

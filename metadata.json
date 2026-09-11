@@ -1,6 +1,6 @@
 {
   "name": "khodra-store-v2",
-  "description": "Imported from GitHub: oumali365/khodra-store",
+  "description": "متجر خُضرة لتسوق الخضروات والفواكه الطازجة ومنتجات البقالة مع التوصيل السريع والدفع عند الاستلام في المغرب",
   "requestFramePermissions": [
     "geolocation"
   ],

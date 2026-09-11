@@ -66,7 +66,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <button
                 type="button"
                 onClick={onClearCart}
-                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-colors group cursor-pointer"
+                className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-white/15 hover:bg-white/25 active:scale-90 text-white flex items-center justify-center transition-all group cursor-pointer touch-manipulation select-none"
                 aria-label="تفريغ السلة"
                 title="تفريغ السلة"
               >
@@ -76,7 +76,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-white/20 hover:bg-white/30 active:scale-90 text-white flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none"
               aria-label="إغلاق السلة"
             >
               <X className="w-5 h-5" />
@@ -190,7 +190,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <button
               type="button"
               onClick={onProceedToCheckout}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#1E4327] to-[#112616] text-white font-black text-base shadow-md hover:shadow-lg hover:brightness-105 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#1E4327]"
+              className="w-full min-h-[48px] py-3 px-4 rounded-xl bg-gradient-to-r from-[#1E4327] to-[#112616] text-white font-black text-base shadow-md hover:shadow-lg hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#1E4327] touch-manipulation select-none"
             >
               <span>إتمام الطلب</span>
               <ArrowLeft className="w-5 h-5 stroke-[2.5]" />

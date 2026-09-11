@@ -95,3 +95,128 @@ export async function submitOrder(order: OrderSubmission): Promise<{ success: bo
     return { success: true, message: 'سيتم استكمال الطلب عبر واتساب' };
   }
 }
+
+export interface DbReview {
+  id: string;
+  author: string;
+  neighborhood: string;
+  rating: number;
+  date?: string;
+  comment: string;
+  verified: boolean;
+  category: 'all' | 'quality' | 'delivery' | 'service';
+  created_at?: string;
+}
+
+export async function fetchReviews(): Promise<DbReview[] | null> {
+  const client = getSupabase();
+  if (!client) {
+    return null;
+  }
+
+  try {
+    const { data, error } = await client
+      .from('reviews')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Supabase reviews fetch warning:', error.message);
+      return null;
+    }
+
+    if (data && data.length > 0) {
+      return data.map((item) => ({
+        id: String(item.id),
+        author: item.author || 'زبون المتجر',
+        neighborhood: item.neighborhood || 'الدار البيضاء',
+        rating: typeof item.rating === 'number' ? item.rating : 5,
+        date: item.created_at
+          ? new Date(item.created_at).toLocaleDateString('ar-MA', {
+              month: 'short',
+              day: 'numeric',
+            })
+          : 'مؤخراً',
+        comment: item.comment || '',
+        verified: item.verified !== undefined ? Boolean(item.verified) : true,
+        category: item.category || 'quality',
+        created_at: item.created_at,
+      }));
+    }
+  } catch (err) {
+    console.warn('Network error while fetching reviews from Supabase:', err);
+  }
+
+  return null;
+}
+
+export async function submitCustomerReview(review: {
+  author: string;
+  neighborhood: string;
+  rating: number;
+  comment: string;
+  category: string;
+  verified?: boolean;
+}): Promise<{ success: boolean; data?: DbReview; message?: string }> {
+  const client = getSupabase();
+
+  // Save to local storage as fallback/cache
+  try {
+    const cached = JSON.parse(localStorage.getItem('khodra_customer_reviews') || '[]');
+    const localReview = {
+      id: `local-${Date.now()}`,
+      ...review,
+      date: 'الآن',
+      created_at: new Date().toISOString(),
+      verified: true,
+    };
+    localStorage.setItem('khodra_customer_reviews', JSON.stringify([localReview, ...cached].slice(0, 30)));
+  } catch {
+    // Ignore local storage quota errors
+  }
+
+  if (!client) {
+    return { success: true, message: 'تم حفظ الرأي محلياً' };
+  }
+
+  try {
+    const newRecord = {
+      author: review.author,
+      neighborhood: review.neighborhood || 'الدار البيضاء',
+      rating: review.rating,
+      comment: review.comment,
+      category: review.category,
+      verified: review.verified !== undefined ? review.verified : true,
+      created_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client
+      .from('reviews')
+      .insert([newRecord])
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Supabase review insert warning:', error.message);
+      return { success: true, message: 'تم استلام التقييم بنجاح' };
+    }
+
+    const inserted: DbReview = {
+      id: String(data?.id || `rev-${Date.now()}`),
+      author: data?.author || review.author,
+      neighborhood: data?.neighborhood || review.neighborhood,
+      rating: data?.rating || review.rating,
+      date: 'الآن',
+      comment: data?.comment || review.comment,
+      verified: data?.verified !== undefined ? Boolean(data?.verified) : true,
+      category: data?.category || (review.category as any),
+      created_at: data?.created_at,
+    };
+
+    return { success: true, data: inserted };
+  } catch (err) {
+    console.warn('Error saving review to Supabase:', err);
+    return { success: true, message: 'تم استلام التقييم' };
+  }
+}
+

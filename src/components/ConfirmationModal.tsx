@@ -88,7 +88,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 left-4 w-9 h-9 rounded-full bg-[#F7F4EC] text-[#2D271E] hover:bg-[#EAE2D2] flex items-center justify-center transition-colors cursor-pointer border border-[#D4C8B5]"
+          className="absolute top-4 left-4 w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-[#F7F4EC] text-[#2D271E] hover:bg-[#EAE2D2] active:scale-90 flex items-center justify-center transition-all cursor-pointer border border-[#D4C8B5] touch-manipulation select-none"
           aria-label="إغلاق"
         >
           <X className="w-5 h-5 stroke-[2.5]" />
@@ -185,7 +185,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowItemsList(!showItemsList)}
-                className="w-full flex items-center justify-between text-xs font-black text-[#2D271E] hover:text-[#112616] transition-colors py-1 cursor-pointer"
+                className="w-full flex items-center justify-between text-xs font-black text-[#2D271E] hover:text-[#112616] active:opacity-75 transition-all py-1.5 min-h-[36px] cursor-pointer touch-manipulation select-none"
               >
                 <span>المنتجات المطلوبة ({order.items.length})</span>
                 {showItemsList ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -224,7 +224,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white font-black text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#25D366]"
+              className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] active:scale-95 text-white font-black text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#25D366] touch-manipulation select-none"
             >
               <MessageCircle className="w-5 h-5 fill-current" />
               <span>إرسال وتأكيد الطلب عبر واتساب</span>
@@ -233,7 +233,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-full mt-2 py-3 px-4 rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-black text-xs sm:text-sm transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
+              className="w-full mt-2 min-h-[44px] py-3 px-4 rounded-xl bg-[#1E4327] hover:bg-[#112616] active:scale-95 text-white font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-1 cursor-pointer shadow-2xs touch-manipulation select-none"
             >
               <span>متابعة التسوق</span>
               <ArrowRight className="w-4 h-4 stroke-[2.5]" />

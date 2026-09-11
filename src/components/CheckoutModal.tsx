@@ -260,7 +260,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-white/15 hover:bg-white/25 active:scale-90 text-white flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none"
               aria-label="إغلاق"
             >
               <X className="w-5 h-5" />
@@ -406,7 +406,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       type="button"
                       onClick={handleGetLocation}
                       disabled={isLocating}
-                      className={`w-full py-2.5 px-3 rounded-xl border-2 text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      className={`w-full min-h-[44px] py-2.5 px-3 rounded-xl border-2 text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all cursor-pointer touch-manipulation select-none active:scale-98 ${
                         locationCoords
                           ? 'bg-emerald-50 text-emerald-900 border-emerald-500 shadow-2xs hover:bg-emerald-100'
                           : 'bg-white hover:bg-[#FAF8F3] text-[#C25E12] border-[#D0C6B4] hover:border-[#C25E12] shadow-2xs'
@@ -443,7 +443,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           href={currentMapsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-emerald-50 border-2 border-emerald-500 text-emerald-900 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-2xs transition-colors cursor-pointer"
+                          className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-white hover:bg-emerald-50 active:scale-98 border-2 border-emerald-500 text-emerald-900 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer touch-manipulation select-none"
                         >
                           <span>google maps معاينة الرابط</span>
                           <ExternalLink className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
@@ -470,12 +470,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   return (
                     <label
                       key={slot.id}
-                      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all touch-manipulation select-none ${
                         isPassed
                           ? 'opacity-40 bg-gray-100 border-gray-200 cursor-not-allowed'
                           : isSelected
                           ? 'bg-emerald-50/70 border-[#2E6B39] ring-2 ring-[#2E6B39]/20 shadow-xs'
-                          : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3]'
+                          : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3] active:scale-[0.99]'
                       }`}
                     >
                       <input
@@ -517,10 +517,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <label
-                  className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                  className={`flex items-center gap-3 p-3.5 min-h-[48px] rounded-xl border-2 cursor-pointer transition-all touch-manipulation select-none ${
                     paymentMethod === 'cod'
                       ? 'bg-emerald-50/70 border-[#2E6B39] ring-2 ring-[#2E6B39]/20 shadow-xs'
-                      : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3]'
+                      : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3] active:scale-[0.99]'
                   }`}
                 >
                   <input
@@ -538,10 +538,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </label>
 
                 <label
-                  className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                  className={`flex items-center gap-3 p-3.5 min-h-[48px] rounded-xl border-2 cursor-pointer transition-all touch-manipulation select-none ${
                     paymentMethod === 'bank'
                       ? 'bg-emerald-50/70 border-[#2E6B39] ring-2 ring-[#2E6B39]/20 shadow-xs'
-                      : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3]'
+                      : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3] active:scale-[0.99]'
                   }`}
                 >
                   <input
@@ -581,10 +581,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           key={b.id}
                           type="button"
                           onClick={() => setSelectedBankId(b.id)}
-                          className={`p-2 rounded-xl border-2 flex flex-col items-center justify-center text-center transition-all cursor-pointer relative ${
+                          className={`p-2 min-h-[48px] rounded-xl border-2 flex flex-col items-center justify-center text-center transition-all cursor-pointer relative touch-manipulation select-none active:scale-95 ${
                             isSelected
                               ? 'border-[#C25E12] ring-2 ring-[#C25E12]/25 shadow-xs bg-amber-50'
-                              : 'border-[#D0C6B4] hover:border-[#C25E12]/60 hover:bg-[#FAF8F3] bg-white text-[#191816]'
+                              : 'border-[#D0C6B4] hover:border-[#C25E12]/60 hover:bg-[#FAF8F3] active:bg-[#FAF8F3] bg-white text-[#191816]'
                           }`}
                         >
                           <div className="w-full h-8 flex items-center justify-center mb-1">
@@ -639,7 +639,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleCopyRib(currentBank.rib)}
-                          className="inline-flex items-center gap-1.5 text-xs font-black text-[#C25E12] hover:text-[#A34B07] bg-white px-3 py-1.5 rounded-lg border border-[#D0C6B4] transition-colors cursor-pointer shadow-2xs"
+                          className="inline-flex items-center gap-1.5 text-xs font-black text-[#C25E12] hover:text-[#A34B07] active:scale-90 bg-white px-3 py-1.5 min-h-[36px] rounded-lg border border-[#D0C6B4] transition-all cursor-pointer shadow-2xs touch-manipulation select-none"
                         >
                           {copiedRib ? (
                             <>
@@ -729,7 +729,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#C25E12] to-[#A34B07] hover:from-[#B5550D] hover:to-[#924205] text-white font-black text-base shadow-md hover:shadow-lg active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full min-h-[50px] py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#C25E12] to-[#A34B07] hover:from-[#B5550D] hover:to-[#924205] text-white font-black text-base shadow-md hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer touch-manipulation select-none"
               >
                 {isSubmitting ? (
                   <>

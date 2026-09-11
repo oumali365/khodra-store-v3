@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
-import { ArrowDownWideNarrow } from 'lucide-react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { CategoryFilter } from './components/CategoryFilter';
+import { CategoryHeader } from './components/CategoryHeader';
 import { ProductCard } from './components/ProductCard';
 import { StickyBottomBar } from './components/StickyBottomBar';
 import { TrustBadges } from './components/TrustBadges';
+import { CustomerReviews } from './components/CustomerReviews';
 import { Footer } from './components/Footer';
 import { SortFilterModal, SortOption } from './components/SortFilterModal';
 
@@ -419,71 +420,19 @@ export default function App() {
             >
               <div ref={catalogSectionRef} id="catalog-section" />
 
-              {/* Category Header Card – بطاقة تعريف المنتجات */}
-              <div className="bg-gradient-to-b from-white to-[#FDFBF7] border border-[#D4C8B5] rounded-2xl sm:rounded-3xl p-4 sm:p-6 mb-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right">
-                <div className="flex items-center gap-3.5 sm:gap-4 flex-col sm:flex-row text-center sm:text-right w-full sm:w-auto">
-                  {/* أيقونة فرز وتصفية المنتجات الثابتة الملونة بالبرتقالي الأنيق */}
-                  <button
-                    type="button"
-                    id="sort-products-btn"
-                    onClick={() => setIsSortModalOpen(true)}
-                    className={`relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:scale-105 active:scale-95 shrink-0 group ${
-                      sortBy !== 'default' || onlyInStock
-                        ? 'bg-gradient-to-br from-[#EA580C] to-[#C25E12] text-white ring-2 ring-[#C25E12]/40 ring-offset-2 ring-offset-white'
-                        : 'bg-[#FFF5ED] hover:bg-[#FFEDD5] border-2 border-[#FDBA74] text-[#C25E12]'
-                    }`}
-                    title="فرز وتصفية المنتجات (الأقل سعراً، الأعلى سعراً، المخزن)"
-                    aria-label="فرز وتصفية المنتجات"
-                  >
-                    <ArrowDownWideNarrow className={`w-5 h-5 sm:w-6 sm:h-6 stroke-[2.3] transition-transform group-hover:-translate-y-0.5 ${
-                      sortBy !== 'default' || onlyInStock ? 'text-white' : 'text-[#C25E12]'
-                    }`} />
-                    {(sortBy !== 'default' || onlyInStock) && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 border-2 border-white rounded-full shadow-xs animate-pulse" />
-                    )}
-                  </button>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
-                      <h2 className="text-xl sm:text-2xl font-black text-[#112616] tracking-tight">
-                        {activeCategoryInfo.name}
-                      </h2>
-
-                      <span className="text-xs font-black text-[#B85507] bg-[#FFF4EC] px-3 py-1 rounded-full border border-[#FDBA74] shadow-2xs">
-                        {filteredProducts.length} متوفر
-                      </span>
-
-                      {(sortBy !== 'default' || onlyInStock) && (
-                        <span className="inline-flex items-center gap-1 text-xs font-black text-[#1E4327] bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 shadow-2xs">
-                          <span className="text-emerald-700">✓</span>
-                          <span>{sortBy === 'price-asc' ? 'الأقل سعراً' : sortBy === 'price-desc' ? 'الأعلى سعراً' : ''}</span>
-                          <span>{onlyInStock ? (sortBy !== 'default' ? ' • المتوفر فقط' : 'المتوفر في المخزن فقط') : ''}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-xs sm:text-sm text-[#4A4237] mt-1.5 font-medium leading-relaxed max-w-2xl">
-                      {activeCategoryInfo.description}
-                    </p>
-                  </div>
-                </div>
-
-                {searchQuery && (
-                  <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-end shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setSelectedCategory('veg');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="text-xs sm:text-sm font-black text-[#B85507] hover:text-[#9C4505] bg-[#FFF4EC] hover:bg-[#FFE8D6] px-3.5 py-2 rounded-xl border border-[#FDBA74] shrink-0 cursor-pointer transition-colors shadow-2xs"
-                    >
-                      إلغاء تصفية البحث ({searchQuery}) ✕
-                    </button>
-                  </div>
-                )}
-              </div>
+              {/* Category Header Card – بطاقة تعريف المنتجات وقسم الفئة المحددة */}
+              <CategoryHeader
+                categoryInfo={activeCategoryInfo}
+                sortBy={sortBy}
+                onlyInStock={onlyInStock}
+                onOpenSort={() => setIsSortModalOpen(true)}
+                searchQuery={searchQuery}
+                onClearSearch={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('veg');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
 
               {/* Grid or Empty/Loading state */}
               {isLoading ? (
@@ -542,6 +491,9 @@ export default function App() {
 
             {/* Trust and Value Pillars */}
             <TrustBadges />
+
+            {/* Customer Testimonials & Reviews */}
+            <CustomerReviews />
           </>
         )}
       </main>
