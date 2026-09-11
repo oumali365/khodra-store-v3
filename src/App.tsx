@@ -243,8 +243,29 @@ export default function App() {
     setCart([]);
   };
 
+  // ─── ORDER SUBMISSION (محسّن: يحمي من "النجاح الكاذب") ───
   const handleOrderSubmission = async (order: OrderSubmission) => {
-    await submitOrder(order);
+    const result = await submitOrder(order);
+
+    if (!result.success) {
+      // ❌ الطلب فشل في الحفظ — لا نغلق الـ modal ولا نظهر شاشة النجاح
+      console.error('❌ فشل حفظ الطلب:', result.message, result.errorCode);
+
+      const errorMessage = result.message || 'تعذّر حفظ الطلب في قاعدة البيانات';
+
+      alert(
+        '⚠️ تعذّر إرسال الطلب\n\n' +
+        errorMessage + '\n\n' +
+        '📱 يرجى التواصل معنا مباشرة عبر واتساب لإتمام طلبك:\n' +
+        STORE_CONFIG.whatsappNumber
+      );
+
+      // نُعيد الطلب لصفحة الـ checkout حتى يستطيع العميل إعادة المحاولة
+      // (isCheckoutOpen يبقى true، والـ cart يبقى كما هو)
+      return;
+    }
+
+    // ✅ الطلب نجح — نعرض شاشة التأكيد
     setConfirmedOrder(order);
     setIsCheckoutOpen(false);
     setCart([]);
@@ -270,9 +291,9 @@ export default function App() {
 
   const scrollToSearchResults = () => {
     if (searchResultsRef.current) {
-      searchResultsRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
+      searchResultsRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
       });
     }
   };
@@ -280,9 +301,9 @@ export default function App() {
   // ─── SCROLL TO CATALOG ───
   const scrollToCatalog = () => {
     if (catalogSectionRef.current) {
-      catalogSectionRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
+      catalogSectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
       });
     }
   };
@@ -326,7 +347,7 @@ export default function App() {
     let list = products.filter((p) => {
       const hasSearch = searchQuery.trim().length > 0;
 
-      const matchesCategory = hasSearch 
+      const matchesCategory = hasSearch
         ? true
         : selectedCategory === 'all' || p.category === selectedCategory;
 
@@ -413,7 +434,7 @@ export default function App() {
             />
 
             {/* Products Grid Section */}
-            <section 
+            <section
               id="search-results-section"
               ref={searchResultsRef}
               className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12"
