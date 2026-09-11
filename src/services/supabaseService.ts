@@ -30,7 +30,6 @@ export async function fetchProducts(): Promise<Product[]> {
       .order('id');
 
     if (error) {
-      // Fallback if table or active column doesn't match
       console.warn('Supabase products fetch failed, using built-in catalog:', error.message);
       return INITIAL_PRODUCTS;
     }
@@ -71,7 +70,7 @@ export async function submitOrder(order: OrderSubmission): Promise<{ success: bo
       subtotal: order.subtotal,
       delivery_fee: order.deliveryFee,
       total: order.total,
-      status: 'جديد',
+      status: 'pending',
       note: `وقت التسليم: ${order.deliverySlot} | طريقة الدفع: ${order.paymentMethod === 'bank' ? 'تحويل بنكي' : 'الدفع عند الاستلام'}${order.bankId ? ` (${order.bankId})` : ''}${order.mapsLink ? ` | رابط خرائط Google: ${order.mapsLink}` : ''}${order.receiptFileName ? ` | الوصل: ${order.receiptFileName}` : ''}${order.notes ? ` | ملاحظات: ${order.notes}` : ''}`,
       created_at: new Date().toISOString()
     };
@@ -261,3 +260,153 @@ export async function deleteCustomerReview(reviewId: string): Promise<{ success:
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ─── إدارة الطلبات (Order Management) ───
+// ═══════════════════════════════════════════════════════════════
+
+export type OrderStatus = 'pending' | 'prepared' | 'delivered' | 'cancelled';
+
+export interface DbOrder {
+  id: string | number;
+  order_code: string;
+  customer_name: string;
+  phone: string;
+  address: string;
+  items: Array<{
+    name: string;
+    variantLabel?: string;
+    qty: number;
+    lineTotal: number;
+    icon?: string;
+  }>;
+  subtotal: number;
+  delivery_fee: number;
+  total: number;
+  status: OrderStatus;
+  note?: string;
+  maps_link?: string;
+  created_at: string;
+}
+
+// توحيد الحالات القديمة (نصوص عربية) والجديدة (رموز إنجليزية)
+function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
+  const s = (raw || '').trim().toLowerCase();
+  if (!s) return 'pending';
+  if (s === 'prepared' || s.includes('تجهيز') || s.includes('جاهز')) return 'prepared';
+  if (s === 'delivered' || s.includes('تسليم') || s.includes('توصيل') || s.includes('موصل')) return 'delivered';
+  if (s === 'cancelled' || s.includes('لغا') || s.includes('لغي')) return 'cancelled';
+  return 'pending';
+}
+
+export async function fetchOrders(): Promise<DbOrder[]> {
+  const client = getSupabase();
+
+  // Fallback محلي
+  if (!client) {
+    try {
+      const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
+      return local.map((o: any, idx: number): DbOrder => ({
+        id: `local-${idx}`,
+        order_code: o.orderCode || `#${idx}`,
+        customer_name: o.customerName || '-',
+        phone: o.phone || '-',
+        address: o.address || '-',
+        items: o.items || [],
+        subtotal: Number(o.subtotal) || 0,
+        delivery_fee: Number(o.deliveryFee) || 0,
+        total: Number(o.total) || 0,
+        status: 'pending',
+        note: o.deliverySlot || '',
+        maps_link: o.mapsLink || '',
+        created_at: o.created_at || new Date().toISOString(),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  try {
+    const { data, error } = await client
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('fetchOrders warning:', error.message);
+      return [];
+    }
+
+    return (data || []).map((row: any): DbOrder => ({
+      id: row.id,
+      order_code: row.order_code || row.orderCode || `#${row.id}`,
+      customer_name: row.customer_name || row.customerName || '-',
+      phone: String(row.phone || '-'),
+      address: row.address || '-',
+      items: (() => {
+        if (Array.isArray(row.items)) return row.items;
+        if (typeof row.items === 'string') {
+          try { return JSON.parse(row.items); } catch { return []; }
+        }
+        return [];
+      })(),
+      subtotal: Number(row.subtotal) || 0,
+      delivery_fee: Number(row.delivery_fee ?? row.deliveryFee) || 0,
+      total: Number(row.total) || 0,
+      status: normalizeOrderStatus(row.status),
+      note: row.note || '',
+      maps_link: row.maps_link || '',
+      created_at: row.created_at || new Date().toISOString(),
+    }));
+  } catch (err) {
+    console.warn('Network error while fetching orders:', err);
+    return [];
+  }
+}
+
+export async function updateOrderStatus(
+  orderId: string | number,
+  status: OrderStatus
+): Promise<{ success: boolean; message?: string }> {
+  const client = getSupabase();
+
+  // Fallback محلي
+  if (!client) {
+    try {
+      const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
+      const idx = Number(String(orderId).replace('local-', ''));
+      if (!isNaN(idx) && local[idx]) {
+        local[idx].status = status;
+        localStorage.setItem('khodra_recent_orders', JSON.stringify(local));
+      }
+    } catch { /* ignore */ }
+    return { success: true, message: 'تم التحديث محلياً' };
+  }
+
+  // لا نحدّث الطلبات المحلية في Supabase
+  if (String(orderId).startsWith('local-')) {
+    return { success: true, message: 'طلب محلي (غير موجود في Supabase)' };
+  }
+
+  try {
+    const { error } = await client
+      .from('orders')
+      .update({ status })
+      .eq('id', orderId);
+
+    if (error) {
+      console.warn('updateOrderStatus error:', error.message);
+      return { success: false, message: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    console.warn('Network error while updating order status:', err);
+    return { success: false, message: 'تعذّر الاتصال بالخادم' };
+  }
+}
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'قيد الإنشاء',
+  prepared: 'تم التجهيز',
+  delivered: 'تم التسليم',
+  cancelled: 'ملغى',
+};
