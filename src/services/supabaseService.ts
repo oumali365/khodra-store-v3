@@ -16,6 +16,10 @@ export function getSupabase(): SupabaseClient | null {
   return supabaseClient;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ─── المنتجات ───
+// ═══════════════════════════════════════════════════════════════
+
 export async function fetchProducts(): Promise<Product[]> {
   const client = getSupabase();
   if (!client) {
@@ -44,9 +48,16 @@ export async function fetchProducts(): Promise<Product[]> {
   return INITIAL_PRODUCTS;
 }
 
-export async function submitOrder(order: OrderSubmission): Promise<{ success: boolean; message?: string }> {
+// ═══════════════════════════════════════════════════════════════
+// ─── رفع الطلب (مُصلح: يُظهر الأخطاء الحقيقية) ───
+// ═══════════════════════════════════════════════════════════════
+
+export async function submitOrder(
+  order: OrderSubmission
+): Promise<{ success: boolean; message?: string; errorCode?: string }> {
   const client = getSupabase();
 
+  // ─── حفظ محلي احتياطي (يتم دائماً، حتى لو نجح الحفظ في Supabase) ───
   try {
     const existingOrders = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
     existingOrders.unshift(order);
@@ -55,11 +66,43 @@ export async function submitOrder(order: OrderSubmission): Promise<{ success: bo
     // ignore local storage errors
   }
 
+  // إذا لم يتوفر Supabase، نكتفي بالحفظ المحلي
   if (!client) {
-    return { success: true, message: 'تم حفظ الطلب محلياً بنجاح' };
+    console.warn('⚠️ Supabase client غير متاح — تم الحفظ محلياً فقط');
+    return {
+      success: true,
+      message: 'تم حفظ الطلب محلياً (سيتم إرسال البيانات عبر واتساب)',
+    };
   }
 
   try {
+    // ─── تجهيز بيانات الطلب ───
+    const noteParts: string[] = [];
+
+    if (order.deliverySlot) {
+      noteParts.push(`وقت التسليم: ${order.deliverySlot}`);
+    }
+
+    noteParts.push(
+      `طريقة الدفع: ${order.paymentMethod === 'bank' ? 'تحويل بنكي' : 'الدفع عند الاستلام'}`
+    );
+
+    if (order.bankId) {
+      noteParts.push(`البنك: ${order.bankId}`);
+    }
+
+    if (order.receiptFileName) {
+      noteParts.push(`الوصل: ${order.receiptFileName}`);
+    }
+
+    if (order.mapsLink) {
+      noteParts.push(`رابط الخريطة: ${order.mapsLink}`);
+    }
+
+    if (order.notes) {
+      noteParts.push(`ملاحظات: ${order.notes}`);
+    }
+
     const orderData: Record<string, any> = {
       order_code: order.orderCode,
       customer_name: order.customerName,
@@ -69,30 +112,61 @@ export async function submitOrder(order: OrderSubmission): Promise<{ success: bo
       subtotal: order.subtotal,
       delivery_fee: order.deliveryFee,
       total: order.total,
-      status: 'pending',
-      note: `وقت التسليم: ${order.deliverySlot} | طريقة الدفع: ${order.paymentMethod === 'bank' ? 'تحويل بنكي' : 'الدفع عند الاستلام'}${order.bankId ? ` (${order.bankId})` : ''}${order.mapsLink ? ` | رابط خرائط Google: ${order.mapsLink}` : ''}${order.receiptFileName ? ` | الوصل: ${order.receiptFileName}` : ''}${order.notes ? ` | ملاحظات: ${order.notes}` : ''}`,
-      created_at: new Date().toISOString()
+      status: 'pending', // ← القيمة الصحيحة المتوافقة مع القيد
+      note: noteParts.join(' | '),
+      created_at: new Date().toISOString(),
     };
 
+    // ✅ إضافة maps_link فقط إذا كان موجوداً (العمود موجود في الجدول)
     if (order.mapsLink) {
       orderData.maps_link = order.mapsLink;
     }
 
-    const { error } = await client
+    // ─── الإدراج مع عرض الأخطاء الحقيقية ───
+    const { data, error } = await client
       .from('orders')
-      .insert([orderData]);
+      .insert([orderData])
+      .select();
 
     if (error) {
-      console.warn('Supabase order insert warning:', error.message);
-      return { success: true, message: 'تم استلام الطلب وتجهيز رسالة الواتساب' };
+      // ✅ الآن نُظهر الخطأ الحقيقي بدل إخفائه
+      console.error('❌ فشل حفظ الطلب في Supabase:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+
+      return {
+        success: false,
+        message: `فشل حفظ الطلب في قاعدة البيانات: ${error.message || error.code || 'خطأ غير معروف'}`,
+        errorCode: error.code,
+      };
     }
 
+    // ✅ نجح الحفظ
+    console.log('✅ تم حفظ الطلب في Supabase:', {
+      id: data?.[0]?.id,
+      order_code: data?.[0]?.order_code,
+      status: data?.[0]?.status,
+    });
+
     return { success: true };
-  } catch (err) {
-    console.warn('Error saving order to Supabase:', err);
-    return { success: true, message: 'سيتم استكمال الطلب عبر واتساب' };
+  } catch (err: any) {
+    // ─── أخطاء الشبكة أو JS ───
+    console.error('❌ خطأ في الاتصال بـ Supabase:', err);
+
+    return {
+      success: false,
+      message: `تعذّر الاتصال بقاعدة البيانات: ${err?.message || 'خطأ غير معروف'}`,
+      errorCode: 'NETWORK_ERROR',
+    };
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ─── التقييمات ───
+// ═══════════════════════════════════════════════════════════════
 
 export interface DbReview {
   id: string;
@@ -402,7 +476,6 @@ export async function deleteOrder(
 ): Promise<{ success: boolean; message?: string }> {
   const client = getSupabase();
 
-  // طلب محلي
   if (String(orderId).startsWith('local-')) {
     try {
       const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
@@ -450,17 +523,16 @@ export async function fetchPendingOrdersCount(): Promise<number> {
   }
 
   try {
-    // نجرب أولاً استخدام status
     const { count, error } = await client
       .from('orders')
       .select('*', { count: 'exact', head: true })
-      .in('status', ['pending']);
+      .eq('status', 'pending');
 
     if (!error && typeof count === 'number') {
       return count;
     }
 
-    // fallback: عدّ الطلبات ذات status = 'جديد' أو NULL
+    // fallback للقيم العربية القديمة
     const { count: fallbackCount } = await client
       .from('orders')
       .select('*', { count: 'exact', head: true })
