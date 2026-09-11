@@ -2,7 +2,7 @@
 // CustomerReviews.tsx – قسم آراء وتقييمات العملاء
 // متصل بقاعدة بيانات Supabase ومصمم بنمط مقتضب وواقعي بالدارجة المغربية
 // ============================================================
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Star, 
   BadgeCheck, 
@@ -25,7 +25,12 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
-import { fetchReviews, submitCustomerReview, deleteCustomerReview } from '../services/supabaseService';
+import {
+  fetchReviews,
+  submitCustomerReview,
+  deleteCustomerReview,
+  fetchPendingOrdersCount,
+} from '../services/supabaseService';
 import { AdminOrdersPanel } from './AdminOrdersPanel';
 
 export interface CustomerReview {
@@ -38,7 +43,6 @@ export interface CustomerReview {
   verified: boolean;
 }
 
-// 3 تعليقات احترافية بالدارجة المغربية قصيرة كقاعدة أساسية
 const INITIAL_THREE_REVIEWS: CustomerReview[] = [
   {
     id: 'rev-1',
@@ -72,7 +76,6 @@ const INITIAL_THREE_REVIEWS: CustomerReview[] = [
 const INITIAL_VISIBLE_COUNT = 3;
 
 export const CustomerReviews: React.FC = () => {
-  // استرجاع المعرفات المحذوفة لمنع ظهورها نهائياً
   const getDeletedIds = (): string[] => {
     try {
       return JSON.parse(localStorage.getItem('khodra_deleted_review_ids') || '[]');
@@ -90,14 +93,13 @@ export const CustomerReviews: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // حقول نموذج إضافة الرأي المباشر
   const [newName, setNewName] = useState('');
   const [newNeighborhood, setNewNeighborhood] = useState('');
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState('');
   const [isSuccessAlert, setIsSuccessAlert] = useState(false);
 
-  // ─── إدارة التقييمات ووضع المدير (Admin Mode) ───
+  // ─── Admin mode ───
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     try {
       return sessionStorage.getItem('khodra_admin_auth') === 'true';
@@ -118,10 +120,10 @@ export const CustomerReviews: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [adminNotification, setAdminNotification] = useState<string | null>(null);
 
-  // ─── حالة نافذة إدارة الطلبات ───
+  // ─── Orders panel + badge count ───
   const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 
-  // استرجاع الرمز السري الفعلي من التخزين المحلي أو الإعدادات
   const getAdminPin = (): string => {
     try {
       return localStorage.getItem('khodra_admin_pin') || STORE_CONFIG.adminPin || '1234';
@@ -130,7 +132,38 @@ export const CustomerReviews: React.FC = () => {
     }
   };
 
-  // جلب التقييمات الحقيقية من Supabase
+  // ─── جلب عدد الطلبات الجديدة عند تفعيل وضع المدير + كل 60 ثانية ───
+  const refreshPendingCount = useCallback(async () => {
+    try {
+      const count = await fetchPendingOrdersCount();
+      setPendingOrdersCount(count);
+    } catch {
+      // silent
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setPendingOrdersCount(0);
+      return;
+    }
+
+    refreshPendingCount();
+
+    const interval = setInterval(() => {
+      refreshPendingCount();
+    }, 60000); // كل دقيقة
+
+    return () => clearInterval(interval);
+  }, [isAdmin, refreshPendingCount]);
+
+  // تحديث العدّاد عند إغلاق لوحة الطلبات
+  const handleCloseOrdersPanel = useCallback(() => {
+    setIsOrdersPanelOpen(false);
+    refreshPendingCount();
+  }, [refreshPendingCount]);
+
+  // جلب التقييمات من Supabase
   useEffect(() => {
     let isMounted = true;
     async function loadSupabaseReviews() {
@@ -151,7 +184,6 @@ export const CustomerReviews: React.FC = () => {
               verified: r.verified,
             }));
 
-          // دمج تقييمات Supabase الجديدة مع التقييمات الأولية غير المحذوفة
           const merged = [
             ...formatted,
             ...INITIAL_THREE_REVIEWS.filter(
@@ -170,13 +202,11 @@ export const CustomerReviews: React.FC = () => {
     };
   }, []);
 
-  // العرض التلقائي: 3 تقييمات افتراضياً لتجنب التمرير الطويل
   const displayedReviews = useMemo(() => {
     if (showAllReviews) return reviews;
     return reviews.slice(0, INITIAL_VISIBLE_COUNT);
   }, [reviews, showAllReviews]);
 
-  // إرسال رأي جديد وحفظه في Supabase (نشر مباشر بدون فئات)
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || !newComment.trim()) return;
@@ -222,7 +252,6 @@ export const CustomerReviews: React.FC = () => {
     }
   };
 
-  // الاستماع لحدث النقر على القفل في الفوتر
   useEffect(() => {
     const handleTrigger = () => {
       if (isAdmin) {
@@ -241,7 +270,6 @@ export const CustomerReviews: React.FC = () => {
     };
   }, [isAdmin]);
 
-  // التحقق من الرمز السري والدخول لوضع المدير
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const correctPin = getAdminPin();
@@ -251,7 +279,7 @@ export const CustomerReviews: React.FC = () => {
       try {
         sessionStorage.setItem('khodra_admin_auth', 'true');
       } catch {
-        // Ignore session storage errors
+        // Ignore
       }
       setIsPinModalOpen(false);
       setPinInput('');
@@ -259,7 +287,6 @@ export const CustomerReviews: React.FC = () => {
       setAdminNotification('مرحباً بك! تم تفعيل وضع المدير. يمكنك الآن حذف التعليقات أو إدارة الطلبات.');
       setTimeout(() => setAdminNotification(null), 4000);
 
-      // التمرير السلس نحو قسم التقييمات للبدء في الإدارة
       setTimeout(() => {
         const el = document.getElementById('customer-reviews-section');
         if (el) {
@@ -271,9 +298,9 @@ export const CustomerReviews: React.FC = () => {
     }
   };
 
-  // تسجيل الخروج من وضع المدير
   const handleLogoutAdmin = () => {
     setIsAdmin(false);
+    setPendingOrdersCount(0);
     try {
       sessionStorage.removeItem('khodra_admin_auth');
     } catch {
@@ -283,7 +310,6 @@ export const CustomerReviews: React.FC = () => {
     setTimeout(() => setAdminNotification(null), 3000);
   };
 
-  // تغيير الرمز السري
   const handleChangePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPinInput.trim() || newPinInput.trim().length < 4) {
@@ -304,7 +330,6 @@ export const CustomerReviews: React.FC = () => {
     }
   };
 
-  // تنفيذ حذف التعليق
   const handleExecuteDelete = async () => {
     if (!deleteConfirmReview) return;
     setIsDeleting(true);
@@ -328,7 +353,7 @@ export const CustomerReviews: React.FC = () => {
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8 sm:my-12" id="customer-reviews-section">
       <div className="bg-[#FAF8F4] border border-[#D4C8B5] rounded-3xl p-4 sm:p-7 shadow-xs text-center relative">
 
-        {/* إشعار إداري عائم */}
+        {/* إشعار إداري */}
         {adminNotification && (
           <div className="mb-4 py-2.5 px-4 rounded-xl bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md flex items-center justify-between gap-2 animate-in fade-in duration-200 text-right">
             <div className="flex items-center gap-2">
@@ -345,7 +370,7 @@ export const CustomerReviews: React.FC = () => {
           </div>
         )}
 
-        {/* ─── شريط تحكم وضع المدير (يظهر فقط عند تفعيل الإدارة) ─── */}
+        {/* ─── شريط المدير ─── */}
         {isAdmin && (
           <div className="mb-6 p-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 text-amber-950 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-right shadow-2xs">
             <div className="flex items-center gap-2">
@@ -355,14 +380,21 @@ export const CustomerReviews: React.FC = () => {
               </span>
             </div>
             <div className="flex items-center gap-2 mr-auto flex-wrap">
-              {/* ── زر إدارة الطلبات ── */}
+              {/* ── زر إدارة الطلبات مع شارة حمراء ── */}
               <button
                 type="button"
                 onClick={() => setIsOrdersPanelOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#1E4327] to-[#2E5336] hover:from-[#112616] hover:to-[#1E4327] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
+                className="relative px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#1E4327] to-[#2E5336] hover:from-[#112616] hover:to-[#1E4327] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
               >
                 <ShoppingBag className="w-3.5 h-3.5 text-[#F5D76E]" />
                 <span>إدارة الطلبات</span>
+
+                {/* 🔴 Badge */}
+                {pendingOrdersCount > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black border-2 border-white shadow-md animate-pulse">
+                    {pendingOrdersCount > 99 ? '99+' : pendingOrdersCount}
+                  </span>
+                )}
               </button>
 
               <button
@@ -384,7 +416,7 @@ export const CustomerReviews: React.FC = () => {
           </div>
         )}
 
-        {/* ─── الرأس: الشارة والعنوان والتقييم الإجمالي المختصر ─── */}
+        {/* ─── الرأس ─── */}
         <div className="max-w-2xl mx-auto mb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-[#1E4327] text-xs font-black mb-2 shadow-2xs select-none">
             <Sparkles className="w-3.5 h-3.5 text-[#2E5336]" />
@@ -404,7 +436,7 @@ export const CustomerReviews: React.FC = () => {
           </div>
         </div>
 
-        {/* ─── شبكة بطاقات آراء الزبناء (3 في الصف بشكل متوازن ومقتضب) ─── */}
+        {/* ─── شبكة البطاقات ─── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 text-right">
           {displayedReviews.map((rev) => (
             <article
@@ -414,7 +446,6 @@ export const CustomerReviews: React.FC = () => {
               }`}
             >
               <div>
-                {/* رأس البطاقة: الاسم والحي والتقييم والتاريخ */}
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-[#1E4327] text-white font-black text-xs flex items-center justify-center shrink-0 select-none">
@@ -444,7 +475,6 @@ export const CustomerReviews: React.FC = () => {
                   </span>
                 </div>
 
-                {/* النجوم */}
                 <div className="flex items-center gap-0.5 mb-2" aria-label={`تقييم ${rev.rating} من 5 نجوم`}>
                   {[...Array(5)].map((_, i) => (
                     <Star
@@ -458,13 +488,11 @@ export const CustomerReviews: React.FC = () => {
                   ))}
                 </div>
 
-                {/* نص التقييم بالدارجة المغربية */}
                 <p className="text-xs sm:text-sm text-[#2D271E] font-medium leading-relaxed">
                   "{rev.comment}"
                 </p>
               </div>
 
-              {/* ─── زر حذف التعليق الخاص بالمدير ─── */}
               {isAdmin && (
                 <div className="mt-3 pt-2.5 border-t border-amber-200 flex items-center justify-between">
                   <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1">
@@ -486,7 +514,7 @@ export const CustomerReviews: React.FC = () => {
           ))}
         </div>
 
-        {/* ─── زر قراءة المزيد / اختصار التقييمات لتجنب التمرير الطويل ─── */}
+        {/* ─── زر قراءة المزيد ─── */}
         {reviews.length > INITIAL_VISIBLE_COUNT && (
           <div className="mt-4 pt-2">
             <button
@@ -509,7 +537,7 @@ export const CustomerReviews: React.FC = () => {
           </div>
         )}
 
-        {/* ─── أسفل القسم: دعوة لمشاركة الرأي ─── */}
+        {/* ─── الأسفل ─── */}
         <div className="mt-6 pt-4 border-t border-[#EAE2D2] flex flex-col sm:flex-row items-center justify-between gap-3 text-right">
           <p className="text-xs text-[#524B3E] font-medium">
             هل تسوقت من متجر خُضرة مؤخراً؟ يسعدنا دائماً الاستماع إلى رأيك واقتراحاتك.
@@ -538,20 +566,12 @@ export const CustomerReviews: React.FC = () => {
 
       </div>
 
-      {/* ─── نافذة إضافة الرأي المنبثقة: نشر مباشر بدون فئات ─── */}
+      {/* ─── نافذة إضافة الرأي ─── */}
       {isModalOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" 
-          role="dialog" 
-          aria-modal="true"
-        >
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs" 
-            onClick={() => !isSubmitting && setIsModalOpen(false)} 
-          />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !isSubmitting && setIsModalOpen(false)} />
 
           <div className="relative bg-white border border-[#D4C8B5] rounded-3xl w-full max-w-md shadow-2xl z-50 overflow-hidden p-5 text-right animate-in zoom-in-95 duration-200 my-auto">
-
             <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-[#1E4327] text-white flex items-center justify-center">
@@ -675,17 +695,10 @@ export const CustomerReviews: React.FC = () => {
         </div>
       )}
 
-      {/* ─── نافذة إدخال الرمز السري للمدير (PIN Modal) ─── */}
+      {/* ─── PIN Modal ─── */}
       {isPinModalOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" 
-          role="dialog" 
-          aria-modal="true"
-        >
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs" 
-            onClick={() => setIsPinModalOpen(false)} 
-          />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsPinModalOpen(false)} />
 
           <div className="relative bg-white border border-amber-300 rounded-3xl w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-4">
@@ -754,17 +767,10 @@ export const CustomerReviews: React.FC = () => {
         </div>
       )}
 
-      {/* ─── نافذة تغيير الرمز السري (Change PIN Modal) ─── */}
+      {/* ─── Change PIN Modal ─── */}
       {isChangePinModalOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" 
-          role="dialog" 
-          aria-modal="true"
-        >
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs" 
-            onClick={() => setIsChangePinModalOpen(false)} 
-          />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsChangePinModalOpen(false)} />
 
           <div className="relative bg-white border border-stone-300 rounded-3xl w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-4">
@@ -829,17 +835,10 @@ export const CustomerReviews: React.FC = () => {
         </div>
       )}
 
-      {/* ─── نافذة تأكيد حذف التعليق (Delete Confirmation Modal) ─── */}
+      {/* ─── Delete Review Confirmation ─── */}
       {deleteConfirmReview && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" 
-          role="dialog" 
-          aria-modal="true"
-        >
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs" 
-            onClick={() => !isDeleting && setDeleteConfirmReview(null)} 
-          />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !isDeleting && setDeleteConfirmReview(null)} />
 
           <div className="relative bg-white border border-red-300 rounded-3xl w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
             <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
@@ -889,10 +888,11 @@ export const CustomerReviews: React.FC = () => {
         </div>
       )}
 
-      {/* ─── نافذة إدارة الطلبات (خاصة بالمدير) ─── */}
+      {/* ─── لوحة إدارة الطلبات ─── */}
       <AdminOrdersPanel
         isOpen={isOrdersPanelOpen}
-        onClose={() => setIsOrdersPanelOpen(false)}
+        onClose={handleCloseOrdersPanel}
+        onOrdersChange={({ pending }) => setPendingOrdersCount(pending)}
       />
 
     </section>
