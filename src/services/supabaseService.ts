@@ -129,7 +129,7 @@ export async function fetchReviews(): Promise<DbReview[] | null> {
       return data.map((item) => ({
         id: String(item.id),
         author: item.author || 'زبون المتجر',
-        neighborhood: item.neighborhood || 'الدار البيضاء',
+        neighborhood: item.neighborhood || 'فاس',
         rating: typeof item.rating === 'number' ? item.rating : 5,
         date: item.created_at
           ? new Date(item.created_at).toLocaleDateString('ar-MA', {
@@ -182,7 +182,7 @@ export async function submitCustomerReview(review: {
   try {
     const newRecord = {
       author: review.author,
-      neighborhood: review.neighborhood || 'الدار البيضاء',
+      neighborhood: review.neighborhood || 'فاس',
       rating: review.rating,
       comment: review.comment,
       category: review.category,
@@ -217,6 +217,47 @@ export async function submitCustomerReview(review: {
   } catch (err) {
     console.warn('Error saving review to Supabase:', err);
     return { success: true, message: 'تم استلام التقييم' };
+  }
+}
+
+export async function deleteCustomerReview(reviewId: string): Promise<{ success: boolean; message?: string }> {
+  const client = getSupabase();
+
+  // Save to list of deleted review IDs in localStorage to persist deletion across reloads
+  try {
+    const deletedIds: string[] = JSON.parse(localStorage.getItem('khodra_deleted_review_ids') || '[]');
+    if (!deletedIds.includes(String(reviewId))) {
+      deletedIds.push(String(reviewId));
+      localStorage.setItem('khodra_deleted_review_ids', JSON.stringify(deletedIds));
+    }
+
+    // Also remove from cached reviews
+    const cached = JSON.parse(localStorage.getItem('khodra_customer_reviews') || '[]');
+    const updated = cached.filter((item: any) => String(item.id) !== String(reviewId));
+    localStorage.setItem('khodra_customer_reviews', JSON.stringify(updated));
+  } catch {
+    // Ignore localStorage errors
+  }
+
+  if (!client) {
+    return { success: true, message: 'تم حذف التقييم محلياً' };
+  }
+
+  try {
+    const { error } = await client
+      .from('reviews')
+      .delete()
+      .eq('id', reviewId);
+
+    if (error) {
+      console.warn('Supabase delete review notice:', error.message);
+      return { success: true, message: 'تم حذف التقييم وإخفاؤه من المتجر' };
+    }
+
+    return { success: true, message: 'تم حذف التقييم بنجاح' };
+  } catch (err) {
+    console.warn('Network error while deleting review:', err);
+    return { success: true, message: 'تم حذف التقييم' };
   }
 }
 

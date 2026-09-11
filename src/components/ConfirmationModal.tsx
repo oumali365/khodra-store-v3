@@ -122,7 +122,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <div className="bg-gradient-to-l from-[#F7F4EC] to-[#FFF9F0] border border-[#D4C8B5] rounded-xl p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <MapPin className="w-5 h-5 text-[#C25E12]" />
-                <span className="font-black text-[#C25E12] text-sm">عنوان التوصيل بالدار البيضاء</span>
+                <span className="font-black text-[#C25E12] text-sm">عنوان التوصيل بمدينة فاس</span>
               </div>
               
               <div className="space-y-2 text-right">

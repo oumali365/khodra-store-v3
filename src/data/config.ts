@@ -3,7 +3,7 @@ import { BankAccount, DeliverySlot } from '../types';
 export const STORE_CONFIG = {
   storeName: 'خُضرة',
   tagline: 'خضر وفواكه طازجة توصيل لباب منزلك',
-  city: 'الدار البيضاء والنواحي',
+  city: 'فاس والنواحي',
   whatsappNumber: '+212704274830',
   whatsappCleanNumber: '212704274830',
   currency: 'د.ر',
@@ -13,6 +13,7 @@ export const STORE_CONFIG = {
   weightStep: 1,
   weightMax: 10,
   cacheKey: 'khodra_cart_v2',
+  adminPin: '1234',
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://ywoxhwvxsuowaiqbtqdr.supabase.co',
   supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b3hod3Z4c3Vvd2FpcWJ0cWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1MDEzMjQsImV4cCI6MjEwMzA3NzMyNH0.Eit183FqRg-XcTobm_pccJpCf9A6bvEjTq2woJdvG-Y',
 };
@@ -26,7 +27,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     icon: '📮',
     rib: '350 810 0000000000000012 45',
     beneficiary: 'شركة خُضرة فريش ش.م.م (KHODRA FRESH SARL)',
-    city: 'الدار البيضاء'
+    city: 'فاس'
   },
   {
     id: 'chaabi',
@@ -36,7 +37,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     icon: '🐎',
     rib: '210 780 0000000000000034 67',
     beneficiary: 'شركة خُضرة فريش ش.م.م (KHODRA FRESH SARL)',
-    city: 'الدار البيضاء'
+    city: 'فاس'
   },
   {
     id: 'cih',
@@ -46,7 +47,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     icon: '🏛️',
     rib: '230 640 0000000000000056 89',
     beneficiary: 'شركة خُضرة فريش ش.م.م (KHODRA FRESH SARL)',
-    city: 'الدار البيضاء'
+    city: 'فاس'
   },
   {
     id: 'tijjari',
@@ -56,7 +57,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     icon: '🦅',
     rib: '007 810 0000000000000078 21',
     beneficiary: 'شركة خُضرة فريش ش.م.م (KHODRA FRESH SARL)',
-    city: 'الدار البيضاء'
+    city: 'فاس'
   },
   {
     id: 'boafrica',
@@ -66,7 +67,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     icon: '🌍',
     rib: '000 240 0000000000000090 12',
     beneficiary: 'شركة خُضرة فريش ش.م.م (KHODRA FRESH SARL)',
-    city: 'الدار البيضاء'
+    city: 'فاس'
   },
   {
     id: 'cashplus',
@@ -76,7 +77,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     icon: '⚡',
     rib: '222 180 0000000000000100 34',
     beneficiary: 'شركة خُضرة فريش ش.م.م (KHODRA FRESH SARL)',
-    city: 'الدار البيضاء'
+    city: 'فاس'
   }
 ];
 

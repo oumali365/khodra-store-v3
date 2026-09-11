@@ -8,7 +8,6 @@ import { ProductCategory } from '../types';
 
 import heroBg1 from '../assets/images/fresh_vegetables_basket_1788941771901.jpg';
 import heroBg2 from '../assets/images/fresh_fruits_harvest_1788941788583.jpg';
-import heroBg3 from '../assets/images/organic_farm_produce_1788941803206.jpg';
 
 interface HeroProps {
   onSelectCategory: (cat: ProductCategory) => void;
@@ -27,12 +26,6 @@ const HERO_SLIDES = [
     title: 'فواكه غنية بالنضارة،',
     highlight: 'حلوة ومختارة بعناية',
     description: 'تشكيلة استثنائية من أشهى الفواكه الطازجة المغذية والغنية بالفيتامينات، تصلك نقية ومحفوظة بأعلى معايير الجودة.',
-  },
-  {
-    image: heroBg3,
-    title: 'محاصيل المزرعة العضوية،',
-    highlight: 'بأفضل الأسعار والضمان',
-    description: 'من المزارع المغربية الأصيلة إلى مائدتكم العائلية، نوفر لكم ألذ المنتجات الطبيعية مع سرعة التوصيل وضمان الجودة.',
   },
 ];
 

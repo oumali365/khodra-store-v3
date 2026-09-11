@@ -43,7 +43,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
-  // حقول العنوان المنفصلة لتحديد موقع Google Maps بدقة (الدار البيضاء)
+  // حقول العنوان المنفصلة لتحديد موقع Google Maps بدقة (فاس)
   const [street, setStreet] = useState('');
   const [building, setBuilding] = useState('');
 
@@ -105,8 +105,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     );
   };
 
-  // توليد رابط Google Maps الرسمي (الدار البيضاء)
-  const targetCity = 'الدار البيضاء';
+  // توليد رابط Google Maps الرسمي (فاس)
+  const targetCity = 'فاس';
   const generateGoogleMapsUrl = () => {
     if (locationCoords) {
       return `https://www.google.com/maps/search/?api=1&query=${locationCoords.lat},${locationCoords.lng}`;
@@ -326,12 +326,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* قسم عنوان التوصيل بالدار البيضاء */}
+            {/* قسم عنوان التوصيل بفاس */}
             <div className="space-y-3.5">
               <div className="bg-white border border-[#DCD4C4] rounded-2xl p-4 sm:p-5 shadow-xs">
                 <h3 className="text-sm sm:text-base font-black text-[#1B3420] flex items-center gap-2 pb-3 border-b border-[#E8E1D1]">
                   <MapPin className="w-5 h-5 text-[#C25E12]" />
-                  <span>عنوان التوصيل بالدار البيضاء</span>
+                  <span>عنوان التوصيل بمدينة فاس</span>
                 </h3>
 
                 <div className="space-y-3.5 pt-3">
@@ -372,13 +372,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   {/* الشارع / الزنقة */}
                   <div>
                     <label className="block text-xs font-bold text-[#191816] mb-1">
-                      الشارع / الزنقة <span className="text-red-500">*</span>
+                      الشارع / الزنقة / الحي <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={street}
                       onChange={(e) => setStreet(e.target.value)}
-                      placeholder="مثال: شارع محمد الخامس"
+                      placeholder="مثال: شارع الحسن الثاني، طريق إيموزار، النرجس..."
                       className={`w-full px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm text-[#191816] bg-white focus:outline-none transition-all placeholder:text-[#8C8474] ${
                         errors.street ? 'border-red-500 ring-2 ring-red-100' : 'border-[#D0C6B4] focus:border-[#2E6B39] focus:ring-2 focus:ring-[#2E6B39]/20'
                       }`}

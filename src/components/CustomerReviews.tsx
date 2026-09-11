@@ -13,10 +13,17 @@ import {
   X, 
   Send,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Trash2,
+  Lock,
+  Unlock,
+  ShieldCheck,
+  AlertTriangle,
+  KeyRound,
+  Loader2
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
-import { fetchReviews, submitCustomerReview } from '../services/supabaseService';
+import { fetchReviews, submitCustomerReview, deleteCustomerReview } from '../services/supabaseService';
 
 export interface CustomerReview {
   id: string;
@@ -33,7 +40,7 @@ const INITIAL_THREE_REVIEWS: CustomerReview[] = [
   {
     id: 'rev-1',
     author: 'فاطمة الزهراء ب.',
-    neighborhood: 'المعاريف، الدار البيضاء',
+    neighborhood: 'طريق إيموزار، فاس',
     rating: 5,
     date: 'منذ يومين',
     comment: 'تبارك الله السلعة نقية وطازجة بحال إلا مشيتي للسوق نقيتيها بيدك، والتوصيل ديما فالموعد.',
@@ -42,7 +49,7 @@ const INITIAL_THREE_REVIEWS: CustomerReview[] = [
   {
     id: 'rev-2',
     author: 'أمين التازي',
-    neighborhood: 'كاليفورنيا، الدار البيضاء',
+    neighborhood: 'طريق عين الشقف، فاس',
     rating: 5,
     date: 'منذ 3 أيام',
     comment: 'خدمة في المستوى وكتوفر بزاف ديال الوقت، الخضرة كتوصل مقادة ومغسولة بعناية. برافو عليكم.',
@@ -51,7 +58,7 @@ const INITIAL_THREE_REVIEWS: CustomerReview[] = [
   {
     id: 'rev-3',
     author: 'نادية بنجلون',
-    neighborhood: 'بوركون، الدار البيضاء',
+    neighborhood: 'حي الأطلس، فاس',
     rating: 5,
     date: 'منذ 5 أيام',
     comment: 'تعامل راقي وثقة كبيرة، الفواكه حلوة والخضر طرية بزاف. أول تجربة وأكيد ماشي الأخيرة.',
@@ -62,7 +69,20 @@ const INITIAL_THREE_REVIEWS: CustomerReview[] = [
 const INITIAL_VISIBLE_COUNT = 3;
 
 export const CustomerReviews: React.FC = () => {
-  const [reviews, setReviews] = useState<CustomerReview[]>(INITIAL_THREE_REVIEWS);
+  // استرجاع المعرفات المحذوفة لمنع ظهورها نهائياً
+  const getDeletedIds = (): string[] => {
+    try {
+      return JSON.parse(localStorage.getItem('khodra_deleted_review_ids') || '[]');
+    } catch {
+      return [];
+    }
+  };
+
+  const [reviews, setReviews] = useState<CustomerReview[]>(() => {
+    const deleted = getDeletedIds();
+    return INITIAL_THREE_REVIEWS.filter((r) => !deleted.includes(r.id));
+  });
+
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,28 +94,62 @@ export const CustomerReviews: React.FC = () => {
   const [newComment, setNewComment] = useState('');
   const [isSuccessAlert, setIsSuccessAlert] = useState(false);
 
+  // ─── إدارة التقييمات ووضع المدير (Admin Mode) ───
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('khodra_admin_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  const [isChangePinModalOpen, setIsChangePinModalOpen] = useState(false);
+  const [newPinInput, setNewPinInput] = useState('');
+  const [changePinSuccess, setChangePinSuccess] = useState(false);
+
+  const [deleteConfirmReview, setDeleteConfirmReview] = useState<CustomerReview | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [adminNotification, setAdminNotification] = useState<string | null>(null);
+
+  // استرجاع الرمز السري الفعلي من التخزين المحلي أو الإعدادات
+  const getAdminPin = (): string => {
+    try {
+      return localStorage.getItem('khodra_admin_pin') || STORE_CONFIG.adminPin || '1234';
+    } catch {
+      return '1234';
+    }
+  };
+
   // جلب التقييمات الحقيقية من Supabase
   useEffect(() => {
     let isMounted = true;
     async function loadSupabaseReviews() {
       try {
         const dbReviews = await fetchReviews();
+        const deleted = getDeletedIds();
+
         if (isMounted && dbReviews && dbReviews.length > 0) {
-          const formatted: CustomerReview[] = dbReviews.map((r) => ({
-            id: r.id,
-            author: r.author,
-            neighborhood: r.neighborhood,
-            rating: r.rating,
-            date: r.date || 'مؤخراً',
-            comment: r.comment,
-            verified: r.verified,
-          }));
+          const formatted: CustomerReview[] = dbReviews
+            .filter((r) => !deleted.includes(r.id))
+            .map((r) => ({
+              id: r.id,
+              author: r.author,
+              neighborhood: r.neighborhood,
+              rating: r.rating,
+              date: r.date || 'مؤخراً',
+              comment: r.comment,
+              verified: r.verified,
+            }));
           
-          // دمج تقييمات Supabase الجديدة مع التقييمات الأولية لتبقى ظاهرة دائماً
+          // دمج تقييمات Supabase الجديدة مع التقييمات الأولية غير المحذوفة
           const merged = [
             ...formatted,
             ...INITIAL_THREE_REVIEWS.filter(
-              (init) => !formatted.some((f) => f.id === init.id || f.author === init.author)
+              (init) => !deleted.includes(init.id) && !formatted.some((f) => f.id === init.id || f.author === init.author)
             ),
           ];
           setReviews(merged);
@@ -124,7 +178,7 @@ export const CustomerReviews: React.FC = () => {
     setIsSubmitting(true);
     const newRevData = {
       author: newName.trim(),
-      neighborhood: newNeighborhood.trim() || 'الدار البيضاء',
+      neighborhood: newNeighborhood.trim() || 'فاس',
       rating: newRating,
       comment: newComment.trim(),
       category: 'general',
@@ -162,10 +216,158 @@ export const CustomerReviews: React.FC = () => {
     }
   };
 
+  // الاستماع لحدث النقر على القفل في الفوتر
+  useEffect(() => {
+    const handleTrigger = () => {
+      if (isAdmin) {
+        const el = document.getElementById('customer-reviews-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } else {
+        setIsPinModalOpen(true);
+      }
+    };
+
+    window.addEventListener('khodra_trigger_admin_modal', handleTrigger);
+    return () => {
+      window.removeEventListener('khodra_trigger_admin_modal', handleTrigger);
+    };
+  }, [isAdmin]);
+
+  // التحقق من الرمز السري والدخول لوضع المدير
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const correctPin = getAdminPin();
+
+    if (pinInput.trim() === correctPin.trim()) {
+      setIsAdmin(true);
+      try {
+        sessionStorage.setItem('khodra_admin_auth', 'true');
+      } catch {
+        // Ignore session storage errors
+      }
+      setIsPinModalOpen(false);
+      setPinInput('');
+      setPinError(null);
+      setAdminNotification('مرحباً بك! تم تفعيل وضع المدير. يمكنك الآن حذف أي تعليق غير لائق بنقرة واحدة.');
+      setTimeout(() => setAdminNotification(null), 4000);
+
+      // التمرير السلس نحو قسم التقييمات للبدء في الإدارة
+      setTimeout(() => {
+        const el = document.getElementById('customer-reviews-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 200);
+    } else {
+      setPinError('الرمز السري غير صحيح، يرجى التأكد والمحاولة مجدداً.');
+    }
+  };
+
+  // تسجيل الخروج من وضع المدير
+  const handleLogoutAdmin = () => {
+    setIsAdmin(false);
+    try {
+      sessionStorage.removeItem('khodra_admin_auth');
+    } catch {
+      // Ignore
+    }
+    setAdminNotification('تم تسجيل الخروج من وضع المدير.');
+    setTimeout(() => setAdminNotification(null), 3000);
+  };
+
+  // تغيير الرمز السري
+  const handleChangePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPinInput.trim() || newPinInput.trim().length < 4) {
+      return;
+    }
+    try {
+      localStorage.setItem('khodra_admin_pin', newPinInput.trim());
+      setChangePinSuccess(true);
+      setTimeout(() => {
+        setChangePinSuccess(false);
+        setIsChangePinModalOpen(false);
+        setNewPinInput('');
+        setAdminNotification('تم تحديث الرمز السري للمدير بنجاح.');
+        setTimeout(() => setAdminNotification(null), 3500);
+      }, 1200);
+    } catch {
+      // Ignore
+    }
+  };
+
+  // تنفيذ حذف التعليق
+  const handleExecuteDelete = async () => {
+    if (!deleteConfirmReview) return;
+    setIsDeleting(true);
+
+    try {
+      await deleteCustomerReview(deleteConfirmReview.id);
+      setReviews((prev) => prev.filter((r) => r.id !== deleteConfirmReview.id));
+      setAdminNotification(`تم حذف تعليق "${deleteConfirmReview.author}" بنجاح.`);
+      setTimeout(() => setAdminNotification(null), 3500);
+    } catch (err) {
+      console.warn('Error deleting review:', err);
+      setAdminNotification('حدث خطأ أثناء الحذف، تم إخفاء التعليق محلياً.');
+      setTimeout(() => setAdminNotification(null), 3500);
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmReview(null);
+    }
+  };
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8 sm:my-12" id="customer-reviews-section">
-      <div className="bg-[#FAF8F4] border border-[#D4C8B5] rounded-3xl p-4 sm:p-7 shadow-xs text-center">
+      <div className="bg-[#FAF8F4] border border-[#D4C8B5] rounded-3xl p-4 sm:p-7 shadow-xs text-center relative">
         
+        {/* إشعار إداري عائم */}
+        {adminNotification && (
+          <div className="mb-4 py-2.5 px-4 rounded-xl bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md flex items-center justify-between gap-2 animate-in fade-in duration-200 text-right">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-200 shrink-0" />
+              <span>{adminNotification}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAdminNotification(null)}
+              className="text-white/80 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* ─── شريط تحكم وضع المدير (يظهر فقط عند تفعيل الإدارة) ─── */}
+        {isAdmin && (
+          <div className="mb-6 p-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 text-amber-950 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-right shadow-2xs">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#C25E12] shrink-0" />
+              <span>
+                <strong>وضع المدير مفعّل:</strong> يمكنك حذف أي تعليق غير لائق بنقرة واحدة عبر زر الحذف المتاح أسفل كل بطاقة.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mr-auto">
+              <button
+                type="button"
+                onClick={() => setIsChangePinModalOpen(true)}
+                className="px-2.5 py-1 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <KeyRound className="w-3 h-3 text-amber-700" />
+                <span>تغيير الرمز السري</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleLogoutAdmin}
+                className="px-2.5 py-1 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 border border-red-200 text-xs font-bold transition-colors cursor-pointer"
+              >
+                خروج من الإدارة
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ─── الرأس: الشارة والعنوان والتقييم الإجمالي المختصر ─── */}
         <div className="max-w-2xl mx-auto mb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-[#1E4327] text-xs font-black mb-2 shadow-2xs select-none">
@@ -174,7 +376,7 @@ export const CustomerReviews: React.FC = () => {
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-[#112616] mb-2 font-['Almarai']">
-            آراء زبنائنا بالدار البيضاء
+            آراء زبنائنا بمدينة فاس
           </h2>
 
           <div className="inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-[#D4C8B5] shadow-2xs text-xs font-bold text-[#112616] select-none">
@@ -191,7 +393,9 @@ export const CustomerReviews: React.FC = () => {
           {displayedReviews.map((rev) => (
             <article
               key={rev.id}
-              className="bg-white border border-[#D4C8B5] rounded-2xl p-4 shadow-2xs hover:border-[#C25E12] transition-colors flex flex-col justify-between"
+              className={`bg-white border rounded-2xl p-4 shadow-2xs transition-colors flex flex-col justify-between ${
+                isAdmin ? 'border-amber-300 ring-1 ring-amber-100' : 'border-[#D4C8B5] hover:border-[#C25E12]'
+              }`}
             >
               <div>
                 {/* رأس البطاقة: الاسم والحي والتقييم والتاريخ */}
@@ -243,6 +447,25 @@ export const CustomerReviews: React.FC = () => {
                   "{rev.comment}"
                 </p>
               </div>
+
+              {/* ─── زر حذف التعليق الخاص بالمدير ─── */}
+              {isAdmin && (
+                <div className="mt-3 pt-2.5 border-t border-amber-200 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-[#C25E12]" />
+                    <span>إدارة التعليق:</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirmReview(rev)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all cursor-pointer active:scale-95 touch-manipulation"
+                    title="حذف هذا التعليق نهائياً"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                    <span>حذف التعليق</span>
+                  </button>
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -358,13 +581,13 @@ export const CustomerReviews: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-[#112616] mb-1">
-                    الحي بالدار البيضاء
+                    الحي بمدينة فاس
                   </label>
                   <input
                     type="text"
                     value={newNeighborhood}
                     onChange={(e) => setNewNeighborhood(e.target.value)}
-                    placeholder="مثال: المعاريف، عين السبع، النخيل..."
+                    placeholder="مثال: طريق إيموزار، الأطلس، طريق عين الشقف، النرجس..."
                     className="w-full px-3 py-2 rounded-xl border border-[#D4C8B5] text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1E4327] text-[#112616]"
                   />
                 </div>
@@ -432,6 +655,220 @@ export const CustomerReviews: React.FC = () => {
               </form>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* ─── نافذة إدخال الرمز السري للمدير (PIN Modal) ─── */}
+      {isPinModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" 
+          role="dialog" 
+          aria-modal="true"
+        >
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs" 
+            onClick={() => setIsPinModalOpen(false)} 
+          />
+
+          <div className="relative bg-white border border-amber-300 rounded-3xl w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 text-[#C25E12] flex items-center justify-center">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-[#112616]">
+                    إدارة تقييمات المتجر
+                  </h3>
+                  <p className="text-[11px] text-stone-500">خاص بمدير المتجر فقط</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPinModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePinSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-[#112616] mb-1.5">
+                  أدخل الرمز السري (PIN):
+                </label>
+                <input
+                  type="password"
+                  autoFocus
+                  required
+                  value={pinInput}
+                  onChange={(e) => {
+                    setPinInput(e.target.value);
+                    if (pinError) setPinError(null);
+                  }}
+                  placeholder="••••"
+                  className="w-full text-center text-lg font-black tracking-widest px-4 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/20"
+                />
+                {pinError && (
+                  <p className="text-red-600 text-xs font-bold mt-1.5 flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>{pinError}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-black text-xs sm:text-sm shadow-sm active:scale-95 transition-all cursor-pointer"
+                >
+                  تأكيد الدخول
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPinModalOpen(false)}
+                  className="py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── نافذة تغيير الرمز السري (Change PIN Modal) ─── */}
+      {isChangePinModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" 
+          role="dialog" 
+          aria-modal="true"
+        >
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs" 
+            onClick={() => setIsChangePinModalOpen(false)} 
+          />
+
+          <div className="relative bg-white border border-stone-300 rounded-3xl w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <h3 className="font-black text-sm sm:text-base text-[#112616]">
+                  تغيير الرمز السري للمدير
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsChangePinModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {changePinSuccess ? (
+              <div className="py-4 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+                <p className="text-sm font-black text-emerald-800">تم حفظ الرمز السري الجديد بنجاح!</p>
+              </div>
+            ) : (
+              <form onSubmit={handleChangePinSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#112616] mb-1.5">
+                    الرمز السري الجديد (4 أرقام أو أكثر):
+                  </label>
+                  <input
+                    type="password"
+                    autoFocus
+                    required
+                    minLength={4}
+                    value={newPinInput}
+                    onChange={(e) => setNewPinInput(e.target.value)}
+                    placeholder="مثال: 5678"
+                    className="w-full text-center text-lg font-black tracking-widest px-4 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#C25E12]"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-[#C25E12] hover:bg-[#A34C0B] text-white font-black text-xs sm:text-sm shadow-sm active:scale-95 transition-all cursor-pointer"
+                  >
+                    حفظ الرمز الجديد
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsChangePinModalOpen(false)}
+                    className="py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── نافذة تأكيد حذف التعليق (Delete Confirmation Modal) ─── */}
+      {deleteConfirmReview && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" 
+          role="dialog" 
+          aria-modal="true"
+        >
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs" 
+            onClick={() => !isDeleting && setDeleteConfirmReview(null)} 
+          />
+
+          <div className="relative bg-white border border-red-300 rounded-3xl w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-black text-base text-[#112616] text-center mb-1">
+              تأكيد حذف التعليق
+            </h3>
+            <p className="text-xs text-stone-500 text-center mb-4">
+              هل أنت متأكد من رغبتك في حذف تعليق <strong className="text-stone-800">"{deleteConfirmReview.author}"</strong> نهائياً من المتجر؟
+            </p>
+
+            <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 mb-4 text-xs text-stone-700 italic">
+              "{deleteConfirmReview.comment}"
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleExecuteDelete}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm shadow-sm active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري الحذف...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>نعم، حذف نهائي</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirmReview(null)}
+                className="py-2.5 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer active:scale-95 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
           </div>
         </div>
       )}

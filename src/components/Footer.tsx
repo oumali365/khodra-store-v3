@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, ShieldCheck, Truck, RefreshCw, Clock, MessageCircle } from 'lucide-react';
+import { Heart, ShieldCheck, Truck, RefreshCw, Clock, MessageCircle, Lock } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 
 interface FooterProps {
@@ -7,6 +7,10 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
+  const handleAdminTrigger = () => {
+    window.dispatchEvent(new CustomEvent('khodra_trigger_admin_modal'));
+  };
+
   return (
     <footer className="bg-[#112616] text-white pt-8 pb-20 sm:pb-16 border-t-4 border-[#C25E12]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -106,9 +110,20 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
 
         {/* ─── التذييل السفلي (حقوق النشر) ─── */}
         <div className="pt-4 border-t border-white/20 flex flex-col sm:flex-row items-center justify-between text-xs text-white/90 gap-2 text-center">
-          <p className="font-bold tracking-wide">
-            جميع الحقوق محفوظة © {new Date().getFullYear()} <span className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</span>
-          </p>
+          <div className="font-bold tracking-wide flex items-center justify-center sm:justify-start gap-1.5">
+            <button
+              type="button"
+              onClick={handleAdminTrigger}
+              title="إدارة تقييمات المتجر"
+              aria-label="إدارة التقييمات للمدير"
+              className="text-white/40 hover:text-[#F5D76E] transition-colors p-1 rounded-md hover:bg-white/10 cursor-pointer select-none"
+            >
+              <Lock className="w-3.5 h-3.5" />
+            </button>
+            <p>
+              جميع الحقوق محفوظة © {new Date().getFullYear()} <span className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</span>
+            </p>
+          </div>
           <p className="flex items-center gap-1.5 justify-center font-bold whitespace-nowrap bg-white/10 px-3 py-1 rounded-full border border-white/20">
             <span>صنع بكل</span>
             <Heart className="w-3.5 h-3.5 text-red-500 fill-current animate-bounce" />
