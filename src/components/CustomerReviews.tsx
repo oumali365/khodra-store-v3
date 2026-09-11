@@ -20,10 +20,13 @@ import {
   ShieldCheck,
   AlertTriangle,
   KeyRound,
-  Loader2
+  Loader2,
+  Package,
+  ShoppingBag
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 import { fetchReviews, submitCustomerReview, deleteCustomerReview } from '../services/supabaseService';
+import { AdminOrdersPanel } from './AdminOrdersPanel';
 
 export interface CustomerReview {
   id: string;
@@ -86,7 +89,7 @@ export const CustomerReviews: React.FC = () => {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // حقول نموذج إضافة الرأي المباشر
   const [newName, setNewName] = useState('');
   const [newNeighborhood, setNewNeighborhood] = useState('');
@@ -114,6 +117,9 @@ export const CustomerReviews: React.FC = () => {
   const [deleteConfirmReview, setDeleteConfirmReview] = useState<CustomerReview | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [adminNotification, setAdminNotification] = useState<string | null>(null);
+
+  // ─── حالة نافذة إدارة الطلبات ───
+  const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
 
   // استرجاع الرمز السري الفعلي من التخزين المحلي أو الإعدادات
   const getAdminPin = (): string => {
@@ -144,7 +150,7 @@ export const CustomerReviews: React.FC = () => {
               comment: r.comment,
               verified: r.verified,
             }));
-          
+
           // دمج تقييمات Supabase الجديدة مع التقييمات الأولية غير المحذوفة
           const merged = [
             ...formatted,
@@ -187,7 +193,7 @@ export const CustomerReviews: React.FC = () => {
 
     try {
       const result = await submitCustomerReview(newRevData);
-      
+
       const newReviewItem: CustomerReview = {
         id: result.data?.id || `rev-local-${Date.now()}`,
         author: newRevData.author,
@@ -250,7 +256,7 @@ export const CustomerReviews: React.FC = () => {
       setIsPinModalOpen(false);
       setPinInput('');
       setPinError(null);
-      setAdminNotification('مرحباً بك! تم تفعيل وضع المدير. يمكنك الآن حذف أي تعليق غير لائق بنقرة واحدة.');
+      setAdminNotification('مرحباً بك! تم تفعيل وضع المدير. يمكنك الآن حذف التعليقات أو إدارة الطلبات.');
       setTimeout(() => setAdminNotification(null), 4000);
 
       // التمرير السلس نحو قسم التقييمات للبدء في الإدارة
@@ -321,7 +327,7 @@ export const CustomerReviews: React.FC = () => {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8 sm:my-12" id="customer-reviews-section">
       <div className="bg-[#FAF8F4] border border-[#D4C8B5] rounded-3xl p-4 sm:p-7 shadow-xs text-center relative">
-        
+
         {/* إشعار إداري عائم */}
         {adminNotification && (
           <div className="mb-4 py-2.5 px-4 rounded-xl bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md flex items-center justify-between gap-2 animate-in fade-in duration-200 text-right">
@@ -345,10 +351,20 @@ export const CustomerReviews: React.FC = () => {
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-[#C25E12] shrink-0" />
               <span>
-                <strong>وضع المدير مفعّل:</strong> يمكنك حذف أي تعليق غير لائق بنقرة واحدة عبر زر الحذف المتاح أسفل كل بطاقة.
+                <strong>وضع المدير مفعّل:</strong> يمكنك إدارة الطلبات وحذف أي تعليق غير لائق.
               </span>
             </div>
-            <div className="flex items-center gap-2 mr-auto">
+            <div className="flex items-center gap-2 mr-auto flex-wrap">
+              {/* ── زر إدارة الطلبات ── */}
+              <button
+                type="button"
+                onClick={() => setIsOrdersPanelOpen(true)}
+                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#1E4327] to-[#2E5336] hover:from-[#112616] hover:to-[#1E4327] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 text-[#F5D76E]" />
+                <span>إدارة الطلبات</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsChangePinModalOpen(true)}
@@ -535,7 +551,7 @@ export const CustomerReviews: React.FC = () => {
           />
 
           <div className="relative bg-white border border-[#D4C8B5] rounded-3xl w-full max-w-md shadow-2xl z-50 overflow-hidden p-5 text-right animate-in zoom-in-95 duration-200 my-auto">
-            
+
             <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-[#1E4327] text-white flex items-center justify-center">
@@ -679,7 +695,7 @@ export const CustomerReviews: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-black text-sm sm:text-base text-[#112616]">
-                    إدارة تقييمات المتجر
+                    إدارة المتجر
                   </h3>
                   <p className="text-[11px] text-stone-500">خاص بمدير المتجر فقط</p>
                 </div>
@@ -872,6 +888,13 @@ export const CustomerReviews: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ─── نافذة إدارة الطلبات (خاصة بالمدير) ─── */}
+      <AdminOrdersPanel
+        isOpen={isOrdersPanelOpen}
+        onClose={() => setIsOrdersPanelOpen(false)}
+      />
+
     </section>
   );
 };
