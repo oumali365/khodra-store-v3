@@ -144,21 +144,16 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // نسخ
   const [copiedId, setCopiedId] = useState<string | number | null>(null);
-
-  // تأكيد الحذف
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<DbOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // ─── إبلاغ الأب بأي تغيير ───
   useEffect(() => {
     if (!onOrdersChange) return;
     const pending = orders.filter((o) => o.status === 'pending').length;
     onOrdersChange({ total: orders.length, pending });
   }, [orders, onOrdersChange]);
 
-  // جلب الطلبات عند الفتح
   useEffect(() => {
     if (!isOpen) return;
     let mounted = true;
@@ -172,7 +167,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
     return () => { mounted = false; };
   }, [isOpen]);
 
-  // منع التمرير عند فتح النافذة
   useEffect(() => {
     if (isOpen) {
       const prev = document.body.style.overflow;
@@ -212,7 +206,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
     setUpdatingId(null);
   };
 
-  // ─── نسخ تفاصيل الطلب ───
   const handleCopyOrder = async (order: DbOrder) => {
     const text = buildOrderText(order);
     try {
@@ -239,7 +232,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
     }
   };
 
-  // ─── تنفيذ الحذف ───
   const handleExecuteDelete = async () => {
     if (!deleteConfirmOrder) return;
     setIsDeleting(true);
@@ -503,39 +495,37 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                     </div>
                   )}
 
-                  {/* Quick actions */}
-                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  {/* ─── Quick Actions (شبكة ثنائية الأعمدة) ─── */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
                     {wa && (
                       <a
                         href={`https://wa.me/${wa}?text=${encodeURIComponent(`السلام عليكم ${order.customer_name}، بخصوص طلبكم ${order.order_code} من متجر خُضرة:`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold transition-colors cursor-pointer"
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-emerald-300 bg-white text-emerald-700 font-bold text-xs hover:bg-emerald-50 transition active:scale-95"
                       >
-                        <MessageCircle className="w-3.5 h-3.5" />
+                        <MessageCircle className="w-4 h-4" />
                         <span>واتساب</span>
                       </a>
                     )}
 
-                    {/* 📋 زر النسخ */}
                     <button
                       type="button"
                       onClick={() => handleCopyOrder(order)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
+                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border font-bold text-xs transition active:scale-95 ${
                         isCopied
-                          ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
-                          : 'bg-stone-50 hover:bg-stone-100 text-stone-800 border-stone-300'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-400'
+                          : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
                       }`}
-                      title="نسخ تفاصيل الطلب كاملة"
                     >
                       {isCopied ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-700" />
+                          <Check className="w-4 h-4 text-emerald-600" />
                           <span>تم النسخ</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-4 h-4" />
                           <span>نسخ التفاصيل</span>
                         </>
                       )}
@@ -546,27 +536,25 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                         href={order.maps_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 text-xs font-bold transition-colors cursor-pointer"
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-blue-300 bg-white text-blue-700 font-bold text-xs hover:bg-blue-50 transition active:scale-95"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <ExternalLink className="w-4 h-4" />
                         <span>الخريطة</span>
                       </a>
                     )}
 
-                    {/* 🗑️ زر الحذف */}
                     <button
                       type="button"
                       onClick={() => setDeleteConfirmOrder(order)}
                       disabled={isBeingDeleted}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 border border-red-300 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 mr-auto"
-                      title="حذف الطلب نهائياً"
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-red-300 bg-white text-red-700 font-bold text-xs hover:bg-red-50 transition active:scale-95 disabled:opacity-50"
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                      <Trash2 className="w-4 h-4" />
                       <span>حذف الطلب</span>
                     </button>
                   </div>
 
-                  {/* Status buttons */}
+                  {/* ─── Status Buttons ─── */}
                   <div className="pt-3 border-t border-[#F0E9DA]">
                     <div className="text-[11px] font-black text-stone-600 mb-2 flex items-center gap-1">
                       <span>تغيير الحالة إلى:</span>
