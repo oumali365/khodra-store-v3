@@ -378,7 +378,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       type="text"
                       value={street}
                       onChange={(e) => setStreet(e.target.value)}
-                      placeholder="مثال: شارع الحسن الثاني، طريق إيموزار، النرجس..."
+                      placeholder="شارع الحسن الثاني، طريق إيموزار، النرجس..."
                       className={`w-full px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm text-[#191816] bg-white focus:outline-none transition-all placeholder:text-[#8C8474] ${
                         errors.street ? 'border-red-500 ring-2 ring-red-100' : 'border-[#D0C6B4] focus:border-[#2E6B39] focus:ring-2 focus:ring-[#2E6B39]/20'
                       }`}
@@ -425,7 +425,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       ) : (
                         <>
                           <LocateFixed className="w-4 h-4 text-[#C25E12]" />
-                          <span>حدد موقعك الحالي📍</span>
+                          <span>حدد موقعك الحالي</span>
                         </>
                       )}
                     </button>
@@ -629,7 +629,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
 
                     <div className="flex justify-between items-center pb-2 border-b border-[#E8E1D1]">
-                      <span className="text-xs sm:text-sm text-[#524B3E] font-bold">اسم المستفيد:</span>
+                      <span className="text-xs sm:text-sm text-[#524B3E] font-bold">اسم المستلم:</span>
                       <span className="font-black text-xs sm:text-sm text-[#2E6B39]">{currentBank.beneficiary}</span>
                     </div>
 
@@ -749,7 +749,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
               <div className="flex items-center justify-center gap-2 text-center text-xs text-[#524B3E] font-medium">
                 <Shield className="w-4 h-4 text-[#2E6B39]" />
-                <span>بياناتك مشفرة ومحمية بالكامل وتستخدم فقط لإتمام التوصيل</span>
+                <span>بياناتك مشفرة ومحمية  تستخدم فقط لإتمام التوصيل</span>
               </div>
             </div>
 
