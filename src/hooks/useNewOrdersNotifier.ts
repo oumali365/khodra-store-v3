@@ -1,20 +1,23 @@
 // ============================================================
-// useNewOrdersNotifier.ts – Hook لمراقبة الطلبات الجديدة
+// useNewOrdersNotifier.ts – Hook مبسّط لمراقبة الطلبات الجديدة
+// منطق مضمون: يعتمد على آخر ID شوهد، بسيط ولا يتضارب
 // ============================================================
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchPendingOrdersCount } from '../services/supabaseService';
+import { fetchOrders } from '../services/supabaseService';
 
 interface UseNewOrdersNotifierOptions {
-  enabled: boolean;              // هل المراقبة مفعّلة (فقط في وضع المدير)
-  pollIntervalMs?: number;       // فترة الفحص (افتراضي: 45000 = 45 ثانية)
+  enabled: boolean;
+  pollIntervalMs?: number;
 }
 
 interface UseNewOrdersNotifierResult {
-  newCount: number;              // عدد الطلبات الجديدة منذ آخر مشاهدة
-  totalPending: number;          // إجمالي الطلبات المعلقة في Supabase
-  markAsSeen: () => void;        // إعادة تعيين العدّاد بعد فتح اللوحة
-  refresh: () => Promise<void>;  // فحص فوري
+  newCount: number;           // عدد الطلبات الجديدة منذ آخر مشاهدة
+  totalPending: number;       // إجمالي الطلبات المعلقة
+  markAsSeen: () => void;     // إعادة تعيين بعد فتح اللوحة
+  refresh: () => Promise<void>;
 }
+
+const LAST_SEEN_ID_KEY = 'khodra_last_seen_order_id_v2';
 
 export function useNewOrdersNotifier({
   enabled,
@@ -23,51 +26,116 @@ export function useNewOrdersNotifier({
   const [newCount, setNewCount] = useState(0);
   const [totalPending, setTotalPending] = useState(0);
 
-  // آخر عدد تم مشاهدته (محفوظ في localStorage ليبقى بين الجلسات)
-  const lastSeenRef = useRef<number>(() => {
+  // آخر ID رأيته (يُحفظ في localStorage)
+  const lastSeenIdRef = useRef<number>(() => {
     try {
-      return Number(localStorage.getItem('khodra_last_seen_pending') || 0);
+      const v = localStorage.getItem(LAST_SEEN_ID_KEY);
+      return v ? Number(v) : 0;
     } catch {
       return 0;
     }
   });
 
-  // منع تكرار التنبيه لنفس الطلبات
+  // حماية من الفحص المتكرر
   const lastFetchRef = useRef<number>(0);
+  // منع تشغيل الصوت لأول فحص بعد إعادة التحميل
+  const isFirstFetchRef = useRef<boolean>(true);
 
-  // ─── فحص الطلبات ───
   const checkOrders = useCallback(async () => {
-    // منع الفحص المتكرر خلال 10 ثوانٍ
+    // حماية: لا تفحص مرتين خلال 8 ثوانٍ
     const now = Date.now();
-    if (now - lastFetchRef.current < 10000) return;
+    if (now - lastFetchRef.current < 8000) return;
     lastFetchRef.current = now;
 
     try {
-      const count = await fetchPendingOrdersCount();
-      setTotalPending(count);
+      // جلب كل الطلبات
+      const orders = await fetchOrders();
 
-      // حساب الجديد منذ آخر مشاهدة
-      const diff = Math.max(0, count - lastSeenRef.current);
-      setNewCount(diff);
+      // الطلبات المعلقة فقط
+      const pendingOrders = orders.filter((o) => o.status === 'pending');
+      setTotalPending(pendingOrders.length);
+
+      if (pendingOrders.length === 0) {
+        setNewCount(0);
+        return;
+      }
+
+      // أعلى ID في الطلبات المعلقة
+      const maxId = Math.max(
+        ...pendingOrders.map((o) => {
+          const n = Number(o.id);
+          return isNaN(n) ? 0 : n;
+        })
+      );
+
+      const lastSeen = lastSeenIdRef.current;
+
+      // ─── أول فحص بعد فتح الصفحة ───
+      if (isFirstFetchRef.current) {
+        isFirstFetchRef.current = false;
+
+        // إذا كان lastSeen = 0 (مستخدم جديد)، احفظ maxId كبداية
+        if (lastSeen === 0) {
+          lastSeenIdRef.current = maxId;
+          try {
+            localStorage.setItem(LAST_SEEN_ID_KEY, String(maxId));
+          } catch {}
+          setNewCount(0);
+          return;
+        }
+
+        // احسب الجديد منذ آخر جلسة
+        const newOnes = pendingOrders.filter((o) => {
+          const n = Number(o.id);
+          return !isNaN(n) && n > lastSeen;
+        });
+
+        setNewCount(newOnes.length);
+        return;
+      }
+
+      // ─── فحوصات لاحقة ───
+      const newOnes = pendingOrders.filter((o) => {
+        const n = Number(o.id);
+        return !isNaN(n) && n > lastSeen;
+      });
+
+      setNewCount(newOnes.length);
     } catch (err) {
       console.warn('خطأ في فحص الطلبات الجديدة:', err);
     }
   }, []);
 
-  // ─── إعادة تعيين العدّاد ───
-  const markAsSeen = useCallback(() => {
-    lastSeenRef.current = totalPending;
-    setNewCount(0);
+  // ─── إعادة تعيين بعد فتح اللوحة ───
+  const markAsSeen = useCallback(async () => {
     try {
-      localStorage.setItem('khodra_last_seen_pending', String(totalPending));
-    } catch {
-      // ignore
+      // اجلب الطلبات المعلقة الحالية وسجّل أعلى ID
+      const orders = await fetchOrders();
+      const pendingOrders = orders.filter((o) => o.status === 'pending');
+
+      if (pendingOrders.length > 0) {
+        const maxId = Math.max(
+          ...pendingOrders.map((o) => {
+            const n = Number(o.id);
+            return isNaN(n) ? 0 : n;
+          })
+        );
+        lastSeenIdRef.current = maxId;
+        try {
+          localStorage.setItem(LAST_SEEN_ID_KEY, String(maxId));
+        } catch {}
+      }
+
+      setNewCount(0);
+      lastFetchRef.current = Date.now();
+    } catch (err) {
+      console.warn('خطأ في markAsSeen:', err);
     }
-  }, [totalPending]);
+  }, []);
 
   // ─── فحص فوري ───
   const refresh = useCallback(async () => {
-    lastFetchRef.current = 0; // تجاوز الحماية
+    lastFetchRef.current = 0;
     await checkOrders();
   }, [checkOrders]);
 
@@ -75,24 +143,24 @@ export function useNewOrdersNotifier({
   useEffect(() => {
     if (!enabled) {
       setNewCount(0);
+      setTotalPending(0);
+      isFirstFetchRef.current = true;
       return;
     }
 
-    // فحص أولي فوري
+    // فحص أولي
     checkOrders();
 
-    // فحص دوري
+    // فحص دوري كل 45 ثانية
     const interval = setInterval(checkOrders, pollIntervalMs);
 
-    // فحص عند عودة المستخدم للصفحة (بعد تصغير المتصفح)
+    // فحص عند العودة للتبويب
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refresh();
-      }
+      if (document.visibilityState === 'visible') refresh();
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // فحص عند استعادة الاتصال
+    // فحص عند استعادة الإنترنت
     const handleOnline = () => refresh();
     window.addEventListener('online', handleOnline);
 
@@ -103,10 +171,5 @@ export function useNewOrdersNotifier({
     };
   }, [enabled, pollIntervalMs, checkOrders, refresh]);
 
-  return {
-    newCount,
-    totalPending,
-    markAsSeen,
-    refresh,
-  };
+  return { newCount, totalPending, markAsSeen, refresh };
 }
