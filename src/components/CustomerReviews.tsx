@@ -1,7 +1,3 @@
-// ============================================================
-// CustomerReviews.tsx – قسم آراء وتقييمات العملاء
-// متصل بقاعدة بيانات Supabase ومصمم بنمط مقتضب وواقعي بالدارجة المغربية
-// ============================================================
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Star, 
@@ -132,7 +128,6 @@ export const CustomerReviews: React.FC = () => {
     }
   };
 
-  // ─── جلب عدد الطلبات الجديدة عند تفعيل وضع المدير + كل 60 ثانية ───
   const refreshPendingCount = useCallback(async () => {
     try {
       const count = await fetchPendingOrdersCount();
@@ -152,18 +147,16 @@ export const CustomerReviews: React.FC = () => {
 
     const interval = setInterval(() => {
       refreshPendingCount();
-    }, 60000); // كل دقيقة
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [isAdmin, refreshPendingCount]);
 
-  // تحديث العدّاد عند إغلاق لوحة الطلبات
   const handleCloseOrdersPanel = useCallback(() => {
     setIsOrdersPanelOpen(false);
     refreshPendingCount();
   }, [refreshPendingCount]);
 
-  // جلب التقييمات من Supabase
   useEffect(() => {
     let isMounted = true;
     async function loadSupabaseReviews() {
@@ -351,11 +344,11 @@ export const CustomerReviews: React.FC = () => {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8 sm:my-12" id="customer-reviews-section">
-      <div className="bg-[#FAF8F4] border border-[#D4C8B5] rounded-3xl p-4 sm:p-7 shadow-xs text-center relative">
+      <div className="bg-[#FAF8F4] border border-[#D4C8B5] rounded-3xl p-4 sm:p-8 shadow-sm text-center relative">
 
         {/* إشعار إداري */}
         {adminNotification && (
-          <div className="mb-4 py-2.5 px-4 rounded-xl bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md flex items-center justify-between gap-2 animate-in fade-in duration-200 text-right">
+          <div className="mb-6 py-3 px-5 rounded-xl bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md flex items-center justify-between gap-3 animate-in fade-in duration-200 text-right max-w-3xl mx-auto">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-200 shrink-0" />
               <span>{adminNotification}</span>
@@ -372,7 +365,7 @@ export const CustomerReviews: React.FC = () => {
 
         {/* ─── شريط المدير ─── */}
         {isAdmin && (
-          <div className="mb-6 p-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 text-amber-950 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-right shadow-2xs">
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 text-amber-950 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-right shadow-sm max-w-4xl mx-auto">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-[#C25E12] shrink-0" />
               <span>
@@ -380,18 +373,16 @@ export const CustomerReviews: React.FC = () => {
               </span>
             </div>
             <div className="flex items-center gap-2 mr-auto flex-wrap">
-              {/* ── زر إدارة الطلبات مع شارة حمراء ── */}
               <button
                 type="button"
                 onClick={() => setIsOrdersPanelOpen(true)}
-                className="relative px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#1E4327] to-[#2E5336] hover:from-[#112616] hover:to-[#1E4327] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
+                className="relative px-4 py-2 rounded-xl bg-gradient-to-r from-[#1E4327] to-[#2E5336] hover:from-[#112616] hover:to-[#1E4327] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-2 shadow-sm active:scale-95"
               >
-                <ShoppingBag className="w-3.5 h-3.5 text-[#F5D76E]" />
+                <ShoppingBag className="w-4 h-4 text-[#F5D76E]" />
                 <span>إدارة الطلبات</span>
 
-                {/* 🔴 Badge */}
                 {pendingOrdersCount > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black border-2 border-white shadow-md animate-pulse">
+                  <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black border-2 border-white shadow-md animate-pulse">
                     {pendingOrdersCount > 99 ? '99+' : pendingOrdersCount}
                   </span>
                 )}
@@ -400,15 +391,15 @@ export const CustomerReviews: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsChangePinModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                className="px-3 py-1.5 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
               >
-                <KeyRound className="w-3 h-3 text-amber-700" />
+                <KeyRound className="w-3.5 h-3.5 text-amber-700" />
                 <span>تغيير الرمز السري</span>
               </button>
               <button
                 type="button"
                 onClick={handleLogoutAdmin}
-                className="px-2.5 py-1 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 border border-red-200 text-xs font-bold transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 border border-red-200 text-xs font-bold transition-colors cursor-pointer"
               >
                 خروج من الإدارة
               </button>
@@ -417,69 +408,69 @@ export const CustomerReviews: React.FC = () => {
         )}
 
         {/* ─── الرأس ─── */}
-        <div className="max-w-2xl mx-auto mb-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-[#1E4327] text-xs font-black mb-2 shadow-2xs select-none">
-            <Sparkles className="w-3.5 h-3.5 text-[#2E5336]" />
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-300 text-[#1E4327] text-xs font-black mb-3 shadow-sm select-none">
+            <Sparkles className="w-4 h-4 text-[#2E5336]" />
             <span>تجارب حقيقية</span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-black text-[#112616] mb-2 font-['Almarai']">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#112616] mb-3 font-['Almarai']">
             آراء زبنائنا بمدينة فاس
           </h2>
 
-          <div className="inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-[#D4C8B5] shadow-2xs text-xs font-bold text-[#112616] select-none">
-            <span className="font-black text-[#C25E12] text-sm">4.9</span>
-            <div className="flex text-amber-500 text-xs">★★★★★</div>
-            <span className="text-[#524B3E] font-medium border-r border-[#E8E1D3] pr-2 mr-1">
+          <div className="inline-flex items-center gap-2 bg-white px-5 py-2 rounded-full border border-[#D4C8B5] shadow-sm text-xs font-bold text-[#112616] select-none">
+            <span className="font-black text-[#C25E12] text-base">4.9</span>
+            <div className="flex text-amber-500 text-sm">★★★★★</div>
+            <span className="text-[#524B3E] font-medium border-r border-[#E8E1D3] pr-3 mr-1">
               استناداً إلى تقييمات الزبناء
             </span>
           </div>
         </div>
 
         {/* ─── شبكة البطاقات ─── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 text-right">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 text-right max-w-5xl mx-auto">
           {displayedReviews.map((rev) => (
             <article
               key={rev.id}
-              className={`bg-white border rounded-2xl p-4 shadow-2xs transition-colors flex flex-col justify-between ${
-                isAdmin ? 'border-amber-300 ring-1 ring-amber-100' : 'border-[#D4C8B5] hover:border-[#C25E12]'
+              className={`bg-white border rounded-2xl p-5 shadow-sm transition-all flex flex-col justify-between ${
+                isAdmin ? 'border-amber-300 ring-2 ring-amber-100' : 'border-[#D4C8B5] hover:border-[#C25E12] hover:shadow-md'
               }`}
             >
               <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-[#1E4327] text-white font-black text-xs flex items-center justify-center shrink-0 select-none">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-[#1E4327] text-white font-black text-sm flex items-center justify-center shrink-0 select-none shadow-sm">
                       {rev.author.charAt(0)}
                     </div>
                     <div className="leading-tight">
                       <div className="flex items-center gap-1.5">
-                        <h3 className="text-xs sm:text-sm font-black text-[#112616]">
+                        <h3 className="text-sm font-black text-[#112616]">
                           {rev.author}
                         </h3>
                         {rev.verified && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-800 bg-emerald-50 px-1 py-0.2 rounded font-bold border border-emerald-200 select-none">
-                            <BadgeCheck className="w-2.5 h-2.5 text-emerald-600" />
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded font-bold border border-emerald-200 select-none">
+                            <BadgeCheck className="w-3 h-3 text-emerald-600" />
                             <span>طلب مؤكد</span>
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] text-[#524B3E] font-medium flex items-center gap-0.5 mt-0.5">
-                        <MapPin className="w-2.5 h-2.5 text-[#C25E12]" />
+                      <span className="text-[11px] text-[#524B3E] font-medium flex items-center gap-1 mt-1">
+                        <MapPin className="w-3 h-3 text-[#C25E12]" />
                         <span>{rev.neighborhood}</span>
                       </span>
                     </div>
                   </div>
 
-                  <span className="text-[10px] text-[#787163] font-medium shrink-0">
+                  <span className="text-[10px] text-[#787163] font-medium shrink-0 bg-stone-50 px-2 py-0.5 rounded-full">
                     {rev.date}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-0.5 mb-2" aria-label={`تقييم ${rev.rating} من 5 نجوم`}>
+                <div className="flex items-center gap-0.5 mb-3" aria-label={`تقييم ${rev.rating} من 5 نجوم`}>
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-3.5 h-3.5 ${
+                      className={`w-4 h-4 ${
                         i < rev.rating
                           ? 'fill-amber-400 text-amber-400'
                           : 'fill-gray-200 text-gray-200'
@@ -488,21 +479,21 @@ export const CustomerReviews: React.FC = () => {
                   ))}
                 </div>
 
-                <p className="text-xs sm:text-sm text-[#2D271E] font-medium leading-relaxed">
+                <p className="text-sm text-[#2D271E] font-medium leading-relaxed">
                   "{rev.comment}"
                 </p>
               </div>
 
               {isAdmin && (
-                <div className="mt-3 pt-2.5 border-t border-amber-200 flex items-center justify-between">
+                <div className="mt-4 pt-3 border-t border-amber-200 flex items-center justify-between">
                   <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-[#C25E12]" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#C25E12]" />
                     <span>إدارة التعليق:</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setDeleteConfirmReview(rev)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all cursor-pointer active:scale-95 touch-manipulation"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all cursor-pointer active:scale-95 touch-manipulation"
                     title="حذف هذا التعليق نهائياً"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-red-600" />
@@ -516,11 +507,11 @@ export const CustomerReviews: React.FC = () => {
 
         {/* ─── زر قراءة المزيد ─── */}
         {reviews.length > INITIAL_VISIBLE_COUNT && (
-          <div className="mt-4 pt-2">
+          <div className="mt-6 pt-2">
             <button
               type="button"
               onClick={() => setShowAllReviews(!showAllReviews)}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-[#D4C8B5] hover:bg-[#F7F4EC] text-[#1E4327] text-xs font-black transition-all cursor-pointer touch-manipulation select-none active:scale-95 shadow-2xs"
+              className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-white border border-[#D4C8B5] hover:bg-[#F7F4EC] text-[#1E4327] text-xs font-black transition-all cursor-pointer touch-manipulation select-none active:scale-95 shadow-sm"
             >
               {showAllReviews ? (
                 <>
@@ -538,18 +529,18 @@ export const CustomerReviews: React.FC = () => {
         )}
 
         {/* ─── الأسفل ─── */}
-        <div className="mt-6 pt-4 border-t border-[#EAE2D2] flex flex-col sm:flex-row items-center justify-between gap-3 text-right">
+        <div className="mt-8 pt-5 border-t border-[#EAE2D2] flex flex-col sm:flex-row items-center justify-between gap-4 text-right max-w-5xl mx-auto">
           <p className="text-xs text-[#524B3E] font-medium">
             هل تسوقت من متجر خُضرة مؤخراً؟ يسعدنا دائماً الاستماع إلى رأيك واقتراحاتك.
           </p>
 
-          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+          <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[40px] rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-black text-xs shadow-2xs active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#A34C0B] hover:to-[#7A3604] text-white font-black text-xs shadow-sm active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
             >
-              <MessageSquarePlus className="w-3.5 h-3.5" />
+              <MessageSquarePlus className="w-4 h-4" />
               <span>إضافة تقييم</span>
             </button>
 
@@ -557,7 +548,7 @@ export const CustomerReviews: React.FC = () => {
               href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}?text=${encodeURIComponent('السلام عليكم فريق متجر خُضرة، أود مشاركة رأيي معكم:')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center px-3.5 py-2 min-h-[40px] rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#145A25] border border-emerald-300 text-xs font-black transition-all cursor-pointer active:scale-95 touch-manipulation select-none"
+              className="inline-flex items-center justify-center px-4 py-2.5 min-h-[44px] rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#145A25] border border-emerald-300 text-xs font-black transition-all cursor-pointer active:scale-95 touch-manipulation select-none"
             >
               واتساب مباشر
             </a>
@@ -571,20 +562,20 @@ export const CustomerReviews: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !isSubmitting && setIsModalOpen(false)} />
 
-          <div className="relative bg-white border border-[#D4C8B5] rounded-3xl w-full max-w-md shadow-2xl z-50 overflow-hidden p-5 text-right animate-in zoom-in-95 duration-200 my-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-4">
+          <div className="relative bg-white border border-[#D4C8B5] rounded-3xl w-full max-w-md shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-5">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#1E4327] text-white flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[#1E4327] text-white flex items-center justify-center">
                   <MessageSquarePlus className="w-4 h-4" />
                 </div>
-                <h3 className="font-black text-sm sm:text-base text-[#112616]">
+                <h3 className="font-black text-base text-[#112616]">
                   مشاركة تجربتك مع متجر خُضرة
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => !isSubmitting && setIsModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] flex items-center justify-center transition-colors active:scale-90 touch-manipulation cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] flex items-center justify-center transition-colors active:scale-90 touch-manipulation cursor-pointer"
                 aria-label="إغلاق"
               >
                 <X className="w-4 h-4" />
@@ -592,17 +583,17 @@ export const CustomerReviews: React.FC = () => {
             </div>
 
             {isSuccessAlert ? (
-              <div className="py-6 text-center space-y-2">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center">
-                  <CheckCircle2 className="w-7 h-7 stroke-[2.5]" />
+              <div className="py-8 text-center space-y-3">
+                <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 stroke-[2.5]" />
                 </div>
-                <h4 className="text-sm sm:text-base font-black text-[#112616]">شكراً لك على تقييمك القيّم!</h4>
+                <h4 className="text-base font-black text-[#112616]">شكراً لك على تقييمك القيّم!</h4>
                 <p className="text-xs text-[#524B3E]">تم حفظ تقييمك في قاعدة البيانات بنجاح.</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmitReview} className="space-y-3">
+              <form onSubmit={handleSubmitReview} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#112616] mb-1">
+                  <label className="block text-xs font-bold text-[#112616] mb-1.5">
                     الاسم الكامل أو اللقب <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -611,12 +602,12 @@ export const CustomerReviews: React.FC = () => {
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder="مثال: سارة الإدريسي"
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4C8B5] text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1E4327] text-[#112616]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#D4C8B5] text-sm bg-white focus:outline-none focus:border-[#1E4327] text-[#112616] transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#112616] mb-1">
+                  <label className="block text-xs font-bold text-[#112616] mb-1.5">
                     الحي بمدينة فاس
                   </label>
                   <input
@@ -624,12 +615,12 @@ export const CustomerReviews: React.FC = () => {
                     value={newNeighborhood}
                     onChange={(e) => setNewNeighborhood(e.target.value)}
                     placeholder="مثال: طريق إيموزار، الأطلس، طريق عين الشقف، النرجس..."
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4C8B5] text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1E4327] text-[#112616]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#D4C8B5] text-sm bg-white focus:outline-none focus:border-[#1E4327] text-[#112616] transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#112616] mb-1">
+                  <label className="block text-xs font-bold text-[#112616] mb-1.5">
                     التقييم
                   </label>
                   <div className="flex items-center gap-1">
@@ -641,7 +632,7 @@ export const CustomerReviews: React.FC = () => {
                         className="p-1 cursor-pointer transition-transform hover:scale-110 active:scale-95 touch-manipulation select-none"
                       >
                         <Star
-                          className={`w-5 h-5 ${
+                          className={`w-6 h-6 ${
                             star <= newRating
                               ? 'fill-amber-400 text-amber-400'
                               : 'fill-gray-200 text-gray-300'
@@ -656,7 +647,7 @@ export const CustomerReviews: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#112616] mb-1">
+                  <label className="block text-xs font-bold text-[#112616] mb-1.5">
                     تعليقك <span className="text-red-500">*</span>
                   </label>
                   <textarea
@@ -665,17 +656,17 @@ export const CustomerReviews: React.FC = () => {
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="شاركنا رأيك في طراوة المنتجات، التوصيل، أو طريقة التعامل..."
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4C8B5] text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1E4327] text-[#112616]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#D4C8B5] text-sm bg-white focus:outline-none focus:border-[#1E4327] text-[#112616] transition-colors resize-none"
                   />
                 </div>
 
-                <div className="pt-2 flex items-center gap-2">
+                <div className="pt-2 flex items-center gap-3">
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 py-2.5 px-4 min-h-[42px] rounded-xl bg-gradient-to-r from-[#C25E12] to-[#9C4505] text-white font-black text-xs sm:text-sm shadow-2xs hover:shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation select-none disabled:opacity-50"
+                    className="flex-1 py-3 px-4 min-h-[44px] rounded-xl bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#A34C0B] hover:to-[#7A3604] text-white font-black text-sm shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation select-none disabled:opacity-50"
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    <Send className="w-4 h-4" />
                     <span>{isSubmitting ? 'جاري النشر...' : 'نشر التقييم'}</span>
                   </button>
 
@@ -683,7 +674,7 @@ export const CustomerReviews: React.FC = () => {
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => setIsModalOpen(false)}
-                    className="py-2.5 px-4 min-h-[42px] rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] font-bold text-xs transition-colors cursor-pointer active:scale-95 touch-manipulation select-none"
+                    className="py-3 px-5 min-h-[44px] rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] font-bold text-sm transition-colors cursor-pointer active:scale-95 touch-manipulation select-none"
                   >
                     إلغاء
                   </button>
@@ -701,13 +692,13 @@ export const CustomerReviews: React.FC = () => {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsPinModalOpen(false)} />
 
           <div className="relative bg-white border border-amber-300 rounded-3xl w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 text-[#C25E12] flex items-center justify-center">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E8E1D3] mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-[#C25E12] flex items-center justify-center">
                   <Lock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-black text-sm sm:text-base text-[#112616]">
+                  <h3 className="font-black text-base text-[#112616]">
                     إدارة المتجر
                   </h3>
                   <p className="text-[11px] text-stone-500">خاص بمدير المتجر فقط</p>
@@ -716,15 +707,15 @@ export const CustomerReviews: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsPinModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] flex items-center justify-center cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handlePinSubmit} className="space-y-4">
+            <form onSubmit={handlePinSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-[#112616] mb-1.5">
+                <label className="block text-xs font-bold text-[#112616] mb-2">
                   أدخل الرمز السري (PIN):
                 </label>
                 <input
@@ -737,27 +728,27 @@ export const CustomerReviews: React.FC = () => {
                     if (pinError) setPinError(null);
                   }}
                   placeholder="••••"
-                  className="w-full text-center text-lg font-black tracking-widest px-4 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/20"
+                  className="w-full text-center text-xl font-black tracking-widest px-4 py-3 rounded-xl border border-stone-300 focus:outline-none focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/20 transition-all"
                 />
                 {pinError && (
-                  <p className="text-red-600 text-xs font-bold mt-1.5 flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5" />
+                  <p className="text-red-600 text-xs font-bold mt-2 flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4" />
                     <span>{pinError}</span>
                   </p>
                 )}
               </div>
 
-              <div className="pt-2 flex items-center gap-2">
+              <div className="pt-2 flex items-center gap-3">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-black text-xs sm:text-sm shadow-sm active:scale-95 transition-all cursor-pointer"
+                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#A34C0B] hover:to-[#7A3604] text-white font-black text-sm shadow-sm active:scale-95 transition-all cursor-pointer"
                 >
                   تأكيد الدخول
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsPinModalOpen(false)}
-                  className="py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer"
+                  className="py-3 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm cursor-pointer"
                 >
                   إلغاء
                 </button>
@@ -773,33 +764,33 @@ export const CustomerReviews: React.FC = () => {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsChangePinModalOpen(false)} />
 
           <div className="relative bg-white border border-stone-300 rounded-3xl w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D3] mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E8E1D3] mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
                   <KeyRound className="w-4 h-4" />
                 </div>
-                <h3 className="font-black text-sm sm:text-base text-[#112616]">
+                <h3 className="font-black text-base text-[#112616]">
                   تغيير الرمز السري للمدير
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsChangePinModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {changePinSuccess ? (
-              <div className="py-4 text-center space-y-2">
-                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+              <div className="py-6 text-center space-y-3">
+                <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
                 <p className="text-sm font-black text-emerald-800">تم حفظ الرمز السري الجديد بنجاح!</p>
               </div>
             ) : (
-              <form onSubmit={handleChangePinSubmit} className="space-y-4">
+              <form onSubmit={handleChangePinSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-xs font-bold text-[#112616] mb-1.5">
+                  <label className="block text-xs font-bold text-[#112616] mb-2">
                     الرمز السري الجديد (4 أرقام أو أكثر):
                   </label>
                   <input
@@ -810,21 +801,21 @@ export const CustomerReviews: React.FC = () => {
                     value={newPinInput}
                     onChange={(e) => setNewPinInput(e.target.value)}
                     placeholder="مثال: 5678"
-                    className="w-full text-center text-lg font-black tracking-widest px-4 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-[#C25E12]"
+                    className="w-full text-center text-xl font-black tracking-widest px-4 py-3 rounded-xl border border-stone-300 focus:outline-none focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/20 transition-all"
                   />
                 </div>
 
-                <div className="pt-2 flex items-center gap-2">
+                <div className="pt-2 flex items-center gap-3">
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-[#C25E12] hover:bg-[#A34C0B] text-white font-black text-xs sm:text-sm shadow-sm active:scale-95 transition-all cursor-pointer"
+                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#A34C0B] hover:to-[#7A3604] text-white font-black text-sm shadow-sm active:scale-95 transition-all cursor-pointer"
                   >
                     حفظ الرمز الجديد
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsChangePinModalOpen(false)}
-                    className="py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer"
+                    className="py-3 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm cursor-pointer"
                   >
                     إلغاء
                   </button>
@@ -841,27 +832,27 @@ export const CustomerReviews: React.FC = () => {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => !isDeleting && setDeleteConfirmReview(null)} />
 
           <div className="relative bg-white border border-red-300 rounded-3xl w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
-              <Trash2 className="w-6 h-6" />
+            <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-7 h-7" />
             </div>
 
-            <h3 className="font-black text-base text-[#112616] text-center mb-1">
+            <h3 className="font-black text-base text-[#112616] text-center mb-2">
               تأكيد حذف التعليق
             </h3>
-            <p className="text-xs text-stone-500 text-center mb-4">
+            <p className="text-sm text-stone-500 text-center mb-5">
               هل أنت متأكد من رغبتك في حذف تعليق <strong className="text-stone-800">"{deleteConfirmReview.author}"</strong> نهائياً من المتجر؟
             </p>
 
-            <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 mb-4 text-xs text-stone-700 italic">
+            <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 mb-5 text-sm text-stone-700 italic text-center">
               "{deleteConfirmReview.comment}"
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 disabled={isDeleting}
                 onClick={handleExecuteDelete}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm shadow-sm active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm shadow-sm active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isDeleting ? (
                   <>
@@ -879,7 +870,7 @@ export const CustomerReviews: React.FC = () => {
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setDeleteConfirmReview(null)}
-                className="py-2.5 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer active:scale-95 transition-colors"
+                className="py-3 px-5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm cursor-pointer active:scale-95 transition-colors"
               >
                 إلغاء
               </button>
