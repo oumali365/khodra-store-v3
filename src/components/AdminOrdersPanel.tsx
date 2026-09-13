@@ -553,7 +553,13 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       <span>حذف الطلب</span>
                     </button>
                   </div>
-
+<button
+  type="button"
+  onClick={() => alert('✅ الزر يعمل! سيتم إصلاح الفاتورة')}
+  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500 text-white text-xs font-bold"
+>
+  🧪 اختبار
+</button>
                   {/* ─── Status Buttons ─── */}
                   <div className="pt-3 border-t border-[#F0E9DA]">
                     <div className="text-[11px] font-black text-stone-600 mb-2 flex items-center gap-1">
