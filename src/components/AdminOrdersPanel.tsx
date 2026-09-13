@@ -1,7 +1,7 @@
 // ============================================================
 // AdminOrdersPanel.tsx – نافذة إدارة الطلبات للمدير
-// يتضمن: شارة حمراء + نسخ التفاصيل + حذف الطلب + طباعة الفاتورة
-// التصميم: أزرار منظّمة في صفّين (تواصل / إدارة)
+// الميزات: شارة حمراء + نسخ + حذف + طباعة فاتورة + تنبيهات
+// التصميم: أزرار منظّمة + زر حذف في صف الحالة (بدل "ملغى")
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -67,7 +67,12 @@ const STATUS_CONFIG: Record<OrderStatus, {
   },
 };
 
+// ─── كل الحالات (لصف الإحصائيات والفرز) ───
 const STATUS_ORDER: OrderStatus[] = ['pending', 'prepared', 'delivered', 'cancelled'];
+
+// ─── الحالات القابلة للتغيير داخل بطاقة الطلب (بدون "ملغى") ───
+// السبب: زر "الحذف" يحل مكان "ملغى" لأن الإلغاء = حذف
+const STATUS_ORDER_CHANGEABLE: OrderStatus[] = ['pending', 'prepared', 'delivered'];
 
 function toWhatsApp(phone: string): string {
   const digits = (phone || '').replace(/\D/g, '');
@@ -290,7 +295,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
 
         <div className="relative bg-[#FAF8F4] w-full sm:max-w-4xl shadow-2xl z-10 sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[92vh] overflow-hidden text-right">
 
-          {/* Header */}
+          {/* ═══════════ Header ═══════════ */}
           <div className="p-4 sm:p-5 bg-gradient-to-l from-[#1E4327] to-[#2E5336] text-white flex items-center justify-between shrink-0 shadow-md">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center">
@@ -324,7 +329,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
             </div>
           </div>
 
-          {/* Toast */}
+          {/* ═══════════ Toast ═══════════ */}
           {toast && (
             <div className={`px-4 py-2.5 text-xs font-bold flex items-center gap-2 ${
               toast.type === 'success' ? 'bg-emerald-100 text-emerald-900 border-b border-emerald-300' : 'bg-red-100 text-red-900 border-b border-red-300'
@@ -334,7 +339,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
             </div>
           )}
 
-          {/* Stats Row */}
+          {/* ═══════════ Stats Row (4 بطاقات للفرز) ═══════════ */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 sm:p-4 bg-white border-b border-[#E8E1D3]">
             {STATUS_ORDER.map((s) => {
               const cfg = STATUS_CONFIG[s];
@@ -363,7 +368,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
             })}
           </div>
 
-          {/* Search */}
+          {/* ═══════════ Search ═══════════ */}
           <div className="p-3 sm:p-4 bg-[#FAF8F4] border-b border-[#E8E1D3] flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
@@ -397,7 +402,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
             )}
           </div>
 
-          {/* Orders List */}
+          {/* ═══════════ Orders List ═══════════ */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
             {isLoading ? (
               <div className="py-16 text-center">
@@ -439,7 +444,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                         : 'border-[#E8E1D3] hover:border-[#D4C8B5]'
                     } ${isBeingDeleted ? 'opacity-60' : ''}`}
                   >
-                    {/* Row 1: Order code + Status + Time */}
+                    {/* ─── Row 1: رقم الطلب + الحالة + الوقت ─── */}
                     <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-[#F0E9DA]">
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
                         <span className="text-sm sm:text-base font-black text-[#112616] shrink-0">
@@ -457,7 +462,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       </span>
                     </div>
 
-                    {/* Row 2: Customer + Summary */}
+                    {/* ─── Row 2: معلومات العميل + الملخص ─── */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <div className="space-y-1.5 text-xs">
                         <div className="flex items-center gap-1.5">
@@ -496,7 +501,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       </div>
                     </div>
 
-                    {/* Note */}
+                    {/* ─── ملاحظات الطلب ─── */}
                     {order.note && (
                       <div className="mb-3 p-2 rounded-lg bg-amber-50/50 border border-amber-200 text-[11px] text-amber-950 space-y-0.5">
                         {order.note.split(' | ').map((part, i) => (
@@ -508,12 +513,12 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       </div>
                     )}
 
-                    {/* ═══════════════════════════════════════════════
-                        ─── الإجراءات السريعة (تصميم منظّم) ───
-                        ═══════════════════════════════════════════════ */}
+                    {/* ═══════════════════════════════════════════════════
+                        ─── أزرار الإجراءات ───
+                        ═══════════════════════════════════════════════════ */}
                     <div className="mb-3 space-y-2">
 
-                      {/* ─── الصف الأول: التواصل ─── */}
+                      {/* ─── الصف 1: التواصل ─── */}
                       {hasContactRow && (
                         <div className={`grid gap-2 ${hasBothContact ? 'grid-cols-2' : 'grid-cols-1'}`}>
                           {wa && (
@@ -522,7 +527,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation"
-                              title="فتح محادثة واتساب مع العميل"
                             >
                               <MessageCircle className="w-4 h-4 shrink-0" />
                               <span>واتساب</span>
@@ -534,7 +538,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation"
-                              title="عرض موقع العميل على الخريطة"
                             >
                               <ExternalLink className="w-4 h-4 shrink-0" />
                               <span>الخريطة</span>
@@ -543,9 +546,9 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                         </div>
                       )}
 
-                      {/* ─── الصف الثاني: الإدارة ─── */}
-                      <div className="grid grid-cols-3 gap-2">
-                        {/* 🖨️ الفاتورة (رئيسي) */}
+                      {/* ─── الصف 2: الإدارة (زران فقط الآن) ─── */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* 🖨️ الفاتورة */}
                         <button
                           type="button"
                           onClick={() => setInvoiceOrder(order)}
@@ -570,7 +573,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                           {isCopied ? (
                             <>
                               <Check className="w-4 h-4 text-emerald-700 shrink-0" />
-                              <span className="truncate">تم</span>
+                              <span className="truncate">تم النسخ</span>
                             </>
                           ) : (
                             <>
@@ -579,28 +582,19 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                             </>
                           )}
                         </button>
-
-                        {/* 🗑️ حذف (خطر) */}
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirmOrder(order)}
-                          disabled={isBeingDeleted}
-                          className="inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-black text-xs border-2 border-red-200 shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation disabled:opacity-50"
-                          title="حذف الطلب نهائياً"
-                        >
-                          <Trash2 className="w-4 h-4 shrink-0" />
-                          <span className="truncate">حذف</span>
-                        </button>
                       </div>
                     </div>
 
-                    {/* Status buttons */}
+                    {/* ═══════════════════════════════════════════════════
+                        ─── صف الحالة (3 حالات + زر الحذف) ───
+                        ═══════════════════════════════════════════════════ */}
                     <div className="pt-3 border-t border-[#F0E9DA]">
                       <div className="text-[11px] font-black text-stone-600 mb-2 flex items-center gap-1">
                         <span>تغيير الحالة إلى:</span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                        {STATUS_ORDER.map((s) => {
+                        {/* 3 حالات قابلة للتغيير */}
+                        {STATUS_ORDER_CHANGEABLE.map((s) => {
                           const sCfg = STATUS_CONFIG[s];
                           const SIcon = sCfg.Icon;
                           const isActive = order.status === s;
@@ -621,6 +615,27 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                             </button>
                           );
                         })}
+
+                        {/* 🗑️ زر الحذف (بدل "ملغى") */}
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmOrder(order)}
+                          disabled={isBeingDeleted}
+                          className="py-2 px-2 rounded-lg border-2 text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all active:scale-95 touch-manipulation bg-red-50 hover:bg-red-100 text-red-700 border-red-300 hover:border-red-400 disabled:opacity-60 cursor-pointer"
+                          title="حذف الطلب نهائياً"
+                        >
+                          {isBeingDeleted ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />
+                              <span className="truncate">جاري...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">حذف الطلب</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </article>
@@ -629,7 +644,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
             )}
           </div>
 
-          {/* Footer */}
+          {/* ═══════════ Footer ═══════════ */}
           <div className="p-3 sm:p-4 bg-white border-t border-[#E8E1D3] flex items-center justify-between gap-2 shrink-0">
             <p className="text-[11px] text-stone-500 font-medium">
               عرض {filteredOrders.length} من أصل {orders.length} طلب
@@ -645,7 +660,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
 
         </div>
 
-        {/* Delete Confirmation Modal */}
+        {/* ═══════════ Delete Confirmation Modal ═══════════ */}
         {deleteConfirmOrder && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
             <div
@@ -653,7 +668,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
               onClick={() => !isDeleting && setDeleteConfirmOrder(null)}
             />
 
-            <div className="relative bg-white border border-red-300 rounded-3xl w-full max-w-sm shadow-2xl z-10 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200">
+            <div className="relative bg-white border-2 border-red-300 rounded-3xl w-full max-w-sm shadow-2xl z-10 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200">
               <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
                 <Trash2 className="w-6 h-6" />
               </div>
@@ -716,7 +731,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
 
       </div>
 
-      {/* ─── نافذة الفاتورة ─── */}
+      {/* ═══════════ نافذة الفاتورة ═══════════ */}
       <OrderInvoiceModal
         order={invoiceOrder}
         isOpen={!!invoiceOrder}
