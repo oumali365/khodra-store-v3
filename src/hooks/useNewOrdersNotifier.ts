@@ -19,6 +19,15 @@ interface UseNewOrdersNotifierResult {
 
 const LAST_SEEN_ID_KEY = 'khodra_last_seen_order_id_v2';
 
+function getLastSeenId(): number {
+  try {
+    const v = localStorage.getItem(LAST_SEEN_ID_KEY);
+    return v ? Number(v) : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export function useNewOrdersNotifier({
   enabled,
   pollIntervalMs = 45000,
@@ -27,14 +36,7 @@ export function useNewOrdersNotifier({
   const [totalPending, setTotalPending] = useState(0);
 
   // آخر ID رأيته (يُحفظ في localStorage)
-  const lastSeenIdRef = useRef<number>(() => {
-    try {
-      const v = localStorage.getItem(LAST_SEEN_ID_KEY);
-      return v ? Number(v) : 0;
-    } catch {
-      return 0;
-    }
-  });
+  const lastSeenIdRef = useRef<number>(getLastSeenId());
 
   // حماية من الفحص المتكرر
   const lastFetchRef = useRef<number>(0);
