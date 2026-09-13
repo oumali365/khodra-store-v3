@@ -1,6 +1,7 @@
 // ============================================================
 // AdminOrdersPanel.tsx – نافذة إدارة الطلبات للمدير
 // يتضمن: شارة حمراء + نسخ التفاصيل + حذف الطلب + طباعة الفاتورة
+// التصميم: أزرار منظّمة في صفّين (تواصل / إدارة)
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -426,6 +427,8 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                 const wa = toWhatsApp(order.phone);
                 const itemsCount = order.items.reduce((s, i) => s + (Number(i.qty) || 1), 0);
                 const isCopied = copiedId === order.id;
+                const hasContactRow = !!(wa || order.maps_link);
+                const hasBothContact = !!(wa && order.maps_link);
 
                 return (
                   <article
@@ -436,7 +439,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                         : 'border-[#E8E1D3] hover:border-[#D4C8B5]'
                     } ${isBeingDeleted ? 'opacity-60' : ''}`}
                   >
-                    {/* Row 1 */}
+                    {/* Row 1: Order code + Status + Time */}
                     <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-[#F0E9DA]">
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
                         <span className="text-sm sm:text-base font-black text-[#112616] shrink-0">
@@ -454,7 +457,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       </span>
                     </div>
 
-                    {/* Row 2 */}
+                    {/* Row 2: Customer + Summary */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <div className="space-y-1.5 text-xs">
                         <div className="flex items-center gap-1.5">
@@ -505,78 +508,90 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       </div>
                     )}
 
-                    {/* Quick actions */}
-                    <div className="flex items-center gap-2 mb-3 flex-wrap">
-                      {wa && (
-                        <a
-                          href={`https://wa.me/${wa}?text=${encodeURIComponent(`السلام عليكم ${order.customer_name}، بخصوص طلبكم ${order.order_code} من متجر خُضرة:`)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>واتساب</span>
-                        </a>
+                    {/* ═══════════════════════════════════════════════
+                        ─── الإجراءات السريعة (تصميم منظّم) ───
+                        ═══════════════════════════════════════════════ */}
+                    <div className="mb-3 space-y-2">
+
+                      {/* ─── الصف الأول: التواصل ─── */}
+                      {hasContactRow && (
+                        <div className={`grid gap-2 ${hasBothContact ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                          {wa && (
+                            <a
+                              href={`https://wa.me/${wa}?text=${encodeURIComponent(`السلام عليكم ${order.customer_name}، بخصوص طلبكم ${order.order_code} من متجر خُضرة:`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation"
+                              title="فتح محادثة واتساب مع العميل"
+                            >
+                              <MessageCircle className="w-4 h-4 shrink-0" />
+                              <span>واتساب</span>
+                            </a>
+                          )}
+                          {order.maps_link && (
+                            <a
+                              href={order.maps_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation"
+                              title="عرض موقع العميل على الخريطة"
+                            >
+                              <ExternalLink className="w-4 h-4 shrink-0" />
+                              <span>الخريطة</span>
+                            </a>
+                          )}
+                        </div>
                       )}
 
-                      {/* 🖨️ زر الطباعة */}
-                      <button
-                        type="button"
-                        onClick={() => setInvoiceOrder(order)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E4327] hover:bg-[#112616] text-white border border-[#1E4327] text-xs font-bold transition-colors cursor-pointer"
-                        title="طباعة الفاتورة"
-                      >
-                        <Printer className="w-3.5 h-3.5 text-[#F5D76E]" />
-                        <span>الفاتورة</span>
-                      </button>
-
-                      {/* 📋 زر النسخ */}
-                      <button
-                        type="button"
-                        onClick={() => handleCopyOrder(order)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
-                          isCopied
-                            ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
-                            : 'bg-stone-50 hover:bg-stone-100 text-stone-800 border-stone-300'
-                        }`}
-                        title="نسخ تفاصيل الطلب كاملة"
-                      >
-                        {isCopied ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-700" />
-                            <span>تم النسخ</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>نسخ</span>
-                          </>
-                        )}
-                      </button>
-
-                      {order.maps_link && (
-                        <a
-                          href={order.maps_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 text-xs font-bold transition-colors cursor-pointer"
+                      {/* ─── الصف الثاني: الإدارة ─── */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* 🖨️ الفاتورة (رئيسي) */}
+                        <button
+                          type="button"
+                          onClick={() => setInvoiceOrder(order)}
+                          className="inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-black text-xs shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation"
+                          title="معاينة وطباعة الفاتورة"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>الخريطة</span>
-                        </a>
-                      )}
+                          <Printer className="w-4 h-4 text-[#F5D76E] shrink-0" />
+                          <span className="truncate">الفاتورة</span>
+                        </button>
 
-                      {/* 🗑️ زر الحذف */}
-                      <button
-                        type="button"
-                        onClick={() => setDeleteConfirmOrder(order)}
-                        disabled={isBeingDeleted}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 border border-red-300 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 mr-auto"
-                        title="حذف الطلب نهائياً"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                        <span>حذف</span>
-                      </button>
+                        {/* 📋 نسخ */}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyOrder(order)}
+                          className={`inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-black text-xs border-2 shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation ${
+                            isCopied
+                              ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
+                              : 'bg-white hover:bg-stone-50 text-stone-800 border-stone-300'
+                          }`}
+                          title="نسخ تفاصيل الطلب"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+                              <span className="truncate">تم</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4 shrink-0" />
+                              <span className="truncate">نسخ</span>
+                            </>
+                          )}
+                        </button>
+
+                        {/* 🗑️ حذف (خطر) */}
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmOrder(order)}
+                          disabled={isBeingDeleted}
+                          className="inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-black text-xs border-2 border-red-200 shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation disabled:opacity-50"
+                          title="حذف الطلب نهائياً"
+                        >
+                          <Trash2 className="w-4 h-4 shrink-0" />
+                          <span className="truncate">حذف</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Status buttons */}
