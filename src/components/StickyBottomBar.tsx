@@ -37,7 +37,7 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
             <button
               type="button"
               onClick={onOpenCart}
-              className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1 min-h-[44px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] transition-all cursor-pointer text-right group flex-1 min-w-0 touch-manipulation select-none"
+              className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-3 py-1 min-h-[46px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] transition-all cursor-pointer text-right group flex-1 min-w-0 touch-manipulation select-none"
             >
               {/* أيقونة السلة مع العدد */}
               <div
