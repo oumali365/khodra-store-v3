@@ -26,7 +26,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     image: '/images/banks/barid-banque.webp',
     icon: '📮',
     rib: '350 810 0000000000000012 45',
-    beneficiary: 'شركة خُضرة فريش (KHODRA FRESH SARL)',
+    beneficiary: 'خُضرة فريش',
     city: 'فاس'
   },
   {
@@ -36,7 +36,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     image: '/images/banks/banque-populaire.webp',
     icon: '🐎',
     rib: '210 780 0000000000000034 67',
-    beneficiary: 'شركة خُضرة فريش (KHODRA FRESH SARL)',
+    beneficiary: 'خُضرة فريش',
     city: 'فاس'
   },
   {
@@ -46,7 +46,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     image: '/images/banks/cih-bank.webp',
     icon: '🏛️',
     rib: '230 640 0000000000000056 89',
-    beneficiary: 'شركة خُضرة فريش (KHODRA FRESH SARL)',
+    beneficiary: 'خُضرة فريش',
     city: 'فاس'
   },
   {
@@ -56,7 +56,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     image: '/images/banks/attijariwafa-bank.webp',
     icon: '🦅',
     rib: '007 810 0000000000000078 21',
-    beneficiary: 'شركة خُضرة فريش (KHODRA FRESH SARL)',
+    beneficiary: 'خُضرة فريش',
     city: 'فاس'
   },
   {
@@ -66,7 +66,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     image: '/images/banks/bank-of-africa.webp',
     icon: '🌍',
     rib: '000 240 0000000000000090 12',
-    beneficiary: 'شركة خُضرة فريش (KHODRA FRESH SARL)',
+    beneficiary: 'خُضرة فريش',
     city: 'فاس'
   },
   {
@@ -76,7 +76,7 @@ export const MOROCCAN_BANKS: BankAccount[] = [
     image: '/images/banks/cash-plus.webp',
     icon: '⚡',
     rib: '222 180 0000000000000100 34',
-    beneficiary: 'شركة خُضرة فريش (KHODRA FRESH SARL)',
+    beneficiary: 'خُضرة فريش',
     city: 'فاس'
   }
 ];
