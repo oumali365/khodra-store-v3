@@ -83,16 +83,10 @@ export const MOROCCAN_BANKS: BankAccount[] = [
 
 export const DELIVERY_SLOTS: DeliverySlot[] = [
   {
-    id: 'today_09_12',
-    label: 'اليوم بين 09:00 و 12:00 (صباحاً)',
+    id: 'today_10_12',
+    label: 'اليوم بين 10:00 و 12:00 (صباحاً)',
     cutoffHour: 9,
     periodText: 'صباحاً'
-  },
-  {
-    id: 'today_14_16',
-    label: 'اليوم بين 14:00 و 16:00 (بعد الزوال)',
-    cutoffHour: 14,
-    periodText: 'بعد الزوال'
   },
   {
     id: 'today_18_21',
@@ -101,14 +95,14 @@ export const DELIVERY_SLOTS: DeliverySlot[] = [
     periodText: 'مساءً'
   },
   {
-    id: 'tomorrow_09_12',
-    label: 'غداً بين 09:00 و 12:00 (غداً صباحاً)',
+    id: 'tomorrow_10_12',
+    label: 'غداً بين 10:00 و 12:00 (غداً صباحاً)',
     cutoffHour: null,
     periodText: 'غداً صباحاً'
   },
   {
-    id: 'tomorrow_16_20',
-    label: 'غداً بين 16:00 و 20:00 (توصيل مسائي)',
+    id: 'tomorrow_18_21',
+    label: 'غداً بين 18:00 و 21:00 (توصيل مسائي)',
     cutoffHour: null,
     periodText: 'غداً مساءً'
   }
