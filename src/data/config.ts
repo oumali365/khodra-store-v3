@@ -21,8 +21,8 @@ export const STORE_CONFIG = {
 export const MOROCCAN_BANKS: BankAccount[] = [
   {
     id: 'barid',
-    name: 'Al Barid (Barid Bank)',
-    shortName: 'Al Barid',
+    name: 'Al BARID (Barid Bank)',
+    shortName: 'Al BARID',
     image: '/images/banks/barid-banque.webp',
     icon: '📮',
     rib: '350 810 0000000000000012 45',
@@ -31,8 +31,8 @@ export const MOROCCAN_BANKS: BankAccount[] = [
   },
   {
     id: 'chaabi',
-    name: 'الشعبي (Banque Populaire)',
-    shortName: 'الشعبي',
+    name: 'CHAABI (Banque Populaire)',
+    shortName: 'CHAABI',
     image: '/images/banks/banque-populaire.webp',
     icon: '🐎',
     rib: '210 780 0000000000000034 67',
@@ -51,8 +51,8 @@ export const MOROCCAN_BANKS: BankAccount[] = [
   },
   {
     id: 'tijjari',
-    name: 'وفا (Attijariwafa)',
-    shortName: 'وفا',
+    name: 'TIJJARI (Attijariwafa)',
+    shortName: 'TIJJARI',
     image: '/images/banks/attijariwafa-bank.webp',
     icon: '🦅',
     rib: '007 810 0000000000000078 21',
@@ -71,8 +71,8 @@ export const MOROCCAN_BANKS: BankAccount[] = [
   },
   {
     id: 'cashplus',
-    name: 'cash+ (Cash Plus)',
-    shortName: 'cash plus',
+    name: 'CASHPLUS (Cash Plus)',
+    shortName: 'CASHPLUS',
     image: '/images/banks/cash-plus.webp',
     icon: '⚡',
     rib: '222 180 0000000000000100 34',
