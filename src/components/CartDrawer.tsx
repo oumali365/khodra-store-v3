@@ -1,9 +1,10 @@
 // ============================================================
 // الملف: CartDrawer.tsx – متوافق ومحسّن مع متجر "خُضرة"
+// الإصدار: 2.0 (يدعم صور المنتجات + شارات الصناديق)
 // ============================================================
 import React from 'react';
 import { AnimatePresence } from 'motion/react';
-import { X, Trash2, ArrowLeft, Sparkles, ShoppingBag, Truck } from 'lucide-react';
+import { X, Trash2, ArrowLeft, Sparkles, ShoppingBag, Truck, Package } from 'lucide-react';
 import { CartItem } from '../types';
 import { STORE_CONFIG } from '../data/config';
 import { SwipeableCartItem } from './SwipeableCartItem';
@@ -29,17 +30,36 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  // ─── الحسابات المالية ───
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const isFreeDelivery = subtotal >= STORE_CONFIG.freeDeliveryThreshold;
   const remainingForFree = Math.max(0, STORE_CONFIG.freeDeliveryThreshold - subtotal);
-  const progressPercent = Math.min(100, Math.round((subtotal / STORE_CONFIG.freeDeliveryThreshold) * 100));
-  const deliveryFee = items.length === 0 ? 0 : isFreeDelivery ? 0 : STORE_CONFIG.standardDeliveryFee;
+  const progressPercent = Math.min(
+    100,
+    Math.round((subtotal / STORE_CONFIG.freeDeliveryThreshold) * 100)
+  );
+  const deliveryFee =
+    items.length === 0 ? 0 : isFreeDelivery ? 0 : STORE_CONFIG.standardDeliveryFee;
   const grandTotal = subtotal + deliveryFee;
 
-  const freshnessScore = Math.min(100, Math.max(70, Math.round((items.length / STORE_CONFIG.freshnessMaxItems) * 100)));
+  // ─── عدد المنتجات من صناديق العائلة ───
+  const bundleItemsCount = items.filter((i) => !!i.bundleId).length;
+  const totalItemsCount = items.reduce((sum, i) => sum + i.qty, 0);
+
+  // ─── مقياس الطراوة (محسّن: يعتمد على التنوع) ───
+  const uniqueProductCount = new Set(items.map((i) => i.id)).size;
+  const freshnessScore = Math.min(
+    100,
+    Math.max(70, Math.round((uniqueProductCount / STORE_CONFIG.freshnessMaxItems) * 100))
+  );
 
   return (
-    <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="سلة المشتريات">
+    <div
+      className="fixed inset-0 z-50 flex"
+      role="dialog"
+      aria-modal="true"
+      aria-label="سلة المشتريات"
+    >
       {/* الطبقة الخلفية الشفافة */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
@@ -56,7 +76,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div>
               <h2 className="text-lg font-black tracking-tight">سلة المشتريات</h2>
               <p className="text-xs text-amber-100 font-bold">
-                {items.length} منتج{items.length > 1 ? 'ات' : ''} في سلتك
+                {totalItemsCount} قطعة • {items.length} صنف
+                {bundleItemsCount > 0 && (
+                  <span className="mr-1.5 inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full">
+                    <Package className="w-3 h-3" />
+                    {bundleItemsCount} صندوق
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -93,10 +119,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <span className="flex items-center gap-1.5">
                   <Truck className="w-3.5 h-3.5 text-[#C25E12]" />
                   {isFreeDelivery ? (
-                    <span className="text-emerald-700 font-black">مبروك! حصلت على توصيل مجاني 🎉</span>
+                    <span className="text-emerald-700 font-black">
+                      مبروك! حصلت على توصيل مجاني 🎉
+                    </span>
                   ) : (
                     <span>
-                      أضف <strong className="text-[#C25E12]">{remainingForFree.toFixed(2)} {STORE_CONFIG.currency}</strong> للحصول على توصيل مجاني
+                      أضف{' '}
+                      <strong className="text-[#C25E12]">
+                        {remainingForFree.toFixed(2)} {STORE_CONFIG.currency}
+                      </strong>{' '}
+                      للحصول على توصيل مجاني
                     </span>
                   )}
                 </span>
@@ -123,16 +155,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           </div>
         )}
 
-        {/* ─── قائمة المنتجات مع إيماءات السحب للحذف (عرض مدمج وأنيق) ─── */}
+        {/* ─── قائمة المنتجات ─── */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-12 px-4">
               <div className="w-20 h-20 rounded-full bg-[#F7F4EC] border-2 border-dashed border-[#D4C8B5] flex items-center justify-center text-4xl mb-4 animate-bounce">
                 🧺
               </div>
-              <h3 className="text-lg font-black text-[#112616] mb-1.5">
-                السلة فارغة
-              </h3>
+              <h3 className="text-lg font-black text-[#112616] mb-1.5">السلة فارغة</h3>
               <p className="text-sm text-[#2D271E] font-medium max-w-xs mb-6 leading-relaxed">
                 أضف بعض الخضروات والفواكه الطازجة إلى سلتك لتوصيلها لباب دارك.
               </p>
@@ -171,8 +201,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-bold">رسوم التوصيل:</span>
-                <span className={`font-black ${isFreeDelivery ? 'text-emerald-700' : 'text-[#112616]'}`}>
-                  {isFreeDelivery ? 'مجاني 🎉' : `${deliveryFee.toFixed(2)} ${STORE_CONFIG.currency}`}
+                <span
+                  className={`font-black ${
+                    isFreeDelivery ? 'text-emerald-700' : 'text-[#112616]'
+                  }`}
+                >
+                  {isFreeDelivery
+                    ? 'مجاني 🎉'
+                    : `${deliveryFee.toFixed(2)} ${STORE_CONFIG.currency}`}
                 </span>
               </div>
               <div className="pt-2 border-t border-[#D4C8B5] flex justify-between items-center text-sm sm:text-base font-black text-[#112616]">
@@ -195,6 +231,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <span>إتمام الطلب</span>
               <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
             </button>
+
+            {/* ملاحظة أمان */}
+            <p className="text-[10px] text-center text-[#787163] font-medium">
+              🔒 جميع البيانات محمية — يمكنك الدفع عند الاستلام
+            </p>
           </div>
         )}
 
