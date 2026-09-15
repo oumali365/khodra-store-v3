@@ -1,3 +1,7 @@
+// ============================================================
+// الملف: Footer.tsx – الإصدار 2.0
+// تذييل المتجر – تصميم موحّد
+// ============================================================
 import React from 'react';
 import { Heart, ShieldCheck, Truck, RefreshCw, Clock, MessageCircle, Lock } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
@@ -101,7 +105,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
               {/* عبارة خدمة الزبناء */}
               <div className="flex items-center justify-center md:justify-start gap-1.5 text-xs text-[#F5D76E] bg-white/10 py-1.5 px-3 rounded-lg border border-white/20 w-fit mx-auto md:mx-0 font-bold">
                 <Clock className="w-3.5 h-3.5 text-[#F5D76E] shrink-0" />
-                <span>09:00 - 21:00 يومياً</span>
+                <span>09:00 - 21:00</span>
               </div>
             </div>
           </div>
