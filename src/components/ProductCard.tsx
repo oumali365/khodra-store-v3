@@ -1,5 +1,6 @@
 // ============================================================
-// الملف الثالث: ProductCard.tsx – محسّن
+// الملف: ProductCard.tsx – الإصدار 2.0
+// زر "أضف للسلة" بنفس تصميم صناديق العائلة (خلفية خضراء داكنة)
 // ============================================================
 import React, { useState, useRef } from 'react';
 import { Minus, Plus, Check, ShoppingBag } from 'lucide-react';
@@ -29,7 +30,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleDecrement = () => {
     if (isWeight) {
-      setSelectedQty((prev) => Math.max(STORE_CONFIG.weightStep, +(prev - STORE_CONFIG.weightStep).toFixed(1)));
+      setSelectedQty((prev) =>
+        Math.max(STORE_CONFIG.weightStep, +(prev - STORE_CONFIG.weightStep).toFixed(1))
+      );
     } else {
       setSelectedQty((prev) => Math.max(1, prev - 1));
     }
@@ -37,20 +40,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleIncrement = () => {
     if (isWeight) {
-      setSelectedQty((prev) => Math.min(STORE_CONFIG.weightMax, +(prev + STORE_CONFIG.weightStep).toFixed(1)));
+      setSelectedQty((prev) =>
+        Math.min(STORE_CONFIG.weightMax, +(prev + STORE_CONFIG.weightStep).toFixed(1))
+      );
     } else {
       setSelectedQty((prev) => Math.min(20, prev + 1));
     }
   };
 
-  // ─── تأثير GSAP البصري لتحريك المنتج نحو السلة في الشريط السفلي ───
+  // ─── تأثير GSAP البصري لتحريك المنتج نحو السلة ───
   const animateToCart = () => {
     if (!imgContainerRef.current) return;
 
     const rect = imgContainerRef.current.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
-    // استهداف أيقونة السلة في الشريط السفلي الثابت
     const cartTarget = document.getElementById('sticky-cart-icon');
     let targetX = window.innerWidth > 640 ? window.innerWidth * 0.75 : window.innerWidth - 65;
     let targetY = window.innerHeight - 38;
@@ -58,12 +62,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     if (cartTarget) {
       const targetRect = cartTarget.getBoundingClientRect();
       targetX = targetRect.left + targetRect.width / 2;
-      targetY = targetRect.top > window.innerHeight ? window.innerHeight - 38 : targetRect.top + targetRect.height / 2;
+      targetY =
+        targetRect.top > window.innerHeight
+          ? window.innerHeight - 38
+          : targetRect.top + targetRect.height / 2;
     }
 
     // إنشاء مجسم مصغر طائر للمنتج
     const flyer = document.createElement('div');
-    flyer.className = 'fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border-2 border-[#D9762B] bg-white flex items-center justify-center';
+    flyer.className =
+      'fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border-2 border-[#D9762B] bg-white flex items-center justify-center';
     flyer.style.width = '64px';
     flyer.style.height = '64px';
     flyer.style.left = `${rect.left + rect.width / 2 - 32}px`;
@@ -94,10 +102,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       onComplete: () => {
         flyer.remove();
 
-        // ارتداد خفيف لأيقونة السلة لحظة وصول المنتج
         const targetIcon = document.getElementById('sticky-cart-icon');
         if (targetIcon) {
-          gsap.timeline()
+          gsap
+            .timeline()
             .to(targetIcon, { scale: 1.35, duration: 0.12, ease: 'back.out(2)' })
             .to(targetIcon, { scale: 1, duration: 0.18, ease: 'power2.out' });
         }
@@ -127,7 +135,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     setTimeout(() => setIsJustAdded(false), 1200);
   };
 
-  // شارة الحالة – محسّنة ومكبرة بتباين عالٍ
+  // شارة الحالة
   const getStatusBadge = () => {
     if (isSoldOut) {
       return { text: 'نفد المخزون', cls: 'bg-red-50 text-red-800 border-red-200 font-bold' };
@@ -146,7 +154,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         isSoldOut ? 'opacity-70 border-stone-300' : 'border-[#D4C8B5]'
       }`}
     >
-      {/* ─── شارة الحالة (مكبرة) ─── */}
+      {/* ─── شارة الحالة ─── */}
       <div className="flex items-center w-full mb-2">
         <span className={`text-xs font-extrabold px-3 py-1 rounded-full border shadow-xs ${badge.cls}`}>
           {badge.text}
@@ -191,7 +199,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </span>
         )}
 
-        <div dir="ltr" className="inline-flex items-baseline justify-center gap-1.5 text-xs sm:text-sm text-[#1A1814] font-semibold mt-0.5">
+        <div
+          dir="ltr"
+          className="inline-flex items-baseline justify-center gap-1.5 text-xs sm:text-sm text-[#1A1814] font-semibold mt-0.5"
+        >
           <span className="text-xl sm:text-2xl font-black text-[#B85507]">
             {product.price.toFixed(2)}
           </span>
@@ -203,60 +214,63 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* ─── عداد الكمية وزر الإضافة ─── */}
-<div className="mt-2.5 pt-2.5 border-t border-[#E8E1D3]">
-  {!isSoldOut && (
-    <div className="flex items-center justify-between bg-[#F7F4EC] rounded-xl p-1.5 border border-[#D4C8B5] mb-2.5">
-      <button
-        type="button"
-        onClick={handleIncrement}
-        className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
-        aria-label="زيادة الكمية"
-      >
-        <Plus className="w-4 h-4 stroke-[2.5]" />
-      </button>
+      <div className="mt-2.5 pt-2.5 border-t border-[#E8E1D3]">
+        {!isSoldOut && (
+          <div className="flex items-center justify-between bg-[#F7F4EC] rounded-xl p-1.5 border border-[#D4C8B5] mb-2.5">
+            <button
+              type="button"
+              onClick={handleIncrement}
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
+              aria-label="زيادة الكمية"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+            </button>
 
-      <div className="flex flex-col items-center leading-none select-none">
-        <span dir="ltr" className="text-sm font-extrabold text-[#112616]">
-          {selectedQty} {isWeight ? 'kg' : ''}
-        </span>
+            <div className="flex flex-col items-center leading-none select-none">
+              <span dir="ltr" className="text-sm font-extrabold text-[#112616]">
+                {selectedQty} {isWeight ? 'kg' : ''}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDecrement}
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
+              aria-label="إنقاص الكمية"
+            >
+              <Minus className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          </div>
+        )}
+
+        {/* ─── زر الإضافة بنفس تصميم صناديق العائلة ─── */}
+        <button
+          type="button"
+          disabled={isSoldOut}
+          onClick={handleAdd}
+          className={`w-full py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
+            isSoldOut
+              ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed'
+              : isJustAdded
+              ? 'bg-emerald-600 text-white scale-[1.02]'
+              : 'bg-[#163920] hover:bg-[#0E2615] text-white'
+          }`}
+        >
+          {isSoldOut ? (
+            <span>غير متوفر</span>
+          ) : isJustAdded ? (
+            <>
+              <Check className="w-4 h-4 text-[#F5D76E] animate-in zoom-in stroke-[2.5]" />
+              <span>تمت الإضافة</span>
+            </>
+          ) : (
+            <>
+              <ShoppingBag className="w-4 h-4 text-[#F5D76E]" />
+              <span>أضف للسلة</span>
+            </>
+          )}
+        </button>
       </div>
-
-      <button
-        type="button"
-        onClick={handleDecrement}
-        className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
-        aria-label="إنقاص الكمية"
-      >
-        <Minus className="w-4 h-4 stroke-[2.5]" />
-      </button>
-    </div>
-  )}
-
-  {/* ─── زر الإضافة بنفس تصميم صناديق العائلة ─── */}
-  <button
-    type="button"
-    disabled={isSoldOut}
-    onClick={handleAdd}
-    className={`w-full py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
-      isSoldOut
-        ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed'
-        : isJustAdded
-        ? 'bg-emerald-600 text-white scale-[1.02]'
-        : 'bg-[#163920] hover:bg-[#0E2615] text-white'
-    }`}
-  >
-    {isSoldOut ? (
-      <span>غير متوفر</span>
-    ) : isJustAdded ? (
-      <>
-        <Check className="w-4 h-4 text-[#F5D76E] animate-in zoom-in stroke-[2.5]" />
-        <span>تمت الإضافة</span>
-      </>
-    ) : (
-      <>
-        <ShoppingBag className="w-4 h-4 text-[#F5D76E]" />
-        <span>أضف للسلة</span>
-      </>
-    )}
-  </button>
-</div>
+    </article>
+  );
+};
