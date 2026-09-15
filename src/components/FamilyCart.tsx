@@ -246,7 +246,7 @@ export const FamilyCart: React.FC<FamilyCartProps> = ({ onAddBundle }) => {
               ضمان خُضرة للجودة
             </p>
             <p className="text-[11px] text-[#524B3E] leading-relaxed">
-              إذا لم يكن أي صنف في الصندوق طازجاً بما يكفي، نستبدله فوراً في نفس اليوم — بدون أي نقاش.
+              إذا لم يكن أي صنف في الصندوق طازجاً بما يكفي، نستبدله فوراً في نفس اليوم
             </p>
           </div>
         </div>
