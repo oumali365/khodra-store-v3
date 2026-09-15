@@ -625,11 +625,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({ onAddToC
                 <div className="font-black text-emerald-950 flex items-center gap-1.5 mb-1">
                   <ShieldCheck className="w-4 h-4 text-emerald-700" />
                   <span>ضمانات خُضرة للجودة والطراوة:</span>
-                </div>
-                <div className="flex items-center gap-2 text-emerald-900 font-medium">
-                  <Leaf className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>خضار وفواكه مقطوفة صبيحة يوم التوصيل.</span>
-                </div>
+                </div>                
                 <div className="flex items-center gap-2 text-emerald-900 font-medium">
                   <HeartHandshake className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>ضمان الرضا 100%، استبدال فوري لأي صنف لم ينل إعجابك.</span>
