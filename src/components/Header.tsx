@@ -1,5 +1,11 @@
+// ============================================================
+// الملف: Header.tsx – الإصدار 2.0 (يدعم صناديق العائلة + PWA)
+// ============================================================
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Search, Menu, X, Phone, ShieldCheck, RefreshCw, Info, Download } from 'lucide-react';
+import {
+  ShoppingBag, Search, Menu, X, Phone, ShieldCheck,
+  RefreshCw, Info, Download, Package, Sparkles,
+} from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 import { ProductCategory } from '../types';
 import { CATEGORIES_CONFIG } from '../data/mockProducts';
@@ -17,6 +23,7 @@ interface HeaderProps {
   isMenuOpen: boolean;
   onToggleMenu: () => void;
   onCloseMenu: () => void;
+  onScrollToBundles?: () => void;  // ← جديد: للتمرير إلى صناديق العائلة
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   isMenuOpen,
   onToggleMenu,
   onCloseMenu,
+  onScrollToBundles,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
@@ -42,12 +50,10 @@ export const Header: React.FC<HeaderProps> = ({
   const [isAndroid, setIsAndroid] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'downloading' | 'success' | 'error'>('idle');
 
-  // ─── دالة عرض رسالة النجاح المحسنة ───
+  // ─── دالة عرض رسالة النجاح ───
   const showSuccessMessage = (message: string) => {
     const existingMessage = document.querySelector('.pwa-install-message');
-    if (existingMessage) {
-      existingMessage.remove();
-    }
+    if (existingMessage) existingMessage.remove();
 
     const messageDiv = document.createElement('div');
     messageDiv.className = 'pwa-install-message fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-[#2E5336] text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] animate-in fade-in slide-in-from-bottom-4 duration-300 font-["Almarai"] text-sm sm:text-base';
@@ -58,20 +64,18 @@ export const Header: React.FC<HeaderProps> = ({
     messageDiv.style.width = 'auto';
     messageDiv.style.minWidth = '200px';
     messageDiv.style.textAlign = 'center';
-    
+
     const icon = document.createElement('span');
     icon.textContent = '✅ ';
     icon.style.marginLeft = '8px';
     messageDiv.prepend(icon);
-    
+
     document.body.appendChild(messageDiv);
 
     setTimeout(() => {
       messageDiv.classList.add('animate-out', 'fade-out', 'slide-out-to-bottom-4');
       setTimeout(() => {
-        if (messageDiv.parentNode) {
-          messageDiv.remove();
-        }
+        if (messageDiv.parentNode) messageDiv.remove();
       }, 300);
     }, 4000);
   };
@@ -79,9 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
   // ─── دالة عرض رسالة الخطأ ───
   const showErrorMessage = (message: string) => {
     const existingMessage = document.querySelector('.pwa-install-message');
-    if (existingMessage) {
-      existingMessage.remove();
-    }
+    if (existingMessage) existingMessage.remove();
 
     const messageDiv = document.createElement('div');
     messageDiv.className = 'pwa-install-message fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-[#C25E12] text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] animate-in fade-in slide-in-from-bottom-4 duration-300 font-["Almarai"] text-sm sm:text-base';
@@ -92,20 +94,18 @@ export const Header: React.FC<HeaderProps> = ({
     messageDiv.style.width = 'auto';
     messageDiv.style.minWidth = '200px';
     messageDiv.style.textAlign = 'center';
-    
+
     const icon = document.createElement('span');
     icon.textContent = '⚠️ ';
     icon.style.marginLeft = '8px';
     messageDiv.prepend(icon);
-    
+
     document.body.appendChild(messageDiv);
 
     setTimeout(() => {
       messageDiv.classList.add('animate-out', 'fade-out', 'slide-out-to-bottom-4');
       setTimeout(() => {
-        if (messageDiv.parentNode) {
-          messageDiv.remove();
-        }
+        if (messageDiv.parentNode) messageDiv.remove();
       }, 300);
     }, 4000);
   };
@@ -115,21 +115,18 @@ export const Header: React.FC<HeaderProps> = ({
     const userAgent = navigator.userAgent;
     const iOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
     const android = /Android/.test(userAgent);
-    
     setIsIOS(iOS);
     setIsAndroid(android);
   }, []);
 
   // ─── الاستماع لحدث التحميل ───
   useEffect(() => {
-    // التحقق مما إذا كان التطبيق مثبتاً بالفعل
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
       setShowInstallBtn(false);
       return;
     }
 
-    // الاستماع لحدث التحميل (Android/Chrome)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -138,13 +135,11 @@ export const Header: React.FC<HeaderProps> = ({
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // ─── حدث التحميل الناجح ───
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setShowInstallBtn(false);
       setDownloadStatus('success');
       console.log('✅ تم تحميل التطبيق بنجاح!');
-      
       showSuccessMessage('تم تحميل تطبيق خُضرة بنجاح! 🎉');
     };
 
@@ -156,30 +151,26 @@ export const Header: React.FC<HeaderProps> = ({
     };
   }, []);
 
-  // ─── دالة تحميل التطبيق (PWA) المحسنة لجميع الأنظمة ───
+  // ─── دالة تحميل التطبيق ───
   const handleDownloadClick = async () => {
     setDownloadStatus('downloading');
 
-    // 📱 نظام iOS
     if (isIOS) {
       setDownloadStatus('idle');
       alert('📱 لتحميل تطبيق خُضرة على iPhone:\n\n1. اضغط على زر المشاركة ⬆️\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"');
       return;
     }
 
-    // 📱 نظام Android مع دعم التحميل التلقائي
     if (isAndroid && deferredPrompt) {
       try {
         deferredPrompt.prompt();
         const result = await deferredPrompt.userChoice;
-        
+
         if (result.outcome === 'accepted') {
-          console.log('✅ تم تحميل التطبيق');
           setShowInstallBtn(false);
           setDownloadStatus('success');
           showSuccessMessage('تم تحميل تطبيق خُضرة بنجاح! 🎉');
         } else {
-          console.log('❌ تم رفض التحميل');
           setDownloadStatus('idle');
         }
         setDeferredPrompt(null);
@@ -187,20 +178,13 @@ export const Header: React.FC<HeaderProps> = ({
         console.error('❌ خطأ في التحميل:', error);
         setDownloadStatus('error');
         showErrorMessage('حدث خطأ أثناء تحميل التطبيق');
-        
-        // عرض تعليمات التحميل اليدوي
         setTimeout(() => {
           alert('📱 لتحميل تطبيق خُضرة:\n\n1. افتح القائمة (☰)\n2. اختر "إضافة إلى الشاشة الرئيسية"');
         }, 500);
       }
-    } 
-    // 📱 أنظمة أخرى أو في حالة عدم ظهور الـ Prompt
-    else {
+    } else {
       setDownloadStatus('idle');
-      
-      // عرض تعليمات التحميل حسب النظام
       let instructions = '📱 لتحميل تطبيق خُضرة:\n\n';
-      
       if (isAndroid) {
         instructions += '1. افتح القائمة (☰)\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"';
       } else if (isIOS) {
@@ -208,8 +192,21 @@ export const Header: React.FC<HeaderProps> = ({
       } else {
         instructions += '1. افتح القائمة (☰)\n2. اختر "تثبيت التطبيق"\n3. اتبع التعليمات';
       }
-      
       alert(instructions);
+    }
+  };
+
+  // ─── التمرير إلى صناديق العائلة ───
+  const handleScrollToBundles = () => {
+    onCloseMenu();
+    if (onScrollToBundles) {
+      setTimeout(() => onScrollToBundles(), 200);
+    } else {
+      // fallback: تمرير مباشر
+      setTimeout(() => {
+        const el = document.getElementById('family-bundles-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
     }
   };
 
@@ -352,9 +349,9 @@ export const Header: React.FC<HeaderProps> = ({
       {/* ─── القائمة الجانبية (Drawer) ─── */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 flex">
-          <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" 
-            onClick={onCloseMenu} 
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            onClick={onCloseMenu}
           />
 
           <div className="relative ml-auto w-full max-w-xs bg-white h-full shadow-2xl flex flex-col z-50 overflow-y-auto animate-in slide-in-from-left duration-300 border-l border-[#D4C8B5]">
@@ -374,8 +371,43 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* الفئات */}
+            {/* المحتوى */}
             <div className="p-4 sm:p-4 flex-1">
+
+              {/* ─── 🧺 صناديق العائلة (بارز في الأعلى) ─── */}
+              <div className="mb-4 p-3 rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-[#C25E12]" />
+                  <span className="text-[11px] font-black text-amber-900 uppercase tracking-wider">
+                    عرض خاص
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleScrollToBundles}
+                  className="w-full flex items-center justify-between gap-3 px-3 py-3 min-h-[56px] rounded-xl bg-white hover:bg-amber-50 active:scale-[0.98] border border-amber-300 text-[#112616] font-extrabold text-sm transition-all text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C25E12] to-[#9C4505] flex items-center justify-center text-white shadow-sm">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <div className="text-right">
+                      <span className="block text-sm font-black text-[#112616]">
+                        🧺 صناديق العائلة
+                      </span>
+                      <span className="text-[10px] text-amber-700 font-bold">
+                        وفّر حتى 20% • توصيل مجاني
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-white font-black bg-[#C25E12] px-2 py-1 rounded-full shadow-sm animate-pulse">
+                    جديد
+                  </span>
+                </button>
+              </div>
+
+              {/* ─── الفئات ─── */}
               <div className="text-[12px] font-black text-[#1A1814] uppercase tracking-wider mb-2 font-['Almarai'] select-none">
                 تصفح الأقسام
               </div>
@@ -400,7 +432,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ))}
               </div>
 
-              {/* ─── روابط مهمة (بما فيها تحميل التطبيق) ─── */}
+              {/* ─── روابط مهمة ─── */}
               <div className="border-t border-[#E8E1D3] my-3 pt-3">
                 <div className="text-[12px] font-black text-[#1A1814] uppercase tracking-wider mb-2 font-['Almarai'] select-none">
                   روابط مهمة
@@ -440,7 +472,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <span>سياسة الخصوصية</span>
                   </button>
 
-                  {/* ─── 🚀 زر تحميل التطبيق (PWA) المحسن لجميع الأنظمة ─── */}
+                  {/* ─── زر تحميل التطبيق ─── */}
                   {!isInstalled && (
                     <button
                       type="button"
@@ -452,31 +484,26 @@ export const Header: React.FC<HeaderProps> = ({
                           : 'bg-gradient-to-r from-[#1E4327] to-[#2E5336] hover:from-[#112616] hover:to-[#1E4327] text-white shadow-md hover:shadow-lg active:scale-95'
                       }`}
                     >
-                      {/* أيقونة التحميل */}
                       <span className={`text-xl ${downloadStatus === 'downloading' ? 'animate-spin' : ''}`}>
                         {downloadStatus === 'downloading' ? '⏳' : '📲'}
                       </span>
-                      
-                      {/* نص الزر */}
+
                       <span className="flex-1">
-                        {downloadStatus === 'downloading' 
-                          ? 'جاري تحميل التطبيق...' 
-                          : isIOS 
-                            ? 'تحميل تطبيق خُضرة (iOS)' 
-                            : isAndroid 
-                              ? 'تحميل تطبيق خُضرة (Android)' 
-                              : 'تحميل تطبيق خُضرة'
-                        }
+                        {downloadStatus === 'downloading'
+                          ? 'جاري تحميل التطبيق...'
+                          : isIOS
+                            ? 'تحميل تطبيق خُضرة (iOS)'
+                            : isAndroid
+                              ? 'تحميل تطبيق خُضرة (Android)'
+                              : 'تحميل تطبيق خُضرة'}
                       </span>
 
-                      {/* أيقونة Download من Lucide React */}
                       <Download className={`w-5 h-5 ${
-                        downloadStatus === 'downloading' 
-                          ? 'opacity-50' 
+                        downloadStatus === 'downloading'
+                          ? 'opacity-50'
                           : 'group-hover:translate-y-[-2px] transition-transform'
                       }`} />
 
-                      {/* علامة متاح (للأنظمة المدعومة) */}
                       {showInstallBtn && !isIOS && downloadStatus === 'idle' && (
                         <span className="mr-auto text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full font-black animate-pulse">
                           متاح
@@ -485,7 +512,6 @@ export const Header: React.FC<HeaderProps> = ({
                     </button>
                   )}
 
-                  {/* رسالة التثبيت المسبق */}
                   {isInstalled && (
                     <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#E8F5E9] text-[#2E5336] font-extrabold text-sm text-right font-['Tajawal']">
                       <span className="text-lg">✅</span>
