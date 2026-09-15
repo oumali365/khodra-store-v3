@@ -1,3 +1,7 @@
+// ============================================================
+// الملف: App.tsx – الإصدار 3.0
+// يدعم: صناديق العائلة + الصور الحقيقية + صور المنتجات
+// ============================================================
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
@@ -10,7 +14,7 @@ import { CustomerReviews } from './components/CustomerReviews';
 import { Footer } from './components/Footer';
 import { SortFilterModal, SortOption } from './components/SortFilterModal';
 
-// تحميل مؤجل للنوافذ والصفحات غير الحرجة
+// ─── تحميل مؤجل للمكونات غير الحرجة ───
 const CartDrawer = React.lazy(() =>
   import('./components/CartDrawer').then((module) => ({ default: module.CartDrawer }))
 );
@@ -24,7 +28,7 @@ const InfoPages = React.lazy(() =>
   import('./components/InfoPages').then((module) => ({ default: module.InfoPages }))
 );
 
-// ✨ تحميل مؤجل لقسم صناديق العائلة (لتقليل الحجم المبدئي)
+// ✨ تحميل مؤجل لقسم صناديق العائلة
 const FamilyCart = React.lazy(() =>
   import('./components/FamilyCart').then((module) => ({ default: module.FamilyCart }))
 );
@@ -39,7 +43,7 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cart state with persistence
+  // ─── Cart state with persistence ───
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORE_CONFIG.cacheKey);
@@ -49,19 +53,23 @@ export default function App() {
     }
   });
 
+  // ─── Navigation & filter states ───
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('veg');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeInfoPage, setActiveInfoPage] = useState<'about' | 'policy' | 'privacy' | null>(null);
 
+  // ─── Sorting and in-stock filter ───
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [onlyInStock, setOnlyInStock] = useState<boolean>(false);
 
+  // ─── Modals & Drawers ───
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<OrderSubmission | null>(null);
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
 
+  // ─── Refs ───
   const prevStatesRef = useRef({
     isMenuOpen: false,
     isCartOpen: false,
@@ -73,7 +81,9 @@ export default function App() {
 
   const searchResultsRef = useRef<HTMLDivElement>(null);
   const catalogSectionRef = useRef<HTMLDivElement>(null);
+  const bundlesSectionRef = useRef<HTMLDivElement>(null);
 
+  // ─── Load products on start ───
   useEffect(() => {
     let mounted = true;
     fetchProducts().then((data) => {
@@ -87,14 +97,16 @@ export default function App() {
     };
   }, []);
 
+  // ─── Sync cart to local storage ───
   useEffect(() => {
     try {
       localStorage.setItem(STORE_CONFIG.cacheKey, JSON.stringify(cart));
     } catch {
-      // ignore
+      // ignore storage full errors
     }
   }, [cart]);
 
+  // ─── Close all modals/drawers ───
   const closeAllModalsAndDrawers = useCallback(() => {
     let changed = false;
     if (isMenuOpen) { setIsMenuOpen(false); changed = true; }
@@ -106,8 +118,10 @@ export default function App() {
     return changed;
   }, [isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen]);
 
+  // ─── Handle browser back button ───
   useEffect(() => {
     window.history.pushState({ page: 'main' }, '');
+
     const handlePopState = () => {
       const hasAnyOpenModal = isMenuOpen || isCartOpen || isCheckoutOpen || !!confirmedOrder || !!activeInfoPage || isSortModalOpen;
       if (hasAnyOpenModal) {
@@ -117,25 +131,31 @@ export default function App() {
       }
       window.history.pushState({ page: 'main' }, '');
     };
+
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen, closeAllModalsAndDrawers]);
 
+  // ─── Push history state when modal opens ───
   useEffect(() => {
     const prev = prevStatesRef.current;
     const currentHasOpen = isMenuOpen || isCartOpen || isCheckoutOpen || !!confirmedOrder || !!activeInfoPage || isSortModalOpen;
     const prevHasOpen = prev.isMenuOpen || prev.isCartOpen || prev.isCheckoutOpen || !!prev.confirmedOrder || !!prev.activeInfoPage || prev.isSortModalOpen;
+
     if (currentHasOpen && !prevHasOpen) {
       window.history.pushState({ page: 'modal' }, '');
     }
+
     prevStatesRef.current = {
       isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen,
     };
   }, [isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen]);
 
+  // ─── Menu controls ───
   const handleToggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const handleCloseMenu = () => setIsMenuOpen(false);
 
+  // ─── Cart helpers ───
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.qty, 0), [cart]);
   const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.lineTotal, 0), [cart]);
 
@@ -158,11 +178,13 @@ export default function App() {
         };
         return next;
       }
+
       const newItem: CartItem = {
         key,
         id: product.id,
         name: product.name,
         icon: product.icon,
+        image_url: product.image_url,
         variantLabel,
         unitTotal: +total.toFixed(2),
         qty: 1,
@@ -172,20 +194,31 @@ export default function App() {
     });
   };
 
-  // ─── ADD FAMILY BUNDLE TO CART ───
+  // ─── Add family bundle to cart ───
   const handleAddBundle = useCallback((bundle: FamilyBundle) => {
+    // التحقق من وجود جميع المنتجات
+    const missingProducts: string[] = [];
+    bundle.items.forEach((bundleItem) => {
+      const product = products.find((p) => p.id === Number(bundleItem.productId));
+      if (!product) missingProducts.push(bundleItem.productId);
+    });
+
+    if (missingProducts.length > 0) {
+      console.warn('⚠️ منتجات غير موجودة في قاعدة البيانات:', missingProducts);
+    }
+
     setCart((prev) => {
       const nextCart = [...prev];
 
       bundle.items.forEach((bundleItem) => {
-        const product = products.find((p) => p.id === bundleItem.productId);
+        const product = products.find((p) => p.id === Number(bundleItem.productId));
         if (!product) return;
 
         const isWeight = product.type === 'weight';
         const variantLabel = isWeight
           ? `${bundleItem.qty} kg`
           : `${bundleItem.qty} × ${product.unit_label || 'unit'}`;
-        const key = `${product.id}|${variantLabel}`;
+        const key = `${product.id}|${bundle.name}|${variantLabel}`;
         const lineTotal = +(product.price * bundleItem.qty).toFixed(2);
 
         const existingIndex = nextCart.findIndex((i) => i.key === key);
@@ -202,10 +235,12 @@ export default function App() {
             id: product.id,
             name: product.name,
             icon: product.icon,
+            image_url: product.image_url,
             variantLabel: `🧺 ${bundle.name}`,
             unitTotal: lineTotal,
             qty: 1,
             lineTotal,
+            bundleId: bundle.id,
           });
         }
       });
@@ -238,6 +273,7 @@ export default function App() {
 
   const handleClearCart = () => setCart([]);
 
+  // ─── Order submission ───
   const handleOrderSubmission = async (order: OrderSubmission) => {
     const result = await submitOrder(order);
 
@@ -258,6 +294,7 @@ export default function App() {
     setCart([]);
   };
 
+  // ─── Search handlers ───
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
     if (query.trim().length > 0) {
@@ -282,6 +319,14 @@ export default function App() {
     }
   };
 
+  // ✨ تمرير إلى قسم صناديق العائلة
+  const scrollToBundles = () => {
+    if (bundlesSectionRef.current) {
+      bundlesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // ─── Category selection ───
   const handleSelectCategory = (cat: ProductCategory) => {
     if (isMenuOpen) setIsMenuOpen(false);
     if (searchQuery.trim().length > 0) setSearchQuery('');
@@ -290,12 +335,14 @@ export default function App() {
     setTimeout(() => scrollToCatalog(), 100);
   };
 
+  // ─── Open info page ───
   const handleOpenPage = (page: 'about' | 'policy' | 'privacy' | null) => {
     if (isMenuOpen) setIsMenuOpen(false);
     setActiveInfoPage(page);
     if (page) window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // ─── Filtered & sorted products ───
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => {
       const hasSearch = searchQuery.trim().length > 0;
@@ -313,6 +360,7 @@ export default function App() {
     return list;
   }, [products, selectedCategory, searchQuery, onlyInStock, sortBy]);
 
+  // ─── Active category info ───
   const activeCategoryInfo = useMemo(() => {
     if (searchQuery.trim().length > 0) {
       return {
@@ -335,6 +383,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
 
+      {/* Sticky Top Header */}
       <Header
         cartCount={cartCount}
         cartTotal={cartTotal}
@@ -348,8 +397,10 @@ export default function App() {
         isMenuOpen={isMenuOpen}
         onToggleMenu={handleToggleMenu}
         onCloseMenu={handleCloseMenu}
+        onScrollToBundles={scrollToBundles}
       />
 
+      {/* Main Content */}
       <main className="flex-1">
         {activeInfoPage ? (
           <Suspense fallback={<div className="max-w-3xl mx-auto p-12 text-center text-sm text-[#38332B]">جاري التحميل...</div>}>
@@ -357,11 +408,14 @@ export default function App() {
           </Suspense>
         ) : (
           <>
+            {/* Hero */}
             <Hero
               onSelectCategory={handleSelectCategory}
               onScrollToCatalog={scrollToCatalog}
+              onScrollToBundles={scrollToBundles}
             />
 
+            {/* Category Filter Pills */}
             <CategoryFilter
               selectedCategory={selectedCategory}
               onSelectCategory={handleSelectCategory}
@@ -370,16 +424,21 @@ export default function App() {
 
             {/* ─── ✨ قسم صناديق العائلة ─── */}
             {!searchQuery && (
-              <Suspense fallback={
-                <div className="max-w-7xl mx-auto px-4 py-12 text-center">
-                  <div className="w-12 h-12 border-4 border-[#C25E12] border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="text-sm text-[#524B3E] mt-3 font-bold">جاري تحميل صناديق العائلة...</p>
-                </div>
-              }>
-                <FamilyCart onAddBundle={handleAddBundle} />
-              </Suspense>
+              <div ref={bundlesSectionRef}>
+                <Suspense
+                  fallback={
+                    <div className="max-w-7xl mx-auto px-4 py-12 text-center">
+                      <div className="w-12 h-12 border-4 border-[#C25E12] border-t-transparent rounded-full animate-spin mx-auto" />
+                      <p className="text-sm text-[#524B3E] mt-3 font-bold">جاري تحميل صناديق العائلة...</p>
+                    </div>
+                  }
+                >
+                  <FamilyCart onAddBundle={handleAddBundle} />
+                </Suspense>
+              </div>
             )}
 
+            {/* Products Grid Section */}
             <section
               id="search-results-section"
               ref={searchResultsRef}
@@ -403,7 +462,10 @@ export default function App() {
               {isLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="bg-white rounded-2xl p-4 border border-[#DFD1AC] h-64 animate-pulse flex flex-col items-center justify-center gap-3">
+                    <div
+                      key={i}
+                      className="bg-white rounded-2xl p-4 border border-[#DFD1AC] h-64 animate-pulse flex flex-col items-center justify-center gap-3"
+                    >
                       <div className="w-16 h-16 bg-[#FAF6EE] rounded-2xl" />
                       <div className="w-24 h-4 bg-[#FAF6EE] rounded-full" />
                       <div className="w-16 h-3 bg-[#FAF6EE] rounded-full" />
@@ -414,7 +476,9 @@ export default function App() {
               ) : filteredProducts.length === 0 ? (
                 <div className="bg-white border-2 border-dashed border-[#D4C8B5] rounded-3xl p-10 text-center max-w-md mx-auto shadow-sm">
                   <span className="text-4xl block mb-2">🔍</span>
-                  <h3 className="text-base font-extrabold text-[#112616] mb-1">لم نتمكن من العثور على أي منتج</h3>
+                  <h3 className="text-base font-extrabold text-[#112616] mb-1">
+                    لم نتمكن من العثور على أي منتج
+                  </h3>
                   <p className="text-xs sm:text-sm text-[#38332B] mb-4">
                     {searchQuery ? `لا توجد منتجات تطابق بحثك "${searchQuery}".` : 'لا توجد منتجات تطابق شروط الفرز الحالية.'}
                     {searchQuery && ' جرب البحث باسم آخر أو اختر قسماً مختلفاً.'}
@@ -455,6 +519,7 @@ export default function App() {
         )}
       </main>
 
+      {/* ─── Lazy Loaded Modals ─── */}
       <Suspense fallback={null}>
         {isCartOpen && (
           <CartDrawer
@@ -502,6 +567,7 @@ export default function App() {
         />
       </Suspense>
 
+      {/* Sticky Bottom Cart Bar */}
       <StickyBottomBar
         cartCount={cartCount}
         cartTotal={cartTotal}
@@ -509,6 +575,7 @@ export default function App() {
         onOpenCheckout={() => setIsCheckoutOpen(true)}
       />
 
+      {/* Footer */}
       <Footer onOpenPage={handleOpenPage} />
     </div>
   );
