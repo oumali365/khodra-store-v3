@@ -29,13 +29,15 @@ export interface Product {
 // ─── واجهة عنصر السلة ───
 export interface CartItem {
   key: string;
-  id: string;
+  id: number;                    // ← مُصحَّح: كان string، أصبح number
   name: string;
   icon: string;
+  image_url?: string;            // ← جديد: لدعم صور المنتجات في السلة
   variantLabel: string;
   unitTotal: number;
   qty: number;
   lineTotal: number;
+  bundleId?: string;             // ← جديد (اختياري): لمعرفة إن كان من صندوق
 }
 
 // ─── أنواع الدفع ───
