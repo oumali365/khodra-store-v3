@@ -29,7 +29,7 @@ export interface Product {
 // ─── واجهة عنصر السلة ───
 export interface CartItem {
   key: string;
-  id: number;
+  id: string;
   name: string;
   icon: string;
   variantLabel: string;
