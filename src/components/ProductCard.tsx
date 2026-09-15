@@ -202,71 +202,61 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
 
-      {/* ─── عداد الكمية وزر الإضافة (تم تبديل أماكن + و - بتباين عالٍ) ─── */}
-      <div className="mt-2.5 pt-2.5 border-t border-[#E8E1D3]">
-        {!isSoldOut && (
-          <div className="flex items-center justify-between bg-[#F7F4EC] rounded-xl p-1.5 border border-[#D4C8B5] mb-2.5">
-            <button
-              type="button"
-              onClick={handleIncrement}
-              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
-              aria-label="زيادة الكمية"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-            </button>
+      {/* ─── عداد الكمية وزر الإضافة ─── */}
+<div className="mt-2.5 pt-2.5 border-t border-[#E8E1D3]">
+  {!isSoldOut && (
+    <div className="flex items-center justify-between bg-[#F7F4EC] rounded-xl p-1.5 border border-[#D4C8B5] mb-2.5">
+      <button
+        type="button"
+        onClick={handleIncrement}
+        className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
+        aria-label="زيادة الكمية"
+      >
+        <Plus className="w-4 h-4 stroke-[2.5]" />
+      </button>
 
-            <div className="flex flex-col items-center leading-none select-none">
-              <span dir="ltr" className="text-sm font-extrabold text-[#112616]">
-                {selectedQty} {isWeight ? 'kg' : ''}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleDecrement}
-              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
-              aria-label="إنقاص الكمية"
-            >
-              <Minus className="w-4 h-4 stroke-[2.5]" />
-            </button>
-          </div>
-        )}
-
-        {/* ─── زر الإضافة المحسّن ─── */}
-        <button
-          type="button"
-          disabled={isSoldOut}
-          onClick={handleAdd}
-          className={`w-full min-h-[44px] py-2.5 px-3 rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition-all duration-150 shadow-md hover:shadow-lg cursor-pointer touch-manipulation select-none ${
-            isSoldOut
-              ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed'
-              : isJustAdded
-              ? 'bg-[#1B4323] text-white scale-[1.02] shadow-lg'
-              : inCartQty > 0
-              ? 'bg-[#1E4327]/10 text-[#112616] border-2 border-[#1E4327]/40 hover:bg-[#1E4327]/20 hover:border-[#1E4327]/60 active:scale-95'
-              : 'bg-gradient-to-r from-[#C25E12] to-[#9C4505] text-white hover:scale-[1.01] hover:shadow-xl active:scale-95'
-          }`}
-        >
-          {isSoldOut ? (
-            <span>غير متوفر</span>
-          ) : isJustAdded ? (
-            <>
-              <Check className="w-4 h-4 text-emerald-300 animate-in zoom-in stroke-[2.5]" />
-              <span>تمت الإضافة!</span>
-            </>
-          ) : inCartQty > 0 ? (
-            <>
-              <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
-              <span>أضف المزيد</span>
-            </>
-          ) : (
-            <>
-              <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
-              <span>أضف إلى السلة</span>
-            </>
-          )}
-        </button>
+      <div className="flex flex-col items-center leading-none select-none">
+        <span dir="ltr" className="text-sm font-extrabold text-[#112616]">
+          {selectedQty} {isWeight ? 'kg' : ''}
+        </span>
       </div>
-    </article>
-  );
-};
+
+      <button
+        type="button"
+        onClick={handleDecrement}
+        className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
+        aria-label="إنقاص الكمية"
+      >
+        <Minus className="w-4 h-4 stroke-[2.5]" />
+      </button>
+    </div>
+  )}
+
+  {/* ─── زر الإضافة بنفس تصميم صناديق العائلة ─── */}
+  <button
+    type="button"
+    disabled={isSoldOut}
+    onClick={handleAdd}
+    className={`w-full py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
+      isSoldOut
+        ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed'
+        : isJustAdded
+        ? 'bg-emerald-600 text-white scale-[1.02]'
+        : 'bg-[#163920] hover:bg-[#0E2615] text-white'
+    }`}
+  >
+    {isSoldOut ? (
+      <span>غير متوفر</span>
+    ) : isJustAdded ? (
+      <>
+        <Check className="w-4 h-4 text-[#F5D76E] animate-in zoom-in stroke-[2.5]" />
+        <span>تمت الإضافة</span>
+      </>
+    ) : (
+      <>
+        <ShoppingBag className="w-4 h-4 text-[#F5D76E]" />
+        <span>أضف للسلة</span>
+      </>
+    )}
+  </button>
+</div>
