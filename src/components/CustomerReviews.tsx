@@ -8,7 +8,6 @@ import {
   BadgeCheck,
   MapPin,
   MessageSquarePlus,
-  Sparkles,
   CheckCircle2,
   X,
   Send,
@@ -21,6 +20,7 @@ import {
   KeyRound,
   Loader2,
   ShoppingBag,
+  Quote,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 import {
@@ -121,6 +121,45 @@ export const CustomerReviews: React.FC = () => {
 
   // ─── Orders panel ───
   const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
+
+  // ─── 📱 التمرير الأفقي الانسيابي على الموبايل ───
+  const [activeReviewIndex, setActiveReviewIndex] = useState(0);
+  const reviewsScrollRef = React.useRef<HTMLDivElement>(null);
+
+  const handleReviewsScroll = () => {
+    if (!reviewsScrollRef.current) return;
+    const container = reviewsScrollRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const containerCenter = containerRect.left + containerRect.width / 2;
+    const cards = container.querySelectorAll('article');
+    let closestIdx = 0;
+    let minDiff = Infinity;
+
+    cards.forEach((card, idx) => {
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.left + cardRect.width / 2;
+      const diff = Math.abs(cardCenter - containerCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    });
+
+    setActiveReviewIndex(closestIdx);
+  };
+
+  const scrollToReview = (index: number) => {
+    if (!reviewsScrollRef.current) return;
+    const cards = reviewsScrollRef.current.querySelectorAll('article');
+    if (cards[index]) {
+      cards[index].scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      });
+      setActiveReviewIndex(index);
+    }
+  };
 
   // ─── 🔔 الإشعارات الصوتية ───
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
@@ -434,102 +473,132 @@ export const CustomerReviews: React.FC = () => {
           )}
 
           {/* الرأس */}
-          <div className="max-w-2xl mx-auto mb-6">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-[#1E4327] text-xs font-black mb-2 shadow-2xs select-none">
-              <Sparkles className="w-3.5 h-3.5 text-[#2E5336]" />
-              <span>تجارب حقيقية</span>
-            </div>
-
+          <div className="max-w-2xl mx-auto mb-5 sm:mb-6">
             <h2 className="text-xl sm:text-2xl font-black text-[#112616] mb-2 font-['Almarai']">
               آراء زبنائنا بمدينة فاس
             </h2>
 
-            <div className="inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-[#D4C8B5] shadow-2xs text-xs font-bold text-[#112616] select-none">
+            <div className="inline-flex items-center gap-2 bg-white px-3.5 py-1 rounded-full border border-[#D4C8B5] shadow-2xs text-xs font-bold text-[#112616] select-none">
               <span className="font-black text-[#C25E12] text-sm">4.9</span>
               <div className="flex text-amber-500 text-xs">★★★★★</div>
-              <span className="text-[#524B3E] font-medium border-r border-[#E8E1D3] pr-2 mr-1">
-                استناداً إلى تقييمات الزبناء
-              </span>
+            </div>
+
+            {/* مؤشر مرئي للتمرير على الشاشات الصغيرة */}
+            <div className="flex md:hidden items-center justify-center gap-1.5 mt-3 pt-2 text-[#524B3E]">
+              <span className="text-[11px] font-bold">مرر أفقياً لقراءة المزيد من الآراء</span>
+              <span className="text-xs text-[#1E4327] animate-pulse">←</span>
             </div>
           </div>
 
-          {/* شبكة البطاقات */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 text-right">
-            {displayedReviews.map((rev) => (
-              <article
-                key={rev.id}
-                className={`bg-white border rounded-2xl p-4 shadow-2xs transition-colors flex flex-col justify-between ${
-                  isAdmin
-                    ? 'border-amber-300 ring-1 ring-amber-100'
-                    : 'border-[#D4C8B5] hover:border-[#C25E12]'
-                }`}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-[#1E4327] text-white font-black text-xs flex items-center justify-center shrink-0 select-none">
-                        {rev.author.charAt(0)}
+          {/* عرض البطاقات: تمرير أفقي انسيابي (Horizontal Scroll) على الشاشات الصغيرة مع شبكة أنيقة على الشاشات الكبيرة */}
+          <div className="relative -mx-2 px-2 sm:mx-0 sm:px-0">
+            <div
+              ref={reviewsScrollRef}
+              onScroll={handleReviewsScroll}
+              className="flex md:grid md:grid-cols-3 gap-3 sm:gap-5 text-center overflow-x-auto md:overflow-x-visible pb-3 md:pb-0 pt-1 px-4 md:px-0 snap-x snap-mandatory overscroll-x-contain scroll-smooth no-scrollbar"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {displayedReviews.map((rev, idx) => {
+                const isActive = idx === activeReviewIndex;
+
+                return (
+                  <article
+                    key={rev.id}
+                    className={`w-[80vw] max-w-[315px] md:w-full md:max-w-none shrink-0 snap-center snap-always bg-white rounded-2xl p-4 sm:p-5 transition-all duration-300 flex flex-col justify-between text-center ${
+                      isAdmin
+                        ? 'border border-amber-300 ring-1 ring-amber-100 shadow-sm'
+                        : isActive
+                        ? 'shadow-md shadow-stone-200/50'
+                        : 'shadow-xs opacity-90 md:opacity-100'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center">
+                      {/* اسم العميل وشارة التوثيق بالوسط بدون أيقونة كبيرة الحجم */}
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap mb-1">
+                        <h3 className="text-sm sm:text-base font-black text-[#112616]">
+                          {rev.author}
+                        </h3>
+                        {rev.verified && (
+                          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200/80 shadow-2xs select-none">
+                            <BadgeCheck className="w-3 h-3 text-emerald-600" />
+                            <span>طلب مؤكد</span>
+                          </span>
+                        )}
                       </div>
-                      <div className="leading-tight">
-                        <div className="flex items-center gap-1.5">
-                          <h3 className="text-xs sm:text-sm font-black text-[#112616]">
-                            {rev.author}
-                          </h3>
-                          {rev.verified && (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-800 bg-emerald-50 px-1 py-0.2 rounded font-bold border border-emerald-200 select-none">
-                              <BadgeCheck className="w-2.5 h-2.5 text-emerald-600" />
-                              <span>طلب مؤكد</span>
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-[#524B3E] font-medium flex items-center gap-0.5 mt-0.5">
-                          <MapPin className="w-2.5 h-2.5 text-[#C25E12]" />
+
+                      {/* الحي والتاريخ في سطر ناعم بالوسط */}
+                      <div className="flex items-center justify-center gap-2 text-[11px] sm:text-xs text-stone-500 font-medium mb-2.5">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-[#C25E12]" />
                           <span>{rev.neighborhood}</span>
                         </span>
+                        <span className="text-stone-300">•</span>
+                        <span className="text-stone-400">{rev.date}</span>
+                      </div>
+
+                      {/* نجوم التقييم بالوسط */}
+                      <div
+                        className="flex items-center justify-center gap-1 mb-2.5"
+                        aria-label={`تقييم ${rev.rating} من 5 نجوم`}
+                      >
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
+                              i < rev.rating
+                                ? 'fill-amber-400 text-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.3)]'
+                                : 'fill-stone-200 text-stone-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* نص التعليق واضح ومريح للقراءة مع أبعاد متناسقة */}
+                      <div className="relative w-full px-1">
+                        <p className="text-xs sm:text-sm text-stone-700 font-semibold leading-relaxed">
+                          "{rev.comment}"
+                        </p>
                       </div>
                     </div>
 
-                    <span className="text-[10px] text-[#787163] font-medium shrink-0">
-                      {rev.date}
-                    </span>
-                  </div>
+                  {/* لوحة تحكم سريعة للمدير إن وجد */}
+                  {isAdmin && (
+                    <div className="mt-4 pt-3 border-t border-amber-200 flex items-center justify-between text-xs">
+                      <span className="font-bold text-amber-900 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#C25E12]" />
+                        <span>إدارة:</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmReview(rev)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all cursor-pointer active:scale-95 touch-manipulation"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        <span>حذف التعليق</span>
+                      </button>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+            </div>
 
-                  <div className="flex items-center gap-0.5 mb-2" aria-label={`تقييم ${rev.rating} من 5 نجوم`}>
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-3.5 h-3.5 ${
-                          i < rev.rating
-                            ? 'fill-amber-400 text-amber-400'
-                            : 'fill-gray-200 text-gray-200'
-                        }`}
-                      />
-                    ))}
-                  </div>
-
-                  <p className="text-xs sm:text-sm text-[#2D271E] font-medium leading-relaxed">
-                    "{rev.comment}"
-                  </p>
-                </div>
-
-                {isAdmin && (
-                  <div className="mt-3 pt-2.5 border-t border-amber-200 flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-[#C25E12]" />
-                      <span>إدارة التعليق:</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirmReview(rev)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all cursor-pointer active:scale-95 touch-manipulation"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                      <span>حذف التعليق</span>
-                    </button>
-                  </div>
-                )}
-              </article>
-            ))}
+            {/* نقاط التمرير التفاعلية (Dots) على الشاشات الصغيرة */}
+            {displayedReviews.length > 1 && (
+              <div className="flex md:hidden items-center justify-center gap-1.5 mt-2.5">
+                {displayedReviews.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => scrollToReview(i)}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      activeReviewIndex === i ? 'w-5 bg-[#1E4327]' : 'w-1.5 bg-stone-300'
+                    }`}
+                    aria-label={`الانتقال للتقييم رقم ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* زر قراءة المزيد */}
@@ -561,24 +630,15 @@ export const CustomerReviews: React.FC = () => {
               هل تسوقت من متجر خُضرة مؤخراً؟ يسعدنا دائماً الاستماع إلى رأيك واقتراحاتك.
             </p>
 
-            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+            <div className="shrink-0 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[40px] rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-black text-xs shadow-2xs active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 min-h-[40px] rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-black text-xs shadow-2xs active:scale-95 transition-all cursor-pointer touch-manipulation select-none"
               >
                 <MessageSquarePlus className="w-3.5 h-3.5" />
                 <span>إضافة تقييم</span>
               </button>
-
-              <a
-                href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}?text=${encodeURIComponent('السلام عليكم فريق متجر خُضرة، أود مشاركة رأيي معكم:')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-3.5 py-2 min-h-[40px] rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#145A25] border border-emerald-300 text-xs font-black transition-all cursor-pointer active:scale-95 touch-manipulation select-none"
-              >
-                واتساب مباشر
-              </a>
             </div>
           </div>
 

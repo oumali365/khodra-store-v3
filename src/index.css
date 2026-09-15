@@ -21,4 +21,40 @@
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* إخفاء شريط التمرير عند الحاجة مع الحفاظ على إمكانية السحب */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* تثبيت التمرير على بطاقة واحدة فقط عند السحب باللمس لمنع التجاوز السريع */
+  .snap-always {
+    scroll-snap-stop: always !important;
+  }
+
+  /* تخصيص نوافذ ومؤشرات الخريطة التفاعلية */
+  .leaflet-popup-content-wrapper {
+    border-radius: 1rem !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    padding: 0 !important;
+    border: 1px solid #E2D5B7 !important;
+    overflow: hidden;
+  }
+  .leaflet-popup-content {
+    margin: 10px 14px !important;
+    line-height: 1.5 !important;
+    font-family: inherit !important;
+  }
+  .leaflet-popup-tip {
+    background: white !important;
+  }
+
+  /* إخفاء أسماء الأحياء عند تصغير الخريطة مع الحفاظ على ظهور النقاط البرتقالية */
+  .hide-map-labels .map-location-label {
+    display: none !important;
+  }
 }

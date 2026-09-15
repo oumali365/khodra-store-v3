@@ -11,6 +11,9 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    optimizeDeps: {
+      include: ['leaflet'],
+    },
     server: {
       host: '0.0.0.0',
       port: 3000,
