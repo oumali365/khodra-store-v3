@@ -1,5 +1,9 @@
+// ============================================================
+// الملف: StickyBottomBar.tsx – الإصدار 2.0
+// شريط السلة السفلي العائم – تصميم محسّن
+// ============================================================
 import React from 'react';
-import { ShoppingBag, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Truck } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 
 interface StickyBottomBarProps {
@@ -15,6 +19,10 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
   onOpenCart,
   onOpenCheckout,
 }) => {
+  // حساب التوصيل المجاني
+  const isFreeDelivery = cartTotal >= STORE_CONFIG.freeDeliveryThreshold;
+  const remainingForFree = Math.max(0, STORE_CONFIG.freeDeliveryThreshold - cartTotal);
+
   return (
     <div
       id="sticky-bottom-bar"
@@ -26,50 +34,74 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
     >
       {/* ─── البطاقة العائمة ─── */}
       <div className="w-full px-3 sm:px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pointer-events-auto">
-        <div className="relative max-w-7xl mx-auto bg-white/95 backdrop-blur-md border border-[#D4C8B5] rounded-2xl shadow-2xl py-2 sm:py-2.5 px-4 sm:px-4 transition-all duration-200">
-          
-          {/* ─── الخط البرتقالي العلوي (اختياري للحفاظ على الهوية) ─── */}
-          <div className="absolute -top-px left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-[#D9762B] to-transparent rounded-full" />
+        <div className="relative max-w-7xl mx-auto bg-white/95 backdrop-blur-md border border-[#D4C8B5] rounded-2xl shadow-2xl overflow-hidden transition-all duration-200">
 
-          <div className="flex items-center justify-between gap-2.5 sm:gap-4">
+          {/* ─── شريط علوي: تقدم التوصيل المجاني ─── */}
+          <div className={`px-4 py-1.5 text-[11px] font-black flex items-center gap-1.5 border-b ${
+            isFreeDelivery
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : 'bg-amber-50 text-amber-900 border-amber-200'
+          }`}>
+            <Truck className={`w-3.5 h-3.5 shrink-0 ${isFreeDelivery ? 'text-emerald-600' : 'text-[#C25E12]'}`} />
+            {isFreeDelivery ? (
+              <span className="flex items-center gap-1">
+                🎉 <strong className="text-emerald-700">مبروك!</strong> حصلت على توصيل مجاني
+              </span>
+            ) : (
+              <span>
+                أضف <strong className="text-[#C25E12]">{remainingForFree.toFixed(2)} {STORE_CONFIG.currency}</strong> للحصول على توصيل مجاني
+              </span>
+            )}
+          </div>
 
-            {/* ─── زر عرض السلة ─── */}
-            <button
-              type="button"
-              onClick={onOpenCart}
-              className="flex items-center gap-2 sm:gap-2 px-2 sm:px-2 py-1 min-h-[48px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] transition-all cursor-pointer text-right group flex-1 min-w-0 touch-manipulation select-none"
-            >
-              {/* أيقونة السلة مع العدد */}
-              <div
-                id="sticky-cart-icon"
-                className="relative w-9 h-9 sm:w-9.5 sm:h-9.5 rounded-lg bg-gradient-to-br from-[#C25E12] to-[#9C4505] text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-200 select-none"
+          {/* ─── المحتوى الرئيسي ─── */}
+          <div className="py-2 sm:py-2.5 px-3 sm:px-4">
+            <div className="flex items-center justify-between gap-2.5 sm:gap-4">
+
+              {/* ─── زر عرض السلة ─── */}
+              <button
+                type="button"
+                onClick={onOpenCart}
+                className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-2.5 py-1.5 min-h-[52px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] transition-all cursor-pointer text-right group flex-1 min-w-0 touch-manipulation select-none"
+                aria-label={`عرض السلة (${cartCount} منتجات)`}
               >
-                <ShoppingBag className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#112616] text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow-sm">
-                  {cartCount}
-                </span>
-              </div>
+                {/* أيقونة السلة مع العدد */}
+                <div
+                  id="sticky-cart-icon"
+                  className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[#C25E12] to-[#9C4505] text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:shadow-lg transition-all duration-200 select-none"
+                >
+                  <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
 
-              {/* معلومات السلة */}
-              <div className="flex flex-col leading-tight min-w-0">
-                <span className="text-[15px] sm:text-base font-black text-[#112616] truncate">
-                  {cartTotal.toFixed(2)} {STORE_CONFIG.currency}
-                </span>
-                <span className="text-xs text-[#524B3E] font-bold truncate">
-                  {cartCount} {cartCount === 1 ? 'منتج' : 'منتجات'} • انقر للمعاينة
-                </span>
-              </div>
-            </button>
+                  {/* شارة العدد */}
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-[#112616] text-white text-[11px] font-black flex items-center justify-center border-2 border-white shadow-md">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
+                </div>
 
-            {/* ─── زر إتمام الطلب (أخضر) ─── */}
-            <button
-              type="button"
-              onClick={onOpenCheckout}
-              className="min-h-[42px] sm:min-h-[44px] py-2 px-5 sm:px-6 rounded-xl bg-gradient-to-r from-[#1E4327] to-[#112616] text-white font-black text-sm sm:text-sm shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all duration-150 flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap border border-[#1E4327] touch-manipulation select-none"
-            >
-              <span>إتمام الطلب</span>
-              <ArrowLeft className="w-4 h-4 transition-transform group-hover:translate-x-[-2px] stroke-[2.5]" />
-            </button>
+                {/* معلومات السلة */}
+                <div className="flex flex-col leading-tight min-w-0 flex-1">
+                  <span className="text-[10px] text-[#524B3E] font-bold mb-0.5">
+                    سلة التسوق
+                  </span>
+                  <span className="text-base sm:text-lg font-black text-[#112616] truncate tabular-nums" dir="ltr">
+                    {cartTotal.toFixed(2)} <span className="text-xs font-black text-[#C25E12]">{STORE_CONFIG.currency}</span>
+                  </span>
+                </div>
+              </button>
+
+              {/* ─── زر تأكيد الطلب ─── */}
+              <button
+                type="button"
+                onClick={onOpenCheckout}
+                className="relative min-h-[52px] py-2.5 px-5 sm:px-7 rounded-xl bg-gradient-to-r from-[#1E4327] to-[#112616] hover:from-[#112616] hover:to-[#0A1A0F] text-white font-black text-sm shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-150 flex items-center gap-2 cursor-pointer shrink-0 whitespace-nowrap border border-[#0A1A0F] touch-manipulation select-none group"
+              >
+                <span className="hidden sm:inline">تأكيد الطلب</span>
+                <span className="sm:hidden">تأكيد</span>
+                <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1 stroke-[2.5]" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
