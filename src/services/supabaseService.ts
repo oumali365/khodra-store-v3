@@ -20,6 +20,27 @@ export function getSupabase(): SupabaseClient | null {
 // ─── المنتجات ───
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * تطبيع بيانات المنتج القادمة من Supabase
+ * تضمن أن id/price/stock أرقام، وأن active boolean
+ */
+function normalizeProduct(row: any): Product {
+  return {
+    id: Number(row.id),
+    name: String(row.name || ''),
+    category: (row.category || 'veg') as Product['category'],
+    type: (row.type === 'unit' ? 'unit' : 'weight') as Product['type'],
+    price: Number(row.price) || 0,
+    unit_label: row.unit_label || undefined,
+    stock: Number(row.stock) || 0,
+    icon: row.icon || '🛒',
+    image_url: row.image_url || undefined,
+    active: row.active !== undefined ? Boolean(row.active) : true,
+    description: row.description || undefined,
+    origin: row.origin || undefined,
+  };
+}
+
 export async function fetchProducts(): Promise<Product[]> {
   const client = getSupabase();
   if (!client) {
@@ -39,7 +60,8 @@ export async function fetchProducts(): Promise<Product[]> {
     }
 
     if (data && data.length > 0) {
-      return data as Product[];
+      // ✅ تطبيع كل منتج لضمان الأنواع الصحيحة
+      return data.map(normalizeProduct);
     }
   } catch (err) {
     console.warn('Network error while connecting to Supabase:', err);
@@ -47,7 +69,6 @@ export async function fetchProducts(): Promise<Product[]> {
 
   return INITIAL_PRODUCTS;
 }
-
 // ═══════════════════════════════════════════════════════════════
 // ─── رفع الطلب (مُصلح: يُظهر الأخطاء الحقيقية) ───
 // ═══════════════════════════════════════════════════════════════
