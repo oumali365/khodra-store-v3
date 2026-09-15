@@ -1,3 +1,7 @@
+// ============================================================
+// الملف: SwipeableCartItem.tsx
+// الإصدار: 2.0 (يدعم صور المنتجات + شارات صناديق العائلة)
+// ============================================================
 import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'motion/react';
 import { Trash2, Plus, Minus } from 'lucide-react';
@@ -19,14 +23,14 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
   const [isPastThreshold, setIsPastThreshold] = useState(false);
   const x = useMotionValue(0);
 
-  // إظهار أيقونة وتأثير الحذف عند السحب لليمين أو اليسار
+  // إظهار أيقونة وتأثير الحذف عند السحب
   const rightOpacity = useTransform(x, [-110, -50, 0], [1, 0.6, 0]);
   const rightScale = useTransform(x, [-110, -50, 0], [1.15, 0.95, 0.7]);
 
   const leftOpacity = useTransform(x, [0, 50, 110], [0, 0.6, 1]);
   const leftScale = useTransform(x, [0, 50, 110], [0.7, 0.95, 1.15]);
 
-  const handleDrag = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDrag = (_: any, info: PanInfo) => {
     const threshold = 85;
     if (Math.abs(info.offset.x) >= threshold) {
       if (!isPastThreshold) setIsPastThreshold(true);
@@ -35,7 +39,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
     }
   };
 
-  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (_: any, info: PanInfo) => {
     const threshold = 85;
     const velocityThreshold = 400;
 
@@ -50,6 +54,8 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
       setIsPastThreshold(false);
     }
   };
+
+  const isBundleItem = !!item.bundleId;
 
   return (
     <motion.div
@@ -73,7 +79,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
       transition={{ type: 'spring', stiffness: 450, damping: 30 }}
       className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 shadow-2xs select-none touch-pan-y"
     >
-      {/* ─── الطبقة الخلفية (تظهر عند السحب لليسار) ─── */}
+      {/* ─── الطبقة الخلفية (السحب لليسار) ─── */}
       <motion.div
         style={{ opacity: rightOpacity, scale: rightScale }}
         className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 pl-3 gap-2 text-white font-black text-xs pointer-events-none"
@@ -82,7 +88,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
         <Trash2 className="w-5 h-5 text-white stroke-[2.5]" />
       </motion.div>
 
-      {/* ─── الطبقة الخلفية (تظهر عند السحب لليمين) ─── */}
+      {/* ─── الطبقة الخلفية (السحب لليمين) ─── */}
       <motion.div
         style={{ opacity: leftOpacity, scale: leftScale }}
         className="absolute inset-y-0 left-0 flex items-center justify-start pl-4 pr-3 gap-2 text-white font-black text-xs pointer-events-none"
@@ -105,21 +111,48 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
           cursor: 'grabbing',
           boxShadow: '0 8px 20px -4px rgba(0, 0, 0, 0.1)',
         }}
-        className={`relative bg-white border transition-colors rounded-xl p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 z-10 ${
-          isPastThreshold ? 'border-red-400 bg-red-50/20' : 'border-[#D4C8B5]'
+        className={`relative bg-white border-2 transition-colors rounded-xl p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 z-10 ${
+          isPastThreshold
+            ? 'border-red-400 bg-red-50/20'
+            : isBundleItem
+            ? 'border-[#C25E12]/40 bg-amber-50/20'
+            : 'border-[#D4C8B5]'
         }`}
       >
-        {/* أيقونة المنتج بحجم مدمج */}
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-[#F7F4EC] border border-[#D4C8B5] flex items-center justify-center text-xl sm:text-2xl shrink-0 shadow-2xs pointer-events-none">
-          {item.icon}
+        {/* ─── أيقونة/صورة المنتج ─── */}
+        <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-[#F7F4EC] border border-[#D4C8B5] flex items-center justify-center shrink-0 overflow-hidden shadow-2xs pointer-events-none">
+          {item.image_url ? (
+            <img
+              src={item.image_url}
+              alt={item.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                // في حال فشل تحميل الصورة، نخفيها ليظهر الـ icon
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <span className="text-xl sm:text-2xl">{item.icon}</span>
+          )}
+
+          {/* شارة الصندوق */}
+          {isBundleItem && (
+            <span
+              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#C25E12] text-white text-[10px] flex items-center justify-center border-2 border-white shadow-sm"
+              title="من صندوق عائلة"
+            >
+              🧺
+            </span>
+          )}
         </div>
 
-        {/* معلومات المنتج بحجم مدمج وواضح */}
+        {/* ─── معلومات المنتج ─── */}
         <div className="flex-1 min-w-0 pointer-events-none">
           <h4 className="text-xs sm:text-sm font-black text-[#112616] truncate">
             {item.name}
           </h4>
-          <p className="text-[11px] text-[#2D271E] font-bold">
+          <p className="text-[11px] text-[#2D271E] font-bold truncate">
             {item.variantLabel}
           </p>
           <div className="text-xs sm:text-sm font-black text-[#C25E12]">
@@ -127,8 +160,8 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
           </div>
         </div>
 
-        {/* عداد الكمية بحجم مدمج وسهل اللمس */}
-        <div 
+        {/* ─── عداد الكمية ─── */}
+        <div
           className="flex items-center gap-1 bg-[#F7F4EC] border border-[#D4C8B5] rounded-lg p-0.5 shrink-0 select-none touch-manipulation"
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
@@ -162,7 +195,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
           </button>
         </div>
 
-        {/* زر الحذف التقليدي بحجم مدمج */}
+        {/* ─── زر الحذف التقليدي ─── */}
         <button
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
