@@ -1,6 +1,9 @@
 // ============================================================
-// الملف: ProductCard.tsx – الإصدار 2.0
-// زر "أضف للسلة" بنفس تصميم صناديق العائلة (خلفية خضراء داكنة)
+// الملف: ProductCard.tsx – الإصدار 3.0
+// زر "أضف للسلة" بحالات ثلاث:
+//   - عادي: أخضر داكن "أضف للسلة"
+//   - في السلة: برتقالي "أضف المزيد"
+//   - تمت الإضافة: أخضر زمردي "تمت الإضافة"
 // ============================================================
 import React, { useState, useRef } from 'react';
 import { Minus, Plus, Check, ShoppingBag } from 'lucide-react';
@@ -68,7 +71,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           : targetRect.top + targetRect.height / 2;
     }
 
-    // إنشاء مجسم مصغر طائر للمنتج
     const flyer = document.createElement('div');
     flyer.className =
       'fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border-2 border-[#D9762B] bg-white flex items-center justify-center';
@@ -97,7 +99,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     const deltaX = targetX - startCenterX;
     const deltaY = targetY - startCenterY;
 
-    // حركة GSAP منحنية بانسيابية عالية
     const tl = gsap.timeline({
       onComplete: () => {
         flyer.remove();
@@ -243,16 +244,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         )}
 
-        {/* ─── زر الإضافة بنفس تصميم صناديق العائلة ─── */}
+        {/* ─── زر الإضافة بحالات ثلاث ─── */}
         <button
           type="button"
           disabled={isSoldOut}
           onClick={handleAdd}
-          className={`w-full py-2.5 px-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
+          className={`w-full h-11 min-h-[44px] px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
             isSoldOut
               ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed'
               : isJustAdded
               ? 'bg-emerald-600 text-white scale-[1.02]'
+              : inCartQty > 0
+              ? 'bg-gradient-to-r from-[#EA580C] via-[#C25E12] to-[#9C4505] hover:from-[#F97316] hover:to-[#C25E12] text-white'
               : 'bg-[#163920] hover:bg-[#0E2615] text-white'
           }`}
         >
@@ -262,6 +265,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <>
               <Check className="w-4 h-4 text-[#F5D76E] animate-in zoom-in stroke-[2.5]" />
               <span>تمت الإضافة</span>
+            </>
+          ) : inCartQty > 0 ? (
+            <>
+              <ShoppingBag className="w-4 h-4 text-white" />
+              <span>أضف المزيد</span>
+              <span className="px-1.5 py-0.5 rounded-md bg-white/20 text-white text-[10px] font-black tabular-nums">
+                {inCartQty}
+              </span>
             </>
           ) : (
             <>
