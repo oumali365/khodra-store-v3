@@ -1,9 +1,12 @@
 // ============================================================
-// الملف: ProductCard.tsx – الإصدار 4.0
-// بطاقة المنتج – تصميم شامل ومتناسق مع المتجر
+// الملف: ProductCard.tsx – الإصدار 3.0
+// زر "أضف للسلة" بحالات ثلاث:
+//   - عادي: أخضر داكن "أضف للسلة"
+//   - في السلة: برتقالي "أضف المزيد"
+//   - تمت الإضافة: أخضر زمردي "تمت الإضافة"
 // ============================================================
 import React, { useState, useRef } from 'react';
-import { Minus, Plus, Check, ShoppingBag, MapPin, Star } from 'lucide-react';
+import { Minus, Plus, Check, ShoppingBag } from 'lucide-react';
 import gsap from 'gsap';
 import { Product } from '../types';
 import { STORE_CONFIG } from '../data/config';
@@ -48,9 +51,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  // ─── تأثير GSAP للطيران نحو السلة ───
+  // ─── تأثير GSAP البصري لتحريك المنتج نحو السلة ───
   const animateToCart = () => {
     if (!imgContainerRef.current) return;
+
     const rect = imgContainerRef.current.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
@@ -69,7 +73,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
     const flyer = document.createElement('div');
     flyer.className =
-      'fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C25E12] bg-white flex items-center justify-center';
+      'fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border-2 border-[#D9762B] bg-white flex items-center justify-center';
     flyer.style.width = '64px';
     flyer.style.height = '64px';
     flyer.style.left = `${rect.left + rect.width / 2 - 32}px`;
@@ -98,6 +102,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     const tl = gsap.timeline({
       onComplete: () => {
         flyer.remove();
+
         const targetIcon = document.getElementById('sticky-cart-icon');
         if (targetIcon) {
           gsap
@@ -131,66 +136,43 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     setTimeout(() => setIsJustAdded(false), 1200);
   };
 
-  // ─── شارة الحالة ───
+  // شارة الحالة
   const getStatusBadge = () => {
     if (isSoldOut) {
-      return {
-        text: 'نفد المخزون',
-        cls: 'bg-red-50 text-red-800 border-red-300',
-        icon: '🚫',
-      };
+      return { text: 'نفد المخزون', cls: 'bg-red-50 text-red-800 border-red-200 font-bold' };
     }
     if (isLimited) {
-      return {
-        text: 'كمية محدودة',
-        cls: 'bg-amber-50 text-amber-900 border-amber-300',
-        icon: '⚡',
-      };
+      return { text: 'كمية محدودة', cls: 'bg-amber-50 text-amber-900 border-amber-300 font-bold' };
     }
-    return {
-      text: 'طازج اليوم',
-      cls: 'bg-emerald-50 text-emerald-800 border-emerald-300',
-      icon: '✓',
-    };
+    return { text: 'متوفر طازج', cls: 'bg-emerald-50 text-[#0F2D16] border-emerald-300 font-black' };
   };
 
   const badge = getStatusBadge();
 
   return (
     <article
-      className={`relative bg-white rounded-[20px] p-3 sm:p-3.5 border transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-[#C25E12] hover:-translate-y-0.5 group ${
-        isSoldOut ? 'opacity-70 border-stone-300' : 'border-[#E8E1D3]'
+      className={`relative bg-white rounded-[18px] p-3.5 border transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-[#C25E12] ${
+        isSoldOut ? 'opacity-70 border-stone-300' : 'border-[#D4C8B5]'
       }`}
     >
-      {/* ════════ شارة الحالة + شارة "في السلة" ════════ */}
-      <div className="flex items-center justify-between gap-2 mb-2.5">
-        <span className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-black px-2.5 py-1 rounded-full border shadow-xs ${badge.cls}`}>
-          <span className="text-[10px]">{badge.icon}</span>
-          <span>{badge.text}</span>
+      {/* ─── شارة الحالة ─── */}
+      <div className="flex items-center w-full mb-2">
+        <span className={`text-xs font-extrabold px-3 py-1 rounded-full border shadow-xs ${badge.cls}`}>
+          {badge.text}
         </span>
-
-        {/* شارة "في السلة" */}
-        {inCartQty > 0 && !isSoldOut && (
-          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-black px-2 py-1 rounded-full bg-[#F5D76E] text-[#163920] border border-[#D4C8B5] shadow-xs animate-in zoom-in duration-200">
-            <ShoppingBag className="w-2.5 h-2.5" />
-            <span className="tabular-nums">{inCartQty}</span>
-          </span>
-        )}
       </div>
 
-      {/* ════════ الصورة / الأيقونة ════════ */}
+      {/* ─── الصورة / الأيقونة + الاسم + السعر ─── */}
       <div className="flex flex-col items-center text-center">
-
-        {/* حاوية الصورة */}
         <div
           ref={imgContainerRef}
-          className="relative w-full aspect-square max-w-[140px] rounded-2xl bg-gradient-to-br from-[#F7F4EC] to-[#EAE2D2] border border-[#E8E1D3] flex items-center justify-center mb-3 shadow-xs group-hover:shadow-md transition-all duration-300 overflow-hidden mx-auto"
+          className="w-28 h-28 sm:w-32 sm:h-32 rounded-[18px] bg-[#F7F4EC] border border-[#DDD5C5] flex items-center justify-center text-5xl mb-2.5 shadow-xs hover:shadow-md transition-all duration-300 group-hover:scale-105 overflow-hidden"
         >
           {product.image_url ? (
             <img
               src={product.image_url}
               alt={product.name}
-              className="w-full h-full object-cover rounded-2xl group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover rounded-[18px]"
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
@@ -198,63 +180,55 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 if (parent) {
                   const icon = document.createElement('span');
                   icon.textContent = product.icon || '🛒';
-                  icon.className = 'text-6xl';
+                  icon.className = 'text-5xl';
                   parent.appendChild(icon);
                 }
               }}
             />
           ) : (
-            <span className="text-5xl sm:text-6xl group-hover:scale-110 transition-transform duration-300">
-              {product.icon}
-            </span>
+            <span>{product.icon}</span>
           )}
-
-          {/* شارة "وفّر" (اختياري - إذا كان هناك سعر قديم) */}
-          {/* يمكن إضافتها لاحقاً */}
         </div>
 
-        {/* اسم المنتج */}
-        <h3 className="font-black text-sm sm:text-base text-[#112616] line-clamp-2 leading-tight mb-1.5 min-h-[2.5rem]">
+        <h3 className="font-extrabold text-base sm:text-lg text-[#112616] line-clamp-1 mb-1">
           {product.name}
         </h3>
 
-        {/* المنشأ */}
         {product.origin && (
-          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] text-[#787163] font-bold mb-1.5">
-            <MapPin className="w-3 h-3 text-[#C25E12]" />
-            <span className="truncate max-w-[120px]">{product.origin}</span>
+          <span className="text-xs text-[#3E3A33] font-semibold mb-1">
+            📍 {product.origin}
           </span>
         )}
 
-        {/* السعر */}
-        <div className="flex items-baseline justify-center gap-1.5 mt-1" dir="ltr">
-          <span className="text-xl sm:text-2xl font-black text-[#C25E12] tabular-nums">
+        <div
+          dir="ltr"
+          className="inline-flex items-baseline justify-center gap-1.5 text-xs sm:text-sm text-[#1A1814] font-semibold mt-0.5"
+        >
+          <span className="text-xl sm:text-2xl font-black text-[#B85507]">
             {product.price.toFixed(2)}
           </span>
-          <span className="text-xs sm:text-sm font-black text-[#C25E12]">DH</span>
-          <span className="text-[10px] sm:text-xs text-[#787163] font-bold">
-            / {isWeight ? 'kg' : product.unit_label || 'قطعة'}
+          <span className="text-sm sm:text-base font-extrabold text-[#B85507]">dh</span>
+          <span className="text-xs text-[#38332B] font-bold">
+            / {isWeight ? 'kg' : product.unit_label || 'pièce'}
           </span>
         </div>
       </div>
 
-      {/* ════════ عداد الكمية + زر الإضافة ════════ */}
-      <div className="mt-3 pt-3 border-t border-[#F0E9DA]">
-
-        {/* عداد الكمية */}
+      {/* ─── عداد الكمية وزر الإضافة ─── */}
+      <div className="mt-2.5 pt-2.5 border-t border-[#E8E1D3]">
         {!isSoldOut && (
-          <div className="flex items-center justify-between bg-[#F7F4EC] rounded-xl p-1.5 border border-[#E8E1D3] mb-2.5">
+          <div className="flex items-center justify-between bg-[#F7F4EC] rounded-xl p-1.5 border border-[#D4C8B5] mb-2.5">
             <button
               type="button"
               onClick={handleIncrement}
-              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#E8E1D3] text-[#112616] hover:bg-[#163920] hover:text-white hover:border-[#163920] flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
               aria-label="زيادة الكمية"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
             </button>
 
             <div className="flex flex-col items-center leading-none select-none">
-              <span dir="ltr" className="text-sm font-black text-[#112616] tabular-nums">
+              <span dir="ltr" className="text-sm font-extrabold text-[#112616]">
                 {selectedQty} {isWeight ? 'kg' : ''}
               </span>
             </div>
@@ -262,7 +236,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               type="button"
               onClick={handleDecrement}
-              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#E8E1D3] text-[#112616] hover:bg-[#163920] hover:text-white hover:border-[#163920] flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
               aria-label="إنقاص الكمية"
             >
               <Minus className="w-4 h-4 stroke-[2.5]" />
@@ -270,7 +244,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         )}
 
-        {/* زر الإضافة - 3 حالات */}
+        {/* ─── زر الإضافة بحالات ثلاث ─── */}
         <button
           type="button"
           disabled={isSoldOut}
@@ -296,6 +270,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <>
               <ShoppingBag className="w-4 h-4 text-white" />
               <span>أضف المزيد</span>
+              <span className="px-1.5 py-0.5 rounded-md bg-white/20 text-white text-[10px] font-black tabular-nums">
+                {inCartQty}
+              </span>
             </>
           ) : (
             <>
