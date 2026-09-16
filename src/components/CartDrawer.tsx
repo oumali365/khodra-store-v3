@@ -274,16 +274,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             {/* ملخص المبالغ */}
             <div className="p-4 space-y-2.5">
 
-              {/* شارات مصغرة */}
-              <div className="flex items-center gap-1.5 flex-wrap pb-2 border-b border-[#F0E9DA]">
-                <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
-                  <ShieldCheck className="w-3 h-3" />
-                  ضمان الجودة
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-900 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
-                  <Truck className="w-3 h-3" />
-                  توصيل سريع
-                </span>
+              
                 {isFreeDelivery && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-900 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-300">
                     <Percent className="w-3 h-3" />
