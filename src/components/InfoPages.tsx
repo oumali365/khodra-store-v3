@@ -271,4 +271,9 @@ const PrivacyCard: React.FC<PrivacyCardProps> = ({ title, description }) => (
         <ShieldCheck className="w-4 h-4 text-emerald-700 stroke-[2.5]" />
       </span>
       <div className="flex-1">
-       
+        <h4 className="font-black text-[#112616] text-sm mb-1">{title}</h4>
+        <p className="text-xs sm:text-sm text-[#524B3E] leading-relaxed">{description}</p>
+      </div>
+    </div>
+  </div>
+);
