@@ -1,20 +1,28 @@
+// ============================================================
+// الملف: CheckoutModal.tsx – الإصدار 3.0
+// تأكيد الطلب – تحسين قسم الدفع البنكي + تصميم متناسق
+// ============================================================
 import React, { useState } from 'react';
-import { 
-  X, 
-  Check, 
-  Copy, 
-  Upload, 
-  AlertCircle, 
-  Clock, 
-  CreditCard, 
-  Banknote, 
-  Building2, 
-  ShoppingBag, 
-  Truck, 
+import {
+  X,
+  Check,
+  Copy,
+  Upload,
+  AlertCircle,
+  Clock,
+  CreditCard,
+  Banknote,
+  Building2,
+  ShoppingBag,
+  Truck,
   Shield,
   MapPin,
   LocateFixed,
-  ExternalLink
+  ExternalLink,
+  Sparkles,
+  Package,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { CartItem, PaymentMethod, OrderSubmission } from '../types';
 import { STORE_CONFIG, MOROCCAN_BANKS, DELIVERY_SLOTS } from '../data/config';
@@ -36,9 +44,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const currentHour = new Date().getHours();
 
-  const validFirstSlot = DELIVERY_SLOTS.find(
-    (slot) => slot.cutoffHour === null || currentHour < slot.cutoffHour
-  )?.id || DELIVERY_SLOTS[DELIVERY_SLOTS.length - 1].id;
+  const validFirstSlot =
+    DELIVERY_SLOTS.find(
+      (slot) => slot.cutoffHour === null || currentHour < slot.cutoffHour
+    )?.id || DELIVERY_SLOTS[DELIVERY_SLOTS.length - 1].id;
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -58,12 +67,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // ─── طي/فتح ملخص السلة على الهاتف ───
+  const [showCartSummary, setShowCartSummary] = useState(false);
+
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const isFreeDelivery = subtotal >= STORE_CONFIG.freeDeliveryThreshold;
   const deliveryFee = isFreeDelivery ? 0 : STORE_CONFIG.standardDeliveryFee;
   const grandTotal = subtotal + deliveryFee;
 
-  const currentBank = MOROCCAN_BANKS.find((b) => b.id === selectedBankId) || MOROCCAN_BANKS[0];
+  const currentBank =
+    MOROCCAN_BANKS.find((b) => b.id === selectedBankId) || MOROCCAN_BANKS[0];
+
+  const totalItems = items.reduce((sum, item) => sum + item.qty, 0);
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
@@ -181,14 +196,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
 
     const orderCode = '#' + Math.floor(1000 + Math.random() * 9000);
-    const chosenSlot = DELIVERY_SLOTS.find((s) => s.id === deliverySlot)?.label || deliverySlot;
+    const chosenSlot =
+      DELIVERY_SLOTS.find((s) => s.id === deliverySlot)?.label || deliverySlot;
     const fullAddress = getFullAddress() || street.trim();
     const mapsLink = generateGoogleMapsUrl();
 
@@ -221,104 +235,147 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-[#FAF7F2] border border-[#D5CBB5] rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative bg-[#FBF9F5] border border-[#E8E1D3] rounded-[24px] w-full max-w-2xl max-h-[94vh] flex flex-col shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200">
 
-        {/* Header */}
-        <div className="p-4 sm:p-5 bg-[#1B3420] text-white flex items-center justify-between shrink-0 shadow-md">
-          <div>
-            <h2 className="text-base sm:text-xl font-black flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-emerald-300" />
-              <span>تأكيد الطلب</span>
-            </h2>
-            <p className="text-xs sm:text-sm text-emerald-100/90 mt-0.5 font-medium">
-              أدخل بياناتك واختر وقت التسليم وطريقة الدفع
-            </p>
+        {/* ════════ Header ════════ */}
+        <div className="relative p-4 sm:p-5 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shrink-0 shadow-md overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,215,110,0.15),transparent_60%)] pointer-events-none" />
+
+          <div className="relative flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-5 h-5 text-[#F5D76E]" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-xl font-black flex items-center gap-2">
+                <span>تأكيد الطلب</span>
+                <Sparkles className="w-4 h-4 text-[#F5D76E]" />
+              </h2>
+              <p className="text-[11px] sm:text-xs text-emerald-100/90 font-bold">
+                أكمل بياناتك لإتمام الطلب
+              </p>
+            </div>
           </div>
+
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-white/15 hover:bg-white/25 active:scale-90 text-white flex items-center justify-center transition-all cursor-pointer touch-manipulation select-none"
+            className="relative w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-white/15 hover:bg-white/25 active:scale-90 text-white flex items-center justify-center transition-all cursor-pointer border border-white/15"
             aria-label="إغلاق"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-right">
+        {/* ════════ Scrollable Form Body ════════ */}
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 text-right"
+        >
 
-          {/* ملخص السلة */}
-          <div className="bg-white border border-[#E0D8C8] rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E8E1D1]">
-              <span className="text-sm sm:text-base font-black text-[#1B3420] flex items-center gap-2">
-                <span className="text-xl">🧺</span>
-                <span>ملخص السلة</span>
-                <span className="bg-[#C25E12] text-white text-xs px-2.5 py-0.5 rounded-full font-extrabold">
-                  {items.length} منتج{items.length !== 1 ? 'ات' : ''}
-                </span>
-              </span>
-            </div>
-
-            <div className="py-2.5 space-y-2 max-h-40 overflow-y-auto">
-              {items.map((i) => (
-                <div key={i.key} className="flex items-center justify-between p-2.5 bg-[#FAF8F3] rounded-xl border border-[#E8E1D1]">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xl">{i.icon}</span>
-                    <div className="text-right">
-                      <p className="text-xs sm:text-sm font-black text-[#191816]">{i.name}</p>
-                      <p className="text-xs text-[#524B3E] font-medium">
-                        {i.variantLabel} {i.qty > 1 && `× ${i.qty}`}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs sm:text-sm font-black text-[#C25E12]">
-                    {i.lineTotal.toFixed(2)} DH
+          {/* ═══════════════════════════════════════════════════
+              ─── ملخص السلة (قابل للطي على الهاتف) ───
+              ═══════════════════════════════════════════════════ */}
+          <div className="bg-white border border-[#E8E1D3] rounded-2xl overflow-hidden shadow-sm">
+            {/* رأس قابل للنقر */}
+            <button
+              type="button"
+              onClick={() => setShowCartSummary(!showCartSummary)}
+              className="w-full flex items-center justify-between gap-3 p-4 hover:bg-[#F7F4EC] transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#163920]/10 flex items-center justify-center shrink-0">
+                  <Package className="w-4 h-4 text-[#163920]" />
+                </div>
+                <div className="text-right min-w-0">
+                  <span className="text-sm font-black text-[#112616] block">
+                    ملخص السلة
+                  </span>
+                  <span className="text-[11px] text-[#787163] font-bold block">
+                    {items.length} صنف • {totalItems} قطعة
                   </span>
                 </div>
-              ))}
-            </div>
-
-            <div className="pt-3 border-t border-[#E8E1D1] space-y-2">
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span className="text-[#453F33] font-bold flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-[#2E6B39]" />
-                  <span>رسوم التوصيل:</span>
-                </span>
-                <span className="font-extrabold text-[#191816]">
-                  {deliveryFee.toFixed(2)} DH
-                </span>
               </div>
 
-              <div className="flex justify-between items-center pt-2.5 border-t-2 border-[#C25E12]">
-                <span className="text-sm sm:text-base font-black text-[#191816] flex items-center gap-1.5">
-                  <span>💰</span>
-                  <span>الإجمالي الكلي:</span>
-                </span>
-                <span className="text-lg sm:text-xl font-black text-[#C25E12]">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-base sm:text-lg font-black text-[#C25E12] tabular-nums">
                   {grandTotal.toFixed(2)} DH
                 </span>
+                {showCartSummary ? (
+                  <ChevronUp className="w-4 h-4 text-[#787163]" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-[#787163]" />
+                )}
               </div>
-            </div>
+            </button>
+
+            {/* المحتوى القابل للطي */}
+            {showCartSummary && (
+              <div className="border-t border-[#F0E9DA] p-3 space-y-2 animate-in slide-in-from-top-2 duration-200">
+                {items.map((i) => (
+                  <div
+                    key={i.key}
+                    className="flex items-center justify-between p-2.5 bg-[#F7F4EC] rounded-xl border border-[#E8E1D3] gap-2"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-lg shrink-0">{i.icon}</span>
+                      <div className="text-right min-w-0">
+                        <p className="text-xs font-black text-[#112616] truncate">
+                          {i.name}
+                        </p>
+                        <p className="text-[10px] text-[#787163] font-bold truncate">
+                          {i.variantLabel} {i.qty > 1 && `× ${i.qty}`}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-black text-[#C25E12] tabular-nums shrink-0">
+                      {i.lineTotal.toFixed(2)} DH
+                    </span>
+                  </div>
+                ))}
+
+                <div className="pt-3 mt-2 border-t border-[#F0E9DA] space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-[#524B3E] font-bold flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>رسوم التوصيل:</span>
+                    </span>
+                    <span
+                      className={`font-black tabular-nums ${
+                        isFreeDelivery ? 'text-emerald-700' : 'text-[#112616]'
+                      }`}
+                    >
+                      {isFreeDelivery ? 'مجاني 🎉' : `${deliveryFee.toFixed(2)} DH`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* ─── قسم عنوان التوصيل (محسّن) ─── */}
-          <div className="bg-white border border-[#E0D8C8] rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-[#E8E1D1] mb-4">
+          {/* ═══════════════════════════════════════════════════
+              ─── عنوان التوصيل ───
+              ═══════════════════════════════════════════════════ */}
+          <div className="bg-white border border-[#E8E1D3] rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-[#F0E9DA] mb-4">
               <div className="w-8 h-8 rounded-lg bg-[#C25E12]/10 flex items-center justify-center">
                 <MapPin className="w-4 h-4 text-[#C25E12]" />
               </div>
-              <h3 className="text-sm sm:text-base font-black text-[#1B3420]">
+              <h3 className="text-sm sm:text-base font-black text-[#112616]">
                 عنوان التوصيل بمدينة فاس
               </h3>
             </div>
 
-            <div className="space-y-4">
-              {/* Full Name */}
+            <div className="space-y-3.5">
+              {/* الاسم */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-[#191816] mb-1.5">
+                <label className="block text-xs sm:text-sm font-black text-[#112616] mb-1.5">
                   الاسم الكامل <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -326,73 +383,95 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="مثال: يوسف الإدريسي"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm text-[#191816] bg-white focus:outline-none transition-all placeholder:text-[#8C8474] ${
-                    errors.name ? 'border-red-500 ring-2 ring-red-100' : 'border-[#D0C6B4] focus:border-[#2E6B39] focus:ring-2 focus:ring-[#2E6B39]/20'
+                  className={`w-full px-4 py-3 rounded-xl border text-sm text-[#112616] bg-[#F7F4EC] focus:bg-white focus:outline-none transition-all placeholder:text-[#787163] ${
+                    errors.name
+                      ? 'border-red-500 ring-2 ring-red-100'
+                      : 'border-[#E8E1D3] focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/15'
                   }`}
                 />
-                {errors.name && <p className="text-red-600 text-xs font-semibold mt-1">{errors.name}</p>}
+                {errors.name && (
+                  <p className="text-red-600 text-xs font-black mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{errors.name}</span>
+                  </p>
+                )}
               </div>
 
-              {/* Phone Number */}
+              {/* الهاتف */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-[#191816] mb-1.5">
+                <label className="block text-xs sm:text-sm font-black text-[#112616] mb-1.5">
                   رقم الهاتف <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0612345678 أو 0712345678"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm text-[#191816] bg-white focus:outline-none transition-all placeholder:text-[#8C8474] ${
-                    errors.phone ? 'border-red-500 ring-2 ring-red-100' : 'border-[#D0C6B4] focus:border-[#2E6B39] focus:ring-2 focus:ring-[#2E6B39]/20'
+                  placeholder="0612345678"
+                  dir="ltr"
+                  className={`w-full px-4 py-3 rounded-xl border text-sm text-[#112616] bg-[#F7F4EC] focus:bg-white focus:outline-none transition-all placeholder:text-[#787163] ${
+                    errors.phone
+                      ? 'border-red-500 ring-2 ring-red-100'
+                      : 'border-[#E8E1D3] focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/15'
                   }`}
                 />
-                {errors.phone && <p className="text-red-600 text-xs font-semibold mt-1">{errors.phone}</p>}
+                {errors.phone && (
+                  <p className="text-red-600 text-xs font-black mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{errors.phone}</span>
+                  </p>
+                )}
               </div>
 
-              {/* Street */}
+              {/* الشارع */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-[#191816] mb-1.5">
+                <label className="block text-xs sm:text-sm font-black text-[#112616] mb-1.5">
                   الشارع / الزنقة / الحي <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
-                  placeholder="شارع الحسن الثاني، طريق إيموزار، النرجس..."
-                  className={`w-full px-4 py-3 rounded-xl border text-sm text-[#191816] bg-white focus:outline-none transition-all placeholder:text-[#8C8474] ${
-                    errors.street ? 'border-red-500 ring-2 ring-red-100' : 'border-[#D0C6B4] focus:border-[#2E6B39] focus:ring-2 focus:ring-[#2E6B39]/20'
+                  placeholder="شارع الحسن الثاني، طريق إيموزار..."
+                  className={`w-full px-4 py-3 rounded-xl border text-sm text-[#112616] bg-[#F7F4EC] focus:bg-white focus:outline-none transition-all placeholder:text-[#787163] ${
+                    errors.street
+                      ? 'border-red-500 ring-2 ring-red-100'
+                      : 'border-[#E8E1D3] focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/15'
                   }`}
                 />
-                {errors.street && <p className="text-red-600 text-xs font-semibold mt-1">{errors.street}</p>}
+                {errors.street && (
+                  <p className="text-red-600 text-xs font-black mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{errors.street}</span>
+                  </p>
+                )}
               </div>
 
-              {/* ─── زر تحديد الموقع الجغرافي (تصميم محسّن) ─── */}
-              <div className="pt-2">
+              {/* زر تحديد الموقع */}
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={handleGetLocation}
                   disabled={isLocating}
                   className={`w-full min-h-[52px] py-3 px-4 rounded-xl border-2 text-sm font-black flex items-center justify-center gap-2.5 transition-all cursor-pointer touch-manipulation select-none active:scale-[0.98] ${
                     locationCoords
-                      ? 'bg-emerald-50 text-emerald-900 border-emerald-500 shadow-md hover:bg-emerald-100'
-                      : 'bg-gradient-to-r from-[#C25E12] to-[#A34B07] text-white border-transparent shadow-md hover:shadow-lg hover:from-[#B5550D] hover:to-[#924205]'
+                      ? 'bg-emerald-50 text-emerald-900 border-emerald-500 shadow-md'
+                      : 'bg-gradient-to-l from-[#163920] to-[#0E2615] text-white border-[#0E2615] shadow-md hover:shadow-lg'
                   }`}
                 >
                   {isLocating ? (
                     <>
                       <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>جاري تحديد موقعك الجغرافي...</span>
+                      <span>جاري تحديد موقعك...</span>
                     </>
                   ) : locationCoords ? (
                     <>
                       <Check className="w-5 h-5 text-emerald-600 stroke-[2.5]" />
-                      <span>تم تحديد موقعك الحالي بدقة</span>
+                      <span>تم تحديد موقعك بدقة</span>
                     </>
                   ) : (
                     <>
-                      <LocateFixed className="w-5 h-5" />
-                      <span>حدد موقعك الحالي تلقائياً</span>
+                      <LocateFixed className="w-5 h-5 text-[#F5D76E]" />
+                      <span>حدد موقعك الحالي</span>
                     </>
                   )}
                 </button>
@@ -400,52 +479,53 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {locationError && (
                   <div className="mt-2.5 p-3 rounded-xl bg-amber-50 border border-amber-300 flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-                    <p className="text-xs text-amber-900 font-semibold">{locationError}</p>
+                    <p className="text-xs text-amber-900 font-bold">{locationError}</p>
                   </div>
                 )}
 
                 {currentMapsUrl && (
-                  <div className="mt-3">
-                    <a
-                      href={currentMapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full min-h-[46px] py-2.5 px-4 rounded-xl bg-white hover:bg-emerald-50 active:scale-[0.98] border-2 border-emerald-500 text-emerald-900 font-black text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer touch-manipulation select-none"
-                    >
-                      <span>معاينة الموقع على الخريطة</span>
-                      <ExternalLink className="w-4 h-4 text-emerald-700 shrink-0" />
-                    </a>
-                  </div>
+                  <a
+                    href={currentMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 w-full min-h-[46px] py-2.5 px-4 rounded-xl bg-white hover:bg-emerald-50 active:scale-[0.98] border-2 border-emerald-500 text-emerald-900 font-black text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                  >
+                    <span>معاينة على الخريطة</span>
+                    <ExternalLink className="w-4 h-4 text-emerald-700 shrink-0" />
+                  </a>
                 )}
               </div>
             </div>
           </div>
 
-          {/* وقت التسليم */}
-          <div className="bg-white border border-[#E0D8C8] rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-[#E8E1D1] mb-4">
+          {/* ═══════════════════════════════════════════════════
+              ─── وقت التسليم ───
+              ═══════════════════════════════════════════════════ */}
+          <div className="bg-white border border-[#E8E1D3] rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-[#F0E9DA] mb-4">
               <div className="w-8 h-8 rounded-lg bg-[#C25E12]/10 flex items-center justify-center">
                 <Clock className="w-4 h-4 text-[#C25E12]" />
               </div>
-              <h3 className="text-sm sm:text-base font-black text-[#1B3420]">
+              <h3 className="text-sm sm:text-base font-black text-[#112616]">
                 وقت التسليم المفضل
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {DELIVERY_SLOTS.map((slot) => {
-                const isPassed = slot.cutoffHour !== null && currentHour >= slot.cutoffHour;
+                const isPassed =
+                  slot.cutoffHour !== null && currentHour >= slot.cutoffHour;
                 const isSelected = deliverySlot === slot.id;
 
                 return (
                   <label
                     key={slot.id}
-                    className={`flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all touch-manipulation select-none ${
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
                       isPassed
                         ? 'opacity-40 bg-gray-100 border-gray-200 cursor-not-allowed'
                         : isSelected
-                        ? 'bg-emerald-50/70 border-[#2E6B39] ring-2 ring-[#2E6B39]/20 shadow-sm'
-                        : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3] active:scale-[0.99]'
+                        ? 'bg-emerald-50/70 border-[#163920] ring-2 ring-[#163920]/20 shadow-sm'
+                        : 'bg-white border-[#E8E1D3] hover:border-[#163920] hover:bg-[#F7F4EC] active:scale-[0.99]'
                     }`}
                   >
                     <input
@@ -455,10 +535,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       disabled={isPassed}
                       checked={isSelected}
                       onChange={() => setDeliverySlot(slot.id)}
-                      className="mt-1 accent-[#2E6B39] w-4 h-4 cursor-pointer"
+                      className="mt-1 accent-[#163920] w-4 h-4 cursor-pointer"
                     />
                     <div className="flex flex-col">
-                      <span className="text-sm font-black text-[#191816]">{slot.label}</span>
+                      <span className="text-sm font-black text-[#112616]">
+                        {slot.label}
+                      </span>
                       {isPassed && (
                         <span className="text-xs text-red-600 font-bold mt-0.5 flex items-center gap-1">
                           <AlertCircle className="w-3.5 h-3.5" />
@@ -470,31 +552,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 );
               })}
             </div>
+
             {errors.deliverySlot && (
-              <p className="text-red-600 text-xs font-semibold flex items-center gap-1 mt-2">
+              <p className="text-red-600 text-xs font-black flex items-center gap-1 mt-2">
                 <AlertCircle className="w-3.5 h-3.5" />
                 <span>{errors.deliverySlot}</span>
               </p>
             )}
           </div>
 
-          {/* طريقة الدفع */}
-          <div className="bg-white border border-[#E0D8C8] rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-[#E8E1D1] mb-4">
+          {/* ═══════════════════════════════════════════════════
+              ─── طريقة الدفع ───
+              ═══════════════════════════════════════════════════ */}
+          <div className="bg-white border border-[#E8E1D3] rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-[#F0E9DA] mb-4">
               <div className="w-8 h-8 rounded-lg bg-[#C25E12]/10 flex items-center justify-center">
                 <CreditCard className="w-4 h-4 text-[#C25E12]" />
               </div>
-              <h3 className="text-sm sm:text-base font-black text-[#1B3420]">
+              <h3 className="text-sm sm:text-base font-black text-[#112616]">
                 طريقة الدفع
               </h3>
             </div>
 
+            {/* اختيار طريقة الدفع */}
             <div className="grid grid-cols-2 gap-3">
               <label
-                className={`flex items-center gap-3 p-4 min-h-[52px] rounded-xl border-2 cursor-pointer transition-all touch-manipulation select-none ${
+                className={`flex items-center gap-3 p-4 min-h-[56px] rounded-xl border-2 cursor-pointer transition-all ${
                   paymentMethod === 'cod'
-                    ? 'bg-emerald-50/70 border-[#2E6B39] ring-2 ring-[#2E6B39]/20 shadow-sm'
-                    : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3] active:scale-[0.99]'
+                    ? 'bg-emerald-50/70 border-[#163920] ring-2 ring-[#163920]/20 shadow-sm'
+                    : 'bg-white border-[#E8E1D3] hover:border-[#163920] hover:bg-[#F7F4EC] active:scale-[0.99]'
                 }`}
               >
                 <input
@@ -503,19 +589,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   value="cod"
                   checked={paymentMethod === 'cod'}
                   onChange={() => setPaymentMethod('cod')}
-                  className="accent-[#2E6B39] w-4 h-4 cursor-pointer"
+                  className="accent-[#163920] w-4 h-4 cursor-pointer"
                 />
-                <div className="flex items-center gap-2">
-                  <Banknote className="w-5 h-5 text-[#2E6B39]" />
-                  <span className="text-sm font-black text-[#191816]">الدفع عند الاستلام</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Banknote className="w-5 h-5 text-[#163920] shrink-0" />
+                  <span className="text-xs sm:text-sm font-black text-[#112616] truncate">
+                    الدفع عند الاستلام
+                  </span>
                 </div>
               </label>
 
               <label
-                className={`flex items-center gap-3 p-4 min-h-[52px] rounded-xl border-2 cursor-pointer transition-all touch-manipulation select-none ${
+                className={`flex items-center gap-3 p-4 min-h-[56px] rounded-xl border-2 cursor-pointer transition-all ${
                   paymentMethod === 'bank'
-                    ? 'bg-emerald-50/70 border-[#2E6B39] ring-2 ring-[#2E6B39]/20 shadow-sm'
-                    : 'bg-white border-[#D0C6B4] hover:border-[#2E6B39] hover:bg-[#FAF8F3] active:scale-[0.99]'
+                    ? 'bg-emerald-50/70 border-[#163920] ring-2 ring-[#163920]/20 shadow-sm'
+                    : 'bg-white border-[#E8E1D3] hover:border-[#163920] hover:bg-[#F7F4EC] active:scale-[0.99]'
                 }`}
               >
                 <input
@@ -524,74 +612,99 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   value="bank"
                   checked={paymentMethod === 'bank'}
                   onChange={() => setPaymentMethod('bank')}
-                  className="accent-[#2E6B39] w-4 h-4 cursor-pointer"
+                  className="accent-[#163920] w-4 h-4 cursor-pointer"
                 />
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-[#C25E12]" />
-                  <span className="text-sm font-black text-[#191816]">تحويل بنكي</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Building2 className="w-5 h-5 text-[#C25E12] shrink-0" />
+                  <span className="text-xs sm:text-sm font-black text-[#112616] truncate">
+                    تحويل بنكي
+                  </span>
                 </div>
               </label>
             </div>
 
-            {/* Bank Transfer Panel */}
+            {/* ═══════════════════════════════════════════════════
+                ─── قسم التحويل البنكي (محسّن بالكامل) ───
+                ═══════════════════════════════════════════════════ */}
             {paymentMethod === 'bank' && (
-              <div className="mt-4 bg-[#FAF8F3] border border-[#DCD4C4] rounded-2xl p-4 space-y-4 shadow-sm animate-in fade-in duration-200">
-                <div className="text-sm font-black text-[#1B3420] flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-[#C25E12]" />
-                  <span>اختر الحساب المناسب للتحويل:</span>
-                </div>
+              <div className="mt-4 bg-gradient-to-br from-[#F7F4EC] to-white border-2 border-[#E8E1D3] rounded-2xl p-4 sm:p-5 space-y-5 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
 
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                  {MOROCCAN_BANKS.map((b) => {
-                    const cleanLabel = (b.shortName || b.name)
-                      .replace(/(البريد|بريد|التجاري|البنك|بنك|القرض|كاش)/gi, '')
-                      .replace(/[()\-–—]/g, '')
-                      .trim();
-                    const isSelected = selectedBankId === b.id;
+                {/* ─── 1. اختيار البنك ─── */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-7 h-7 rounded-lg bg-[#C25E12] flex items-center justify-center shrink-0">
+                      <Building2 className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="text-sm font-black text-[#112616]">
+                      اختر البنك للتحويل
+                    </span>
+                  </div>
 
-                    return (
-                      <button
-                        key={b.id}
-                        type="button"
-                        onClick={() => setSelectedBankId(b.id)}
-                        className={`p-2 min-h-[52px] rounded-xl border-2 flex flex-col items-center justify-center text-center transition-all cursor-pointer relative touch-manipulation select-none active:scale-95 ${
-                          isSelected
-                            ? 'border-[#C25E12] ring-2 ring-[#C25E12]/25 shadow-sm bg-amber-50'
-                            : 'border-[#D0C6B4] hover:border-[#C25E12]/60 hover:bg-white active:bg-white bg-white text-[#191816]'
-                        }`}
-                      >
-                        <div className="w-full h-8 flex items-center justify-center mb-1">
-                          {b.image ? (
-                            <img
-                              src={b.image}
-                              alt={cleanLabel}
-                              className="max-h-7 max-w-[50px] object-contain"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <span className="text-xl">{b.icon}</span>
+                  {/* شبكة البنوك: عمودان على الهاتف، 3 على التابلت، 6 على سطح المكتب */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                    {MOROCCAN_BANKS.map((b) => {
+                      const cleanLabel = (b.shortName || b.name)
+                        .replace(/(البريد|بريد|التجاري|البنك|بنك|القرض|كاش)/gi, '')
+                        .replace(/[()\-–—]/g, '')
+                        .trim();
+                      const isSelected = selectedBankId === b.id;
+
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => setSelectedBankId(b.id)}
+                          className={`relative p-3 min-h-[80px] rounded-xl border-2 flex flex-col items-center justify-center text-center transition-all cursor-pointer active:scale-95 ${
+                            isSelected
+                              ? 'border-[#C25E12] ring-2 ring-[#C25E12]/25 shadow-md bg-amber-50'
+                              : 'border-[#E8E1D3] hover:border-[#C25E12]/60 hover:bg-white bg-white'
+                          }`}
+                        >
+                          {/* شارة الاختيار */}
+                          {isSelected && (
+                            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#C25E12] text-white flex items-center justify-center border-2 border-white shadow-sm">
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            </span>
                           )}
-                        </div>
-                        <span className="text-xs font-black truncate max-w-full text-[#191816]">
-                          {cleanLabel}
-                        </span>
-                      </button>
-                    );
-                  })}
+
+                          <div className="w-full h-9 flex items-center justify-center mb-1.5">
+                            {b.image ? (
+                              <img
+                                src={b.image}
+                                alt={cleanLabel}
+                                className="max-h-8 max-w-[60px] object-contain"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span className="text-2xl">{b.icon}</span>
+                            )}
+                          </div>
+                          <span className="text-[11px] font-black truncate max-w-full text-[#112616] leading-tight">
+                            {cleanLabel}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="bg-white border border-[#DCD4C4] rounded-xl p-4 space-y-3 shadow-sm">
-                  <div className="flex justify-between items-center pb-2 border-b border-[#E8E1D1]">
-                    <span className="text-sm text-[#524B3E] font-bold">الحساب المعتمد:</span>
-                    <div className="flex items-center gap-2">
+                {/* ─── 2. تفاصيل الحساب ─── */}
+                <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl p-4 space-y-3.5 shadow-sm">
+
+                  {/* الحساب المعتمد */}
+                  <div className="flex items-center justify-between gap-2 pb-3 border-b border-[#F0E9DA]">
+                    <span className="text-xs font-black text-[#787163]">
+                      الحساب المعتمد
+                    </span>
+                    <div className="flex items-center gap-2 min-w-0">
                       {currentBank.image && (
                         <img
                           src={currentBank.image}
                           alt="Bank"
-                          className="h-6 w-auto max-w-[55px] object-contain"
+                          className="h-6 w-auto max-w-[55px] object-contain shrink-0"
                         />
                       )}
-                      <span className="font-black text-sm text-[#1B3420]">
+                      <span className="font-black text-sm text-[#112616] truncate">
                         {(currentBank.shortName || currentBank.name)
                           .replace(/(البريد|بريد|التجاري|البنك|بنك|القرض|كاش)/gi, '')
                           .replace(/[()\-–—]/g, '')
@@ -600,23 +713,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center pb-2 border-b border-[#E8E1D1]">
-                    <span className="text-sm text-[#524B3E] font-bold">اسم المستلم:</span>
-                    <span className="font-black text-sm text-[#2E6B39]">{currentBank.beneficiary}</span>
+                  {/* اسم المستلم */}
+                  <div className="flex items-center justify-between gap-2 pb-3 border-b border-[#F0E9DA]">
+                    <span className="text-xs font-black text-[#787163]">
+                      اسم المستلم
+                    </span>
+                    <span className="font-black text-sm text-[#163920] truncate">
+                      {currentBank.beneficiary}
+                    </span>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-[#524B3E] font-bold">رقم الحساب (RIB):</span>
+                  {/* RIB */}
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-xs font-black text-[#787163]">
+                        رقم الحساب (RIB)
+                      </span>
                       <button
                         type="button"
                         onClick={() => handleCopyRib(currentBank.rib)}
-                        className="inline-flex items-center gap-1.5 text-xs font-black text-[#C25E12] hover:text-[#A34B07] active:scale-90 bg-white px-3 py-1.5 min-h-[38px] rounded-lg border border-[#D0C6B4] transition-all cursor-pointer shadow-sm touch-manipulation select-none"
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-black px-3 py-1.5 min-h-[34px] rounded-lg border transition-all cursor-pointer active:scale-95 ${
+                          copiedRib
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                            : 'bg-[#C25E12] hover:bg-[#A34B07] text-white border-[#C25E12]'
+                        }`}
                       >
                         {copiedRib ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-emerald-700">تم النسخ ✓</span>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>تم النسخ</span>
                           </>
                         ) : (
                           <>
@@ -626,22 +751,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         )}
                       </button>
                     </div>
-                    <div className="p-3 rounded-lg bg-[#FAF8F3] font-mono text-center font-bold text-[#191816] tracking-wider text-sm select-all border border-[#D0C6B4]">
-                      {currentBank.rib}
+
+                    {/* حقل RIB بارز */}
+                    <div className="p-3.5 rounded-xl bg-[#F7F4EC] border-2 border-dashed border-[#D4C8B5] text-center">
+                      <code className="font-mono font-black text-[#112616] tracking-[0.15em] text-sm sm:text-base select-all block break-all">
+                        {currentBank.rib}
+                      </code>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-[#191816] flex items-center gap-1.5">
-                    <Upload className="w-4 h-4 text-[#C25E12]" />
-                    <span>إرفاق وصل التحويل البنكي</span>
-                    <span className="text-red-500">*</span>
-                  </label>
+                {/* ─── 3. رفع الوصل ─── */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-7 h-7 rounded-lg bg-[#C25E12] flex items-center justify-center shrink-0">
+                      <Upload className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="text-sm font-black text-[#112616]">
+                      إرفاق وصل التحويل
+                    </span>
+                    <span className="text-red-500 font-black">*</span>
+                  </div>
 
-                  <div className={`relative border-2 border-dashed rounded-xl p-5 text-center bg-white cursor-pointer transition-all group ${
-                    receiptFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-[#D0C6B4] hover:border-[#C25E12] hover:bg-[#FAF8F3]'
-                  }`}>
+                  <div
+                    className={`relative border-2 border-dashed rounded-2xl p-6 text-center bg-white cursor-pointer transition-all group ${
+                      receiptFile
+                        ? 'border-emerald-500 bg-emerald-50/30'
+                        : 'border-[#D4C8B5] hover:border-[#C25E12] hover:bg-[#F7F4EC]'
+                    }`}
+                  >
                     <input
                       type="file"
                       accept="image/*,.pdf"
@@ -650,43 +788,49 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     />
 
                     {receiptFile ? (
-                      <div className="flex items-center justify-center gap-4">
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         {receiptPreview ? (
                           <img
                             src={receiptPreview}
                             alt="Receipt Preview"
-                            className="w-16 h-16 object-cover rounded-lg border-2 border-emerald-300 shadow-sm"
+                            className="w-20 h-20 object-cover rounded-xl border-2 border-emerald-400 shadow-md shrink-0"
                           />
                         ) : (
-                          <div className="w-14 h-14 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm border-2 border-emerald-300">
+                          <div className="w-16 h-16 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-sm border-2 border-emerald-300 shrink-0">
                             PDF
                           </div>
                         )}
-                        <div className="text-right">
-                          <p className="text-sm font-black text-[#191816] truncate max-w-[200px]">
+                        <div className="text-center sm:text-right min-w-0">
+                          <p className="text-sm font-black text-[#112616] truncate max-w-[220px] mx-auto">
                             {receiptFile.name}
                           </p>
-                          <span className="text-xs text-[#736B58]">
+                          <span className="text-xs text-[#787163] font-bold">
                             {(receiptFile.size / 1024).toFixed(1)} KB
                           </span>
-                          <p className="text-xs text-emerald-700 font-extrabold mt-0.5">✓ تم رفع الملف</p>
+                          <p className="text-xs text-emerald-700 font-black mt-1 flex items-center justify-center sm:justify-start gap-1">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>تم رفع الملف بنجاح</span>
+                          </p>
                         </div>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center">
-                        <Upload className="w-8 h-8 text-[#C25E12] group-hover:scale-110 transition-transform mb-2" />
-                        <span className="text-sm font-black text-[#191816]">
-                          انقر هنا لاختيار صورة الوصل
+                        <div className="w-14 h-14 rounded-2xl bg-[#C25E12]/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                          <Upload className="w-6 h-6 text-[#C25E12]" />
+                        </div>
+                        <span className="text-sm font-black text-[#112616] mb-1">
+                          انقر لاختيار صورة الوصل
                         </span>
-                        <span className="text-xs text-[#736B58] mt-1 font-medium">
+                        <span className="text-xs text-[#787163] font-bold">
                           JPG, PNG, PDF (الحد الأقصى 5MB)
                         </span>
                       </div>
                     )}
                   </div>
+
                   {errors.receipt && (
-                    <p className="text-red-600 text-xs font-semibold flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" />
+                    <p className="text-red-600 text-xs font-black flex items-center gap-1.5 mt-2.5">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
                       <span>{errors.receipt}</span>
                     </p>
                   )}
@@ -695,32 +839,34 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             )}
           </div>
 
-          {/* زر التأكيد */}
-          <div className="pt-3 border-t border-[#E8E1D1] space-y-3">
+          {/* ═══════════════════════════════════════════════════
+              ─── زر التأكيد ───
+              ═══════════════════════════════════════════════════ */}
+          <div className="pt-3 border-t-2 border-[#F0E9DA] space-y-3">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full min-h-[52px] py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#C25E12] to-[#A34B07] hover:from-[#B5550D] hover:to-[#924205] text-white font-black text-base shadow-md hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer touch-manipulation select-none"
+              className="w-full min-h-[56px] py-4 px-4 rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-base shadow-lg hover:shadow-xl active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer border-2 border-[#0E2615]"
             >
               {isSubmitting ? (
                 <>
-                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span className="w-5 h-5 border-2 border-[#F5D76E] border-t-transparent rounded-full animate-spin" />
                   <span>جارٍ تسجيل الطلب...</span>
                 </>
               ) : (
                 <>
+                  <ShoppingBag className="w-5 h-5 text-[#F5D76E]" />
                   <span>تأكيد الطلب</span>
-                  <span className="text-amber-200">—</span>
-                  <span className="text-white font-black">
+                  <span className="px-3 py-1 rounded-xl bg-white/15 text-[#F5D76E] text-sm font-black tabular-nums">
                     {grandTotal.toFixed(2)} DH
                   </span>
                 </>
               )}
             </button>
 
-            <div className="flex items-center justify-center gap-2 text-center text-xs text-[#524B3E] font-medium">
-              <Shield className="w-4 h-4 text-[#2E6B39]" />
-              <span>بياناتك مشفرة ومحمية تستخدم فقط لإتمام التوصيل</span>
+            <div className="flex items-center justify-center gap-1.5 text-center text-[11px] text-[#787163] font-bold">
+              <Shield className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>بياناتك مشفرة ومحمية — تستخدم فقط لإتمام التوصيل</span>
             </div>
           </div>
 
