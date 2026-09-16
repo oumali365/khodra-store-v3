@@ -299,7 +299,7 @@ export const StoreCoverageMap: React.FC = () => {
             {/* ─── شارة "المركز الرئيسي" ─── */}
             <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-2 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full border border-[#E8E1D3] shadow-md">
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#163920] to-[#0E2615] flex items-center justify-center">
-                <span className="text-white text-xs">🌿</｜｜DSML｜｜ parameter>
+                <span className="text-white text-xs">🌿</span>
               </div>
               <span className="text-[11px] font-black text-[#112616]">
                 متجر خُضرة - فاس

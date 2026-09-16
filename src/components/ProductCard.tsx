@@ -151,13 +151,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <article
-      className={`relative bg-white rounded-[18px] p-3.5 border transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-[#C25E12] ${
+      className={`relative bg-white rounded-2xl p-2.5 sm:p-3 border transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-[#C25E12] ${
         isSoldOut ? 'opacity-70 border-stone-300' : 'border-[#D4C8B5]'
       }`}
     >
       {/* ─── شارة الحالة ─── */}
-      <div className="flex items-center w-full mb-2">
-        <span className={`text-xs font-extrabold px-3 py-1 rounded-full border shadow-xs ${badge.cls}`}>
+      <div className="flex items-center w-full mb-1 sm:mb-1.5">
+        <span className={`text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border shadow-2xs ${badge.cls}`}>
           {badge.text}
         </span>
       </div>
@@ -166,13 +166,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="flex flex-col items-center text-center">
         <div
           ref={imgContainerRef}
-          className="w-28 h-28 sm:w-32 sm:h-32 rounded-[18px] bg-[#F7F4EC] border border-[#DDD5C5] flex items-center justify-center text-5xl mb-2.5 shadow-xs hover:shadow-md transition-all duration-300 group-hover:scale-105 overflow-hidden"
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-[#F7F4EC] border border-[#DDD5C5] flex items-center justify-center text-4xl mb-1.5 shadow-2xs hover:shadow-sm transition-all duration-300 group-hover:scale-105 overflow-hidden"
         >
           {product.image_url ? (
             <img
               src={product.image_url}
               alt={product.name}
-              className="w-full h-full object-cover rounded-[18px]"
+              className="w-full h-full object-cover rounded-xl"
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
@@ -180,7 +180,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 if (parent) {
                   const icon = document.createElement('span');
                   icon.textContent = product.icon || '🛒';
-                  icon.className = 'text-5xl';
+                  icon.className = 'text-4xl';
                   parent.appendChild(icon);
                 }
               }}
@@ -190,45 +190,45 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        <h3 className="font-extrabold text-base sm:text-lg text-[#112616] line-clamp-1 mb-1">
+        <h3 className="font-extrabold text-sm sm:text-base text-[#112616] line-clamp-1 mb-0.5">
           {product.name}
         </h3>
 
         {product.origin && (
-          <span className="text-xs text-[#3E3A33] font-semibold mb-1">
+          <span className="text-[10px] sm:text-xs text-[#3E3A33] font-semibold mb-0.5">
             📍 {product.origin}
           </span>
         )}
 
         <div
           dir="ltr"
-          className="inline-flex items-baseline justify-center gap-1.5 text-xs sm:text-sm text-[#1A1814] font-semibold mt-0.5"
+          className="inline-flex items-baseline justify-center gap-1 text-xs text-[#1A1814] font-semibold mt-0.5"
         >
-          <span className="text-xl sm:text-2xl font-black text-[#B85507]">
+          <span className="text-lg sm:text-xl font-black text-[#B85507]">
             {product.price.toFixed(2)}
           </span>
-          <span className="text-sm sm:text-base font-extrabold text-[#B85507]">dh</span>
-          <span className="text-xs text-[#38332B] font-bold">
+          <span className="text-xs sm:text-sm font-extrabold text-[#B85507]">dh</span>
+          <span className="text-[11px] text-[#38332B] font-bold">
             / {isWeight ? 'kg' : product.unit_label || 'pièce'}
           </span>
         </div>
       </div>
 
-      {/* ─── عداد الكمية وزر الإضافة ─── */}
-      <div className="mt-2.5 pt-2.5 border-t border-[#E8E1D3]">
+      {/* ─── عداد الكمية وزر الإضافة بتصميم مضغوط ومتناسق ─── */}
+      <div className="mt-2 pt-2 border-t border-[#E8E1D3]">
         {!isSoldOut && (
-          <div className="flex items-center justify-between bg-[#F7F4EC] rounded-xl p-1.5 border border-[#D4C8B5] mb-2.5">
+          <div className="flex items-center justify-between bg-[#F7F4EC] rounded-lg p-1 border border-[#D4C8B5] mb-1.5">
             <button
               type="button"
               onClick={handleIncrement}
-              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
+              className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-2xs touch-manipulation select-none"
               aria-label="زيادة الكمية"
             >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
 
-            <div className="flex flex-col items-center leading-none select-none">
-              <span dir="ltr" className="text-sm font-extrabold text-[#112616]">
+            <div className="flex items-center justify-center leading-none select-none px-1">
+              <span dir="ltr" className="text-xs sm:text-sm font-black text-[#112616] tabular-nums">
                 {selectedQty} {isWeight ? 'kg' : ''}
               </span>
             </div>
@@ -236,10 +236,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               type="button"
               onClick={handleDecrement}
-              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-extrabold text-sm transition-all active:scale-90 cursor-pointer shadow-xs touch-manipulation select-none"
+              className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-2xs touch-manipulation select-none"
               aria-label="إنقاص الكمية"
             >
-              <Minus className="w-4 h-4 stroke-[2.5]" />
+              <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
           </div>
         )}
@@ -249,7 +249,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           type="button"
           disabled={isSoldOut}
           onClick={handleAdd}
-          className={`w-full h-11 min-h-[44px] px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
+          className={`w-full h-9 sm:h-10 min-h-[36px] sm:min-h-[40px] px-2.5 rounded-lg font-black text-xs sm:text-[13px] flex items-center justify-center gap-1.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
             isSoldOut
               ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed'
               : isJustAdded
@@ -263,20 +263,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <span>غير متوفر</span>
           ) : isJustAdded ? (
             <>
-              <Check className="w-4 h-4 text-[#F5D76E] animate-in zoom-in stroke-[2.5]" />
+              <Check className="w-3.5 h-3.5 text-[#F5D76E] animate-in zoom-in stroke-[2.5]" />
               <span>تمت الإضافة</span>
             </>
           ) : inCartQty > 0 ? (
             <>
-              <ShoppingBag className="w-4 h-4 text-white" />
+              <ShoppingBag className="w-3.5 h-3.5 text-white" />
               <span>أضف المزيد</span>
-              <span className="px-1.5 py-0.5 rounded-md bg-white/20 text-white text-[10px] font-black tabular-nums">
+              <span className="px-1.5 py-0.2 rounded bg-white/20 text-white text-[10px] font-black tabular-nums">
                 {inCartQty}
               </span>
             </>
           ) : (
             <>
-              <ShoppingBag className="w-4 h-4 text-[#F5D76E]" />
+              <ShoppingBag className="w-3.5 h-3.5 text-[#F5D76E]" />
               <span>أضف للسلة</span>
             </>
           )}

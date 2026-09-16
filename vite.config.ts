@@ -10,9 +10,10 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+      dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
-      include: ['leaflet'],
+      include: ['react', 'react-dom', 'motion/react', 'leaflet', 'canvas-confetti'],
     },
     server: {
       host: '0.0.0.0',

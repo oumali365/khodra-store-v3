@@ -1,8 +1,8 @@
 // ============================================================
-// الملف: TrustBadges.tsx – الإصدار 2.1
-// شارات الثقة – نصوص مختصرة ومحسّنة
+// الملف: TrustBadges.tsx – الإصدار 4.0
+// شارات الثقة – تصميم فائق النقاء والوضوح (أيقونة، عنوان، نص) مع مسافات مريحة
 // ============================================================
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Sprout,
   Truck,
@@ -10,135 +10,170 @@ import {
   HeartHandshake,
   Sparkles,
   Award,
-  Users,
-  Leaf,
 } from 'lucide-react';
 
 export const TrustBadges: React.FC = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
+
+  // ─── البطاقات الأربعة بمحتوى نقي: أيقونة، عنوان، نص ───
   const features = [
     {
-      icon: <Sprout className="w-6 h-6 sm:w-8 sm:h-8 text-[#163920]" />,
-      bgColor: 'bg-emerald-50',
-      borderColor: 'border-emerald-200',
+      id: 0,
+      icon: <Sprout className="w-8 h-8 sm:w-9 sm:h-9 text-[#163920]" />,
+      iconBg: 'bg-emerald-50 border-emerald-200/80',
       title: 'طراوة الحقول مباشرة',
-      desc: 'كنجيبو الخضر والفواكه يومياً من فلاحين مغاربة، بلا وسطاء، لضمان الطراوة والجودة.',
+      desc: 'كنجيبو الخضر والفواكه يومياً من فلاحين مغاربة، بلا وسطاء، لضمان الطراوة والجودة الطبيعية.',
     },
     {
-      icon: <Truck className="w-6 h-6 sm:w-8 sm:h-8 text-[#C25E12]" />,
-      bgColor: 'bg-amber-50',
-      borderColor: 'border-amber-200',
+      id: 1,
+      icon: <Truck className="w-8 h-8 sm:w-9 sm:h-9 text-[#C25E12]" />,
+      iconBg: 'bg-amber-50 border-amber-200/80',
       title: 'توصيل سريع وفي الموعد',
-      desc: 'طلبك كيوصلك نفس النهار، وفي الوقت اللي يناسبك، بدقة واحترافية لباب دارك.',
+      desc: 'طلبك كيوصلك نفس النهار، وفي الوقت اللي يناسبك، بدقة واحترافية عالية حتال باب دارك.',
     },
     {
-      icon: <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8 text-[#163920]" />,
-      bgColor: 'bg-emerald-50',
-      borderColor: 'border-emerald-200',
+      id: 2,
+      icon: <ShieldCheck className="w-8 h-8 sm:w-9 sm:h-9 text-[#163920]" />,
+      iconBg: 'bg-emerald-50 border-emerald-200/80',
       title: 'دفع براحة واطمئنان',
-      desc: 'ما كتخلص حتى كتوصلك السلعة وتشوفها بعينيك — عاد كتخلص نقداً أو بالتحويل البنكي.',
+      desc: 'ما كتخلص حتى كتوصلك السلعة وتشوفها بعينيك وترتاح — عاد كتخلص نقداً أو بالتحويل البنكي.',
     },
     {
-      icon: <HeartHandshake className="w-6 h-6 sm:w-8 sm:h-8 text-[#C25E12]" />,
-      bgColor: 'bg-amber-50',
-      borderColor: 'border-amber-200',
+      id: 3,
+      icon: <HeartHandshake className="w-8 h-8 sm:w-9 sm:h-9 text-[#C25E12]" />,
+      iconBg: 'bg-amber-50 border-amber-200/80',
       title: 'ضمان الرضا 100%',
-      desc: 'شي حاجة ما عجبتكش؟ كنبدلوها ليك أو كنرجعو ليك فلوسك فوراً — رضاك هو رأس مالنا.',
+      desc: 'شي حاجة ما عجبتكش؟ كنبدلوها ليك أو كنرجعو ليك فلوسك فوراً — رضاك وراحة بالك هو رأس مالنا.',
     },
   ];
 
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const container = scrollRef.current;
+    const cards = container.querySelectorAll('article');
+    const containerCenter = container.getBoundingClientRect().left + container.offsetWidth / 2;
+
+    let closestIdx = 0;
+    let minDiff = Infinity;
+
+    cards.forEach((card, idx) => {
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.left + cardRect.width / 2;
+      const diff = Math.abs(cardCenter - containerCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    });
+
+    setActiveCardIndex(closestIdx);
+  };
+
+  const scrollToIndex = (index: number) => {
+    if (!scrollRef.current) return;
+    const container = scrollRef.current;
+    const cards = container.querySelectorAll('article');
+    if (cards[index]) {
+      const card = cards[index] as HTMLElement;
+      const cardLeft = card.offsetLeft;
+      const cardWidth = card.offsetWidth;
+      const containerWidth = container.offsetWidth;
+      const scrollPosition = cardLeft - (containerWidth - cardWidth) / 2;
+
+      container.scrollTo({
+        left: scrollPosition,
+        behavior: 'smooth',
+      });
+      setActiveCardIndex(index);
+    }
+  };
+
   return (
-    <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-8 sm:my-14">
-      <div className="relative bg-white border border-[#E8E1D3] rounded-[24px] p-5 sm:p-8 shadow-sm overflow-hidden">
+    <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-16" aria-label="مميزات وثقة متجر خضرة">
+      {/* ─── الحفاظ على العنوان والوصف مع مسافات مريحة ─── */}
+      <div className="bg-white rounded-3xl border border-stone-200/90 shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-6 sm:p-8 text-center max-w-md sm:max-w-xl mx-auto mb-8 sm:mb-10 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#163920]/10 text-[#163920] font-black text-xs sm:text-sm mb-3">
+          <Sparkles className="w-4 h-4 text-[#C25E12]" />
+          <span>ضمانات وخدمة متجر خُضرة</span>
+          <Award className="w-3.5 h-3.5 text-[#163920]" />
+        </div>
 
-        {/* ─── زخارف خلفية ─── */}
-        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-[#F5D76E]/10 to-transparent rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#163920]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <h2 className="text-2xl sm:text-3xl font-black text-[#112616] tracking-tight mb-2.5">
+          علاش متجر خُضرة هو الخيار الأول للعائلات؟
+        </h2>
 
-        <div className="relative">
+        <p className="text-xs sm:text-sm text-[#524B3E] font-medium leading-relaxed">
+          مئات العائلات في فاس كيثقوا فينا كل نهار لتوفير طعام صحي وطازج لموائدهم
+        </p>
 
-          {/* ════════ الرأس ════════ */}
-          <div className="text-center mb-6 sm:mb-8">
-            {/* شارة علوية */}
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#163920]/8 border border-[#163920]/20 text-[#163920] text-[11px] sm:text-xs font-black mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-[#C25E12]" />
-              <span>لماذا خُضرة؟</span>
-              <Leaf className="w-3.5 h-3.5 text-[#163920]" />
-            </div>
+        <div className="flex sm:hidden items-center justify-center gap-1.5 mt-4 pt-3 border-t border-stone-100">
+          <span className="text-[11px] font-bold text-stone-500">مرر لاكتشاف جميع الميزات</span>
+          <span className="text-xs text-[#163920] font-black">←</span>
+        </div>
+      </div>
 
-            {/* العنوان */}
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#112616] mb-2 leading-tight">
-              علاش متجر خُضرة هو الخيار الأول للعائلات؟
-            </h2>
+      {/* ─── عرض يدوي أفقي بمسافات علوية وسفلية ومسافة بين البطاقات ─── */}
+      <div className="relative max-w-5xl mx-auto py-2">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex flex-row gap-4 sm:gap-6 overflow-x-auto py-5 px-[14vw] sm:px-12 md:px-6 snap-x snap-mandatory overscroll-x-contain scroll-smooth no-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {features.map((f, idx) => {
+            const isActive = activeCardIndex === idx;
 
-            {/* الوصف */}
-            <p className="text-xs sm:text-sm text-[#524B3E] max-w-2xl mx-auto font-medium leading-relaxed">
-              مئات العائلات في فاس كيثقوا فينا كل نهار لتوفير طعام صحي وطازج لموائدهم
-            </p>
-          </div>
-
-          {/* ════════ شبكة 2×2 ════════ */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 text-right">
-            {features.map((f, idx) => (
-              <div
-                key={idx}
-                className="relative bg-white border border-[#E8E1D3] rounded-2xl p-3.5 sm:p-5 shadow-sm hover:shadow-lg hover:border-[#C25E12]/40 hover:-translate-y-0.5 transition-all duration-300 flex flex-col items-center text-center group overflow-hidden"
+            return (
+              <article
+                key={f.id}
+                onClick={() => scrollToIndex(idx)}
+                className={`w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center snap-always bg-white rounded-3xl border border-stone-200/90 shadow-[0_6px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.11)] hover:-translate-y-1.5 transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[300px] sm:min-h-[320px] cursor-pointer group select-none ${
+                  isActive
+                    ? 'ring-2 ring-[#163920]/35 ring-offset-2 ring-offset-[#FAF8F4] scale-[1.02]'
+                    : 'opacity-90 hover:opacity-100 scale-[0.98]'
+                }`}
               >
-                {/* شريط علوي ملون */}
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#C25E12] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                {/* الأيقونة */}
+                {/* 1. الأيقونة: حجم أوضح وحاوية مريحة ومتوسطة */}
                 <div
-                  className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl ${f.bgColor} border-2 ${f.borderColor} flex items-center justify-center mb-3 shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm`}
+                  className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl ${f.iconBg} border flex items-center justify-center shadow-xs mb-5 transition-transform duration-300 group-hover:scale-110`}
                 >
                   {f.icon}
-
-                  {/* شارة رقم صغيرة */}
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#163920] text-[#F5D76E] text-[9px] font-black flex items-center justify-center border-2 border-white shadow-sm">
-                    {idx + 1}
-                  </span>
                 </div>
 
-                {/* العنوان */}
-                <h3 className="font-black text-xs sm:text-sm md:text-base text-[#112616] mb-1.5 leading-tight">
+                {/* 2. العنوان: واضح بخط عريض ومتناسق */}
+                <h3 className="text-base sm:text-lg font-black text-[#112616] leading-snug mb-3 text-center">
                   {f.title}
                 </h3>
 
-                {/* الوصف */}
-                <p className="text-[10px] sm:text-xs text-[#524B3E] leading-relaxed font-medium">
+                {/* 3. النص: قراءة واضحة ومسافة مريحة من الأعلى والأسفل */}
+                <p className="text-xs sm:text-[13px] text-[#524B3E] font-medium leading-relaxed text-center">
                   {f.desc}
                 </p>
-              </div>
-            ))}
-          </div>
+              </article>
+            );
+          })}
+        </div>
 
-          {/* ════════ شارات الثقة السفلية ════════ */}
-          <div className="mt-6 sm:mt-8 pt-5 border-t border-[#F0E9DA]">
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-
-              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black text-[#163920] bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 shadow-xs">
-                <Award className="w-3.5 h-3.5 text-emerald-700" />
-                <span>+500 عميل سعيد</span>
-              </span>
-
-              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black text-[#163920] bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 shadow-xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                <span>ضمان الجودة 100%</span>
-              </span>
-
-              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black text-[#C25E12] bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200 shadow-xs">
-                <Truck className="w-3.5 h-3.5 text-[#C25E12]" />
-                <span>توصيل نفس اليوم</span>
-              </span>
-
-              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black text-[#C25E12] bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200 shadow-xs">
-                <Users className="w-3.5 h-3.5 text-[#C25E12]" />
-                <span>عائلات فاس تثق بنا</span>
-              </span>
-
-            </div>
-          </div>
+        {/* ─── مؤشرات النقاط السفلية (Dots) ─── */}
+        <div className="flex items-center justify-center gap-2 mt-4 sm:mt-6">
+          {features.map((_, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => scrollToIndex(idx)}
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                activeCardIndex === idx
+                  ? 'w-7 bg-[#163920]'
+                  : 'w-2 bg-stone-300 hover:bg-stone-400'
+              }`}
+              aria-label={`الانتقال إلى الميزة ${idx + 1}`}
+            />
+          ))}
         </div>
       </div>
     </section>
   );
 };
+
+

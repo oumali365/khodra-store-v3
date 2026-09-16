@@ -3,7 +3,7 @@
 // يدمج CategoryHeader داخل CategoryFilter + onScrollToBundles
 // ============================================================
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, ChevronDown, Sparkles } from 'lucide-react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { CategoryFilter } from './components/CategoryFilter';
@@ -14,17 +14,11 @@ import { TrustBadges } from './components/TrustBadges';
 import { CustomerReviews } from './components/CustomerReviews';
 import { Footer } from './components/Footer';
 import { SortFilterModal, SortOption } from './components/SortFilterModal';
+import { CartDrawer } from './components/CartDrawer';
+import { CheckoutModal } from './components/CheckoutModal';
+import { ConfirmationModal } from './components/ConfirmationModal';
 
-// ─── تحميل مؤجل للنوافذ والصفحات ───
-const CartDrawer = React.lazy(() =>
-  import('./components/CartDrawer').then((module) => ({ default: module.CartDrawer }))
-);
-const CheckoutModal = React.lazy(() =>
-  import('./components/CheckoutModal').then((module) => ({ default: module.CheckoutModal }))
-);
-const ConfirmationModal = React.lazy(() =>
-  import('./components/ConfirmationModal').then((module) => ({ default: module.ConfirmationModal }))
-);
+// ─── تحميل مؤجل للصفحات الإضافية والخريطة ───
 const InfoPages = React.lazy(() =>
   import('./components/InfoPages').then((module) => ({ default: module.InfoPages }))
 );
@@ -104,6 +98,15 @@ export default function App() {
   // ─── Sorting and in-stock filter ───
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [onlyInStock, setOnlyInStock] = useState<boolean>(false);
+
+  // ─── Products pagination (8 products default) ───
+  const INITIAL_VISIBLE_COUNT = 8;
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE_COUNT);
+
+  // Reset pagination when category, search, or filters change
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }, [selectedCategory, searchQuery, sortBy, onlyInStock]);
 
   // ─── Modals & Drawers ───
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -297,7 +300,15 @@ export default function App() {
     }
   };
 
-  // ─── Scroll to catalog ───
+  // ─── Scroll to catalog & category filter ───
+  const categoryFilterRef = useRef<HTMLDivElement>(null);
+
+  const scrollToCategoryFilter = () => {
+    if (categoryFilterRef.current) {
+      categoryFilterRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const scrollToCatalog = () => {
     if (catalogSectionRef.current) {
       catalogSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -315,12 +326,17 @@ export default function App() {
   };
 
   // ─── Category selection ───
-  const handleSelectCategory = (cat: ProductCategory) => {
+  const handleSelectCategory = (cat: ProductCategory, fromCategoryFilter = false) => {
     if (isMenuOpen) setIsMenuOpen(false);
     if (searchQuery.trim().length > 0) setSearchQuery('');
     setSelectedCategory(cat);
     if (activeInfoPage) setActiveInfoPage(null);
-    setTimeout(() => scrollToCatalog(), 100);
+
+    // عند اختيار فئة من شريط الفئات نفسه، لا نقفز إلى بطاقات المنتجات
+    // بل تتم معاينة شريط الفئات والوصف المحدّث في مكانه
+    if (!fromCategoryFilter) {
+      setTimeout(() => scrollToCategoryFilter(), 100);
+    }
   };
 
   // ─── Open info page ───
@@ -347,6 +363,11 @@ export default function App() {
 
     return list;
   }, [products, selectedCategory, searchQuery, onlyInStock, sortBy]);
+
+  // ─── Products to display based on pagination limit (8 products default) ───
+  const displayedProducts = useMemo(() => {
+    return filteredProducts.slice(0, visibleCount);
+  }, [filteredProducts, visibleCount]);
 
   // ─── Active category info ───
   const activeCategoryInfo = useMemo(() => {
@@ -382,7 +403,7 @@ export default function App() {
         onSearchChange={handleSearchChange}
         onSearchSubmit={handleSearchSubmit}
         selectedCategory={selectedCategory}
-        onSelectCategory={handleSelectCategory}
+        onSelectCategory={(cat) => handleSelectCategory(cat, false)}
         onOpenPage={handleOpenPage}
         isMenuOpen={isMenuOpen}
         onToggleMenu={handleToggleMenu}
@@ -400,27 +421,29 @@ export default function App() {
           <>
             {/* ─── Hero ─── */}
             <Hero
-              onSelectCategory={handleSelectCategory}
-              onScrollToCatalog={scrollToCatalog}
+              onSelectCategory={(cat) => handleSelectCategory(cat, false)}
+              onScrollToCatalog={scrollToCategoryFilter}
               onScrollToBundles={scrollToBundles}
             />
 
-            {/* ─── Category Filter (مدمج مع الوصف) ─── */}
-            <CategoryFilter
-              selectedCategory={selectedCategory}
-              onSelectCategory={handleSelectCategory}
-              products={products}
-              categoryInfo={activeCategoryInfo}
-              sortBy={sortBy}
-              onlyInStock={onlyInStock}
-              onOpenSort={() => setIsSortModalOpen(true)}
-              searchQuery={searchQuery}
-              onClearSearch={() => {
-                setSearchQuery('');
-                setSelectedCategory('veg');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            />
+            {/* ─── Category Filter (مدمج مع الوصف المحسّن وزر التصفية بالأيقونة الخضراء) ─── */}
+            <div ref={categoryFilterRef} id="category-filter-section" className="scroll-mt-20">
+              <CategoryFilter
+                selectedCategory={selectedCategory}
+                onSelectCategory={(cat) => handleSelectCategory(cat, true)}
+                products={products}
+                categoryInfo={activeCategoryInfo}
+                sortBy={sortBy}
+                onlyInStock={onlyInStock}
+                onOpenSort={() => setIsSortModalOpen(true)}
+                searchQuery={searchQuery}
+                onClearSearch={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('veg');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            </div>
 
             {/* ═══════ Products Grid Section ═══════ */}
             <section
@@ -469,19 +492,38 @@ export default function App() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {filteredProducts.map((product) => {
-                    const cartItem = cart.find((c) => c.id === product.id);
-                    return (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        inCartQty={cartItem ? cartItem.qty : 0}
-                        onAddToCart={handleAddToCart}
-                      />
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {displayedProducts.map((product) => {
+                      const cartItem = cart.find((c) => c.id === product.id);
+                      return (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          inCartQty={cartItem ? cartItem.qty : 0}
+                          onAddToCart={handleAddToCart}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* ─── زر عرض المزيد لتجنب التمرير الطويل ─── */}
+                  {filteredProducts.length > INITIAL_VISIBLE_COUNT && visibleCount < filteredProducts.length && (
+                    <div className="mt-6 flex items-center justify-center">
+                      <button
+                        type="button"
+                        id="load-more-products-btn"
+                        onClick={() => setVisibleCount((prev) => prev + 8)}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#1E4D2B] hover:to-[#12331C] text-[#F5D76E] font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all transform active:scale-95 cursor-pointer border border-[#F5D76E]/25 group"
+                        title="عرض المزيد من المنتجات"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-[#F5D76E]/80 transition-transform group-hover:scale-110" />
+                        <span>عرض المزيد</span>
+                        <ChevronDown className="w-4 h-4 text-[#F5D76E] transition-transform duration-300 group-hover:translate-y-0.5" />
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
 

@@ -3,7 +3,6 @@
 // درج السلة – تصميم محسّن، أنيق، ومتناسق مع المتجر
 // ============================================================
 import React from 'react';
-import { AnimatePresence } from 'motion/react';
 import {
   X, Trash2, ArrowLeft, Sparkles, ShoppingBag, Truck, Package,
   ShieldCheck, Gift, Percent,
@@ -247,7 +246,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
 
               {/* قائمة المنتجات القابلة للسحب */}
-              <AnimatePresence initial={false} mode="popLayout">
+              <div className="space-y-2.5">
                 {items.map((item) => (
                   <SwipeableCartItem
                     key={item.key}
@@ -256,7 +255,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     onRemoveItem={onRemoveItem}
                   />
                 ))}
-              </AnimatePresence>
+              </div>
 
               {/* تلميح السحب */}
               <div className="pt-1 pb-2 text-center">

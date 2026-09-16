@@ -14,8 +14,8 @@ export const STORE_CONFIG = {
   weightMax: 10,
   cacheKey: 'khodra_cart_v2',
   adminPin: '1234',
-  supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://ywoxhwvxsuowaiqbtqdr.supabase.co',
-  supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b3hod3Z4c3Vvd2FpcWJ0cWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1MDEzMjQsImV4cCI6MjEwMzA3NzMyNH0.Eit183FqRg-XcTobm_pccJpCf9A6bvEjTq2woJdvG-Y',
+  supabaseUrl: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || 'https://ywoxhwvxsuowaiqbtqdr.supabase.co',
+  supabaseAnonKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3b3hod3Z4c3Vvd2FpcWJ0cWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1MDEzMjQsImV4cCI6MjEwMzA3NzMyNH0.Eit183FqRg-XcTobm_pccJpCf9A6bvEjTq2woJdvG-Y',
 };
 
 export const MOROCCAN_BANKS: BankAccount[] = [

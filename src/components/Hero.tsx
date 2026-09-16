@@ -18,8 +18,7 @@ import { ProductCategory } from '../types';
 
 import heroBg1 from '../assets/images/fresh_vegetables_basket_1788941771901.jpg';
 import heroBg2 from '../assets/images/fresh_fruits_harvest_1788941788583.jpg';
-// ⚠️ استبدل هذا بـ صورة حقيقية للصناديق لاحقاً
-import heroBg3 from '../assets/images/family_large_bundle.jpg';
+import heroBg3 from '../assets/images/organic_farm_produce_1788941803206.jpg';
 
 interface HeroProps {
   onSelectCategory: (cat: ProductCategory) => void;
