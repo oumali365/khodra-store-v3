@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: TrustBadges.tsx – الإصدار 2.0
-// شارات الثقة – تصميم متناسق مع المتجر
+// الملف: TrustBadges.tsx – الإصدار 2.1
+// شارات الثقة – نصوص مختصرة ومحسّنة
 // ============================================================
 import React from 'react';
 import {
@@ -21,28 +21,28 @@ export const TrustBadges: React.FC = () => {
       bgColor: 'bg-emerald-50',
       borderColor: 'border-emerald-200',
       title: 'طراوة الحقول مباشرة',
-      desc: 'كنجيبو الخضر والفواكه يومياً من الفلاحين المغاربة مباشرة، بلا وسطاء، لضمان الطراوة والجودة اللي تستحق.',
+      desc: 'كنجيبو الخضر والفواكه يومياً من فلاحين مغاربة، بلا وسطاء، لضمان الطراوة والجودة.',
     },
     {
       icon: <Truck className="w-6 h-6 sm:w-8 sm:h-8 text-[#C25E12]" />,
       bgColor: 'bg-amber-50',
       borderColor: 'border-amber-200',
       title: 'توصيل سريع وفي الموعد',
-      desc: 'طلبك كيوصلك نفس النهار وفي الفترة الزمنية المناسبة ليك بكل دقة واحترافية لباب دارك.',
+      desc: 'طلبك كيوصلك نفس النهار، وفي الوقت اللي يناسبك، بدقة واحترافية لباب دارك.',
     },
     {
       icon: <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8 text-[#163920]" />,
       bgColor: 'bg-emerald-50',
       borderColor: 'border-emerald-200',
       title: 'دفع براحة واطمئنان',
-      desc: 'ما كتخلص حتى كتوصلك السلعة وتشوفها بعينيك وتتأكد من الجودة — عاد كتخلص نقداً أو بتحويل بنكي.',
+      desc: 'ما كتخلص حتى كتوصلك السلعة وتشوفها بعينيك — عاد كتخلص نقداً أو بالتحويل البنكي.',
     },
     {
       icon: <HeartHandshake className="w-6 h-6 sm:w-8 sm:h-8 text-[#C25E12]" />,
       bgColor: 'bg-amber-50',
       borderColor: 'border-amber-200',
       title: 'ضمان الرضا 100%',
-      desc: 'شي حاجة ما عجبتكش؟ كنبدلوها ليك أو كنرجعو ليك فلوسها فالحين — رضاك هو رأس مالنا.',
+      desc: 'شي حاجة ما عجبتكش؟ كنبدلوها ليك أو كنرجعو ليك فلوسك فوراً — رضاك هو رأس مالنا.',
     },
   ];
 
@@ -72,7 +72,7 @@ export const TrustBadges: React.FC = () => {
 
             {/* الوصف */}
             <p className="text-xs sm:text-sm text-[#524B3E] max-w-2xl mx-auto font-medium leading-relaxed">
-              مئات الزبناء الأوفياء في فاس كيثقوا فينا كل نهار لتوفير طعام صحي وطازج لموائدهم
+              مئات العائلات في فاس كيثقوا فينا كل نهار لتوفير طعام صحي وطازج لموائدهم
             </p>
           </div>
 
@@ -84,7 +84,7 @@ export const TrustBadges: React.FC = () => {
                 className="relative bg-white border border-[#E8E1D3] rounded-2xl p-3.5 sm:p-5 shadow-sm hover:shadow-lg hover:border-[#C25E12]/40 hover:-translate-y-0.5 transition-all duration-300 flex flex-col items-center text-center group overflow-hidden"
               >
                 {/* شريط علوي ملون */}
-                <div className={`absolute top-0 inset-x-0 h-1 ${f.bgColor.replace('bg-', 'bg-gradient-to-r from-')} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#C25E12] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 {/* الأيقونة */}
                 <div
@@ -92,7 +92,7 @@ export const TrustBadges: React.FC = () => {
                 >
                   {f.icon}
 
-                  {/* شارة رقم صغيرة (اختيارية) */}
+                  {/* شارة رقم صغيرة */}
                   <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#163920] text-[#F5D76E] text-[9px] font-black flex items-center justify-center border-2 border-white shadow-sm">
                     {idx + 1}
                   </span>
