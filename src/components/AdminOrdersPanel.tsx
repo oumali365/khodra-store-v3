@@ -1,14 +1,13 @@
 // ============================================================
-// AdminOrdersPanel.tsx – نافذة إدارة الطلبات للمدير
-// الميزات: شارة حمراء + نسخ + حذف + طباعة فاتورة + تنبيهات
-// التصميم: أزرار منظّمة + زر حذف في صف الحالة (بدل "ملغى")
+// AdminOrdersPanel.tsx – الإصدار 2.0
+// نافذة إدارة الطلبات – تصميم متناسق مع المتجر
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, Package, Clock, CheckCircle2, XCircle, Search, Loader2,
   Phone, MapPin, MessageCircle, RefreshCw, ShoppingBag, ExternalLink,
   User, TrendingUp, Calendar, AlertCircle, Inbox, Copy, Trash2, Check,
-  Printer,
+  Printer, Sparkles, ShieldCheck, Percent,
 } from 'lucide-react';
 import {
   fetchOrders,
@@ -67,11 +66,7 @@ const STATUS_CONFIG: Record<OrderStatus, {
   },
 };
 
-// ─── كل الحالات (لصف الإحصائيات والفرز) ───
 const STATUS_ORDER: OrderStatus[] = ['pending', 'prepared', 'delivered', 'cancelled'];
-
-// ─── الحالات القابلة للتغيير داخل بطاقة الطلب (بدون "ملغى") ───
-// السبب: زر "الحذف" يحل مكان "ملغى" لأن الإلغاء = حذف
 const STATUS_ORDER_CHANGEABLE: OrderStatus[] = ['pending', 'prepared', 'delivered'];
 
 function toWhatsApp(phone: string): string {
@@ -159,8 +154,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
   const [copiedId, setCopiedId] = useState<string | number | null>(null);
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<DbOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // ─── حالة نافذة الفاتورة ───
   const [invoiceOrder, setInvoiceOrder] = useState<DbOrder | null>(null);
 
   useEffect(() => {
@@ -293,27 +286,39 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
       <div className="fixed inset-0 z-[70] flex items-start sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-        <div className="relative bg-[#FAF8F4] w-full sm:max-w-4xl shadow-2xl z-10 sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[92vh] overflow-hidden text-right">
+        <div className="relative bg-[#FBF9F5] w-full sm:max-w-4xl shadow-2xl z-10 sm:rounded-[28px] flex flex-col max-h-screen sm:max-h-[92vh] overflow-hidden text-right border border-[#E8E1D3]">
 
           {/* ═══════════ Header ═══════════ */}
-          <div className="p-4 sm:p-5 bg-gradient-to-l from-[#1E4327] to-[#2E5336] text-white flex items-center justify-between shrink-0 shadow-md">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center">
+          <div className="relative p-4 sm:p-5 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shrink-0 shadow-md overflow-hidden">
+            {/* زخرفة خلفية */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,215,110,0.15),transparent_60%)] pointer-events-none" />
+
+            <div className="relative flex items-center gap-3 min-w-0">
+              <div className="relative w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0">
                 <ShoppingBag className="w-5 h-5 text-[#F5D76E]" />
+                {stats.pending > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-[#0E2615] shadow-md animate-pulse">
+                    {stats.pending > 99 ? '99+' : stats.pending}
+                  </span>
+                )}
               </div>
-              <div>
-                <h2 className="font-black text-base sm:text-lg">إدارة الطلبات</h2>
-                <p className="text-[11px] sm:text-xs text-emerald-100/90 font-medium">
-                  {orders.length} طلب مسجل على المتجر
+              <div className="min-w-0">
+                <h2 className="font-black text-base sm:text-lg flex items-center gap-2">
+                  <span>إدارة الطلبات</span>
+                  <Sparkles className="w-4 h-4 text-[#F5D76E]" />
+                </h2>
+                <p className="text-[11px] sm:text-xs text-emerald-100/90 font-bold">
+                  {orders.length} طلب مسجل • {stats.pending} قيد الإنشاء
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="relative flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
+                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 border border-white/15"
                 title="تحديث"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -321,7 +326,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
               <button
                 type="button"
                 onClick={onClose}
-                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer border border-white/15"
                 aria-label="إغلاق"
               >
                 <X className="w-5 h-5" />
@@ -331,15 +336,21 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
 
           {/* ═══════════ Toast ═══════════ */}
           {toast && (
-            <div className={`px-4 py-2.5 text-xs font-bold flex items-center gap-2 ${
-              toast.type === 'success' ? 'bg-emerald-100 text-emerald-900 border-b border-emerald-300' : 'bg-red-100 text-red-900 border-b border-red-300'
+            <div className={`px-4 py-3 text-xs font-black flex items-center gap-2.5 ${
+              toast.type === 'success'
+                ? 'bg-emerald-50 text-emerald-900 border-b-2 border-emerald-200'
+                : 'bg-red-50 text-red-900 border-b-2 border-red-200'
             }`}>
-              {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0" />
+              )}
               <span>{toast.message}</span>
             </div>
           )}
 
-          {/* ═══════════ Stats Row (4 بطاقات للفرز) ═══════════ */}
+          {/* ═══════════ Stats Row ═══════════ */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 sm:p-4 bg-white border-b border-[#E8E1D3]">
             {STATUS_ORDER.map((s) => {
               const cfg = STATUS_CONFIG[s];
@@ -351,15 +362,15 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                   type="button"
                   onClick={() => setFilterStatus(isActive ? 'all' : s)}
                   className={`p-2.5 rounded-xl border-2 flex items-center gap-2 transition-all cursor-pointer active:scale-95 ${
-                    isActive ? `${cfg.buttonActive}` : 'bg-[#FAF8F4] border-[#E8E1D3] hover:border-[#D4C8B5]'
+                    isActive ? `${cfg.buttonActive}` : 'bg-[#F7F4EC] border-[#E8E1D3] hover:border-[#C25E12]/50 hover:bg-white'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? '' : 'text-stone-600'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? '' : 'text-[#524B3E]'}`} />
                   <div className="text-right flex-1 min-w-0">
-                    <div className={`text-[10px] sm:text-[11px] font-bold truncate ${isActive ? '' : 'text-stone-600'}`}>
+                    <div className={`text-[10px] sm:text-[11px] font-black truncate ${isActive ? '' : 'text-[#524B3E]'}`}>
                       {cfg.label}
                     </div>
-                    <div className={`text-base sm:text-lg font-black leading-none ${isActive ? '' : 'text-[#112616]'}`}>
+                    <div className={`text-base sm:text-lg font-black leading-none tabular-nums ${isActive ? '' : 'text-[#112616]'}`}>
                       {stats[s]}
                     </div>
                   </div>
@@ -369,23 +380,23 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
           </div>
 
           {/* ═══════════ Search ═══════════ */}
-          <div className="p-3 sm:p-4 bg-[#FAF8F4] border-b border-[#E8E1D3] flex items-center gap-2">
+          <div className="p-3 sm:p-4 bg-[#F7F4EC] border-b border-[#E8E1D3] flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#787163] pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث برقم الطلب، الاسم، الهاتف، أو العنوان..."
-                className="w-full pr-9 pl-3 py-2 rounded-xl border border-[#D4C8B5] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#1E4327] text-[#112616]"
+                className="w-full pr-9 pl-9 py-2.5 rounded-xl border border-[#E8E1D3] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/15 text-[#112616] transition-all"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center cursor-pointer"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] flex items-center justify-center cursor-pointer transition-colors"
                 >
-                  <X className="w-3 h-3 text-stone-600" />
+                  <X className="w-3 h-3 text-[#524B3E]" />
                 </button>
               )}
             </div>
@@ -394,10 +405,10 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
               <button
                 type="button"
                 onClick={() => setFilterStatus('all')}
-                className="px-3 py-2 rounded-xl bg-white border border-[#D4C8B5] text-xs font-bold text-stone-700 hover:bg-stone-50 cursor-pointer flex items-center gap-1 shrink-0"
+                className="px-3 py-2.5 rounded-xl bg-white border-2 border-[#E8E1D3] hover:border-[#C25E12] text-xs font-black text-[#524B3E] hover:text-[#C25E12] cursor-pointer flex items-center gap-1 shrink-0 transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
-                <span>مسح الفلتر</span>
+                <span>مسح</span>
               </button>
             )}
           </div>
@@ -406,18 +417,18 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
             {isLoading ? (
               <div className="py-16 text-center">
-                <Loader2 className="w-8 h-8 text-[#1E4327] animate-spin mx-auto mb-3" />
-                <p className="text-xs text-stone-500 font-bold">جارٍ تحميل الطلبات...</p>
+                <Loader2 className="w-8 h-8 text-[#163920] animate-spin mx-auto mb-3" />
+                <p className="text-xs text-[#787163] font-black">جارٍ تحميل الطلبات...</p>
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="py-16 text-center">
-                <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-3">
-                  <Inbox className="w-8 h-8 text-stone-400" />
+                <div className="w-16 h-16 rounded-full bg-[#F7F4EC] flex items-center justify-center mx-auto mb-3 border-2 border-dashed border-[#E8E1D3]">
+                  <Inbox className="w-8 h-8 text-[#787163]" />
                 </div>
-                <p className="text-sm font-black text-stone-700 mb-1">
+                <p className="text-sm font-black text-[#112616] mb-1">
                   {orders.length === 0 ? 'لا توجد طلبات بعد' : 'لا توجد نتائج مطابقة'}
                 </p>
-                <p className="text-xs text-stone-500">
+                <p className="text-xs text-[#787163]">
                   {orders.length === 0
                     ? 'ستظهر هنا كل الطلبات التي يتم رفعها على المتجر'
                     : 'جرّب تغيير الفلتر أو مسح البحث'}
@@ -434,6 +445,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                 const isCopied = copiedId === order.id;
                 const hasContactRow = !!(wa || order.maps_link);
                 const hasBothContact = !!(wa && order.maps_link);
+                const isFreeDelivery = order.delivery_fee === 0;
 
                 return (
                   <article
@@ -441,22 +453,28 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                     className={`bg-white rounded-2xl border-2 p-3.5 sm:p-4 transition-all ${
                       isUpdating || isBeingDeleted
                         ? 'border-amber-400 shadow-md'
-                        : 'border-[#E8E1D3] hover:border-[#D4C8B5]'
+                        : 'border-[#E8E1D3] hover:border-[#C25E12]/40 hover:shadow-sm'
                     } ${isBeingDeleted ? 'opacity-60' : ''}`}
                   >
                     {/* ─── Row 1: رقم الطلب + الحالة + الوقت ─── */}
                     <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-[#F0E9DA]">
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                        <span className="text-sm sm:text-base font-black text-[#112616] shrink-0">
+                        <span className="text-sm sm:text-base font-black text-[#112616] shrink-0 tabular-nums">
                           {order.order_code}
                         </span>
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] sm:text-[11px] font-black shrink-0 ${cfg.pill}`}>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] sm:text-[11px] font-black shrink-0 ${cfg.pill}`}>
                           <PillIcon className="w-3 h-3" />
                           <span>{cfg.label}</span>
                         </span>
+                        {isFreeDelivery && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-black shrink-0">
+                            <Percent className="w-3 h-3" />
+                            <span>توصيل مجاني</span>
+                          </span>
+                        )}
                         {isUpdating && <Loader2 className="w-3.5 h-3.5 text-amber-600 animate-spin" />}
                       </div>
-                      <span className="text-[10px] sm:text-[11px] text-stone-500 font-medium shrink-0 flex items-center gap-1">
+                      <span className="text-[10px] sm:text-[11px] text-[#787163] font-black shrink-0 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         {timeAgo(order.created_at)}
                       </span>
@@ -464,58 +482,64 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
 
                     {/* ─── Row 2: معلومات العميل + الملخص ─── */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                      <div className="space-y-1.5 text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-[#C25E12] shrink-0" />
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-[#C25E12]/10 flex items-center justify-center shrink-0">
+                            <User className="w-3.5 h-3.5 text-[#C25E12]" />
+                          </div>
                           <span className="font-black text-[#112616] truncate">{order.customer_name}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-[#C25E12] shrink-0" />
-                          <span className="font-medium text-stone-700" dir="ltr">{order.phone}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-[#C25E12]/10 flex items-center justify-center shrink-0">
+                            <Phone className="w-3.5 h-3.5 text-[#C25E12]" />
+                          </div>
+                          <span className="font-bold text-[#524B3E] tabular-nums" dir="ltr">{order.phone}</span>
                         </div>
-                        <div className="flex items-start gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-[#C25E12] shrink-0 mt-0.5" />
-                          <span className="font-medium text-stone-700 leading-snug line-clamp-2">{order.address}</span>
+                        <div className="flex items-start gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-[#C25E12]/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <MapPin className="w-3.5 h-3.5 text-[#C25E12]" />
+                          </div>
+                          <span className="font-medium text-[#524B3E] leading-snug line-clamp-2">{order.address}</span>
                         </div>
                       </div>
 
-                      <div className="bg-[#FAF8F4] rounded-xl p-2.5 border border-[#E8E1D3]">
-                        <div className="flex items-center justify-between text-xs mb-1.5">
-                          <span className="text-stone-600 font-bold flex items-center gap-1">
-                            <Package className="w-3 h-3" />
-                            المنتجات:
+                      <div className="bg-gradient-to-br from-[#F7F4EC] to-white rounded-xl p-3 border border-[#E8E1D3]">
+                        <div className="flex items-center justify-between text-xs mb-2">
+                          <span className="text-[#524B3E] font-black flex items-center gap-1">
+                            <Package className="w-3.5 h-3.5" />
+                            <span>المنتجات:</span>
                           </span>
-                          <span className="font-black text-[#112616]">{itemsCount} قطعة</span>
+                          <span className="font-black text-[#112616] tabular-nums">{itemsCount} قطعة</span>
                         </div>
-                        <div className="flex items-center justify-between text-xs mb-1.5">
-                          <span className="text-stone-600 font-bold">التوصيل:</span>
-                          <span className="font-black text-[#112616]">{order.delivery_fee.toFixed(2)} DH</span>
+                        <div className="flex items-center justify-between text-xs mb-2">
+                          <span className="text-[#524B3E] font-black">التوصيل:</span>
+                          <span className={`font-black tabular-nums ${isFreeDelivery ? 'text-emerald-700' : 'text-[#112616]'}`}>
+                            {isFreeDelivery ? 'مجاني 🎉' : `${order.delivery_fee.toFixed(2)} DH`}
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between pt-1.5 border-t border-[#E8E1D3]">
+                        <div className="flex items-center justify-between pt-2 border-t border-[#E8E1D3]">
                           <span className="text-xs font-black text-[#112616] flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3 text-emerald-600" />
-                            الإجمالي:
+                            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>الإجمالي:</span>
                           </span>
-                          <span className="text-sm font-black text-[#C25E12]">{order.total.toFixed(2)} DH</span>
+                          <span className="text-sm font-black text-[#C25E12] tabular-nums">{order.total.toFixed(2)} DH</span>
                         </div>
                       </div>
                     </div>
 
                     {/* ─── ملاحظات الطلب ─── */}
                     {order.note && (
-                      <div className="mb-3 p-2 rounded-lg bg-amber-50/50 border border-amber-200 text-[11px] text-amber-950 space-y-0.5">
+                      <div className="mb-3 p-2.5 rounded-lg bg-amber-50/60 border border-amber-200 text-[11px] text-amber-950 space-y-1">
                         {order.note.split(' | ').map((part, i) => (
                           <div key={i} className="flex items-start gap-1.5">
-                            <span className="text-amber-600 shrink-0">•</span>
-                            <span className="leading-snug">{part}</span>
+                            <span className="text-amber-600 shrink-0 font-black">•</span>
+                            <span className="leading-snug font-medium">{part}</span>
                           </div>
                         ))}
                       </div>
                     )}
 
-                    {/* ═══════════════════════════════════════════════════
-                        ─── أزرار الإجراءات ───
-                        ═══════════════════════════════════════════════════ */}
+                    {/* ─── أزرار الإجراءات ─── */}
                     <div className="mb-3 space-y-2">
 
                       {/* ─── الصف 1: التواصل ─── */}
@@ -526,7 +550,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                               href={`https://wa.me/${wa}?text=${encodeURIComponent(`السلام عليكم ${order.customer_name}، بخصوص طلبكم ${order.order_code} من متجر خُضرة:`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation"
+                              className="inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-l from-[#25D366] to-[#1EBE5D] hover:from-[#20BA5A] hover:to-[#17A34A] text-white font-black text-xs shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 border-2 border-[#1EBE5D]"
                             >
                               <MessageCircle className="w-4 h-4 shrink-0" />
                               <span>واتساب</span>
@@ -537,7 +561,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                               href={order.maps_link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation"
+                              className="inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-l from-[#2563EB] to-[#1E40AF] hover:from-[#1E40AF] hover:to-[#1E3A8A] text-white font-black text-xs shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 border-2 border-[#1E40AF]"
                             >
                               <ExternalLink className="w-4 h-4 shrink-0" />
                               <span>الخريطة</span>
@@ -546,27 +570,25 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                         </div>
                       )}
 
-                      {/* ─── الصف 2: الإدارة (زران فقط الآن) ─── */}
+                      {/* ─── الصف 2: الإدارة ─── */}
                       <div className="grid grid-cols-2 gap-2">
-                        {/* 🖨️ الفاتورة */}
                         <button
                           type="button"
                           onClick={() => setInvoiceOrder(order)}
-                          className="inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-black text-xs shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation"
+                          className="inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-xs shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 border-2 border-[#0E2615]"
                           title="معاينة وطباعة الفاتورة"
                         >
                           <Printer className="w-4 h-4 text-[#F5D76E] shrink-0" />
                           <span className="truncate">الفاتورة</span>
                         </button>
 
-                        {/* 📋 نسخ */}
                         <button
                           type="button"
                           onClick={() => handleCopyOrder(order)}
-                          className={`inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-black text-xs border-2 shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation ${
+                          className={`inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-black text-xs border-2 shadow-sm transition-all cursor-pointer active:scale-95 ${
                             isCopied
                               ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
-                              : 'bg-white hover:bg-stone-50 text-stone-800 border-stone-300'
+                              : 'bg-white hover:bg-[#F7F4EC] text-[#524B3E] hover:text-[#112616] border-[#E8E1D3] hover:border-[#C25E12]/40'
                           }`}
                           title="نسخ تفاصيل الطلب"
                         >
@@ -585,15 +607,13 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       </div>
                     </div>
 
-                    {/* ═══════════════════════════════════════════════════
-                        ─── صف الحالة (3 حالات + زر الحذف) ───
-                        ═══════════════════════════════════════════════════ */}
+                    {/* ─── صف الحالة ─── */}
                     <div className="pt-3 border-t border-[#F0E9DA]">
-                      <div className="text-[11px] font-black text-stone-600 mb-2 flex items-center gap-1">
+                      <div className="text-[11px] font-black text-[#787163] mb-2 flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#C25E12]" />
                         <span>تغيير الحالة إلى:</span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                        {/* 3 حالات قابلة للتغيير */}
                         {STATUS_ORDER_CHANGEABLE.map((s) => {
                           const sCfg = STATUS_CONFIG[s];
                           const SIcon = sCfg.Icon;
@@ -604,7 +624,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                               type="button"
                               disabled={isActive || isUpdating || isBeingDeleted}
                               onClick={() => handleStatusChange(order.id, s)}
-                              className={`py-2 px-2 rounded-lg border-2 text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all active:scale-95 touch-manipulation ${
+                              className={`py-2 px-2 rounded-lg border-2 text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all active:scale-95 ${
                                 isActive
                                   ? sCfg.buttonActive + ' cursor-default'
                                   : sCfg.buttonIdle + ' cursor-pointer'
@@ -616,12 +636,11 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                           );
                         })}
 
-                        {/* 🗑️ زر الحذف (بدل "ملغى") */}
                         <button
                           type="button"
                           onClick={() => setDeleteConfirmOrder(order)}
                           disabled={isBeingDeleted}
-                          className="py-2 px-2 rounded-lg border-2 text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all active:scale-95 touch-manipulation bg-red-50 hover:bg-red-100 text-red-700 border-red-300 hover:border-red-400 disabled:opacity-60 cursor-pointer"
+                          className="py-2 px-2 rounded-lg border-2 text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all active:scale-95 bg-red-50 hover:bg-red-100 text-red-700 border-red-300 hover:border-red-400 disabled:opacity-60 cursor-pointer"
                           title="حذف الطلب نهائياً"
                         >
                           {isBeingDeleted ? (
@@ -632,7 +651,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                           ) : (
                             <>
                               <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">حذف الطلب</span>
+                              <span className="truncate">حذف</span>
                             </>
                           )}
                         </button>
@@ -646,13 +665,13 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
 
           {/* ═══════════ Footer ═══════════ */}
           <div className="p-3 sm:p-4 bg-white border-t border-[#E8E1D3] flex items-center justify-between gap-2 shrink-0">
-            <p className="text-[11px] text-stone-500 font-medium">
-              عرض {filteredOrders.length} من أصل {orders.length} طلب
+            <p className="text-[11px] text-[#787163] font-black">
+              عرض <span className="text-[#112616]">{filteredOrders.length}</span> من أصل <span className="text-[#112616]">{orders.length}</span> طلب
             </p>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white text-xs font-black cursor-pointer active:scale-95 transition-all"
+              className="px-4 py-2 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white text-xs font-black cursor-pointer active:scale-95 transition-all border-2 border-[#0E2615] shadow-sm"
             >
               إغلاق
             </button>
@@ -668,41 +687,41 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
               onClick={() => !isDeleting && setDeleteConfirmOrder(null)}
             />
 
-            <div className="relative bg-white border-2 border-red-300 rounded-3xl w-full max-w-sm shadow-2xl z-10 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200">
-              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
-                <Trash2 className="w-6 h-6" />
+            <div className="relative bg-white border-2 border-red-300 rounded-[24px] w-full max-w-sm shadow-2xl z-10 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200">
+              <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-7 h-7" />
               </div>
 
-              <h3 className="font-black text-base text-[#112616] text-center mb-1">
+              <h3 className="font-black text-base text-[#112616] text-center mb-2">
                 تأكيد حذف الطلب
               </h3>
-              <p className="text-xs text-stone-500 text-center mb-4 leading-relaxed">
+              <p className="text-xs text-[#787163] text-center mb-4 leading-relaxed">
                 هل أنت متأكد من حذف الطلب
-                <strong className="text-stone-800"> {deleteConfirmOrder.order_code} </strong>
+                <strong className="text-[#112616]"> {deleteConfirmOrder.order_code} </strong>
                 للعميل
-                <strong className="text-stone-800"> {deleteConfirmOrder.customer_name} </strong>
+                <strong className="text-[#112616]"> {deleteConfirmOrder.customer_name} </strong>
                 نهائياً؟
                 <br />
-                <span className="text-red-600 font-bold">لا يمكن التراجع عن هذا الإجراء.</span>
+                <span className="text-red-600 font-black">لا يمكن التراجع عن هذا الإجراء.</span>
               </p>
 
-              <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 mb-4 text-xs text-stone-700 space-y-1">
+              <div className="bg-[#F7F4EC] p-3.5 rounded-xl border border-[#E8E1D3] mb-4 text-xs text-[#524B3E] space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="font-bold">الهاتف:</span>
-                  <span dir="ltr">{deleteConfirmOrder.phone}</span>
+                  <span className="font-black">الهاتف:</span>
+                  <span className="tabular-nums" dir="ltr">{deleteConfirmOrder.phone}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-bold">الإجمالي:</span>
-                  <span className="font-black text-[#C25E12]">{deleteConfirmOrder.total.toFixed(2)} DH</span>
+                  <span className="font-black">الإجمالي:</span>
+                  <span className="font-black text-[#C25E12] tabular-nums">{deleteConfirmOrder.total.toFixed(2)} DH</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   disabled={isDeleting}
                   onClick={handleExecuteDelete}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs sm:text-sm shadow-sm active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isDeleting ? (
                     <>
@@ -712,7 +731,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                   ) : (
                     <>
                       <Trash2 className="w-4 h-4" />
-                      <span>نعم، حذف نهائي</span>
+                      <span>نعم، حذف</span>
                     </>
                   )}
                 </button>
@@ -720,7 +739,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                   type="button"
                   disabled={isDeleting}
                   onClick={() => setDeleteConfirmOrder(null)}
-                  className="py-2.5 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer active:scale-95 transition-colors"
+                  className="py-3 px-4 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#524B3E] font-black text-sm cursor-pointer active:scale-95 transition-colors"
                 >
                   إلغاء
                 </button>
