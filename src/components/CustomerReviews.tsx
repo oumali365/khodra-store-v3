@@ -22,7 +22,6 @@ import {
   ShoppingBag,
   Quote,
   Sparkles,
-  Users,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 import {
@@ -497,110 +496,110 @@ export const CustomerReviews: React.FC = () => {
 
         {/* ════════ 2. بطاقات التقييمات المستقلة بالعرض الأفقي (الجزء الثاني) ════════ */}
         <div className="relative max-w-5xl mx-auto py-2 mb-8 sm:mb-10">
-              <div
-                ref={reviewsScrollRef}
-                onScroll={handleReviewsScroll}
-                className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 text-center overflow-x-auto md:overflow-x-visible py-5 px-[14vw] sm:px-12 md:px-0 snap-x snap-mandatory overscroll-x-contain scroll-smooth no-scrollbar"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {displayedReviews.map((rev, idx) => {
-                  const isActive = idx === activeReviewIndex;
+          <div
+            ref={reviewsScrollRef}
+            onScroll={handleReviewsScroll}
+            className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 text-center overflow-x-auto md:overflow-x-visible py-5 px-[14vw] sm:px-12 md:px-0 snap-x snap-mandatory overscroll-x-contain scroll-smooth no-scrollbar"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {displayedReviews.map((rev, idx) => {
+              const isActive = idx === activeReviewIndex;
 
-                  return (
-                    <article
-                      key={rev.id}
-                      onClick={() => scrollToReview(idx)}
-                      className={`w-[66vw] min-w-[210px] max-w-[245px] md:w-full md:max-w-none shrink-0 snap-center snap-always bg-white rounded-3xl border border-stone-200/90 shadow-[0_6px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.11)] hover:-translate-y-1.5 transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-between min-h-[310px] sm:min-h-[330px] cursor-pointer group select-none ${
-                        isAdmin
-                          ? 'border-2 border-amber-300 ring-2 ring-amber-100 shadow-sm'
-                          : isActive
-                          ? 'ring-2 ring-[#163920]/35 ring-offset-2 ring-offset-[#FAF8F4] scale-[1.02]'
-                          : 'opacity-90 hover:opacity-100 scale-[0.98]'
-                      }`}
+              return (
+                <article
+                  key={rev.id}
+                  onClick={() => scrollToReview(idx)}
+                  className={`w-[66vw] min-w-[210px] max-w-[245px] md:w-full md:max-w-none shrink-0 snap-center snap-always bg-white rounded-3xl border border-stone-200/90 shadow-[0_6px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.11)] hover:-translate-y-1.5 transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-between min-h-[310px] sm:min-h-[330px] cursor-pointer group select-none ${
+                    isAdmin
+                      ? 'border-2 border-amber-300 ring-2 ring-amber-100 shadow-sm'
+                      : isActive
+                      ? 'ring-2 ring-[#163920]/35 ring-offset-2 ring-offset-[#FAF8F4] scale-[1.02]'
+                      : 'opacity-90 hover:opacity-100 scale-[0.98]'
+                  }`}
+                >
+                  <div className="w-full flex flex-col items-center text-center">
+                    {/* 1. أيقونة الأفاتار الرمزية الدائرية */}
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#F7F4EC] border border-[#E0D7C6] flex items-center justify-center shadow-xs mb-3.5 transition-transform duration-300 group-hover:scale-105">
+                      <span className="text-xl sm:text-2xl font-black text-[#163920]">
+                        {rev.author.trim().charAt(0) || 'خ'}
+                      </span>
+                    </div>
+
+                    {/* 2. اسم صاحب التقييم */}
+                    <h3 className="text-base sm:text-lg font-black text-[#112616] leading-snug mb-1 text-center">
+                      {rev.author}
+                    </h3>
+
+                    {/* الحي / فاس */}
+                    <p className="text-[11px] sm:text-xs text-[#787163] font-bold mb-3 flex items-center justify-center gap-1">
+                      <MapPin className="w-3 h-3 text-[#C25E12] shrink-0" />
+                      <span>{rev.neighborhood}</span>
+                    </p>
+
+                    {/* نجوم التقييم ممركزة وواضحة */}
+                    <div
+                      className="flex items-center justify-center gap-1 mb-4"
+                      aria-label={`تقييم ${rev.rating} من 5 نجوم`}
                     >
-                      <div className="w-full flex flex-col items-center text-center">
-                        {/* 1. أيقونة الأفاتار الرمزية الدائرية */}
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#F7F4EC] border border-[#E0D7C6] flex items-center justify-center shadow-xs mb-3.5 transition-transform duration-300 group-hover:scale-105">
-                          <span className="text-xl sm:text-2xl font-black text-[#163920]">
-                            {rev.author.trim().charAt(0) || 'خ'}
-                          </span>
-                        </div>
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${
+                            i < rev.rating
+                              ? 'fill-amber-400 text-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.3)]'
+                              : 'fill-stone-200 text-stone-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
 
-                        {/* 2. اسم صاحب التقييم */}
-                        <h3 className="text-base sm:text-lg font-black text-[#112616] leading-snug mb-1 text-center">
-                          {rev.author}
-                        </h3>
+                    {/* 3. نص التعليق واضح ومريح */}
+                    <p className="text-xs sm:text-[13px] text-[#524B3E] font-medium leading-relaxed text-center">
+                      "{rev.comment}"
+                    </p>
+                  </div>
 
-                        {/* الحي / فاس */}
-                        <p className="text-[11px] sm:text-xs text-[#787163] font-bold mb-3 flex items-center justify-center gap-1">
-                          <MapPin className="w-3 h-3 text-[#C25E12] shrink-0" />
-                          <span>{rev.neighborhood}</span>
-                        </p>
+                  {/* لوحة تحكم المدير عند التفعيل */}
+                  {isAdmin && (
+                    <div className="w-full mt-4 pt-3 border-t-2 border-amber-200 flex items-center justify-between text-xs">
+                      <span className="font-black text-amber-900 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#C25E12]" />
+                        <span>إدارة</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmReview(rev);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-black transition-all cursor-pointer active:scale-95"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        <span>حذف</span>
+                      </button>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
 
-                        {/* نجوم التقييم ممركزة وواضحة */}
-                        <div
-                          className="flex items-center justify-center gap-1 mb-4"
-                          aria-label={`تقييم ${rev.rating} من 5 نجوم`}
-                        >
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${
-                                i < rev.rating
-                                  ? 'fill-amber-400 text-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.3)]'
-                                  : 'fill-stone-200 text-stone-200'
-                              }`}
-                            />
-                          ))}
-                        </div>
-
-                        {/* 3. نص التعليق واضح ومريح */}
-                        <p className="text-xs sm:text-[13px] text-[#524B3E] font-medium leading-relaxed text-center">
-                          "{rev.comment}"
-                        </p>
-                      </div>
-
-                      {/* لوحة تحكم المدير عند التفعيل */}
-                      {isAdmin && (
-                        <div className="w-full mt-4 pt-3 border-t-2 border-amber-200 flex items-center justify-between text-xs">
-                          <span className="font-black text-amber-900 flex items-center gap-1">
-                            <ShieldCheck className="w-3.5 h-3.5 text-[#C25E12]" />
-                            <span>إدارة</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirmReview(rev);
-                            }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-black transition-all cursor-pointer active:scale-95"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                            <span>حذف</span>
-                          </button>
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
-
-              {/* نقاط التمرير التفاعلية (Dots) */}
-              {displayedReviews.length > 1 && (
-                <div className="flex md:hidden items-center justify-center gap-2 mt-4">
-                  {displayedReviews.map((_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => scrollToReview(i)}
-                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                        activeReviewIndex === i ? 'w-7 bg-[#163920]' : 'w-2 bg-stone-300'
-                      }`}
-                      aria-label={`الانتقال للتقييم رقم ${i + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
+          {/* نقاط التمرير التفاعلية (Dots) */}
+          {displayedReviews.length > 1 && (
+            <div className="flex md:hidden items-center justify-center gap-2 mt-4">
+              {displayedReviews.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => scrollToReview(i)}
+                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                    activeReviewIndex === i ? 'w-7 bg-[#163920]' : 'w-2 bg-stone-300'
+                  }`}
+                  aria-label={`الانتقال للتقييم رقم ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
 
           {/* زر عرض المزيد */}
           {reviews.length > INITIAL_VISIBLE_COUNT && (
