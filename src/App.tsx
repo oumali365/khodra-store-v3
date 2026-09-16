@@ -1,9 +1,12 @@
+// ============================================================
+// App.tsx – الإصدار 4.0
+// يدمج CategoryHeader داخل CategoryFilter + onScrollToBundles
+// ============================================================
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { CategoryFilter } from './components/CategoryFilter';
-import { CategoryHeader } from './components/CategoryHeader';
 import { ProductCard } from './components/ProductCard';
 import { FamilyBoxesSection } from './components/FamilyBoxesSection';
 import { StickyBottomBar } from './components/StickyBottomBar';
@@ -12,7 +15,7 @@ import { CustomerReviews } from './components/CustomerReviews';
 import { Footer } from './components/Footer';
 import { SortFilterModal, SortOption } from './components/SortFilterModal';
 
-// تحميل مؤجل للنوافذ والصفحات غير الحرجة لتقليل حجم الجافاسكريبت المبدئي وتسريع التحميل
+// ─── تحميل مؤجل للنوافذ والصفحات ───
 const CartDrawer = React.lazy(() =>
   import('./components/CartDrawer').then((module) => ({ default: module.CartDrawer }))
 );
@@ -34,7 +37,7 @@ const StoreCoverageMap = React.lazy(() =>
     .then((module) => ({ default: module.default || module.StoreCoverageMap }))
 );
 
-// صمام أمان محلي لحماية الصفحة الرئيسية في حال انقطاع شبكة الجوال أثناء تحميل الخريطة
+// ─── صمام أمان للخريطة ───
 class MapErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean }
@@ -49,8 +52,8 @@ class MapErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8 sm:my-12">
-          <div className="bg-[#FAF8F4] border border-[#D4C8B5] rounded-3xl p-6 sm:p-8 text-center space-y-3 shadow-xs">
+        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-8 sm:my-12">
+          <div className="bg-white border border-[#E8E1D3] rounded-[24px] p-6 sm:p-8 text-center space-y-3 shadow-sm">
             <span className="text-3xl select-none">🗺️</span>
             <h3 className="text-base font-black text-[#112616] font-['Almarai']">
               موقع المتجر ونطاق التوصيل بمدينة فاس
@@ -61,9 +64,9 @@ class MapErrorBoundary extends React.Component<
             <button
               type="button"
               onClick={() => this.setState({ hasError: false })}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1E4327] text-white text-xs sm:text-sm font-bold hover:bg-[#112616] cursor-pointer transition-all shadow-md animate-pulse hover:animate-none ring-4 ring-[#1E4327]/20 active:scale-95"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] text-white text-xs sm:text-sm font-black hover:shadow-lg cursor-pointer transition-all shadow-md active:scale-95 border-2 border-[#0E2615]"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3.5 h-3.5 text-[#F5D76E]" />
               <span>إعادة تحميل الخريطة</span>
             </button>
           </div>
@@ -83,7 +86,7 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cart state with persistence
+  // ─── Cart state ───
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORE_CONFIG.cacheKey);
@@ -93,23 +96,23 @@ export default function App() {
     }
   });
 
-  // Navigation & filter states
+  // ─── Navigation & filter states ───
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('veg');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeInfoPage, setActiveInfoPage] = useState<'about' | 'policy' | 'privacy' | null>(null);
 
-  // Sorting and in-stock filter state
+  // ─── Sorting and in-stock filter ───
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [onlyInStock, setOnlyInStock] = useState<boolean>(false);
 
-  // Modals & Drawers
+  // ─── Modals & Drawers ───
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<OrderSubmission | null>(null);
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
 
-  // Refs
+  // ─── Refs ───
   const prevStatesRef = useRef({
     isMenuOpen: false,
     isCartOpen: false,
@@ -121,8 +124,9 @@ export default function App() {
 
   const searchResultsRef = useRef<HTMLDivElement>(null);
   const catalogSectionRef = useRef<HTMLDivElement>(null);
+  const bundlesSectionRef = useRef<HTMLDivElement>(null);
 
-  // Load products on start
+  // ─── Load products ───
   useEffect(() => {
     let mounted = true;
     fetchProducts().then((data) => {
@@ -136,100 +140,61 @@ export default function App() {
     };
   }, []);
 
-  // Sync cart to local storage
+  // ─── Sync cart to local storage ───
   useEffect(() => {
     try {
       localStorage.setItem(STORE_CONFIG.cacheKey, JSON.stringify(cart));
     } catch {
-      // ignore storage full errors
+      // ignore
     }
   }, [cart]);
 
-  // ─── FUNCTIONS TO CLOSE ALL MODALS/DRAWERS ───
+  // ─── Close all modals/drawers ───
   const closeAllModalsAndDrawers = useCallback(() => {
     let changed = false;
-
-    if (isMenuOpen) {
-      setIsMenuOpen(false);
-      changed = true;
-    }
-    if (isCartOpen) {
-      setIsCartOpen(false);
-      changed = true;
-    }
-    if (isCheckoutOpen) {
-      setIsCheckoutOpen(false);
-      changed = true;
-    }
-    if (confirmedOrder) {
-      setConfirmedOrder(null);
-      changed = true;
-    }
-    if (activeInfoPage) {
-      setActiveInfoPage(null);
-      changed = true;
-    }
-    if (isSortModalOpen) {
-      setIsSortModalOpen(false);
-      changed = true;
-    }
-
+    if (isMenuOpen) { setIsMenuOpen(false); changed = true; }
+    if (isCartOpen) { setIsCartOpen(false); changed = true; }
+    if (isCheckoutOpen) { setIsCheckoutOpen(false); changed = true; }
+    if (confirmedOrder) { setConfirmedOrder(null); changed = true; }
+    if (activeInfoPage) { setActiveInfoPage(null); changed = true; }
+    if (isSortModalOpen) { setIsSortModalOpen(false); changed = true; }
     return changed;
   }, [isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen]);
 
-  // ─── HANDLE BROWSER BACK BUTTON ───
+  // ─── Handle browser back button ───
   useEffect(() => {
     window.history.pushState({ page: 'main' }, '');
-
     const handlePopState = () => {
       const hasAnyOpenModal = isMenuOpen || isCartOpen || isCheckoutOpen || !!confirmedOrder || !!activeInfoPage || isSortModalOpen;
-
       if (hasAnyOpenModal) {
         closeAllModalsAndDrawers();
         window.history.pushState({ page: 'main' }, '');
         return;
       }
-
       window.history.pushState({ page: 'main' }, '');
     };
-
     window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen, closeAllModalsAndDrawers]);
 
-  // ─── PUSH HISTORY STATE WHEN ANY MODAL/DRAWER OPENS ───
+  // ─── Push history state when modal opens ───
   useEffect(() => {
     const prev = prevStatesRef.current;
     const currentHasOpen = isMenuOpen || isCartOpen || isCheckoutOpen || !!confirmedOrder || !!activeInfoPage || isSortModalOpen;
     const prevHasOpen = prev.isMenuOpen || prev.isCartOpen || prev.isCheckoutOpen || !!prev.confirmedOrder || !!prev.activeInfoPage || prev.isSortModalOpen;
-
     if (currentHasOpen && !prevHasOpen) {
       window.history.pushState({ page: 'modal' }, '');
     }
-
     prevStatesRef.current = {
-      isMenuOpen,
-      isCartOpen,
-      isCheckoutOpen,
-      confirmedOrder,
-      activeInfoPage,
-      isSortModalOpen,
+      isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen,
     };
   }, [isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen]);
 
-  // ─── MENU CONTROLS ───
-  const handleToggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  // ─── Menu controls ───
+  const handleToggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const handleCloseMenu = () => setIsMenuOpen(false);
 
-  const handleCloseMenu = () => {
-    setIsMenuOpen(false);
-  };
-
-  // ─── CART HELPERS ───
+  // ─── Cart helpers ───
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.qty, 0), [cart]);
   const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.lineTotal, 0), [cart]);
 
@@ -258,6 +223,7 @@ export default function App() {
         id: product.id,
         name: product.name,
         icon: product.icon,
+        image_url: product.image_url,
         variantLabel,
         unitTotal: +total.toFixed(2),
         qty: 1,
@@ -289,137 +255,100 @@ export default function App() {
     setCart((prev) => prev.filter((i) => i.key !== key));
   };
 
-  const handleClearCart = () => {
-    setCart([]);
-  };
+  const handleClearCart = () => setCart([]);
 
-  // ─── ORDER SUBMISSION (محسّن: يحمي من "النجاح الكاذب") ───
+  // ─── Order submission ───
   const handleOrderSubmission = async (order: OrderSubmission) => {
     const result = await submitOrder(order);
 
     if (!result.success) {
-      // ❌ الطلب فشل في الحفظ — لا نغلق الـ modal ولا نظهر شاشة النجاح
       console.error('❌ فشل حفظ الطلب:', result.message, result.errorCode);
-
       const errorMessage = result.message || 'تعذّر حفظ الطلب في قاعدة البيانات';
-
       alert(
         '⚠️ تعذّر إرسال الطلب\n\n' +
         errorMessage + '\n\n' +
         '📱 يرجى التواصل معنا مباشرة عبر واتساب لإتمام طلبك:\n' +
         STORE_CONFIG.whatsappNumber
       );
-
-      // نُعيد الطلب لصفحة الـ checkout حتى يستطيع العميل إعادة المحاولة
-      // (isCheckoutOpen يبقى true، والـ cart يبقى كما هو)
       return;
     }
 
-    // ✅ الطلب نجح — نعرض شاشة التأكيد
     setConfirmedOrder(order);
     setIsCheckoutOpen(false);
     setCart([]);
   };
 
-  // ─── SEARCH HANDLERS ───
+  // ─── Search handlers ───
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
-
     if (query.trim().length > 0) {
-      setTimeout(() => {
-        scrollToSearchResults();
-      }, 150);
+      setTimeout(() => scrollToSearchResults(), 150);
     }
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim().length > 0) {
-      scrollToSearchResults();
-    }
+    if (searchQuery.trim().length > 0) scrollToSearchResults();
   };
 
   const scrollToSearchResults = () => {
     if (searchResultsRef.current) {
-      searchResultsRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
+      searchResultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
-  // ─── SCROLL TO CATALOG ───
+  // ─── Scroll to catalog ───
   const scrollToCatalog = () => {
     if (catalogSectionRef.current) {
-      catalogSectionRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
+      catalogSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
-  // ─── CATEGORY SELECTION ───
+  // ─── Scroll to bundles ───
+  const scrollToBundles = () => {
+    if (bundlesSectionRef.current) {
+      bundlesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      const el = document.getElementById('family-boxes-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // ─── Category selection ───
   const handleSelectCategory = (cat: ProductCategory) => {
-    if (isMenuOpen) {
-      setIsMenuOpen(false);
-    }
-
-    if (searchQuery.trim().length > 0) {
-      setSearchQuery('');
-    }
-
+    if (isMenuOpen) setIsMenuOpen(false);
+    if (searchQuery.trim().length > 0) setSearchQuery('');
     setSelectedCategory(cat);
-
-    if (activeInfoPage) {
-      setActiveInfoPage(null);
-    }
-
-    setTimeout(() => {
-      scrollToCatalog();
-    }, 100);
+    if (activeInfoPage) setActiveInfoPage(null);
+    setTimeout(() => scrollToCatalog(), 100);
   };
 
-  // ─── OPEN INFO PAGE ───
+  // ─── Open info page ───
   const handleOpenPage = (page: 'about' | 'policy' | 'privacy' | null) => {
-    if (isMenuOpen) {
-      setIsMenuOpen(false);
-    }
-
+    if (isMenuOpen) setIsMenuOpen(false);
     setActiveInfoPage(page);
-
-    if (page) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    if (page) window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ─── FILTERED & SORTED PRODUCTS ───
+  // ─── Filtered & sorted products ───
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => {
       const hasSearch = searchQuery.trim().length > 0;
-
-      const matchesCategory = hasSearch
-        ? true
-        : selectedCategory === 'all' || p.category === selectedCategory;
-
+      const matchesCategory = hasSearch ? true : selectedCategory === 'all' || p.category === selectedCategory;
       const matchesSearch = !searchQuery.trim() ||
         p.name.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
         (p.origin && p.origin.toLowerCase().includes(searchQuery.toLowerCase().trim()));
-
       const matchesStock = !onlyInStock || p.stock > 0;
-
       return matchesCategory && matchesSearch && matchesStock;
     });
 
-    if (sortBy === 'price-asc') {
-      list = [...list].sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'price-desc') {
-      list = [...list].sort((a, b) => b.price - a.price);
-    }
+    if (sortBy === 'price-asc') list = [...list].sort((a, b) => a.price - b.price);
+    else if (sortBy === 'price-desc') list = [...list].sort((a, b) => b.price - a.price);
 
     return list;
   }, [products, selectedCategory, searchQuery, onlyInStock, sortBy]);
 
-  // ─── ACTIVE CATEGORY INFO ───
+  // ─── Active category info ───
   const activeCategoryInfo = useMemo(() => {
     if (searchQuery.trim().length > 0) {
       return {
@@ -431,9 +360,7 @@ export default function App() {
     }
 
     const category = CATEGORIES_CONFIG.find((c) => c.id === selectedCategory);
-    if (category) {
-      return category;
-    }
+    if (category) return category;
 
     return {
       id: 'veg',
@@ -446,7 +373,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
 
-      {/* Sticky Top Header */}
+      {/* ═══════ Header ═══════ */}
       <Header
         cartCount={cartCount}
         cartTotal={cartTotal}
@@ -460,50 +387,48 @@ export default function App() {
         isMenuOpen={isMenuOpen}
         onToggleMenu={handleToggleMenu}
         onCloseMenu={handleCloseMenu}
+        onScrollToBundles={scrollToBundles}
       />
 
-      {/* Main Content Area */}
+      {/* ═══════ Main Content ═══════ */}
       <main className="flex-1">
         {activeInfoPage ? (
-          <Suspense fallback={<div className="max-w-3xl mx-auto p-12 text-center text-sm text-[#38332B]">جاري التحميل...</div>}>
+          <Suspense fallback={<div className="max-w-3xl mx-auto p-12 text-center text-sm text-[#524B3E]">جاري التحميل...</div>}>
             <InfoPages page={activeInfoPage} onBackToShop={() => handleOpenPage(null)} />
           </Suspense>
         ) : (
           <>
-            {/* Hero Section */}
+            {/* ─── Hero ─── */}
             <Hero
               onSelectCategory={handleSelectCategory}
               onScrollToCatalog={scrollToCatalog}
+              onScrollToBundles={scrollToBundles}
             />
 
-            {/* Category Filter Pills (All Screens) */}
+            {/* ─── Category Filter (مدمج مع الوصف) ─── */}
             <CategoryFilter
               selectedCategory={selectedCategory}
               onSelectCategory={handleSelectCategory}
               products={products}
+              categoryInfo={activeCategoryInfo}
+              sortBy={sortBy}
+              onlyInStock={onlyInStock}
+              onOpenSort={() => setIsSortModalOpen(true)}
+              searchQuery={searchQuery}
+              onClearSearch={() => {
+                setSearchQuery('');
+                setSelectedCategory('veg');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
 
-            {/* Products Grid Section */}
+            {/* ═══════ Products Grid Section ═══════ */}
             <section
               id="search-results-section"
               ref={searchResultsRef}
-              className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12"
+              className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mb-12"
             >
               <div ref={catalogSectionRef} id="catalog-section" />
-
-              {/* Category Header Card – بطاقة تعريف المنتجات وقسم الفئة المحددة */}
-              <CategoryHeader
-                categoryInfo={activeCategoryInfo}
-                sortBy={sortBy}
-                onlyInStock={onlyInStock}
-                onOpenSort={() => setIsSortModalOpen(true)}
-                searchQuery={searchQuery}
-                onClearSearch={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('veg');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              />
 
               {/* Grid or Empty/Loading state */}
               {isLoading ? (
@@ -511,22 +436,22 @@ export default function App() {
                   {Array.from({ length: 8 }).map((_, i) => (
                     <div
                       key={i}
-                      className="bg-white rounded-2xl p-4 border border-[#DFD1AC] h-64 animate-pulse flex flex-col items-center justify-center gap-3"
+                      className="bg-white rounded-2xl p-4 border border-[#E8E1D3] h-64 animate-pulse flex flex-col items-center justify-center gap-3"
                     >
-                      <div className="w-16 h-16 bg-[#FAF6EE] rounded-2xl" />
-                      <div className="w-24 h-4 bg-[#FAF6EE] rounded-full" />
-                      <div className="w-16 h-3 bg-[#FAF6EE] rounded-full" />
-                      <div className="w-full h-8 bg-[#FAF6EE] rounded-xl mt-auto" />
+                      <div className="w-16 h-16 bg-[#F7F4EC] rounded-2xl" />
+                      <div className="w-24 h-4 bg-[#F7F4EC] rounded-full" />
+                      <div className="w-16 h-3 bg-[#F7F4EC] rounded-full" />
+                      <div className="w-full h-8 bg-[#F7F4EC] rounded-xl mt-auto" />
                     </div>
                   ))}
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="bg-white border-2 border-dashed border-[#D4C8B5] rounded-3xl p-10 text-center max-w-md mx-auto shadow-sm">
+                <div className="bg-white border-2 border-dashed border-[#E8E1D3] rounded-3xl p-10 text-center max-w-md mx-auto shadow-sm">
                   <span className="text-4xl block mb-2">🔍</span>
-                  <h3 className="text-base font-extrabold text-[#112616] mb-1">
+                  <h3 className="text-base font-black text-[#112616] mb-1">
                     لم نتمكن من العثور على أي منتج
                   </h3>
-                  <p className="text-xs sm:text-sm text-[#38332B] mb-4">
+                  <p className="text-xs sm:text-sm text-[#524B3E] mb-4">
                     {searchQuery ? `لا توجد منتجات تطابق بحثك "${searchQuery}".` : 'لا توجد منتجات تطابق شروط الفرز الحالية.'}
                     {searchQuery && ' جرب البحث باسم آخر أو اختر قسماً مختلفاً.'}
                   </p>
@@ -538,7 +463,7 @@ export default function App() {
                       setSortBy('default');
                       setOnlyInStock(false);
                     }}
-                    className="px-5 py-2.5 rounded-xl bg-[#1E4327] hover:bg-[#112616] text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:shadow-lg text-white font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer border-2 border-[#0E2615] active:scale-95"
                   >
                     {searchQuery ? 'عرض الخضروات المتوفرة' : 'عرض جميع المنتجات المتوفرة'}
                   </button>
@@ -560,20 +485,22 @@ export default function App() {
               )}
             </section>
 
-            {/* Family Boxes Section – قسم صناديق العائلة التوفيرية */}
-            <FamilyBoxesSection onAddToCart={handleAddToCart} />
+            {/* ─── Family Boxes Section ─── */}
+            <div ref={bundlesSectionRef}>
+              <FamilyBoxesSection onAddToCart={handleAddToCart} />
+            </div>
 
-            {/* Trust and Value Pillars */}
+            {/* ─── Trust Badges ─── */}
             <TrustBadges />
 
-            {/* نطاق التوصيل وخريطة المتجر التفاعلية – تحميل مؤجل (Lazy Loading) */}
+            {/* ─── Store Coverage Map ─── */}
             <MapErrorBoundary>
               <Suspense
                 fallback={
-                  <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8 sm:my-12">
-                    <div className="bg-[#FAF8F4] border border-[#D4C8B5] rounded-3xl p-4 sm:p-7 shadow-xs text-center animate-pulse space-y-4">
+                  <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-8 sm:my-12">
+                    <div className="bg-white border border-[#E8E1D3] rounded-[24px] p-4 sm:p-7 shadow-sm text-center animate-pulse space-y-4">
                       <div className="h-6 w-48 bg-stone-200 rounded-lg mx-auto"></div>
-                      <div className="h-[310px] sm:h-[400px] md:h-[460px] bg-stone-100 rounded-2xl flex items-center justify-center text-xs text-stone-400">
+                      <div className="h-[310px] sm:h-[400px] md:h-[460px] bg-[#F7F4EC] rounded-2xl flex items-center justify-center text-xs text-stone-400 font-black">
                         جاري تحميل خريطة التغطية...
                       </div>
                     </div>
@@ -584,13 +511,13 @@ export default function App() {
               </Suspense>
             </MapErrorBoundary>
 
-            {/* Customer Testimonials & Reviews */}
+            {/* ─── Customer Reviews ─── */}
             <CustomerReviews />
           </>
         )}
       </main>
 
-      {/* ─── Lazy Loaded Modals wrapped in Suspense ─── */}
+      {/* ═══════ Lazy Loaded Modals ═══════ */}
       <Suspense fallback={null}>
         {isCartOpen && (
           <CartDrawer
@@ -624,7 +551,6 @@ export default function App() {
           />
         )}
 
-        {/* نافذة فرز وتصفية المنتجات الصغيرة */}
         <SortFilterModal
           isOpen={isSortModalOpen}
           onClose={() => setIsSortModalOpen(false)}
@@ -639,7 +565,7 @@ export default function App() {
         />
       </Suspense>
 
-      {/* Floating Sticky Bottom Cart Bar */}
+      {/* ═══════ Floating Sticky Bottom Bar ═══════ */}
       <StickyBottomBar
         cartCount={cartCount}
         cartTotal={cartTotal}
@@ -647,10 +573,8 @@ export default function App() {
         onOpenCheckout={() => setIsCheckoutOpen(true)}
       />
 
-      {/* Footer */}
-      <Footer
-        onOpenPage={handleOpenPage}
-      />
+      {/* ═══════ Footer ═══════ */}
+      <Footer onOpenPage={handleOpenPage} />
 
     </div>
   );
