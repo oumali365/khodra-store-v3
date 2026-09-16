@@ -1,5 +1,20 @@
+// ============================================================
+// الملف: InfoPages.tsx – الإصدار 2.0
+// صفحات المعلومات – تصميم متناسق مع المتجر
+// ============================================================
 import React from 'react';
-import { ArrowRight, ShieldCheck, RefreshCw, Info, Heart, Truck } from 'lucide-react';
+import {
+  ArrowRight,
+  ShieldCheck,
+  RefreshCw,
+  Leaf,
+  Heart,
+  Truck,
+  Lock,
+  CheckCircle2,
+  Award,
+  Users,
+} from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 
 interface InfoPagesProps {
@@ -9,138 +24,251 @@ interface InfoPagesProps {
 
 export const InfoPages: React.FC<InfoPagesProps> = ({ page, onBackToShop }) => {
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="max-w-3xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12">
+
+      {/* ════════ زر العودة ════════ */}
       <button
         type="button"
         onClick={onBackToShop}
-        className="inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold text-[#D9762B] hover:text-[#B85E1C] mb-6 cursor-pointer bg-white px-4 py-2 rounded-xl border border-[#DFD1AC] shadow-2xs"
+        className="inline-flex items-center gap-2 text-xs sm:text-sm font-black text-[#163920] hover:text-white bg-white hover:bg-[#163920] mb-5 cursor-pointer px-4 py-2.5 rounded-xl border-2 border-[#163920] shadow-sm hover:shadow-md active:scale-95 transition-all group touch-manipulation select-none"
       >
-        <ArrowRight className="w-4 h-4" />
-        <span>العودة للمتجر والمنتجات</span>
+        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+        <span>العودة للمتجر</span>
       </button>
 
-      {page === 'about' ? (
-        <div className="space-y-6">
-          {/* 1. حاوية قصة المتجر والقيم */}
-          <article className="bg-white border-1.5 border-[#E2D5B7] rounded-3xl p-6 sm:p-10 shadow-sm text-right space-y-6">
-            <div className="flex items-center gap-3 text-[#1B3A20] pb-4 border-b border-[#F3ECDD]">
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-[#4F8A5A] flex items-center justify-center text-2xl select-none">
-                🌿
+      {/* ════════ صفحة "من نحن" ════════ */}
+      {page === 'about' && (
+        <article className="bg-white border border-[#E8E1D3] rounded-[24px] p-5 sm:p-8 shadow-sm text-right space-y-5 overflow-hidden relative">
+
+          {/* زخرفة خلفية */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#F5D76E]/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative">
+            {/* الرأس */}
+            <div className="flex items-center gap-3 pb-4 border-b border-[#F0E9DA]">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#163920] to-[#0E2615] flex items-center justify-center shadow-md shrink-0">
+                <Leaf className="w-6 h-6 text-[#F5D76E]" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-extrabold">
+                <h1 className="text-lg sm:text-2xl font-black text-[#112616] leading-tight">
                   من نحن — قصة متجر خُضرة
                 </h1>
-                <span className="text-xs sm:text-sm text-[#736B58]">مشروع مغربي 100% يربط الحقل ببيتك</span>
+                <span className="text-[11px] sm:text-xs text-[#787163] font-bold block mt-1">
+                  مشروع مغربي 100% يربط الحقل ببيتك
+                </span>
               </div>
             </div>
 
-            <p className="text-sm sm:text-base text-[#443F35] leading-relaxed">
-              <strong>خُضرة</strong> هو مشروع مغربي أصيل نشأ من فكرة بسيطة: كيف نمكّن العائلة المغربية من الحصول على خضر وفواكه طازجة تماماً كما لو كانت قطفت صبيحة اليوم، دون الحاجة لتحمل عناء الازدحام، حرارة السوق، والبحث الشاق عن الجودة.
+            {/* القصة */}
+            <p className="text-sm sm:text-base text-[#443F35] leading-relaxed mt-5">
+              <strong className="text-[#112616]">خُضرة</strong> هو مشروع مغربي أصيل نشأ من فكرة بسيطة: كيف نمكّن العائلة المغربية من الحصول على خضر وفواكه طازجة تماماً كما لو كانت قُطفت صبيحة اليوم، دون الحاجة لتحمّل عناء الازدحام، حرارة السوق، والبحث الشاق عن الجودة.
             </p>
 
-            <div className="bg-[#FAF6EE] p-5 rounded-2xl border border-[#DFD1AC] space-y-3">
-              <h3 className="font-extrabold text-base text-[#1B3A20]">
-                ما الذي يجعلنا مختلفين؟
+            {/* ما يجعلنا مختلفين */}
+            <div className="bg-gradient-to-br from-[#F7F4EC] to-white p-5 rounded-2xl border border-[#E8E1D3] space-y-3 shadow-sm mt-5">
+              <h3 className="font-black text-base text-[#112616] flex items-center gap-2">
+                <Award className="w-4 h-4 text-[#C25E12]" />
+                <span>ما الذي يجعلنا مختلفين؟</span>
               </h3>
-              <ul className="space-y-2.5 text-xs sm:text-sm text-[#5D5545]">
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-600 font-bold text-base">✓</span>
-                  <span><strong>علاقة مباشرة بالفلاحين:</strong> نشتري المنتجات من المزارع والتعاونيات الفلاحية في سوس، دكالة، الغرب، وبركان.</span>
+
+              <ul className="space-y-3 text-xs sm:text-sm text-[#524B3E]">
+                <li className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-md bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 stroke-[2.5]" />
+                  </span>
+                  <span>
+                    <strong className="text-[#112616]">علاقة مباشرة بالفلاحين:</strong> نشتري المنتجات من المزارع والتعاونيات الفلاحية في سوس، دكالة، الغرب، وبركان.
+                  </span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-600 font-bold text-base">✓</span>
-                  <span><strong>معايير الفرز الدقيقة:</strong> لا نضع في صندوقك سوى الثمار السليمة والناضجة والمختارة بعناية.</span>
+
+                <li className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-md bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 stroke-[2.5]" />
+                  </span>
+                  <span>
+                    <strong className="text-[#112616]">معايير الفرز الدقيقة:</strong> لا نضع في صندوقك سوى الثمار السليمة والناضجة والمختارة بعناية.
+                  </span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-600 font-bold text-base">✓</span>
-                  <span><strong>احترام وقت الزبون:</strong> نلتزم بالمواعيد المحددة ونوفر إمكانية الدفع عند الباب بعد الفحص والمعاينة.</span>
+
+                <li className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-md bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 stroke-[2.5]" />
+                  </span>
+                  <span>
+                    <strong className="text-[#112616]">احترام وقت الزبون:</strong> نلتزم بالمواعيد المحددة ونوفر إمكانية الدفع عند الباب بعد الفحص.
+                  </span>
                 </li>
               </ul>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#5D5545] leading-relaxed">
-              هدفنا أن نكون سلتك الغذائية الموثوقة التي لا تخذلك أبداً، بأسعار عادلة ومعاملة ملؤها التقدير والاحترام.
+            {/* الخاتمة */}
+            <p className="text-xs sm:text-sm text-[#524B3E] leading-relaxed mt-5 p-4 bg-amber-50/50 border border-amber-200 rounded-xl">
+              هدفنا أن نكون سلتك الغذائية الموثوقة التي لا تخذلك أبداً، بأسعار عادلة ومعاملة ملؤها التقدير والاحترام. 🌿
             </p>
-          </article>
-        </div>
-      ) : (
-        <div className="bg-white border-1.5 border-[#E2D5B7] rounded-3xl p-6 sm:p-10 shadow-sm text-right space-y-6">
-          {page === 'policy' && (
-            <article className="space-y-4">
-              <div className="flex items-center gap-3 text-[#1B3A20] pb-4 border-b border-[#F3ECDD]">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 text-[#D9762B] flex items-center justify-center">
-                  <RefreshCw className="w-6 h-6" />
-                </div>
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-extrabold">
-                    سياسة الاستبدال والاسترجاع
-                  </h1>
-                  <span className="text-xs sm:text-sm text-[#736B58]">ضمان كامل ورضا تام دون أي تعقيد</span>
-                </div>
-              </div>
 
-              <p className="text-sm sm:text-base text-[#443F35] leading-relaxed">
-                في متجر خُضرة، ثقتك وراحة بالك هما الأساس. إذا لم تكن راضياً بنسبة 100% عن أي صنف من أصناف طلبك، فنحن هنا لنصلح الأمر فوراً:
-              </p>
-
-              <div className="space-y-3 text-xs sm:text-sm text-[#5D5545]">
-                <div className="p-4 bg-[#FAF6EE] rounded-xl border border-[#DFD1AC]">
-                  <h4 className="font-extrabold text-[#1B3A20] text-sm sm:text-base mb-1">1. المعاينة عند الاستلام</h4>
-                  <p>يحق لك دائماً تفقد طلبك عند وصول السائق. إذا لاحظت أي منتج لا يطابق توقعاتك، يمكنك إرجاعه مباشرة مع السائق دون أي مصاريف إضافية.</p>
-                </div>
-
-                <div className="p-4 bg-[#FAF6EE] rounded-xl border border-[#DFD1AC]">
-                  <h4 className="font-extrabold text-[#1B3A20] text-sm sm:text-base mb-1">2. الإبلاغ في نفس اليوم</h4>
-                  <p>إذا لاحظت أي عيب بعد انصراف السائق، يكفي أن ترسل لنا رسالة وصورة سريعة عبر واتساب في غضون 24 ساعة، وسنقوم فوراً باستبدال المنتج أو خصم قيمته من طلبك القادم.</p>
-                </div>
-
-                <div className="p-4 bg-[#FAF6EE] rounded-xl border border-[#DFD1AC]">
-                  <h4 className="font-extrabold text-[#1B3A20] text-sm sm:text-base mb-1">3. استرداد الأموال</h4>
-                  <p>في حالة الدفع المسبق بالتحويل البنكي، نقوم بإعادة المبلغ لحسابك البنكي خلال ساعات معدودة في حالة إلغاء أي صنف غير متوفر أو غير مطابق.</p>
-                </div>
-              </div>
-            </article>
-          )}
-
-          {page === 'privacy' && (
-            <article className="space-y-4">
-              <div className="flex items-center gap-3 text-[#1B3A20] pb-4 border-b border-[#F3ECDD]">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-[#2E5336] flex items-center justify-center">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-extrabold">
-                    سياسة الخصوصية وأمان البيانات
-                  </h1>
-                  <span className="text-xs sm:text-sm text-[#736B58]">نحمي معلوماتك الشخصية بكل حرص وأمانة</span>
-                </div>
-              </div>
-
-              <p className="text-sm sm:text-base text-[#443F35] leading-relaxed">
-                نحن نلتزم بحماية خصوصية جميع زبنائنا الكرام. توضح هذه الوثيقة كيف نتعامل مع معلوماتك:
-              </p>
-
-              <div className="space-y-3 text-xs sm:text-sm text-[#5D5545]">
-                <div className="p-4 bg-[#FAF6EE] rounded-xl border border-[#DFD1AC]">
-                  <h4 className="font-extrabold text-[#1B3A20] text-sm sm:text-base mb-1">المعلومات التي نحتاجها منك</h4>
-                  <p>نطلب منك فقط المعلومات الضرورية لإيصال الطلب: الاسم الكامل، رقم الهاتف للتواصل، وعنوان الإقامة المحدد.</p>
-                </div>
-
-                <div className="p-4 bg-[#FAF6EE] rounded-xl border border-[#DFD1AC]">
-                  <h4 className="font-extrabold text-[#1B3A20] text-sm sm:text-base mb-1">كيف نستخدم معلوماتك</h4>
-                  <p>تستخدم معلوماتك حصرياً لتجهيز الطلب، والتنسيق مع سائق التوصيل، والتواصل معك عبر واتساب بخصوص تفاصيل طلبك فقط.</p>
-                </div>
-
-                <div className="p-4 bg-[#FAF6EE] rounded-xl border border-[#DFD1AC]">
-                  <h4 className="font-extrabold text-[#1B3A20] text-sm sm:text-base mb-1">عدم مشاركة البيانات</h4>
-                  <p>نحن لا نبيع، ولا نؤجر، ولا نشارك أي معلومة من معلوماتك مع أي أطراف ثالثة أو شركات إعلانية تحت أي ظرف كان.</p>
-                </div>
-              </div>
-            </article>
-          )}
-        </div>
+            {/* شارات الثقة */}
+            <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-[#F0E9DA]">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#163920] bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                <Truck className="w-3.5 h-3.5" />
+                توصيل سريع
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#163920] bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                ضمان الجودة
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#163920] bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                <Users className="w-3.5 h-3.5" />
+                +500 عميل سعيد
+              </span>
+            </div>
+          </div>
+        </article>
       )}
+
+      {/* ════════ صفحة "سياسة الاسترجاع" ════════ */}
+      {page === 'policy' && (
+        <article className="bg-white border border-[#E8E1D3] rounded-[24px] p-5 sm:p-8 shadow-sm text-right space-y-5 overflow-hidden relative">
+
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-100/30 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative">
+            {/* الرأس */}
+            <div className="flex items-center gap-3 pb-4 border-b border-[#F0E9DA]">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#C25E12] to-[#9C4505] flex items-center justify-center shadow-md shrink-0">
+                <RefreshCw className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-2xl font-black text-[#112616] leading-tight">
+                  سياسة الاستبدال والاسترجاع
+                </h1>
+                <span className="text-[11px] sm:text-xs text-[#787163] font-bold block mt-1">
+                  ضمان كامل ورضا تام دون أي تعقيد
+                </span>
+              </div>
+            </div>
+
+            <p className="text-sm sm:text-base text-[#443F35] leading-relaxed mt-5">
+              في متجر خُضرة، ثقتك وراحة بالك هما الأساس. إذا لم تكن راضياً بنسبة 100% عن أي صنف من أصناف طلبك، فنحن هنا لنصلح الأمر فوراً:
+            </p>
+
+            {/* الخطوات الثلاث */}
+            <div className="space-y-3 mt-5">
+              <PolicyStep
+                number={1}
+                title="المعاينة عند الاستلام"
+                description="يحق لك دائماً تفقد طلبك عند وصول السائق. إذا لاحظت أي منتج لا يطابق توقعاتك، يمكنك إرجاعه مباشرة مع السائق دون أي مصاريف إضافية."
+              />
+              <PolicyStep
+                number={2}
+                title="الإبلاغ في نفس اليوم"
+                description="إذا لاحظت أي عيب بعد انصراف السائق، يكفي أن ترسل لنا رسالة وصورة سريعة عبر واتساب في غضون 24 ساعة، وسنقوم فوراً باستبدال المنتج أو خصم قيمته من طلبك القادم."
+              />
+              <PolicyStep
+                number={3}
+                title="استرداد الأموال"
+                description="في حالة الدفع المسبق بالتحويل البنكي، نقوم بإعادة المبلغ لحسابك البنكي خلال ساعات معدودة في حالة إلغاء أي صنف غير متوفر أو غير مطابق."
+              />
+            </div>
+
+            {/* ملاحظة */}
+            <div className="mt-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-2.5">
+              <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+              <p className="text-xs sm:text-sm text-emerald-900 font-medium leading-relaxed">
+                <strong className="font-black">ضماننا لك:</strong> رضاك هو رأس مالنا. لن نتردد في تعويضك عن أي منتج لم ينل إعجابك.
+              </p>
+            </div>
+          </div>
+        </article>
+      )}
+
+      {/* ════════ صفحة "سياسة الخصوصية" ════════ */}
+      {page === 'privacy' && (
+        <article className="bg-white border border-[#E8E1D3] rounded-[24px] p-5 sm:p-8 shadow-sm text-right space-y-5 overflow-hidden relative">
+
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-100/30 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative">
+            {/* الرأس */}
+            <div className="flex items-center gap-3 pb-4 border-b border-[#F0E9DA]">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#163920] to-[#0E2615] flex items-center justify-center shadow-md shrink-0">
+                <Lock className="w-6 h-6 text-[#F5D76E]" />
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-2xl font-black text-[#112616] leading-tight">
+                  سياسة الخصوصية وأمان البيانات
+                </h1>
+                <span className="text-[11px] sm:text-xs text-[#787163] font-bold block mt-1">
+                  نحمي معلوماتك الشخصية بكل حرص وأمانة
+                </span>
+              </div>
+            </div>
+
+            <p className="text-sm sm:text-base text-[#443F35] leading-relaxed mt-5">
+              نحن نلتزم بحماية خصوصية جميع زبنائنا الكرام. توضح هذه الوثيقة كيف نتعامل مع معلوماتك:
+            </p>
+
+            <div className="space-y-3 mt-5">
+              <PrivacyCard
+                title="المعلومات التي نحتاجها منك"
+                description="نطلب منك فقط المعلومات الضرورية لإيصال الطلب: الاسم الكامل، رقم الهاتف للتواصل، وعنوان الإقامة المحدد."
+              />
+              <PrivacyCard
+                title="كيف نستخدم معلوماتك"
+                description="تستخدم معلوماتك حصرياً لتجهيز الطلب، والتنسيق مع سائق التوصيل، والتواصل معك عبر واتساب بخصوص تفاصيل طلبك فقط."
+              />
+              <PrivacyCard
+                title="عدم مشاركة البيانات"
+                description="نحن لا نبيع، ولا نؤجر، ولا نشارك أي معلومة من معلوماتك مع أي أطراف ثالثة أو شركات إعلانية تحت أي ظرف كان."
+              />
+            </div>
+
+            {/* ملاحظة */}
+            <div className="mt-5 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5">
+              <Heart className="w-5 h-5 text-[#C25E12] shrink-0 mt-0.5" />
+              <p className="text-xs sm:text-sm text-amber-900 font-medium leading-relaxed">
+                <strong className="font-black">التزامنا:</strong> نستخدم بياناتك فقط لخدمتك بشكل أفضل. بياناتك أمانة في أعناقنا.
+              </p>
+            </div>
+          </div>
+        </article>
+      )}
+
     </div>
   );
 };
+
+// ════════ مكون فرعي: خطوة سياسة ════════
+interface PolicyStepProps {
+  number: number;
+  title: string;
+  description: string;
+}
+
+const PolicyStep: React.FC<PolicyStepProps> = ({ number, title, description }) => (
+  <div className="p-4 bg-[#F7F4EC] rounded-xl border border-[#E8E1D3] hover:border-[#C25E12]/40 hover:shadow-sm transition-all">
+    <div className="flex items-start gap-3">
+      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#C25E12] to-[#9C4505] text-white flex items-center justify-center font-black text-sm shadow-sm shrink-0">
+        {number}
+      </span>
+      <div className="flex-1">
+        <h4 className="font-black text-[#112616] text-sm mb-1">{title}</h4>
+        <p className="text-xs sm:text-sm text-[#524B3E] leading-relaxed">{description}</p>
+      </div>
+    </div>
+  </div>
+);
+
+// ════════ مكون فرعي: بطاقة خصوصية ════════
+interface PrivacyCardProps {
+  title: string;
+  description: string;
+}
+
+const PrivacyCard: React.FC<PrivacyCardProps> = ({ title, description }) => (
+  <div className="p-4 bg-[#F7F4EC] rounded-xl border border-[#E8E1D3] hover:border-[#163920]/40 hover:shadow-sm transition-all">
+    <div className="flex items-start gap-3">
+      <span className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+        <ShieldCheck className="w-4 h-4 text-emerald-700 stroke-[2.5]" />
+      </span>
+      <div className="flex-1">
+       
