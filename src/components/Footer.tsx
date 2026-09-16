@@ -1,9 +1,9 @@
 // ============================================================
 // الملف: Footer.tsx – الإصدار 2.0
-// تذييل المتجر – تصميم موحّد
+// تذييل المتجر – تصميم أنيق ومتناسق
 // ============================================================
 import React from 'react';
-import { Heart, ShieldCheck, Truck, RefreshCw, Clock, MessageCircle, Lock } from 'lucide-react';
+import { Heart, ShieldCheck, Truck, RefreshCw, MessageCircle, Lock } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 
 interface FooterProps {
@@ -19,10 +19,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
     <footer className="bg-[#112616] text-white pt-8 pb-20 sm:pb-16 border-t-4 border-[#C25E12]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* الشبكة الرئيسية للأعمدة */}
+        {/* ════════ الشبكة الرئيسية ════════ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 text-right items-start">
 
-          {/* العمود 1: العلامة التجارية والتعريف */}
+          {/* ─── العمود 1: العلامة التجارية ─── */}
           <div className="space-y-3 max-w-md mx-auto md:mx-0 text-center md:text-right">
             <div className="flex items-center justify-center md:justify-start gap-2">
               <span className="text-2xl">🌿</span>
@@ -52,7 +52,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
             </div>
           </div>
 
-          {/* العمود 2: روابط مهمة + زر الواتساب + أوقات الخدمة */}
+          {/* ─── العمود 2: روابط مهمة + الواتساب ─── */}
           <div className="space-y-3 text-center md:text-right max-w-md mx-auto md:mx-0 w-full">
             <h3 className="text-sm sm:text-base font-black text-[#F5D76E] relative inline-block md:block">
               روابط مهمة
@@ -91,29 +91,25 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
             </ul>
 
             {/* زر الواتساب */}
-            <div className="space-y-3">
+            <div className="space-y-3 pt-1">
               <a
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#25D366] text-white px-5 py-2.5 rounded-full font-black text-sm mt-2 no-underline transition-all duration-200 ease-in-out hover:-translate-y-[2px] hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)] cursor-pointer"
+                className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20BA5A] text-white px-5 py-2.5 rounded-full font-black text-sm no-underline transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)] cursor-pointer shadow-md"
               >
                 <MessageCircle className="w-4 h-4 fill-current text-white" />
                 <span>تواصل عبر الواتساب</span>
               </a>
-
-              {/* عبارة خدمة الزبناء */}
-              <div className="flex items-center justify-center md:justify-start gap-1.5 text-xs text-[#F5D76E] bg-white/10 py-1.5 px-3 rounded-lg border border-white/20 w-fit mx-auto md:mx-0 font-bold">
-                <Clock className="w-3.5 h-3.5 text-[#F5D76E] shrink-0" />
-                <span>09:00 - 21:00</span>
-              </div>
             </div>
           </div>
 
         </div>
 
-        {/* ─── التذييل السفلي (حقوق النشر) ─── */}
-        <div className="pt-4 border-t border-white/20 flex flex-col sm:flex-row items-center justify-between text-xs text-white/90 gap-2 text-center">
+        {/* ════════ التذييل السفلي ════════ */}
+        <div className="pt-4 border-t border-white/20 flex flex-col sm:flex-row items-center justify-between text-xs text-white/90 gap-3 text-center">
+
+          {/* حقوق النشر + زر المدير */}
           <div className="font-bold tracking-wide flex items-center justify-center sm:justify-start gap-1.5">
             <button
               type="button"
@@ -125,9 +121,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
               <Lock className="w-3.5 h-3.5" />
             </button>
             <p>
-              جميع الحقوق محفوظة © {new Date().getFullYear()} <span className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</span>
+              جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
+              <span className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</span>
             </p>
           </div>
+
+          {/* "صنع بكل ❤️" */}
           <p className="flex items-center gap-1.5 justify-center font-bold whitespace-nowrap bg-white/10 px-3 py-1 rounded-full border border-white/20">
             <span>صنع بكل</span>
             <Heart className="w-3.5 h-3.5 text-red-500 fill-current animate-bounce" />
