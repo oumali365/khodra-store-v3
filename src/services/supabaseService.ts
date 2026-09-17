@@ -1,3 +1,7 @@
+// ============================================================
+// supabaseService.ts – الإصدار 3.0
+// مُصحَّح: تنظيف items + RLS + RPC للطلبات
+// ============================================================
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Product, OrderSubmission } from '../types';
 import { STORE_CONFIG } from '../data/config';
@@ -20,10 +24,6 @@ export function getSupabase(): SupabaseClient | null {
 // ─── المنتجات ───
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * تطبيع بيانات المنتج القادمة من Supabase
- * تضمن أن id/price/stock أرقام، وأن active boolean
- */
 function normalizeProduct(row: any): Product {
   return {
     id: Number(row.id),
@@ -43,9 +43,7 @@ function normalizeProduct(row: any): Product {
 
 export async function fetchProducts(): Promise<Product[]> {
   const client = getSupabase();
-  if (!client) {
-    return INITIAL_PRODUCTS;
-  }
+  if (!client) return INITIAL_PRODUCTS;
 
   try {
     const { data, error } = await client
@@ -55,12 +53,11 @@ export async function fetchProducts(): Promise<Product[]> {
       .order('id');
 
     if (error) {
-      console.warn('Supabase products fetch failed, using built-in catalog:', error.message);
+      console.warn('Supabase products fetch failed:', error.message);
       return INITIAL_PRODUCTS;
     }
 
     if (data && data.length > 0) {
-      // ✅ تطبيع كل منتج لضمان الأنواع الصحيحة
       return data.map(normalizeProduct);
     }
   } catch (err) {
@@ -69,89 +66,97 @@ export async function fetchProducts(): Promise<Product[]> {
 
   return INITIAL_PRODUCTS;
 }
+
 // ═══════════════════════════════════════════════════════════════
-// ─── رفع الطلب (مُصلح: يُظهر الأخطاء الحقيقية) ───
+// ─── رفع الطلب (مُصحَّح: تنظيف items) ───
 // ═══════════════════════════════════════════════════════════════
+
+/**
+ * تنظيف العنصر ليكون JSON صحيحاً (بدون undefined/NaN/Infinity)
+ */
+function cleanItemForJson(item: any): Record<string, any> {
+  const clean: Record<string, any> = {};
+
+  // الحقول الأساسية المطلوبة
+  clean.name = String(item?.name || 'منتج');
+  clean.variantLabel = String(item?.variantLabel || '');
+  clean.qty = Number(item?.qty) || 1;
+  clean.lineTotal = Number(item?.lineTotal) || 0;
+  clean.icon = String(item?.icon || '🛒');
+
+  // الحقول الاختيارية (فقط إذا كانت موجودة وصحيحة)
+  if (item?.image_url && typeof item.image_url === 'string') {
+    clean.image_url = item.image_url;
+  }
+  if (item?.bundleId && typeof item.bundleId === 'string') {
+    clean.bundleId = item.bundleId;
+  }
+
+  return clean;
+}
 
 export async function submitOrder(
   order: OrderSubmission
 ): Promise<{ success: boolean; message?: string; errorCode?: string }> {
   const client = getSupabase();
 
-  // ─── حفظ محلي احتياطي (يتم دائماً، حتى لو نجح الحفظ في Supabase) ───
+  // ─── حفظ محلي احتياطي ───
   try {
     const existingOrders = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
     existingOrders.unshift(order);
     localStorage.setItem('khodra_recent_orders', JSON.stringify(existingOrders.slice(0, 20)));
   } catch {
-    // ignore local storage errors
+    // ignore
   }
 
-  // إذا لم يتوفر Supabase، نكتفي بالحفظ المحلي
   if (!client) {
-    console.warn('⚠️ Supabase client غير متاح — تم الحفظ محلياً فقط');
+    console.warn('⚠️ Supabase client غير متاح — تم الحفظ محلياً');
     return {
       success: true,
-      message: 'تم حفظ الطلب محلياً (سيتم إرسال البيانات عبر واتساب)',
+      message: 'تم حفظ الطلب محلياً',
     };
   }
 
   try {
-    // ─── تجهيز بيانات الطلب ───
+    // ─── تجهيز الملاحظات ───
     const noteParts: string[] = [];
+    if (order.deliverySlot) noteParts.push(`وقت التسليم: ${order.deliverySlot}`);
+    noteParts.push(`طريقة الدفع: ${order.paymentMethod === 'bank' ? 'تحويل بنكي' : 'الدفع عند الاستلام'}`);
+    if (order.bankId) noteParts.push(`البنك: ${order.bankId}`);
+    if (order.receiptFileName) noteParts.push(`الوصل: ${order.receiptFileName}`);
+    if (order.mapsLink) noteParts.push(`رابط الخريطة: ${order.mapsLink}`);
+    if (order.notes) noteParts.push(`ملاحظات: ${order.notes}`);
 
-    if (order.deliverySlot) {
-      noteParts.push(`وقت التسليم: ${order.deliverySlot}`);
-    }
+    // ─── ✅ تنظيف items لضمان JSON صحيح ───
+    const cleanItems = (order.items || []).map(cleanItemForJson);
 
-    noteParts.push(
-      `طريقة الدفع: ${order.paymentMethod === 'bank' ? 'تحويل بنكي' : 'الدفع عند الاستلام'}`
-    );
-
-    if (order.bankId) {
-      noteParts.push(`البنك: ${order.bankId}`);
-    }
-
-    if (order.receiptFileName) {
-      noteParts.push(`الوصل: ${order.receiptFileName}`);
-    }
-
-    if (order.mapsLink) {
-      noteParts.push(`رابط الخريطة: ${order.mapsLink}`);
-    }
-
-    if (order.notes) {
-      noteParts.push(`ملاحظات: ${order.notes}`);
-    }
-
+    // ─── بناء بيانات الطلب ───
     const orderData: Record<string, any> = {
-      order_code: order.orderCode,
-      customer_name: order.customerName,
-      phone: order.phone,
-      address: order.address,
-      items: order.items,
-      subtotal: order.subtotal,
-      delivery_fee: order.deliveryFee,
-      total: order.total,
-      status: 'pending', // ← القيمة الصحيحة المتوافقة مع القيد
-      note: noteParts.join(' | '),
+      order_code: String(order.orderCode || `#${Date.now()}`),
+      customer_name: String(order.customerName || 'عميل'),
+      phone: String(order.phone || ''),
+      address: String(order.address || ''),
+      items: cleanItems,                    // ← JSONB نظيف
+      subtotal: Number(order.subtotal) || 0,
+      delivery_fee: Number(order.deliveryFee) || 0,
+      total: Number(order.total) || 0,
+      status: 'pending',                    // ← قيمة صحيحة في القيد
+      note: noteParts.join(' | ') || null,
+      maps_link: order.mapsLink ? String(order.mapsLink) : null,
       created_at: new Date().toISOString(),
     };
 
-    // ✅ إضافة maps_link فقط إذا كان موجوداً (العمود موجود في الجدول)
-    if (order.mapsLink) {
-      orderData.maps_link = order.mapsLink;
-    }
+    // ─── للتشخيص ───
+    console.log('📤 إرسال الطلب:', JSON.stringify(orderData, null, 2));
 
-    // ─── الإدراج مع عرض الأخطاء الحقيقية ───
+    // ─── الإدراج ───
     const { data, error } = await client
       .from('orders')
       .insert([orderData])
       .select();
 
     if (error) {
-      // ✅ الآن نُظهر الخطأ الحقيقي بدل إخفائه
-      console.error('❌ فشل حفظ الطلب في Supabase:', {
+      console.error('❌ فشل حفظ الطلب:', {
         code: error.code,
         message: error.message,
         details: error.details,
@@ -160,26 +165,22 @@ export async function submitOrder(
 
       return {
         success: false,
-        message: `فشل حفظ الطلب في قاعدة البيانات: ${error.message || error.code || 'خطأ غير معروف'}`,
+        message: `فشل حفظ الطلب: ${error.message || error.code || 'خطأ'}`,
         errorCode: error.code,
       };
     }
 
-    // ✅ نجح الحفظ
-    console.log('✅ تم حفظ الطلب في Supabase:', {
+    console.log('✅ تم حفظ الطلب:', {
       id: data?.[0]?.id,
       order_code: data?.[0]?.order_code,
-      status: data?.[0]?.status,
     });
 
     return { success: true };
   } catch (err: any) {
-    // ─── أخطاء الشبكة أو JS ───
-    console.error('❌ خطأ في الاتصال بـ Supabase:', err);
-
+    console.error('❌ خطأ في الاتصال:', err);
     return {
       success: false,
-      message: `تعذّر الاتصال بقاعدة البيانات: ${err?.message || 'خطأ غير معروف'}`,
+      message: `تعذّر الاتصال: ${err?.message || 'خطأ غير معروف'}`,
       errorCode: 'NETWORK_ERROR',
     };
   }
@@ -203,9 +204,7 @@ export interface DbReview {
 
 export async function fetchReviews(): Promise<DbReview[] | null> {
   const client = getSupabase();
-  if (!client) {
-    return null;
-  }
+  if (!client) return null;
 
   try {
     const { data, error } = await client
@@ -237,7 +236,7 @@ export async function fetchReviews(): Promise<DbReview[] | null> {
       }));
     }
   } catch (err) {
-    console.warn('Network error while fetching reviews from Supabase:', err);
+    console.warn('Network error while fetching reviews:', err);
   }
 
   return null;
@@ -264,7 +263,7 @@ export async function submitCustomerReview(review: {
     };
     localStorage.setItem('khodra_customer_reviews', JSON.stringify([localReview, ...cached].slice(0, 30)));
   } catch {
-    // Ignore local storage quota errors
+    // ignore
   }
 
   if (!client) {
@@ -273,12 +272,12 @@ export async function submitCustomerReview(review: {
 
   try {
     const newRecord = {
-      author: review.author,
-      neighborhood: review.neighborhood || 'فاس',
-      rating: review.rating,
-      comment: review.comment,
-      category: review.category,
-      verified: review.verified !== undefined ? review.verified : true,
+      author: String(review.author || 'زبون'),
+      neighborhood: String(review.neighborhood || 'فاس'),
+      rating: Number(review.rating) || 5,
+      comment: String(review.comment || ''),
+      category: String(review.category || 'quality'),
+      verified: review.verified !== undefined ? Boolean(review.verified) : true,
       created_at: new Date().toISOString(),
     };
 
@@ -307,7 +306,7 @@ export async function submitCustomerReview(review: {
 
     return { success: true, data: inserted };
   } catch (err) {
-    console.warn('Error saving review to Supabase:', err);
+    console.warn('Error saving review:', err);
     return { success: true, message: 'تم استلام التقييم' };
   }
 }
@@ -326,7 +325,7 @@ export async function deleteCustomerReview(reviewId: string): Promise<{ success:
     const updated = cached.filter((item: any) => String(item.id) !== String(reviewId));
     localStorage.setItem('khodra_customer_reviews', JSON.stringify(updated));
   } catch {
-    // Ignore localStorage errors
+    // ignore
   }
 
   if (!client) {
@@ -341,7 +340,7 @@ export async function deleteCustomerReview(reviewId: string): Promise<{ success:
 
     if (error) {
       console.warn('Supabase delete review notice:', error.message);
-      return { success: true, message: 'تم حذف التقييم وإخفاؤه من المتجر' };
+      return { success: true, message: 'تم إخفاء التقييم' };
     }
 
     return { success: true, message: 'تم حذف التقييم بنجاح' };
@@ -388,7 +387,6 @@ function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
   return 'pending';
 }
 
-// ─── الحصول على الـ PIN من localStorage ───
 function getAdminPin(): string {
   try {
     return localStorage.getItem('khodra_admin_pin') || '1234';
@@ -397,7 +395,6 @@ function getAdminPin(): string {
   }
 }
 
-// ─── تحويل صف من قاعدة البيانات إلى DbOrder ───
 function mapRowToOrder(row: any): DbOrder {
   return {
     id: row.id,
@@ -422,7 +419,6 @@ function mapRowToOrder(row: any): DbOrder {
   };
 }
 
-// ─── قراءة الطلبات المحلية (fallback) ───
 function readLocalOrders(): DbOrder[] {
   try {
     const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
@@ -446,13 +442,9 @@ function readLocalOrders(): DbOrder[] {
   }
 }
 
-// ─── جلب الطلبات (عبر RPC آمن) ───
 export async function fetchOrders(): Promise<DbOrder[]> {
   const client = getSupabase();
-
-  if (!client) {
-    return readLocalOrders();
-  }
+  if (!client) return readLocalOrders();
 
   try {
     const { data, error } = await client.rpc('get_orders_secure', {
@@ -471,12 +463,10 @@ export async function fetchOrders(): Promise<DbOrder[]> {
   }
 }
 
-// ─── تحديث حالة الطلب (عبر RPC آمن) ───
 export async function updateOrderStatus(
   orderId: string | number,
   status: OrderStatus
 ): Promise<{ success: boolean; message?: string }> {
-  // طلب محلي فقط
   if (String(orderId).startsWith('local-')) {
     try {
       const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
@@ -490,9 +480,7 @@ export async function updateOrderStatus(
   }
 
   const client = getSupabase();
-  if (!client) {
-    return { success: false, message: 'لا يوجد اتصال بقاعدة البيانات' };
-  }
+  if (!client) return { success: false, message: 'لا يوجد اتصال' };
 
   try {
     const { error } = await client.rpc('update_order_status_secure', {
@@ -507,16 +495,14 @@ export async function updateOrderStatus(
     }
     return { success: true };
   } catch (err) {
-    console.warn('Network error while updating order status:', err);
-    return { success: false, message: 'تعذّر الاتصال بالخادم' };
+    console.warn('Network error while updating status:', err);
+    return { success: false, message: 'تعذّر الاتصال' };
   }
 }
 
-// ─── حذف طلب نهائياً (عبر RPC آمن) ───
 export async function deleteOrder(
   orderId: string | number
 ): Promise<{ success: boolean; message?: string }> {
-  // طلب محلي فقط
   if (String(orderId).startsWith('local-')) {
     try {
       const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
@@ -530,9 +516,7 @@ export async function deleteOrder(
   }
 
   const client = getSupabase();
-  if (!client) {
-    return { success: false, message: 'لا يوجد اتصال بقاعدة البيانات' };
-  }
+  if (!client) return { success: false, message: 'لا يوجد اتصال' };
 
   try {
     const { error } = await client.rpc('delete_order_secure', {
@@ -547,17 +531,15 @@ export async function deleteOrder(
     return { success: true, message: 'تم حذف الطلب نهائياً' };
   } catch (err) {
     console.warn('Network error while deleting order:', err);
-    return { success: false, message: 'تعذّر الاتصال بالخادم' };
+    return { success: false, message: 'تعذّر الاتصال' };
   }
 }
 
-// ─── جلب عدد الطلبات الجديدة (pending) ───
 export async function fetchPendingOrdersCount(): Promise<number> {
   const client = getSupabase();
 
   if (!client) {
-    const local = readLocalOrders();
-    return local.filter((o) => o.status === 'pending').length;
+    return readLocalOrders().filter((o) => o.status === 'pending').length;
   }
 
   try {
@@ -572,7 +554,7 @@ export async function fetchPendingOrdersCount(): Promise<number> {
 
     return (data || []).filter((o: any) => normalizeOrderStatus(o.status) === 'pending').length;
   } catch (err) {
-    console.warn('Network error while counting pending orders:', err);
+    console.warn('Network error while counting pending:', err);
     return 0;
   }
 }
