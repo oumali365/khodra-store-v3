@@ -1,19 +1,17 @@
 // ============================================================
-// الملف: StoreCoverageMap.tsx – الإصدار 2.0
-// خريطة نطاق التوصيل – تصميم متناسق مع المتجر
+// الملف: StoreCoverageMap.tsx – الإصدار 3.0
+// خريطة نطاق التوصيل – تصميم متناسق مع الإصدارات الأخيرة
 // ============================================================
 import React, { useEffect, useRef } from 'react';
 import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Move,
   Lock,
   MapPin,
   Sparkles,
-  Truck,
-  CheckCircle2,
   Navigation,
+  Leaf,
 } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -129,7 +127,7 @@ export const StoreCoverageMap: React.FC = () => {
         html: `
           <div class="flex items-center gap-1 cursor-pointer select-none -translate-x-1/2 -translate-y-1/2 group">
             <span class="w-2.5 h-2.5 rounded-full bg-[#C25E12] border-2 border-white shadow-sm shrink-0 group-hover:scale-125 transition-transform"></span>
-            <span class="map-location-label bg-white/95 text-stone-800 px-1.5 py-0.5 rounded-md border border-[#DFD1AC] shadow-sm text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap transition-all group-hover:scale-105 group-hover:text-[#C25E12]">
+            <span class="map-location-label bg-white/95 text-stone-800 px-1.5 py-0.5 rounded-md border border-[#E8E1D3] shadow-sm text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap transition-all group-hover:scale-105 group-hover:text-[#C25E12]">
               ${loc.name}
             </span>
           </div>
@@ -299,7 +297,7 @@ export const StoreCoverageMap: React.FC = () => {
             {/* ─── شارة "المركز الرئيسي" ─── */}
             <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-2 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full border border-[#E8E1D3] shadow-md">
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#163920] to-[#0E2615] flex items-center justify-center">
-                <span className="text-white text-xs">🌿</span>
+                <Leaf className="w-3.5 h-3.5 text-[#F5D76E]" />
               </div>
               <span className="text-[11px] font-black text-[#112616]">
                 متجر خُضرة - فاس
@@ -332,22 +330,6 @@ export const StoreCoverageMap: React.FC = () => {
                 </button>
               </div>
             )}
-          </div>
-
-          {/* ════════ شارات سفلية ════════ */}
-          <div className="mt-5 pt-4 border-t border-[#F0E9DA] flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-            <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black text-[#163920] bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 shadow-xs">
-              <Truck className="w-3.5 h-3.5 text-emerald-700" />
-              <span>توصيل يومي</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black text-[#163920] bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 shadow-xs">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-              <span>10+ أحياء مغطاة</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black text-[#C25E12] bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200 shadow-xs">
-              <MapPin className="w-3.5 h-3.5 text-[#C25E12]" />
-              <span>منطقة فاس الكبرى</span>
-            </span>
           </div>
 
         </div>
