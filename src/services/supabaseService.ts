@@ -127,33 +127,46 @@ export async function submitOrder(
     if (order.mapsLink) noteParts.push(`رابط الخريطة: ${order.mapsLink}`);
     if (order.notes) noteParts.push(`ملاحظات: ${order.notes}`);
 
-    // ─── ✅ تنظيف items لضمان JSON صحيح ───
-    const cleanItems = (order.items || []).map(cleanItemForJson);
+    // ─── تنظيف items ───
+    const cleanItems = (order.items || []).map((item) => {
+      const clean: Record<string, any> = {
+        name: String(item?.name || 'منتج'),
+        variantLabel: String(item?.variantLabel || ''),
+        qty: Number(item?.qty) || 1,
+        lineTotal: Number(item?.lineTotal) || 0,
+        icon: String(item?.icon || '🛒'),
+      };
+      if (item?.image_url && typeof item.image_url === 'string') {
+        clean.image_url = item.image_url;
+      }
+      if (item?.bundleId && typeof item.bundleId === 'string') {
+        clean.bundleId = item.bundleId;
+      }
+      return clean;
+    });
 
-    // ─── بناء بيانات الطلب ───
+    // ─── بيانات الطلب ───
     const orderData: Record<string, any> = {
       order_code: String(order.orderCode || `#${Date.now()}`),
       customer_name: String(order.customerName || 'عميل'),
       phone: String(order.phone || ''),
       address: String(order.address || ''),
-      items: cleanItems,                    // ← JSONB نظيف
+      items: cleanItems,
       subtotal: Number(order.subtotal) || 0,
       delivery_fee: Number(order.deliveryFee) || 0,
       total: Number(order.total) || 0,
-      status: 'pending',                    // ← قيمة صحيحة في القيد
+      status: 'pending',
       note: noteParts.join(' | ') || null,
       maps_link: order.mapsLink ? String(order.mapsLink) : null,
       created_at: new Date().toISOString(),
     };
 
-    // ─── للتشخيص ───
     console.log('📤 إرسال الطلب:', JSON.stringify(orderData, null, 2));
 
-    // ─── الإدراج ───
-    const { data, error } = await client
+    // ─── ✅ الإدراج بدون .select() ───
+    const { error } = await client
       .from('orders')
-      .insert([orderData])
-      .select();
+      .insert([orderData]);
 
     if (error) {
       console.error('❌ فشل حفظ الطلب:', {
@@ -165,16 +178,12 @@ export async function submitOrder(
 
       return {
         success: false,
-        message: `فشل حفظ الطلب: ${error.message || error.code || 'خطأ'}`,
+        message: `فشل حفظ الطلب: ${error.message || error.code}`,
         errorCode: error.code,
       };
     }
 
-    console.log('✅ تم حفظ الطلب:', {
-      id: data?.[0]?.id,
-      order_code: data?.[0]?.order_code,
-    });
-
+    console.log('✅ تم حفظ الطلب بنجاح');
     return { success: true };
   } catch (err: any) {
     console.error('❌ خطأ في الاتصال:', err);
