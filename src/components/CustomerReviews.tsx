@@ -363,21 +363,52 @@ export const CustomerReviews: React.FC = () => {
     setTimeout(() => setAdminNotification(null), 3000);
   };
 
-  const handleChangePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPinInput.trim() || newPinInput.trim().length < 4) return;
+  const handleChangePinSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!newPinInput.trim() || newPinInput.trim().length < 4) return;
+
+  const newPin = newPinInput.trim();
+
+  try {
+    // 1. حدّث PIN في Supabase أولاً
+    const { error } = await supabase
+      .from('store_settings')
+      .upsert(
+        { 
+          key: 'admin_pin', 
+          value: newPin,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+
+    if (error) {
+      console.error('❌ فشل تحديث PIN في Supabase:', error.message);
+      setAdminNotification(`❌ فشل تحديث PIN: ${error.message}`);
+      setTimeout(() => setAdminNotification(null), 4000);
+      return;
+    }
+
+    // 2. حدّث localStorage (احتياطي)
     try {
-      localStorage.setItem('khodra_admin_pin', newPinInput.trim());
-      setChangePinSuccess(true);
-      setTimeout(() => {
-        setChangePinSuccess(false);
-        setIsChangePinModalOpen(false);
-        setNewPinInput('');
-        setAdminNotification('تم تحديث الرمز السري للمدير بنجاح.');
-        setTimeout(() => setAdminNotification(null), 3500);
-      }, 1200);
+      localStorage.setItem('khodra_admin_pin', newPin);
     } catch {}
-  };
+
+    // 3. أظهر النجاح
+    setChangePinSuccess(true);
+    setTimeout(() => {
+      setChangePinSuccess(false);
+      setIsChangePinModalOpen(false);
+      setNewPinInput('');
+      setAdminNotification('✅ تم تحديث الرمز السري في Supabase و localStorage.');
+      setTimeout(() => setAdminNotification(null), 4000);
+    }, 1200);
+  } catch (err: any) {
+    console.error('❌ خطأ في تحديث PIN:', err);
+    setAdminNotification(`❌ خطأ: ${err?.message || 'غير معروف'}`);
+    setTimeout(() => setAdminNotification(null), 4000);
+  }
+};
 
   // ─── ✅ حذف التعليق (Soft Delete) ───
   const handleExecuteDelete = async () => {
