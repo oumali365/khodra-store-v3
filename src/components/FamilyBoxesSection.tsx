@@ -1,6 +1,6 @@
 // ============================================================
-// FamilyBoxesSection.tsx – قسم صناديق العائلة التوفيرية
-// الإصدار 3.0 - نافذة منبثقة محسّنة بتصميم احترافي
+// FamilyBoxesSection.tsx – الإصدار 4.0
+// تأثيرات بصرية خفيفة لتحسين الاستجابة
 // ============================================================
 import React, { useState, useEffect } from 'react';
 import {
@@ -12,15 +12,14 @@ import { gsap } from 'gsap';
 import { Product } from '../types';
 import { STORE_CONFIG } from '../data/config';
 
-// ─── مسارات صور صناديق العائلة المتاحة محلياً في public/images/family-boxes ───
-// يمكنك وضع ملفات .webp بهذه الأسماء في مجلد public/images/family-boxes وستظهر مباشرة
+// ─── مسارات صور صناديق العائلة ───
 export const FAMILY_BOX_PUBLIC_IMAGES: Record<string, string> = {
   small: '/images/family-boxes/family-small.webp',
   medium: '/images/family-boxes/family-medium.webp',
   large: '/images/family-boxes/family-large.webp',
 };
 
-// ─── مكون عرض صورة صندوق العائلة مع حماية ذكية في حال لم تُحمّل الصورة بعد ───
+// ─── مكون عرض صورة صندوق العائلة ───
 const BoxImageDisplay: React.FC<{
   src: string;
   alt: string;
@@ -398,8 +397,8 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
       className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-16"
       aria-label="قسم صناديق العائلة التوفيرية"
     >
-      {/* ─── عنوان القسم بتصميم بارز ومتناسق مع أقسام المتجر الأخرى ─── */}
-      <div className="bg-white rounded-3xl border border-stone-200/90 shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-6 sm:p-8 text-center max-w-xl mx-auto mb-8 sm:mb-12 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      {/* ─── عنوان القسم ─── */}
+      <div className="bg-white rounded-3xl border border-stone-200/90 shadow-sm p-6 sm:p-8 text-center max-w-xl mx-auto mb-8 sm:mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1E4327]/10 text-[#1E4327] font-black text-xs sm:text-sm mb-3.5">
           <Package className="w-4 h-4 text-[#C25E12]" />
           <span>باقات التوفير الأسبوعية</span>
@@ -414,11 +413,11 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
         <div className="flex sm:hidden items-center justify-center gap-1.5 mt-4 pt-3 border-t border-stone-100">
           <span className="text-[11px] font-bold text-stone-500">مرر لاكتشاف جميع الباقات</span>
-          <span className="text-xs text-[#008A4B] animate-pulse">←</span>
+          <span className="text-xs text-[#008A4B]">←</span>
         </div>
       </div>
 
-      {/* ─── عرض الصناديق: بطاقات أقل عرضاً، أكثر طولاً وتناسقاً مع بروز راقٍ ─── */}
+      {/* ─── عرض الصناديق ─── */}
       <div className="relative max-w-6xl mx-auto">
         <div
           ref={scrollContainerRef}
@@ -433,22 +432,21 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
             return (
               <article
                 key={box.id}
-                className={`w-[82vw] max-w-[325px] sm:w-[340px] md:w-auto md:max-w-none shrink-0 snap-center snap-always bg-white rounded-3xl border border-stone-200/90 shadow-[0_6px_28px_rgba(0,0,0,0.06)] hover:shadow-[0_14px_38px_rgba(0,0,0,0.11)] hover:-translate-y-1.5 transition-all duration-300 p-4 sm:p-5 text-right flex flex-col justify-between group ${
-                  isActive ? 'ring-2 ring-[#008A4B]/40 ring-offset-2 ring-offset-[#FAF8F4]' : ''
+                className={`w-[82vw] max-w-[325px] sm:w-[340px] md:w-auto md:max-w-none shrink-0 snap-center snap-always bg-white rounded-3xl border-2 shadow-sm transition-colors duration-200 p-4 sm:p-5 text-right flex flex-col justify-between ${
+                  isActive ? 'border-[#008A4B]' : 'border-stone-200/90'
                 }`}
               >
                 <div>
-                  {/* حاوية الصورة بطول مناسب وبروز عميق */}
                   <div
                     onClick={() => openBoxModal(box)}
-                    className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-stone-100 cursor-pointer shadow-inner"
+                    className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-stone-100 cursor-pointer"
                   >
                     <BoxImageDisplay
                       src={box.image}
                       alt={box.name}
-                      className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-500 ease-out"
+                      className="w-full h-full object-cover object-center"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+                    <div className="absolute inset-0 bg-black/0 pointer-events-none" />
 
                     <div className="absolute top-3 right-3 z-10">
                       <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-[#008A4B] text-white text-[11px] sm:text-xs font-black shadow-md tracking-wide">
@@ -463,7 +461,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </div>
                   </div>
 
-                  {/* تفاصيل الاسم والسعر */}
                   <div className="mt-4 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h3
@@ -489,7 +486,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </div>
                   </div>
 
-                  {/* خصائص الصندوق: الأفراد، الوزن، عدد الأصناف */}
                   <div className="mt-3.5 flex items-center gap-1.5 flex-wrap">
                     <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#FAF8F5] border border-stone-200/90 text-stone-700 text-[11px] sm:text-xs font-bold">
                       <Users className="w-3.5 h-3.5 text-stone-600 shrink-0" />
@@ -505,7 +501,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </span>
                   </div>
 
-                  {/* نبذة عن المحتويات بخط أكبر وواضح وبدون فراغ زائد */}
                   <div className="mt-3 pt-2.5 border-t border-stone-100">
                     <p className="text-xs sm:text-[13px] text-[#3E382F] font-semibold leading-relaxed line-clamp-2">
                       {box.description}
@@ -518,7 +513,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => openBoxModal(box)}
-                      className="py-2.5 sm:py-3 px-3 rounded-2xl border border-stone-300/90 bg-white hover:bg-stone-100 text-stone-800 text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-xs"
+                      className="py-2.5 sm:py-3 px-3 rounded-2xl border border-stone-300/90 bg-white hover:bg-stone-100 text-stone-800 text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-95 shadow-xs"
                     >
                       <Eye className="w-4 h-4 text-stone-700" />
                       <span>التفاصيل</span>
@@ -527,7 +522,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     <button
                       type="button"
                       onClick={(e) => handleQuickAdd(e, box)}
-                      className={`flex-1 py-2.5 sm:py-3 px-3 rounded-2xl text-white text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer active:scale-95 ${
+                      className={`flex-1 py-2.5 sm:py-3 px-3 rounded-2xl text-white text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 shadow-sm transition-colors duration-200 cursor-pointer active:scale-95 ${
                         isAdded
                           ? 'bg-emerald-600 text-white'
                           : 'bg-[#163920] hover:bg-[#0E2615]'
@@ -558,7 +553,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
               key={i}
               type="button"
               onClick={() => scrollToBox(i)}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-full transition-all duration-200 ${
                 activeBoxIndex === i ? 'w-6 bg-[#008A4B]' : 'w-2 bg-stone-300'
               }`}
               aria-label={`الانتقال إلى الصندوق ${i + 1}`}
@@ -567,9 +562,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════
-          🎨 النافذة المنبثقة المُحسَّنة (الجزء الأهم)
-          ═══════════════════════════════════════════════════════════ */}
+      {/* ════════ النافذة المنبثقة ════════ */}
       {selectedBox && (
         <div
           className="fixed inset-0 z-[75] flex items-center justify-center p-2 sm:p-4"
@@ -577,16 +570,14 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
           aria-modal="true"
           aria-labelledby="box-modal-title"
         >
-          {/* الخلفية المعتمة */}
           <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
             onClick={() => setSelectedBox(null)}
           />
 
-          {/* محتوى النافذة المنظفة والمُضيقة بتجربة لمس مريحة */}
           <div className="relative bg-[#FBF9F5] w-full max-w-xl rounded-[28px] shadow-2xl z-10 overflow-hidden flex flex-col max-h-[92vh] text-right border border-[#DFD1AC] animate-in zoom-in-95 duration-200 overscroll-contain">
 
-            {/* ─── 1. الرأس مع الصورة ─── */}
+            {/* الرأس */}
             <div className="relative h-48 sm:h-56 shrink-0 overflow-hidden bg-stone-900">
               <BoxImageDisplay
                 src={selectedBox.image}
@@ -594,20 +585,17 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 className="w-full h-full object-cover object-center"
               />
 
-              {/* تدرج أنيق */}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10] via-[#0B1C10]/50 to-[#0B1C10]/10 pointer-events-none" />
 
-              {/* زر الإغلاق */}
               <button
                 type="button"
                 onClick={() => setSelectedBox(null)}
-                className="absolute top-3.5 left-3.5 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-sm text-white flex items-center justify-center transition-all cursor-pointer z-20 border border-white/20 active:scale-90"
+                className="absolute top-3.5 left-3.5 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-sm text-white flex items-center justify-center transition-colors cursor-pointer z-20 border border-white/20 active:scale-90"
                 aria-label="إغلاق النافذة"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              {/* المكونات المنقولة للأعلى: الأكثر طلباً + متوفر اليوم مكان التوفير السابق */}
               <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-1.5 flex-wrap justify-end">
                 <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-[#F5D76E] text-[#112616] text-xs font-black shadow-md">
                   {selectedBox.badge}
@@ -618,7 +606,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </span>
               </div>
 
-              {/* معلومات الغلاف - أسفل */}
               <div className="absolute bottom-0 right-0 left-0 p-4 sm:p-5 flex items-end justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h3 id="box-modal-title" className="text-xl sm:text-2xl font-black text-white leading-tight drop-shadow-lg mb-0.5">
@@ -631,10 +618,9 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
               </div>
             </div>
 
-            {/* ─── 2. تفاصيل الصندوق ─── */}
+            {/* التفاصيل */}
             <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 overscroll-contain">
 
-              {/* قسم السعر المنظف بدون تكرار التوفير */}
               <div className="relative p-4 sm:p-4.5 rounded-2xl bg-gradient-to-l from-amber-50/90 to-orange-50/90 border border-amber-200/90 shadow-xs overflow-hidden">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -662,7 +648,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </div>
               </div>
 
-              {/* شارات المعلومات السريعة */}
               <div className="grid grid-cols-3 gap-2.5">
                 <div className="p-3 rounded-xl bg-white border border-stone-200 text-center">
                   <Users className="w-5 h-5 text-[#1E4327] mx-auto mb-1.5" />
@@ -681,7 +666,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </div>
               </div>
 
-              {/* الوصف */}
               <div className="p-4 rounded-2xl bg-white border border-stone-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Leaf className="w-4 h-4 text-[#008A4B]" />
@@ -692,7 +676,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </p>
               </div>
 
-              {/* قائمة المحتويات */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-black text-[#112616] flex items-center gap-1.5">
@@ -708,7 +691,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                   {selectedBox.items.map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-3 rounded-xl bg-white border border-stone-200/90 flex items-center justify-between gap-2 hover:border-[#008A4B]/40 hover:shadow-sm transition-all"
+                      className="p-3 rounded-xl bg-white border border-stone-200/90 flex items-center justify-between gap-2 hover:border-[#008A4B]/40 transition-colors"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className="w-8 h-8 rounded-lg bg-[#FAF6EE] border border-[#E8E1D3] flex items-center justify-center text-base shrink-0">
@@ -724,7 +707,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </div>
               </div>
 
-              {/* قسم الضمانات المُحسَّن */}
               <div className="p-4 rounded-2xl bg-gradient-to-l from-emerald-50 to-teal-50 border-2 border-emerald-200">
                 <div className="flex items-center gap-2 mb-3 pb-2 border-b border-emerald-200">
                   <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
@@ -767,9 +749,8 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
               </div>
             </div>
 
-            {/* ─── 3. التذييل: عداد + زر إضافة ─── */}
+            {/* التذييل */}
             <div className="p-4 sm:p-5 bg-white border-t-2 border-stone-200 flex items-center gap-3 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-              {/* عداد الكمية */}
               <div className="flex items-center gap-1 bg-[#FAF8F4] border-2 border-[#D4C8B5] p-1 rounded-2xl shrink-0">
                 <button
                   type="button"
@@ -794,12 +775,11 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </button>
               </div>
 
-              {/* زر الإضافة */}
               <button
                 id="modal-add-box-btn"
                 type="button"
                 onClick={() => handleModalAdd(selectedBox)}
-                className="flex-1 py-3.5 px-5 rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg hover:shadow-xl active:scale-98 transition-all cursor-pointer border-2 border-[#0E2615]"
+                className="flex-1 py-3.5 px-5 rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg active:scale-98 transition-colors cursor-pointer border-2 border-[#0E2615]"
               >
                 <ShoppingBag className="w-5 h-5 text-[#F5D76E]" />
                 <span>أضف للسلة</span>
