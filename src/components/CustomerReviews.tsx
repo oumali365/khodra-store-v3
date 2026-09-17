@@ -80,10 +80,7 @@ const INITIAL_VISIBLE_COUNT = 3;
 
 export const CustomerReviews: React.FC = () => {
 
-  const [reviews, setReviews] = useState<CustomerReview[]>(() => {
-    const deleted = getDeletedIds();
-    return INITIAL_THREE_REVIEWS.filter((r) => !deleted.includes(r.id));
-  });
+  const [reviews, setReviews] = useState<CustomerReview[]>(INITIAL_THREE_REVIEWS);
 
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
