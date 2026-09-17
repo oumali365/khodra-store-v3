@@ -70,7 +70,7 @@ export const ExitScreen: React.FC<ExitScreenProps> = ({ onReenter, cartCount, ca
             className="w-full min-h-[52px] py-3.5 px-6 rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#1E4D2B] hover:to-[#12331C] text-white font-black text-base shadow-lg hover:shadow-xl active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer border-2 border-[#0E2615]"
           >
             <RefreshCw className="w-5 h-5 text-[#F5D76E]" />
-            <span>العودة إلى المتجر ومتابعة التسوق</span>
+            <span>العودة ومتابعة التسوق</span>
           </button>
         </div>
 
