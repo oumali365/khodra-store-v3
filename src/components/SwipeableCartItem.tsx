@@ -1,10 +1,10 @@
 // ============================================================
 // الملف: SwipeableCartItem.tsx
-// الإصدار: 2.0 (يدعم صور المنتجات + شارات صناديق العائلة)
+// الإصدار: 3.0 (تصميم متناسق مع المتجر + دعم كامل)
 // ============================================================
 import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'motion/react';
-import { Trash2, Plus, Minus } from 'lucide-react';
+import { Trash2, Plus, Minus, Package } from 'lucide-react';
 import { CartItem } from '../types';
 import { STORE_CONFIG } from '../data/config';
 
@@ -77,9 +77,9 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
         },
       }}
       transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-      className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 shadow-2xs select-none touch-pan-y"
+      className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-[#C25E12] via-[#E74C3C] to-[#C25E12] shadow-sm select-none touch-pan-y"
     >
-      {/* ─── الطبقة الخلفية (السحب لليسار) ─── */}
+      {/* ════════ الطبقة الخلفية (السحب لليسار) ════════ */}
       <motion.div
         style={{ opacity: rightOpacity, scale: rightScale }}
         className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 pl-3 gap-2 text-white font-black text-xs pointer-events-none"
@@ -88,7 +88,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
         <Trash2 className="w-5 h-5 text-white stroke-[2.5]" />
       </motion.div>
 
-      {/* ─── الطبقة الخلفية (السحب لليمين) ─── */}
+      {/* ════════ الطبقة الخلفية (السحب لليمين) ════════ */}
       <motion.div
         style={{ opacity: leftOpacity, scale: leftScale }}
         className="absolute inset-y-0 left-0 flex items-center justify-start pl-4 pr-3 gap-2 text-white font-black text-xs pointer-events-none"
@@ -97,7 +97,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
         <span>حذف من السلة</span>
       </motion.div>
 
-      {/* ─── بطاقة المنتج القابلة للسحب ─── */}
+      {/* ════════ بطاقة المنتج القابلة للسحب ════════ */}
       <motion.div
         drag="x"
         dragDirectionLock
@@ -109,60 +109,62 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
         onDragEnd={handleDragEnd}
         whileDrag={{
           cursor: 'grabbing',
-          boxShadow: '0 8px 20px -4px rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 8px 20px -4px rgba(0, 0, 0, 0.15)',
         }}
         className={`relative bg-white border-2 transition-colors rounded-xl p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 z-10 ${
           isPastThreshold
-            ? 'border-red-400 bg-red-50/20'
+            ? 'border-red-400 bg-red-50/30'
             : isBundleItem
-            ? 'border-[#C25E12]/40 bg-amber-50/20'
-            : 'border-[#D4C8B5]'
+            ? 'border-[#C25E12]/50 bg-amber-50/30'
+            : 'border-[#E8E1D3] hover:border-[#C25E12]/40'
         }`}
       >
         {/* ─── أيقونة/صورة المنتج ─── */}
-        <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-[#F7F4EC] border border-[#D4C8B5] flex items-center justify-center shrink-0 overflow-hidden shadow-2xs pointer-events-none">
-          {item.image_url ? (
-            <img
-              src={item.image_url}
-              alt={item.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              onError={(e) => {
-                // في حال فشل تحميل الصورة، نخفيها ليظهر الـ icon
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <span className="text-xl sm:text-2xl">{item.icon}</span>
-          )}
+        <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#F7F4EC] border border-[#E8E1D3] flex items-center justify-center shrink-0 overflow-visible shadow-xs pointer-events-none">
+          {/* الصورة أو الأيقونة */}
+          <div className="w-full h-full rounded-xl overflow-hidden flex items-center justify-center">
+            {item.image_url ? (
+              <img
+                src={item.image_url}
+                alt={item.name}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <span className="text-2xl sm:text-3xl">{item.icon}</span>
+            )}
+          </div>
 
           {/* شارة الصندوق */}
           {isBundleItem && (
             <span
-              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#C25E12] text-white text-[10px] flex items-center justify-center border-2 border-white shadow-sm"
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#C25E12] text-white text-[10px] flex items-center justify-center border-2 border-white shadow-md z-10"
               title="من صندوق عائلة"
             >
-              🧺
+              <Package className="w-3 h-3" />
             </span>
           )}
         </div>
 
         {/* ─── معلومات المنتج ─── */}
         <div className="flex-1 min-w-0 pointer-events-none">
-          <h4 className="text-xs sm:text-sm font-black text-[#112616] truncate">
+          <h4 className="text-xs sm:text-sm font-black text-[#112616] truncate leading-tight">
             {item.name}
           </h4>
-          <p className="text-[11px] text-[#2D271E] font-bold truncate">
+          <p className="text-[10px] sm:text-[11px] text-[#787163] font-bold truncate mt-0.5">
             {item.variantLabel}
           </p>
-          <div className="text-xs sm:text-sm font-black text-[#C25E12]">
+          <div className="text-xs sm:text-sm font-black text-[#C25E12] mt-0.5 tabular-nums">
             {item.lineTotal.toFixed(2)} {STORE_CONFIG.currency}
           </div>
         </div>
 
         {/* ─── عداد الكمية ─── */}
         <div
-          className="flex items-center gap-1 bg-[#F7F4EC] border border-[#D4C8B5] rounded-lg p-0.5 shrink-0 select-none touch-manipulation"
+          className="flex items-center gap-1 bg-[#F7F4EC] border border-[#E8E1D3] rounded-lg p-0.5 shrink-0 select-none touch-manipulation"
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
         >
@@ -172,13 +174,13 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
               e.stopPropagation();
               onUpdateQty(item.key, -1);
             }}
-            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#112616] hover:bg-[#EAE2D2] active:scale-85 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-2xs border border-[#D4C8B5] touch-manipulation select-none"
+            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#112616] hover:bg-[#163920] hover:text-white active:scale-90 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-xs border border-[#E8E1D3] hover:border-[#163920] touch-manipulation select-none"
             aria-label="إنقاص الكمية"
           >
             <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
 
-          <span className="text-xs font-black text-[#112616] min-w-[22px] text-center select-none">
+          <span className="text-xs font-black text-[#112616] min-w-[24px] text-center select-none tabular-nums">
             {item.qty}
           </span>
 
@@ -188,7 +190,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
               e.stopPropagation();
               onUpdateQty(item.key, 1);
             }}
-            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#112616] hover:bg-[#EAE2D2] active:scale-85 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-2xs border border-[#D4C8B5] touch-manipulation select-none"
+            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#112616] hover:bg-[#163920] hover:text-white active:scale-90 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-xs border border-[#E8E1D3] hover:border-[#163920] touch-manipulation select-none"
             aria-label="زيادة الكمية"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -204,7 +206,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
             e.stopPropagation();
             onRemoveItem(item.key);
           }}
-          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 active:scale-85 flex items-center justify-center transition-all cursor-pointer shrink-0 touch-manipulation select-none"
+          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg text-red-600 hover:text-white hover:bg-red-600 active:scale-90 flex items-center justify-center transition-all cursor-pointer shrink-0 touch-manipulation select-none border border-transparent hover:border-red-700"
           aria-label={`حذف ${item.name} من السلة`}
           title="حذف من السلة"
         >
