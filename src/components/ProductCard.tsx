@@ -174,6 +174,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               alt={product.name}
               className="w-full h-full object-cover rounded-xl"
               loading="lazy"
+              decoding="async"
+              width="96"
+              height="96"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
                 const parent = e.currentTarget.parentElement;

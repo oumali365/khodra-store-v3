@@ -8,47 +8,30 @@ import { ProductCategory, Product } from '../types';
 import { CATEGORIES_CONFIG } from '../data/mockProducts';
 import { SortOption } from './SortFilterModal';
 
-// ─── صور احترافية عالية الجودة للأقسام مخزنة محلياً في public/images/categories ───
+// ─── مسارات صور الأقسام المجهزة للتحميل في public/images/categories ───
+// يمكنك تنزيل ملفات .webp بهذه الأسماء في مجلد public/images/categories وستظهر تلقائياً
 const CATEGORY_IMAGES: Record<string, string> = {
-  all: '/images/categories/all.jpg',
-  veg: '/images/categories/vegetables.jpg',
-  fruit: '/images/categories/fruits.jpg',
-  dairy: '/images/categories/dairy.jpg',
-  grocery: '/images/categories/grocery.jpg',
-  drinks: '/images/categories/drinks.jpg',
-  cleaning: '/images/categories/cleaning.jpg',
+  all: '/images/categories/all.webp',
+  veg: '/images/categories/vegetables.webp',
+  fruit: '/images/categories/fruits.webp',
+  dairy: '/images/categories/dairy.webp',
+  grocery: '/images/categories/grocery.webp',
+  drinks: '/images/categories/drinks.webp',
+  cleaning: '/images/categories/cleaning.webp',
 };
 
-// ─── روابط احتياطية سريعة عبر CDN في حال عدم توفر المسار المحلي ───
-const FALLBACK_CDN_IMAGES: Record<string, string> = {
-  all: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&auto=format&fit=crop&q=80',
-  veg: 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=200&h=200&auto=format&fit=crop&q=80',
-  fruit: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=200&h=200&auto=format&fit=crop&q=80',
-  dairy: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&h=200&auto=format&fit=crop&q=80',
-  grocery: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=200&h=200&auto=format&fit=crop&q=80',
-  drinks: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=200&h=200&auto=format&fit=crop&q=80',
-  cleaning: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&auto=format&fit=crop&q=80',
-};
-
-// ─── مكون عرض صورة الفئة مع حماية بديلة للأيقونة ───
+// ─── مكون عرض صورة الفئة: يعرض صورة webp إن وجدت محلياً وإلا يعرض الأيقونة الأنيقة فوراً ───
 const CategoryThumbnail: React.FC<{
   catId: string;
   name: string;
   icon: string;
   isSelected: boolean;
 }> = ({ catId, name, icon, isSelected }) => {
-  const [imgSrc, setImgSrc] = useState<string>(CATEGORY_IMAGES[catId] || '');
-  const [hasError, setHasError] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const imageUrl = CATEGORY_IMAGES[catId];
 
-  const handleImageError = () => {
-    if (imgSrc !== FALLBACK_CDN_IMAGES[catId] && FALLBACK_CDN_IMAGES[catId]) {
-      setImgSrc(FALLBACK_CDN_IMAGES[catId]);
-    } else {
-      setHasError(true);
-    }
-  };
-
-  if (!imgSrc || hasError) {
+  // إذا لم تكن الصورة محملة بعد أو حدث خطأ أثناء تحميلها، نعرض الأيقونة الرسمية فوراً
+  if (imgError || !imageUrl) {
     return (
       <span
         className={`text-2xl sm:text-3xl mb-2 transition-transform duration-300 ${
@@ -69,12 +52,15 @@ const CategoryThumbnail: React.FC<{
       }`}
     >
       <img
-        src={imgSrc}
+        src={imageUrl}
         alt={name}
         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 rounded-2xl"
         loading="lazy"
+        decoding="async"
+        width="80"
+        height="80"
         referrerPolicy="no-referrer"
-        onError={handleImageError}
+        onError={() => setImgError(true)}
       />
       {isSelected && (
         <div className="absolute inset-0 bg-black/10 pointer-events-none rounded-2xl" />

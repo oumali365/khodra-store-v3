@@ -13,12 +13,25 @@ import { StickyBottomBar } from './components/StickyBottomBar';
 import { TrustBadges } from './components/TrustBadges';
 import { CustomerReviews } from './components/CustomerReviews';
 import { Footer } from './components/Footer';
-import { SortFilterModal, SortOption } from './components/SortFilterModal';
-import { CartDrawer } from './components/CartDrawer';
-import { CheckoutModal } from './components/CheckoutModal';
-import { ConfirmationModal } from './components/ConfirmationModal';
-import { ExitConfirmationModal } from './components/ExitConfirmationModal';
+import { SortOption } from './components/SortFilterModal';
 import { ExitScreen } from './components/ExitScreen';
+
+// ─── تحميل مؤجل للمودالات لتقليص الحجم الأولي وتسريع ظهور الصفحة الرئيسية ───
+const CartDrawer = React.lazy(() =>
+  import('./components/CartDrawer').then((m) => ({ default: m.CartDrawer }))
+);
+const CheckoutModal = React.lazy(() =>
+  import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal }))
+);
+const ConfirmationModal = React.lazy(() =>
+  import('./components/ConfirmationModal').then((m) => ({ default: m.ConfirmationModal }))
+);
+const ExitConfirmationModal = React.lazy(() =>
+  import('./components/ExitConfirmationModal').then((m) => ({ default: m.ExitConfirmationModal }))
+);
+const SortFilterModal = React.lazy(() =>
+  import('./components/SortFilterModal').then((m) => ({ default: m.SortFilterModal }))
+);
 
 // ─── تحميل مؤجل للصفحات الإضافية والخريطة ───
 const InfoPages = React.lazy(() =>
@@ -643,20 +656,37 @@ export default function App() {
                     })}
                   </div>
 
-                  {/* ─── زر عرض المزيد لتجنب التمرير الطويل ─── */}
-                  {filteredProducts.length > INITIAL_VISIBLE_COUNT && visibleCount < filteredProducts.length && (
-                    <div className="mt-6 flex items-center justify-center">
-                      <button
-                        type="button"
-                        id="load-more-products-btn"
-                        onClick={() => setVisibleCount((prev) => prev + 8)}
-                        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#1E4D2B] hover:to-[#12331C] text-[#F5D76E] font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all transform active:scale-95 cursor-pointer border border-[#F5D76E]/25 group"
-                        title="عرض المزيد من المنتجات"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-[#F5D76E]/80 transition-transform group-hover:scale-110" />
-                        <span>عرض المزيد</span>
-                        <ChevronDown className="w-4 h-4 text-[#F5D76E] transition-transform duration-300 group-hover:translate-y-0.5" />
-                      </button>
+                  {/* ─── زر عرض باقي المنتجات بتصميم متناسق مع زر التقييمات ─── */}
+                  {filteredProducts.length > INITIAL_VISIBLE_COUNT && (
+                    <div className="mt-6 text-center">
+                      {visibleCount < filteredProducts.length ? (
+                        <button
+                          type="button"
+                          id="load-more-products-btn"
+                          onClick={() => setVisibleCount((prev) => prev + 8)}
+                          className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-white border-2 border-[#E8E1D3] hover:border-[#C25E12] hover:bg-[#F7F4EC] text-[#163920] text-xs sm:text-sm font-black transition-all cursor-pointer active:scale-95 shadow-sm group"
+                          title="عرض باقي المنتجات"
+                        >
+                          <ChevronDown className="w-4 h-4 text-[#163920] group-hover:text-[#C25E12] transition-colors" />
+                          <span>عرض باقي المنتجات ({filteredProducts.length - visibleCount})</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVisibleCount(INITIAL_VISIBLE_COUNT);
+                            // إعادة موضع الشاشة بسلاسة إلى بداية قائمة المنتجات لمنع القفز أو ظهور الخريطة فجأة
+                            if (catalogSectionRef.current) {
+                              catalogSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-white border-2 border-[#E8E1D3] hover:border-[#C25E12] hover:bg-[#F7F4EC] text-[#163920] text-xs sm:text-sm font-black transition-all cursor-pointer active:scale-95 shadow-sm group"
+                          title="عرض أقل"
+                        >
+                          <ChevronDown className="w-4 h-4 text-[#163920] group-hover:text-[#C25E12] transition-colors rotate-180" />
+                          <span>عرض أقل</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </>
@@ -733,30 +763,34 @@ export default function App() {
           />
         )}
 
-        <SortFilterModal
-          isOpen={isSortModalOpen}
-          onClose={() => setIsSortModalOpen(false)}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          onlyInStock={onlyInStock}
-          onToggleOnlyInStock={() => setOnlyInStock((prev) => !prev)}
-          onReset={() => {
-            setSortBy('default');
-            setOnlyInStock(false);
-          }}
-        />
+        {isSortModalOpen && (
+          <SortFilterModal
+            isOpen={isSortModalOpen}
+            onClose={() => setIsSortModalOpen(false)}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            onlyInStock={onlyInStock}
+            onToggleOnlyInStock={() => setOnlyInStock((prev) => !prev)}
+            onReset={() => {
+              setSortBy('default');
+              setOnlyInStock(false);
+            }}
+          />
+        )}
 
         {/* ─── نافذة تأكيد الخروج من التطبيق ─── */}
-        <ExitConfirmationModal
-          isOpen={isExitConfirmOpen}
-          onClose={() => setIsExitConfirmOpen(false)}
-          onConfirmExit={() => {
-            setIsExitConfirmOpen(false);
-            setIsAppExited(true);
-          }}
-          cartCount={cartCount}
-          cartTotal={cartTotal}
-        />
+        {isExitConfirmOpen && (
+          <ExitConfirmationModal
+            isOpen={isExitConfirmOpen}
+            onClose={() => setIsExitConfirmOpen(false)}
+            onConfirmExit={() => {
+              setIsExitConfirmOpen(false);
+              setIsAppExited(true);
+            }}
+            cartCount={cartCount}
+            cartTotal={cartTotal}
+          />
+        )}
       </Suspense>
 
       {/* ═══════ Floating Sticky Bottom Bar ═══════ */}

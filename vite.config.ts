@@ -15,6 +15,20 @@ export default defineConfig(() => {
     optimizeDeps: {
       include: ['react', 'react-dom', 'motion/react', 'leaflet', 'canvas-confetti'],
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/leaflet')) {
+              return 'leaflet';
+            }
+            if (id.includes('node_modules/canvas-confetti')) {
+              return 'confetti';
+            }
+          },
+        },
+      },
+    },
     server: {
       host: '0.0.0.0',
       port: 3000,

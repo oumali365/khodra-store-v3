@@ -29,9 +29,12 @@ import {
   submitCustomerReview,
   deleteCustomerReview,
 } from '../services/supabaseService';
-import { AdminOrdersPanel } from './AdminOrdersPanel';
 import { AdminNotificationToast } from './AdminNotificationToast';
 import { useNewOrdersNotifier } from '../hooks/useNewOrdersNotifier';
+
+const AdminOrdersPanel = React.lazy(() =>
+  import('./AdminOrdersPanel').then((module) => ({ default: module.AdminOrdersPanel }))
+);
 
 export interface CustomerReview {
   id: string;
@@ -211,7 +214,7 @@ export const CustomerReviews: React.FC = () => {
     refreshOrders();
   }, [refreshOrders]);
 
-  // ─── جلب التقييمات ───
+  // ─── جلب التقييمات في الخلفية دون تعطيل التحميل الأولي ───
   useEffect(() => {
     let isMounted = true;
     async function loadSupabaseReviews() {
@@ -246,10 +249,25 @@ export const CustomerReviews: React.FC = () => {
         console.warn('Could not load reviews from Supabase:', e);
       }
     }
-    loadSupabaseReviews();
-    return () => {
-      isMounted = false;
-    };
+
+    // إعطاء أولوية للمكونات الأساسية ثم جلب التقييمات في وقت الفراغ
+    if ('requestIdleCallback' in window) {
+      const handle = (window as any).requestIdleCallback(() => {
+        loadSupabaseReviews();
+      }, { timeout: 2000 });
+      return () => {
+        isMounted = false;
+        (window as any).cancelIdleCallback(handle);
+      };
+    } else {
+      const timer = setTimeout(() => {
+        loadSupabaseReviews();
+      }, 500);
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
+    }
   }, []);
 
   const displayedReviews = useMemo(() => {
@@ -978,11 +996,15 @@ export const CustomerReviews: React.FC = () => {
         )}
 
         {/* ════════ لوحة إدارة الطلبات ════════ */}
-        <AdminOrdersPanel
-          isOpen={isOrdersPanelOpen}
-          onClose={handleCloseOrdersPanel}
-          onOrdersChange={() => refreshOrders()}
-        />
+        {isOrdersPanelOpen && (
+          <React.Suspense fallback={null}>
+            <AdminOrdersPanel
+              isOpen={isOrdersPanelOpen}
+              onClose={handleCloseOrdersPanel}
+              onOrdersChange={() => refreshOrders()}
+            />
+          </React.Suspense>
+        )}
 
       {/* ════════ 🔔 إشعار الطلبات الجديدة ════════ */}
       {isAdmin && (

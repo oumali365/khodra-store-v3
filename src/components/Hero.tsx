@@ -16,10 +16,6 @@ import {
 import { STORE_CONFIG } from '../data/config';
 import { ProductCategory } from '../types';
 
-import heroBg1 from '../assets/images/fresh_vegetables_basket_1788941771901.jpg';
-import heroBg2 from '../assets/images/fresh_fruits_harvest_1788941788583.jpg';
-import heroBg3 from '../assets/images/organic_farm_produce_1788941803206.jpg';
-
 interface HeroProps {
   onSelectCategory: (cat: ProductCategory) => void;
   onScrollToCatalog: () => void;
@@ -28,7 +24,7 @@ interface HeroProps {
 
 const HERO_SLIDES = [
   {
-    image: heroBg1,
+    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1400&auto=format&fit=crop&q=80',
     badge: '🌿 طازج يومياً',
     title: 'خضار وفواكه طازجة،',
     highlight: 'مباشرة لباب دارك',
@@ -37,7 +33,7 @@ const HERO_SLIDES = [
     primaryCTA: 'catalog',
   },
   {
-    image: heroBg2,
+    image: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=1400&auto=format&fit=crop&q=80',
     badge: '🍎 فيتامينات طبيعية',
     title: 'فواكه غنية بالنضارة،',
     highlight: 'حلوة ومختارة بعناية',
@@ -46,7 +42,7 @@ const HERO_SLIDES = [
     primaryCTA: 'catalog',
   },
   {
-    image: heroBg3,
+    image: 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=1400&auto=format&fit=crop&q=80',
     badge: '🧺 وفّر أكثر',
     title: 'صناديق عائلة خُضرة،',
     highlight: 'وفّر وقتك وفلوسك',
@@ -123,6 +119,8 @@ export const Hero: React.FC<HeroProps> = ({
                 alt={slide.title}
                 referrerPolicy="no-referrer"
                 loading={index === 0 ? 'eager' : 'lazy'}
+                decoding={index === 0 ? 'sync' : 'async'}
+                {...(index === 0 ? { fetchPriority: 'high' } as any : {})}
                 className="w-full h-full object-cover object-center"
               />
             </div>
