@@ -16,6 +16,16 @@ import vegBoxImg from '../assets/images/fresh_vegetables_basket_1788941771901.jp
 import fruitBoxImg from '../assets/images/fresh_fruits_harvest_1788941788583.jpg';
 import mixBoxImg from '../assets/images/organic_farm_produce_1788941803206.jpg';
 
+// ─── مسارات صور صناديق العائلة المتاحة محلياً في public/images/family-boxes ───
+export const FAMILY_BOX_PUBLIC_IMAGES = {
+  small: '/images/family-boxes/fresh_vegetables_basket_1788941771901.jpg',
+  medium: '/images/family-boxes/fresh_fruits_harvest_1788941788583.jpg',
+  large: '/images/family-boxes/organic_farm_produce_1788941803206.jpg',
+  smallWebp: '/images/family-boxes/family-small.webp',
+  mediumWebp: '/images/family-boxes/family-medium.webp',
+  largeWebp: '/images/family-boxes/family-large.webp',
+};
+
 export interface FamilyBoxItem {
   name: string;
   amount: string;
