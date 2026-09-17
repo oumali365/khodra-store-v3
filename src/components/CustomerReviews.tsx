@@ -1,10 +1,10 @@
 // ============================================================
-// CustomerReviews.tsx – الإصدار 4.0 (مُكتمل مع Soft Delete)
+// CustomerReviews.tsx – الإصدار 4.1 (مُصحَّح ومُكتمل)
+// Soft Delete + مزامنة PIN + تصميم متناسق
 // ============================================================
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Star,
-  BadgeCheck,
   MapPin,
   MessageSquarePlus,
   CheckCircle2,
@@ -27,6 +27,7 @@ import {
   fetchReviews,
   submitCustomerReview,
   deleteCustomerReview,
+  getSupabase,
 } from '../services/supabaseService';
 import { AdminNotificationToast } from './AdminNotificationToast';
 import { useNewOrdersNotifier } from '../hooks/useNewOrdersNotifier';
@@ -202,12 +203,11 @@ export const CustomerReviews: React.FC = () => {
     refreshOrders();
   }, [refreshOrders]);
 
-  // ─── ✅ جلب التقييمات (بدون getDeletedIds) ───
+  // ─── ✅ جلب التقييمات ───
   useEffect(() => {
     let isMounted = true;
     async function loadSupabaseReviews() {
       try {
-        // fetchReviews يُرجع فقط غير المحذوفة (بفضل is_deleted)
         const dbReviews = await fetchReviews();
 
         if (isMounted && dbReviews && dbReviews.length > 0) {
@@ -363,52 +363,60 @@ export const CustomerReviews: React.FC = () => {
     setTimeout(() => setAdminNotification(null), 3000);
   };
 
+  // ─── ✅ تغيير PIN (مع مزامنة Supabase) ───
   const handleChangePinSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!newPinInput.trim() || newPinInput.trim().length < 4) return;
+    e.preventDefault();
+    if (!newPinInput.trim() || newPinInput.trim().length < 4) return;
 
-  const newPin = newPinInput.trim();
-
-  try {
-    // 1. حدّث PIN في Supabase أولاً
-    const { error } = await supabase
-      .from('store_settings')
-      .upsert(
-        { 
-          key: 'admin_pin', 
-          value: newPin,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'key' }
-      );
-
-    if (error) {
-      console.error('❌ فشل تحديث PIN في Supabase:', error.message);
-      setAdminNotification(`❌ فشل تحديث PIN: ${error.message}`);
-      setTimeout(() => setAdminNotification(null), 4000);
+    const supabase = getSupabase();
+    if (!supabase) {
+      setAdminNotification('❌ لا يوجد اتصال بقاعدة البيانات');
+      setTimeout(() => setAdminNotification(null), 3500);
       return;
     }
 
-    // 2. حدّث localStorage (احتياطي)
-    try {
-      localStorage.setItem('khodra_admin_pin', newPin);
-    } catch {}
+    const newPin = newPinInput.trim();
 
-    // 3. أظهر النجاح
-    setChangePinSuccess(true);
-    setTimeout(() => {
-      setChangePinSuccess(false);
-      setIsChangePinModalOpen(false);
-      setNewPinInput('');
-      setAdminNotification('✅ تم تحديث الرمز السري في Supabase و localStorage.');
+    try {
+      // 1. حدّث PIN في Supabase أولاً
+      const { error } = await supabase
+        .from('store_settings')
+        .upsert(
+          {
+            key: 'admin_pin',
+            value: newPin,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'key' }
+        );
+
+      if (error) {
+        console.error('❌ فشل تحديث PIN في Supabase:', error.message);
+        setAdminNotification(`❌ فشل تحديث PIN: ${error.message}`);
+        setTimeout(() => setAdminNotification(null), 4000);
+        return;
+      }
+
+      // 2. حدّث localStorage (احتياطي)
+      try {
+        localStorage.setItem('khodra_admin_pin', newPin);
+      } catch {}
+
+      // 3. أظهر النجاح
+      setChangePinSuccess(true);
+      setTimeout(() => {
+        setChangePinSuccess(false);
+        setIsChangePinModalOpen(false);
+        setNewPinInput('');
+        setAdminNotification('✅ تم تحديث الرمز السري في Supabase و localStorage.');
+        setTimeout(() => setAdminNotification(null), 4000);
+      }, 1200);
+    } catch (err: any) {
+      console.error('❌ خطأ في تحديث PIN:', err);
+      setAdminNotification(`❌ خطأ: ${err?.message || 'غير معروف'}`);
       setTimeout(() => setAdminNotification(null), 4000);
-    }, 1200);
-  } catch (err: any) {
-    console.error('❌ خطأ في تحديث PIN:', err);
-    setAdminNotification(`❌ خطأ: ${err?.message || 'غير معروف'}`);
-    setTimeout(() => setAdminNotification(null), 4000);
-  }
-};
+    }
+  };
 
   // ─── ✅ حذف التعليق (Soft Delete) ───
   const handleExecuteDelete = async () => {
@@ -419,7 +427,6 @@ export const CustomerReviews: React.FC = () => {
       const res = await deleteCustomerReview(deleteConfirmReview.id);
 
       if (res.success) {
-        // ✅ إزالة التعليق من الواجهة (يختفي على جميع الأجهزة)
         setReviews((prev) => prev.filter((r) => r.id !== deleteConfirmReview.id));
         setAdminNotification(`✅ ${res.message || 'تم حذف التعليق على جميع الأجهزة'}`);
       } else {
@@ -505,7 +512,7 @@ export const CustomerReviews: React.FC = () => {
           </div>
         )}
 
-        {/* ════════ 1. بطاقة العنوان والوصف المستقلة ════════ */}
+        {/* ════════ 1. بطاقة العنوان والوصف ════════ */}
         <div className="bg-white rounded-3xl border border-stone-200/90 shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-6 sm:p-8 text-center max-w-md sm:max-w-xl mx-auto mb-8 sm:mb-10 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#163920]/10 text-[#163920] font-black text-xs sm:text-sm mb-3">
             <Sparkles className="w-4 h-4 text-[#C25E12]" />
