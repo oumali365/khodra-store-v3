@@ -79,13 +79,6 @@ const INITIAL_THREE_REVIEWS: CustomerReview[] = [
 const INITIAL_VISIBLE_COUNT = 3;
 
 export const CustomerReviews: React.FC = () => {
-  const getDeletedIds = (): string[] => {
-    try {
-      return JSON.parse(localStorage.getItem('khodra_deleted_review_ids') || '[]');
-    } catch {
-      return [];
-    }
-  };
 
   const [reviews, setReviews] = useState<CustomerReview[]>(() => {
     const deleted = getDeletedIds();
