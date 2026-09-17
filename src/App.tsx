@@ -8,7 +8,7 @@ import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { CategoryFilter } from './components/CategoryFilter';
 import { ProductCard } from './components/ProductCard';
-import { FamilyBoxesSection } from './components/FamilyBoxesSection';
+import { FamilyBoxesSection, FamilyBox } from './components/FamilyBoxesSection';
 import { StickyBottomBar } from './components/StickyBottomBar';
 import { TrustBadges } from './components/TrustBadges';
 import { CustomerReviews } from './components/CustomerReviews';
@@ -17,6 +17,8 @@ import { SortFilterModal, SortOption } from './components/SortFilterModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
+import { ExitConfirmationModal } from './components/ExitConfirmationModal';
+import { ExitScreen } from './components/ExitScreen';
 
 // ─── تحميل مؤجل للصفحات الإضافية والخريطة ───
 const InfoPages = React.lazy(() =>
@@ -84,7 +86,19 @@ export default function App() {
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORE_CONFIG.cacheKey);
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(
+        (item: any) =>
+          item &&
+          typeof item === 'object' &&
+          typeof item.name === 'string' &&
+          typeof item.qty === 'number' &&
+          item.qty > 0 &&
+          typeof item.lineTotal === 'number' &&
+          !isNaN(item.lineTotal)
+      );
     } catch {
       return [];
     }
@@ -114,6 +128,9 @@ export default function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<OrderSubmission | null>(null);
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
+  const [selectedFamilyBox, setSelectedFamilyBox] = useState<FamilyBox | null>(null);
+  const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
+  const [isAppExited, setIsAppExited] = useState(false);
 
   // ─── Refs ───
   const prevStatesRef = useRef({
@@ -123,6 +140,8 @@ export default function App() {
     confirmedOrder: null as OrderSubmission | null,
     activeInfoPage: null as 'about' | 'policy' | 'privacy' | null,
     isSortModalOpen: false,
+    selectedFamilyBox: null as FamilyBox | null,
+    isExitConfirmOpen: false,
   });
 
   const searchResultsRef = useRef<HTMLDivElement>(null);
@@ -152,46 +171,148 @@ export default function App() {
     }
   }, [cart]);
 
-  // ─── Close all modals/drawers ───
-  const closeAllModalsAndDrawers = useCallback(() => {
-    let changed = false;
-    if (isMenuOpen) { setIsMenuOpen(false); changed = true; }
-    if (isCartOpen) { setIsCartOpen(false); changed = true; }
-    if (isCheckoutOpen) { setIsCheckoutOpen(false); changed = true; }
-    if (confirmedOrder) { setConfirmedOrder(null); changed = true; }
-    if (activeInfoPage) { setActiveInfoPage(null); changed = true; }
-    if (isSortModalOpen) { setIsSortModalOpen(false); changed = true; }
-    return changed;
-  }, [isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen]);
-
-  // ─── Handle browser back button ───
+  // ─── Handle browser / mobile hardware back button ───
   useEffect(() => {
+    // إرسال حالة رئيسية للتاريخ لضمان التقاط زر الرجوع
+    window.history.replaceState({ page: 'main' }, '');
     window.history.pushState({ page: 'main' }, '');
+
     const handlePopState = () => {
-      const hasAnyOpenModal = isMenuOpen || isCartOpen || isCheckoutOpen || !!confirmedOrder || !!activeInfoPage || isSortModalOpen;
-      if (hasAnyOpenModal) {
-        closeAllModalsAndDrawers();
+      // 1. إذا كانت نافذة تأكيد الخروج مفتوحة: زر الرجوع يلغيها ويبقي العميل في المتجر
+      if (isExitConfirmOpen) {
+        setIsExitConfirmOpen(false);
         window.history.pushState({ page: 'main' }, '');
         return;
       }
+
+      // 2. إذا كانت نافذة تفاصيل صندوق العائلة مفتوحة: زر الرجوع يغلقها فقط ولا يخرج من المتجر!
+      if (selectedFamilyBox) {
+        setSelectedFamilyBox(null);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 3. إذا كانت نافذة إتمام الطلب مفتوحة: إغلاقها والعودة
+      if (isCheckoutOpen) {
+        setIsCheckoutOpen(false);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 4. إذا كانت سلة المشتريات مفتوحة: إغلاقها
+      if (isCartOpen) {
+        setIsCartOpen(false);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 5. إذا كانت نافذة تأكيد الطلب مفتوحة: إغلاقها
+      if (confirmedOrder) {
+        setConfirmedOrder(null);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 6. إذا كانت صفحة معلومات مفتوحة: العودة للمتجر
+      if (activeInfoPage) {
+        setActiveInfoPage(null);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 7. إذا كانت نافذة الفرز والتصفية مفتوحة: إغلاقها
+      if (isSortModalOpen) {
+        setIsSortModalOpen(false);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 8. إذا كانت القائمة الجانبية مفتوحة: إغلاقها
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 9. إذا لم تكن هناك أي نافذة مفتوحة وكان العميل بالصفحة الرئيسية:
+      // تفعيل خاصية "هل تريد الخروج من التطبيق؟" للتأكيد ومنع الخروج المفاجئ
+      setIsExitConfirmOpen(true);
       window.history.pushState({ page: 'main' }, '');
     };
+
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen, closeAllModalsAndDrawers]);
+  }, [
+    isExitConfirmOpen,
+    selectedFamilyBox,
+    isCheckoutOpen,
+    isCartOpen,
+    confirmedOrder,
+    activeInfoPage,
+    isSortModalOpen,
+    isMenuOpen,
+  ]);
 
   // ─── Push history state when modal opens ───
   useEffect(() => {
     const prev = prevStatesRef.current;
-    const currentHasOpen = isMenuOpen || isCartOpen || isCheckoutOpen || !!confirmedOrder || !!activeInfoPage || isSortModalOpen;
-    const prevHasOpen = prev.isMenuOpen || prev.isCartOpen || prev.isCheckoutOpen || !!prev.confirmedOrder || !!prev.activeInfoPage || prev.isSortModalOpen;
+    const currentHasOpen =
+      isMenuOpen ||
+      isCartOpen ||
+      isCheckoutOpen ||
+      !!confirmedOrder ||
+      !!activeInfoPage ||
+      isSortModalOpen ||
+      !!selectedFamilyBox ||
+      isExitConfirmOpen;
+
+    const prevHasOpen =
+      prev.isMenuOpen ||
+      prev.isCartOpen ||
+      prev.isCheckoutOpen ||
+      !!prev.confirmedOrder ||
+      !!prev.activeInfoPage ||
+      prev.isSortModalOpen ||
+      !!prev.selectedFamilyBox ||
+      prev.isExitConfirmOpen;
+
     if (currentHasOpen && !prevHasOpen) {
       window.history.pushState({ page: 'modal' }, '');
     }
+
     prevStatesRef.current = {
-      isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen,
+      isMenuOpen,
+      isCartOpen,
+      isCheckoutOpen,
+      confirmedOrder,
+      activeInfoPage,
+      isSortModalOpen,
+      selectedFamilyBox,
+      isExitConfirmOpen,
     };
-  }, [isMenuOpen, isCartOpen, isCheckoutOpen, confirmedOrder, activeInfoPage, isSortModalOpen]);
+  }, [
+    isMenuOpen,
+    isCartOpen,
+    isCheckoutOpen,
+    confirmedOrder,
+    activeInfoPage,
+    isSortModalOpen,
+    selectedFamilyBox,
+    isExitConfirmOpen,
+  ]);
+
+  // ─── حماية السلة عند محاولة مغادرة الصفحة أو إغلاق التبويب (beforeunload) ───
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (cart.length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [cart]);
 
   // ─── Menu controls ───
   const handleToggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -243,7 +364,7 @@ export default function App() {
           if (item.key !== key) return item;
           const newQty = item.qty + delta;
           if (newQty <= 0) return null;
-          const unitPrice = item.lineTotal / item.qty;
+          const unitPrice = item.unitTotal > 0 ? item.unitTotal : (item.lineTotal / item.qty);
           return {
             ...item,
             qty: newQty,
@@ -391,6 +512,20 @@ export default function App() {
     };
   }, [selectedCategory, searchQuery, filteredProducts.length]);
 
+  if (isAppExited) {
+    return (
+      <ExitScreen
+        onReenter={() => {
+          setIsAppExited(false);
+          setIsExitConfirmOpen(false);
+          window.history.pushState({ page: 'main' }, '');
+        }}
+        cartCount={cartCount}
+        cartTotal={cartTotal}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
 
@@ -409,6 +544,7 @@ export default function App() {
         onToggleMenu={handleToggleMenu}
         onCloseMenu={handleCloseMenu}
         onScrollToBundles={scrollToBundles}
+        onOpenExitModal={() => setIsExitConfirmOpen(true)}
       />
 
       {/* ═══════ Main Content ═══════ */}
@@ -529,7 +665,11 @@ export default function App() {
 
             {/* ─── Family Boxes Section ─── */}
             <div ref={bundlesSectionRef}>
-              <FamilyBoxesSection onAddToCart={handleAddToCart} />
+              <FamilyBoxesSection
+                onAddToCart={handleAddToCart}
+                selectedBox={selectedFamilyBox}
+                onSelectBox={setSelectedFamilyBox}
+              />
             </div>
 
             {/* ─── Trust Badges ─── */}
@@ -604,6 +744,18 @@ export default function App() {
             setSortBy('default');
             setOnlyInStock(false);
           }}
+        />
+
+        {/* ─── نافذة تأكيد الخروج من التطبيق ─── */}
+        <ExitConfirmationModal
+          isOpen={isExitConfirmOpen}
+          onClose={() => setIsExitConfirmOpen(false)}
+          onConfirmExit={() => {
+            setIsExitConfirmOpen(false);
+            setIsAppExited(true);
+          }}
+          cartCount={cartCount}
+          cartTotal={cartTotal}
         />
       </Suspense>
 

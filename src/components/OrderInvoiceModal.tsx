@@ -72,7 +72,8 @@ export const OrderInvoiceModal: React.FC<OrderInvoiceModalProps> = ({
     // استنساخ الفاتورة في نافذة جديدة للطباعة النظيفة
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     if (!printWindow) {
-      alert('يرجى السماح بالنوافذ المنبثقة للطباعة');
+      // بديل آمن داخل البيئات المقيدة أو عند حجب النوافذ المنبثقة
+      window.print();
       return;
     }
 

@@ -71,6 +71,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   // ─── بناء نص الواتساب ───
   const waLines = [
     `🛒 *طلب جديد من متجر خُضرة ${order.orderCode}*`,
+    order.customerName ? `👤 *الاسم:* ${order.customerName}` : '',
     `📞 *الهاتف:* ${order.phone}`,
     `📍 *عنوان التوصيل:* ${order.address}`,
     order.mapsLink ? `🗺️ *رابط Google Maps:*\n${order.mapsLink}` : '',

@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   ShoppingBag, Search, Menu, X, Phone, ShieldCheck,
-  RefreshCw, Info, Download, Package, Sparkles, Leaf,
+  RefreshCw, Info, Download, Package, Sparkles, Leaf, LogOut,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 import { ProductCategory } from '../types';
@@ -25,6 +25,7 @@ interface HeaderProps {
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onScrollToBundles?: () => void;
+  onOpenExitModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -40,6 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleMenu,
   onCloseMenu,
   onScrollToBundles,
+  onOpenExitModal,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
@@ -563,6 +565,24 @@ export const Header: React.FC<HeaderProps> = ({
                     </span>
                     <span>التطبيق مثبت بالفعل ✅</span>
                   </div>
+                </div>
+              )}
+
+              {/* ─── خيار الخروج من التطبيق ─── */}
+              {onOpenExitModal && (
+                <div className="mt-4 pt-3 border-t border-[#E8E1D3]">
+                  <button
+                    type="button"
+                    id="drawer-exit-app-btn"
+                    onClick={() => {
+                      onCloseMenu();
+                      onOpenExitModal();
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[46px] rounded-xl hover:bg-rose-50 text-stone-600 hover:text-rose-700 font-extrabold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors border border-transparent hover:border-rose-200"
+                  >
+                    <LogOut className="w-4 h-4 text-stone-400 group-hover:text-rose-600 shrink-0" />
+                    <span>الخروج من التطبيق</span>
+                  </button>
                 </div>
               )}
             </div>

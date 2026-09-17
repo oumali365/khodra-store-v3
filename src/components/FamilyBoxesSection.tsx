@@ -159,12 +159,35 @@ export const FAMILY_BOXES: FamilyBox[] = [
 
 interface FamilyBoxesSectionProps {
   onAddToCart: (product: Product, quantity: number) => void;
+  selectedBox?: FamilyBox | null;
+  onSelectBox?: (box: FamilyBox | null) => void;
 }
 
-export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({ onAddToCart }) => {
-  const [selectedBox, setSelectedBox] = useState<FamilyBox | null>(null);
+export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
+  onAddToCart,
+  selectedBox: controlledSelectedBox,
+  onSelectBox: controlledOnSelectBox,
+}) => {
+  const [internalSelectedBox, setInternalSelectedBox] = useState<FamilyBox | null>(null);
+  const isControlled = controlledSelectedBox !== undefined;
+  const selectedBox = isControlled ? controlledSelectedBox : internalSelectedBox;
+
+  const setSelectedBox = (box: FamilyBox | null) => {
+    if (isControlled && controlledOnSelectBox) {
+      controlledOnSelectBox(box);
+    } else {
+      setInternalSelectedBox(box);
+    }
+  };
+
   const [modalQty, setModalQty] = useState(1);
   const [addedBoxId, setAddedBoxId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selectedBox) {
+      setModalQty(1);
+    }
+  }, [selectedBox]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
