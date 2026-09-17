@@ -37,11 +37,11 @@ export const ExitScreen: React.FC<ExitScreenProps> = ({ onReenter, cartCount, ca
         </div>
 
         <h1 className="text-2xl sm:text-3xl font-black text-[#112616] tracking-tight mb-2 font-['Almarai']">
-          شكراً لزيارتك لمتجر خُضرة 🌿
+          شكراً لزيارتك متجر خُضرة
         </h1>
 
         <p className="text-stone-600 text-sm sm:text-base leading-relaxed mb-6">
-          نتمنى لك يوماً طيباً ومباركاً. نحن دائماً في خدمتك لتوفير أجود الخضر والفواكه الطازجة في فاس والنواحي مباشرة لباب بيتك.
+          نتمنى لك يوماً طيباً ومباركاً.
         </p>
 
         {/* تنبيه السلة المحفوظة */}
@@ -71,15 +71,6 @@ export const ExitScreen: React.FC<ExitScreenProps> = ({ onReenter, cartCount, ca
           >
             <RefreshCw className="w-5 h-5 text-[#F5D76E]" />
             <span>العودة إلى المتجر ومتابعة التسوق</span>
-          </button>
-
-          <button
-            type="button"
-            id="close-tab-btn"
-            onClick={handleCloseTab}
-            className="w-full min-h-[46px] py-2.5 px-5 rounded-2xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-stone-700 font-bold text-xs sm:text-sm border border-stone-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-          >
-            <span>إغلاق هذه الصفحة في المتصفح</span>
           </button>
         </div>
 
