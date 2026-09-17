@@ -196,7 +196,7 @@ export async function submitOrder(
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ─── التقييمات ───
+// ─── التقييمات (Reviews) – Soft Delete ───
 // ═══════════════════════════════════════════════════════════════
 
 export interface DbReview {
@@ -216,9 +216,11 @@ export async function fetchReviews(): Promise<DbReview[] | null> {
   if (!client) return null;
 
   try {
+    // ✅ تصفية التعليقات المحذوفة
     const { data, error } = await client
       .from('reviews')
       .select('*')
+      .or('is_deleted.is.null,is_deleted.eq.false')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -261,22 +263,8 @@ export async function submitCustomerReview(review: {
 }): Promise<{ success: boolean; data?: DbReview; message?: string }> {
   const client = getSupabase();
 
-  try {
-    const cached = JSON.parse(localStorage.getItem('khodra_customer_reviews') || '[]');
-    const localReview = {
-      id: `local-${Date.now()}`,
-      ...review,
-      date: 'الآن',
-      created_at: new Date().toISOString(),
-      verified: true,
-    };
-    localStorage.setItem('khodra_customer_reviews', JSON.stringify([localReview, ...cached].slice(0, 30)));
-  } catch {
-    // ignore
-  }
-
   if (!client) {
-    return { success: true, message: 'تم حفظ الرأي محلياً' };
+    return { success: false, message: 'لا يوجد اتصال بقاعدة البيانات' };
   }
 
   try {
@@ -298,7 +286,7 @@ export async function submitCustomerReview(review: {
 
     if (error) {
       console.warn('Supabase review insert warning:', error.message);
-      return { success: true, message: 'تم استلام التقييم بنجاح' };
+      return { success: false, message: 'فشل حفظ التقييم' };
     }
 
     const inserted: DbReview = {
@@ -316,46 +304,36 @@ export async function submitCustomerReview(review: {
     return { success: true, data: inserted };
   } catch (err) {
     console.warn('Error saving review:', err);
-    return { success: true, message: 'تم استلام التقييم' };
+    return { success: false, message: 'فشل حفظ التقييم' };
   }
 }
 
-export async function deleteCustomerReview(reviewId: string): Promise<{ success: boolean; message?: string }> {
+// ─── حذف التعليق عبر RPC آمن (Soft Delete) ───
+export async function deleteCustomerReview(
+  reviewId: string
+): Promise<{ success: boolean; message?: string }> {
   const client = getSupabase();
-
-  try {
-    const deletedIds: string[] = JSON.parse(localStorage.getItem('khodra_deleted_review_ids') || '[]');
-    if (!deletedIds.includes(String(reviewId))) {
-      deletedIds.push(String(reviewId));
-      localStorage.setItem('khodra_deleted_review_ids', JSON.stringify(deletedIds));
-    }
-
-    const cached = JSON.parse(localStorage.getItem('khodra_customer_reviews') || '[]');
-    const updated = cached.filter((item: any) => String(item.id) !== String(reviewId));
-    localStorage.setItem('khodra_customer_reviews', JSON.stringify(updated));
-  } catch {
-    // ignore
-  }
-
   if (!client) {
-    return { success: true, message: 'تم حذف التقييم محلياً' };
+    return { success: false, message: 'لا يوجد اتصال بقاعدة البيانات' };
   }
 
+  const pin = getAdminPin();
+
   try {
-    const { error } = await client
-      .from('reviews')
-      .delete()
-      .eq('id', reviewId);
+    const { error } = await client.rpc('delete_review_secure', {
+      p_review_id: reviewId,
+      p_admin_pin: pin,
+    });
 
     if (error) {
-      console.warn('Supabase delete review notice:', error.message);
-      return { success: true, message: 'تم إخفاء التقييم' };
+      console.error('❌ فشل حذف التعليق:', error.message);
+      return { success: false, message: error.message };
     }
 
-    return { success: true, message: 'تم حذف التقييم بنجاح' };
-  } catch (err) {
+    return { success: true, message: 'تم حذف التعليق على جميع الأجهزة' };
+  } catch (err: any) {
     console.warn('Network error while deleting review:', err);
-    return { success: true, message: 'تم حذف التقييم' };
+    return { success: false, message: 'تعذّر الاتصال بالخادم' };
   }
 }
 
