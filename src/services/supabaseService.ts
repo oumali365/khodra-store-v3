@@ -352,7 +352,7 @@ export async function deleteCustomerReview(reviewId: string): Promise<{ success:
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ─── إدارة الطلبات (Order Management) ───
+// ─── إدارة الطلبات (Order Management) – RPC آمن ───
 // ═══════════════════════════════════════════════════════════════
 
 export type OrderStatus = 'pending' | 'prepared' | 'delivered' | 'cancelled';
@@ -388,77 +388,96 @@ function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
   return 'pending';
 }
 
-export async function fetchOrders(): Promise<DbOrder[]> {
-  const client = getSupabase();
-
-  if (!client) {
-    try {
-      const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
-      return local.map((o: any, idx: number): DbOrder => ({
-        id: `local-${idx}`,
-        order_code: o.orderCode || `#${idx}`,
-        customer_name: o.customerName || '-',
-        phone: o.phone || '-',
-        address: o.address || '-',
-        items: o.items || [],
-        subtotal: Number(o.subtotal) || 0,
-        delivery_fee: Number(o.deliveryFee) || 0,
-        total: Number(o.total) || 0,
-        status: 'pending',
-        note: o.deliverySlot || '',
-        maps_link: o.mapsLink || '',
-        created_at: o.created_at || new Date().toISOString(),
-      }));
-    } catch {
-      return [];
-    }
-  }
-
+// ─── الحصول على الـ PIN من localStorage ───
+function getAdminPin(): string {
   try {
-    const { data, error } = await client
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
+    return localStorage.getItem('khodra_admin_pin') || '1234';
+  } catch {
+    return '1234';
+  }
+}
 
-    if (error) {
-      console.warn('fetchOrders warning:', error.message);
+// ─── تحويل صف من قاعدة البيانات إلى DbOrder ───
+function mapRowToOrder(row: any): DbOrder {
+  return {
+    id: row.id,
+    order_code: row.order_code || row.orderCode || `#${row.id}`,
+    customer_name: row.customer_name || row.customerName || '-',
+    phone: String(row.phone || '-'),
+    address: row.address || '-',
+    items: (() => {
+      if (Array.isArray(row.items)) return row.items;
+      if (typeof row.items === 'string') {
+        try { return JSON.parse(row.items); } catch { return []; }
+      }
       return [];
-    }
+    })(),
+    subtotal: Number(row.subtotal) || 0,
+    delivery_fee: Number(row.delivery_fee ?? row.deliveryFee) || 0,
+    total: Number(row.total) || 0,
+    status: normalizeOrderStatus(row.status),
+    note: row.note || '',
+    maps_link: row.maps_link || '',
+    created_at: row.created_at || new Date().toISOString(),
+  };
+}
 
-    return (data || []).map((row: any): DbOrder => ({
-      id: row.id,
-      order_code: row.order_code || row.orderCode || `#${row.id}`,
-      customer_name: row.customer_name || row.customerName || '-',
-      phone: String(row.phone || '-'),
-      address: row.address || '-',
-      items: (() => {
-        if (Array.isArray(row.items)) return row.items;
-        if (typeof row.items === 'string') {
-          try { return JSON.parse(row.items); } catch { return []; }
-        }
-        return [];
-      })(),
-      subtotal: Number(row.subtotal) || 0,
-      delivery_fee: Number(row.delivery_fee ?? row.deliveryFee) || 0,
-      total: Number(row.total) || 0,
-      status: normalizeOrderStatus(row.status),
-      note: row.note || '',
-      maps_link: row.maps_link || '',
-      created_at: row.created_at || new Date().toISOString(),
+// ─── قراءة الطلبات المحلية (fallback) ───
+function readLocalOrders(): DbOrder[] {
+  try {
+    const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
+    return local.map((o: any, idx: number): DbOrder => ({
+      id: `local-${idx}`,
+      order_code: o.orderCode || `#${idx}`,
+      customer_name: o.customerName || '-',
+      phone: o.phone || '-',
+      address: o.address || '-',
+      items: o.items || [],
+      subtotal: Number(o.subtotal) || 0,
+      delivery_fee: Number(o.deliveryFee) || 0,
+      total: Number(o.total) || 0,
+      status: 'pending',
+      note: o.deliverySlot || '',
+      maps_link: o.mapsLink || '',
+      created_at: o.created_at || new Date().toISOString(),
     }));
-  } catch (err) {
-    console.warn('Network error while fetching orders:', err);
+  } catch {
     return [];
   }
 }
 
+// ─── جلب الطلبات (عبر RPC آمن) ───
+export async function fetchOrders(): Promise<DbOrder[]> {
+  const client = getSupabase();
+
+  if (!client) {
+    return readLocalOrders();
+  }
+
+  try {
+    const { data, error } = await client.rpc('get_orders_secure', {
+      p_admin_pin: getAdminPin(),
+    });
+
+    if (error) {
+      console.error('❌ fetchOrders RPC error:', error.message);
+      return readLocalOrders();
+    }
+
+    return (data || []).map(mapRowToOrder);
+  } catch (err) {
+    console.warn('Network error while fetching orders:', err);
+    return readLocalOrders();
+  }
+}
+
+// ─── تحديث حالة الطلب (عبر RPC آمن) ───
 export async function updateOrderStatus(
   orderId: string | number,
   status: OrderStatus
 ): Promise<{ success: boolean; message?: string }> {
-  const client = getSupabase();
-
-  if (!client) {
+  // طلب محلي فقط
+  if (String(orderId).startsWith('local-')) {
     try {
       const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
       const idx = Number(String(orderId).replace('local-', ''));
@@ -470,18 +489,20 @@ export async function updateOrderStatus(
     return { success: true, message: 'تم التحديث محلياً' };
   }
 
-  if (String(orderId).startsWith('local-')) {
-    return { success: true, message: 'طلب محلي (غير موجود في Supabase)' };
+  const client = getSupabase();
+  if (!client) {
+    return { success: false, message: 'لا يوجد اتصال بقاعدة البيانات' };
   }
 
   try {
-    const { error } = await client
-      .from('orders')
-      .update({ status })
-      .eq('id', orderId);
+    const { error } = await client.rpc('update_order_status_secure', {
+      p_order_id: orderId,
+      p_new_status: status,
+      p_admin_pin: getAdminPin(),
+    });
 
     if (error) {
-      console.warn('updateOrderStatus error:', error.message);
+      console.warn('updateOrderStatus RPC error:', error.message);
       return { success: false, message: error.message };
     }
     return { success: true };
@@ -491,12 +512,11 @@ export async function updateOrderStatus(
   }
 }
 
-// ─── حذف طلب نهائياً ───
+// ─── حذف طلب نهائياً (عبر RPC آمن) ───
 export async function deleteOrder(
   orderId: string | number
 ): Promise<{ success: boolean; message?: string }> {
-  const client = getSupabase();
-
+  // طلب محلي فقط
   if (String(orderId).startsWith('local-')) {
     try {
       const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
@@ -509,18 +529,19 @@ export async function deleteOrder(
     return { success: true, message: 'تم حذف الطلب المحلي' };
   }
 
+  const client = getSupabase();
   if (!client) {
     return { success: false, message: 'لا يوجد اتصال بقاعدة البيانات' };
   }
 
   try {
-    const { error } = await client
-      .from('orders')
-      .delete()
-      .eq('id', orderId);
+    const { error } = await client.rpc('delete_order_secure', {
+      p_order_id: orderId,
+      p_admin_pin: getAdminPin(),
+    });
 
     if (error) {
-      console.warn('deleteOrder error:', error.message);
+      console.warn('deleteOrder RPC error:', error.message);
       return { success: false, message: error.message };
     }
     return { success: true, message: 'تم حذف الطلب نهائياً' };
@@ -535,31 +556,21 @@ export async function fetchPendingOrdersCount(): Promise<number> {
   const client = getSupabase();
 
   if (!client) {
-    try {
-      const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
-      return local.filter((o: any) => !o.status || o.status === 'pending').length;
-    } catch {
-      return 0;
-    }
+    const local = readLocalOrders();
+    return local.filter((o) => o.status === 'pending').length;
   }
 
   try {
-    const { count, error } = await client
-      .from('orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending');
+    const { data, error } = await client.rpc('get_orders_secure', {
+      p_admin_pin: getAdminPin(),
+    });
 
-    if (!error && typeof count === 'number') {
-      return count;
+    if (error) {
+      console.warn('fetchPendingOrdersCount error:', error.message);
+      return 0;
     }
 
-    // fallback للقيم العربية القديمة
-    const { count: fallbackCount } = await client
-      .from('orders')
-      .select('*', { count: 'exact', head: true })
-      .or('status.is.null,status.eq.جديد,status.eq.pending');
-
-    return fallbackCount || 0;
+    return (data || []).filter((o: any) => normalizeOrderStatus(o.status) === 'pending').length;
   } catch (err) {
     console.warn('Network error while counting pending orders:', err);
     return 0;
