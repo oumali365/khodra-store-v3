@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 4.2
-// صور فئات أكبر وأكثر احترافية عند تفعيلها
+// الملف: CategoryFilter.tsx – الإصدار 4.3
+// بطاقات فئات أطول مع هوامش داخلية أوسع
 // ============================================================
 import React, { useState, useRef, useEffect } from 'react';
 import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -31,7 +31,7 @@ const CategoryThumbnail: React.FC<{
   if (imgError || !imageUrl) {
     return (
       <span
-        className={`text-4xl sm:text-5xl mb-3 transition-transform duration-300 drop-shadow-sm ${
+        className={`text-5xl sm:text-6xl mb-4 transition-transform duration-300 drop-shadow-sm ${
           isSelected ? 'scale-110' : 'group-hover:scale-110'
         }`}
       >
@@ -42,7 +42,7 @@ const CategoryThumbnail: React.FC<{
 
   return (
     <div
-      className={`relative w-[88px] h-[88px] sm:w-[104px] sm:h-[104px] lg:w-[112px] lg:h-[112px] mb-3 rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-300 shrink-0 bg-stone-100 ${
+      className={`relative w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] lg:w-[124px] lg:h-[124px] mb-4 rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-300 shrink-0 bg-stone-100 ${
         isSelected
           ? 'border-2 border-[#F5D76E] shadow-xl scale-105 ring-2 ring-[#F5D76E]/30'
           : 'border border-stone-200/90 group-hover:border-[#F5D76E]/70 shadow-sm group-hover:shadow-xl group-hover:scale-105'
@@ -54,8 +54,8 @@ const CategoryThumbnail: React.FC<{
         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         loading="lazy"
         decoding="async"
-        width="112"
-        height="112"
+        width="124"
+        height="124"
         referrerPolicy="no-referrer"
         onError={() => setImgError(true)}
       />
@@ -200,9 +200,9 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 type="button"
                 onClick={() => scrollByAmount('right')}
                 aria-label="تمرير لليمين"
-                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md border border-[#D4C8B5] shadow-lg text-[#163920] items-center justify-center hover:bg-[#163920] hover:text-white transition-all active:scale-90 cursor-pointer"
+                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#D4C8B5] shadow-lg text-[#163920] items-center justify-center hover:bg-[#163920] hover:text-white transition-all active:scale-90 cursor-pointer"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5" />
               </button>
             )}
 
@@ -211,16 +211,16 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 type="button"
                 onClick={() => scrollByAmount('left')}
                 aria-label="تمرير لليسار"
-                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md border border-[#D4C8B5] shadow-lg text-[#163920] items-center justify-center hover:bg-[#163920] hover:text-white transition-all active:scale-90 cursor-pointer"
+                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#D4C8B5] shadow-lg text-[#163920] items-center justify-center hover:bg-[#163920] hover:text-white transition-all active:scale-90 cursor-pointer"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5" />
               </button>
             )}
 
-            {/* حاوية التمرير: 3 أعمدة على الشاشات الصغيرة والمتوسطة، 6 أعمدة على الكبيرة */}
+            {/* حاوية التمرير: بطاقات أطول وهوامش أوسع */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-2 pr-9 md:pr-0 pl-1 md:px-0 snap-x snap-mandatory scroll-smooth"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-3 pr-9 md:pr-0 pl-1 md:px-0 snap-x snap-mandatory scroll-smooth"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               role="tablist"
               aria-label="فئات المنتجات"
@@ -235,7 +235,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                     role="tab"
                     aria-selected={isSelected}
                     onClick={() => onSelectCategory(cat.id)}
-                    className={`relative flex flex-col items-center justify-center p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-2 transition-all duration-200 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-95 shrink-0 min-w-[148px] sm:min-w-[160px] md:min-w-0 snap-start ${
+                    className={`relative flex flex-col items-center justify-center px-4 py-6 sm:px-5 sm:py-7 md:px-4 md:py-6 lg:px-5 lg:py-7 rounded-2xl sm:rounded-3xl border-2 transition-all duration-200 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-95 shrink-0 min-w-[156px] sm:min-w-[168px] md:min-w-0 min-h-[210px] sm:min-h-[230px] md:min-h-[210px] lg:min-h-[240px] snap-start ${
                       isSelected
                         ? 'bg-gradient-to-b from-[#163920] to-[#0E2615] text-white border-[#163920] shadow-xl -translate-y-1'
                         : 'bg-[#FAF8F3] hover:bg-white text-[#112616] border-[#E8E1D3] hover:border-[#F5D76E]/70 shadow-sm hover:shadow-lg hover:-translate-y-0.5'
@@ -257,7 +257,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                     </span>
 
                     {isSelected && (
-                      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-[#F5D76E]" />
+                      <span className="absolute bottom-3 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-[#F5D76E]" />
                     )}
                   </button>
                 );
