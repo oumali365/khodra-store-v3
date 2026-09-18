@@ -330,7 +330,7 @@ export async function deleteCustomerReview(
       return { success: false, message: error.message };
     }
 
-    return { success: true, message: 'تم حذف التعليق على جميع الأجهزة' };
+    return { success: true, message: 'تم حذف التعليق ' };
   } catch (err: any) {
     console.warn('Network error while deleting review:', err);
     return { success: false, message: 'تعذّر الاتصال بالخادم' };
