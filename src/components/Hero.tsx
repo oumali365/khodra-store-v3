@@ -1,11 +1,9 @@
 // ============================================================
-// الملف: Hero.tsx – الإصدار 3.0
-// الواجهة الرئيسية – تصميم متناسق وتفاعلي
+// الملف: Hero.tsx – الإصدار 5.0
+// الواجهة الرئيسية – زر واحد لكل شريحة + تنقل يدوي
 // ============================================================
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
-  Truck,
-  ShieldCheck,
   ArrowDown,
   Package,
   Sparkles,
@@ -24,8 +22,8 @@ interface HeroProps {
 
 const HERO_SLIDES = [
   {
-    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1400&auto=format&fit=crop&q=80',
-    badge: '🌿 طازج يومياً',
+    image:
+      'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1400&auto=format&fit=crop&q=80',
     title: 'خضار وفواكه طازجة،',
     highlight: 'مباشرة لباب دارك',
     description:
@@ -33,17 +31,8 @@ const HERO_SLIDES = [
     primaryCTA: 'catalog',
   },
   {
-    image: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=1400&auto=format&fit=crop&q=80',
-    badge: '🍎 فيتامينات طبيعية',
-    title: 'فواكه غنية بالنضارة،',
-    highlight: 'حلوة ومختارة بعناية',
-    description:
-      'تشكيلة استثنائية من أشهى الفواكه الطازجة المغذية والغنية بالفيتامينات، تصلك نقية ومحفوظة بأعلى معايير الجودة.',
-    primaryCTA: 'catalog',
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=1400&auto=format&fit=crop&q=80',
-    badge: '🧺 وفّر أكثر',
+    image:
+      'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=1400&auto=format&fit=crop&q=80',
     title: 'صناديق عائلة خُضرة،',
     highlight: 'وفّر وقتك وفلوسك',
     description:
@@ -53,29 +42,21 @@ const HERO_SLIDES = [
 ];
 
 export const Hero: React.FC<HeroProps> = ({
-  onSelectCategory,
+  onSelectCategory: _onSelectCategory,
   onScrollToCatalog,
   onScrollToBundles,
 }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number>(0);
-
-  // ─── التبديل التلقائي ───
-  useEffect(() => {
-    if (isPaused) return;
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [isPaused]);
 
   const goToNext = () => {
     setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
   };
 
   const goToPrev = () => {
-    setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+    setCurrentSlide(
+      (prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length
+    );
   };
 
   // ─── Swipe على الهاتف ───
@@ -94,15 +75,12 @@ export const Hero: React.FC<HeroProps> = ({
   };
 
   const currentSlideData = HERO_SLIDES[currentSlide];
-  const isBundleSlide = currentSlideData.primaryCTA === 'bundles';
 
   return (
     <section className="relative overflow-hidden pt-3 pb-6 sm:pt-6 sm:pb-8 px-3 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div
-          className="relative rounded-[24px] sm:rounded-[36px] min-h-[460px] sm:min-h-[500px] p-5 sm:p-10 md:p-12 border border-[#D4C8B5] shadow-2xl text-center overflow-hidden flex flex-col justify-between select-none"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
+          className="relative rounded-[24px] sm:rounded-[36px] min-h-[460px] sm:min-h-[520px] p-5 sm:p-10 md:p-12 border border-[#D4C8B5] shadow-2xl text-center overflow-hidden flex flex-col justify-between select-none"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
@@ -111,7 +89,9 @@ export const Hero: React.FC<HeroProps> = ({
             <div
               key={index}
               className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                index === currentSlide
+                  ? 'opacity-100'
+                  : 'opacity-0 pointer-events-none'
               }`}
             >
               <img
@@ -120,7 +100,9 @@ export const Hero: React.FC<HeroProps> = ({
                 referrerPolicy="no-referrer"
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding={index === 0 ? 'sync' : 'async'}
-                {...(index === 0 ? { fetchPriority: 'high' } as any : {})}
+                {...(index === 0
+                  ? ({ fetchPriority: 'high' } as any)
+                  : {})}
                 className="w-full h-full object-cover object-center"
               />
             </div>
@@ -133,7 +115,7 @@ export const Hero: React.FC<HeroProps> = ({
           <div className="absolute -top-24 -right-24 w-80 h-80 bg-[#F5D76E]/15 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-[#163920]/40 rounded-full blur-3xl pointer-events-none" />
 
-          {/* ════════ أزرار التنقل الجانبية (سطح المكتب فقط) ════════ */}
+          {/* ════════ أزرار التنقل الجانبية (سطح المكتب) ════════ */}
           <button
             type="button"
             onClick={goToPrev}
@@ -153,30 +135,11 @@ export const Hero: React.FC<HeroProps> = ({
           </button>
 
           {/* ════════ المحتوى ════════ */}
-          <div className="relative z-10 flex flex-col items-center justify-center flex-1 max-w-3xl mx-auto py-4">
-
-            {/* ─── شارة الشريحة الحالية ─── */}
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 text-[11px] sm:text-xs font-black text-white mb-4 shadow-sm animate-in fade-in duration-500">
-              <Sparkles className="w-3 h-3 text-[#F5D76E]" />
-              <span>{currentSlideData.badge}</span>
-            </div>
-
-            {/* ─── شارات الثقة ─── */}
-            <div className="inline-flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 mb-4">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[10px] sm:text-xs font-black text-white shadow-xs">
-                <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#F5D76E]" />
-                <span>توصيل مجاني فوق {STORE_CONFIG.freeDeliveryThreshold} {STORE_CONFIG.currency}</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[10px] sm:text-xs font-black text-white shadow-xs">
-                <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#F5D76E]" />
-                <span>ضمان الجودة 100%</span>
-              </span>
-            </div>
-
+          <div className="relative z-10 flex flex-col items-center justify-center flex-1 max-w-3xl mx-auto py-6">
             {/* ─── العنوان ─── */}
             <h1
               key={currentSlide}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight mb-4 drop-shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-700"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight mb-5 drop-shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-700"
             >
               {currentSlideData.title}{' '}
               <span className="relative inline-block text-[#F5D76E]">
@@ -188,47 +151,42 @@ export const Hero: React.FC<HeroProps> = ({
             {/* ─── الوصف ─── */}
             <p
               key={`desc-${currentSlide}`}
-              className="text-sm sm:text-base md:text-lg text-[#EDE6D8] max-w-2xl mx-auto leading-relaxed mb-7 font-medium drop-shadow-sm animate-in fade-in duration-700"
+              className="text-sm sm:text-base md:text-lg text-[#EDE6D8] max-w-2xl mx-auto leading-relaxed mb-8 font-medium drop-shadow-sm animate-in fade-in duration-700"
             >
               {currentSlideData.description}
             </p>
 
-            {/* ─── الأزرار ════════ */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full sm:w-auto">
-              {/* زر تسوق الآن */}
-              <button
-                type="button"
-                id="hero-shop-now-btn"
-                onClick={onScrollToCatalog}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl sm:rounded-full bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] text-white font-black text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group"
-              >
-                <Leaf className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>تسوق الآن</span>
-                <ArrowDown className="w-4 h-4 group-hover:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
-              </button>
-
-              {/* زر صناديق العائلة */}
-              {onScrollToBundles && (
+            {/* ─── زر واحد لكل شريحة ════════ */}
+            <div className="flex items-center justify-center w-full sm:w-auto">
+              {currentSlideData.primaryCTA === 'catalog' ? (
                 <button
                   type="button"
-                  onClick={onScrollToBundles}
-                  className={`w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl sm:rounded-full font-black text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group border-2 ${
-                    isBundleSlide
-                      ? 'bg-gradient-to-r from-[#163920] to-[#0E2615] text-white border-[#F5D76E]'
-                      : 'bg-white/10 backdrop-blur-md text-white border-white/30 hover:bg-white/20'
-                  }`}
+                  id="hero-shop-now-btn"
+                  onClick={onScrollToCatalog}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl sm:rounded-full bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] text-white font-black text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group"
                 >
-                  <Package className="w-4 h-4 sm:w-5 sm:h-5 text-[#F5D76E]" />
-                  <span>صناديق العائلة</span>
-                  <Sparkles className="w-4 h-4 text-[#F5D76E] animate-pulse" />
+                  <Leaf className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>تسوق الآن</span>
+                  <ArrowDown className="w-4 h-4 group-hover:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
                 </button>
+              ) : (
+                onScrollToBundles && (
+                  <button
+                    type="button"
+                    onClick={onScrollToBundles}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl sm:rounded-full font-black text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group border-2 bg-gradient-to-r from-[#163920] to-[#0E2615] text-white border-[#F5D76E]"
+                  >
+                    <Package className="w-4 h-4 sm:w-5 sm:h-5 text-[#F5D76E]" />
+                    <span>صناديق العائلة</span>
+                    <Sparkles className="w-4 h-4 text-[#F5D76E] animate-pulse" />
+                  </button>
+                )
               )}
             </div>
           </div>
 
           {/* ════════ الأسفل ════════ */}
           <div className="relative z-10 mt-6 pt-4 border-t border-white/15 flex flex-col sm:flex-row items-center justify-between gap-3">
-
             {/* النقاط */}
             <div
               className="flex items-center gap-2 sm:gap-2.5 py-1"
@@ -255,7 +213,9 @@ export const Hero: React.FC<HeroProps> = ({
             {/* حالة التوصيل */}
             <div className="flex items-center gap-2 text-[11px] sm:text-sm font-extrabold text-[#EDE6D8] bg-white/5 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
               <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm" />
-              <span>خدمة التوصيل نشطة اليوم في {STORE_CONFIG.city}</span>
+              <span>
+                خدمة التوصيل نشطة اليوم في {STORE_CONFIG.city}
+              </span>
             </div>
           </div>
         </div>
