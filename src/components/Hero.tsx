@@ -1,12 +1,11 @@
 // ============================================================
-// الملف: Hero.tsx – الإصدار 5.0
-// الواجهة الرئيسية – زر واحد لكل شريحة + تنقل يدوي
+// الملف: Hero.tsx – الإصدار 6.0
+// الواجهة الرئيسية – زر موحّد + وصف أوضح + توسيط مثالي
 // ============================================================
 import React, { useState, useRef } from 'react';
 import {
   ArrowDown,
   Package,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
   Leaf,
@@ -135,11 +134,11 @@ export const Hero: React.FC<HeroProps> = ({
           </button>
 
           {/* ════════ المحتوى ════════ */}
-          <div className="relative z-10 flex flex-col items-center justify-center flex-1 max-w-3xl mx-auto py-6">
+          <div className="relative z-10 flex flex-col items-center justify-center flex-1 max-w-3xl mx-auto py-6 text-center">
             {/* ─── العنوان ─── */}
             <h1
               key={currentSlide}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight mb-5 drop-shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-700"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.2] tracking-tight mb-6 drop-shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-700"
             >
               {currentSlideData.title}{' '}
               <span className="relative inline-block text-[#F5D76E]">
@@ -148,37 +147,37 @@ export const Hero: React.FC<HeroProps> = ({
               </span>
             </h1>
 
-            {/* ─── الوصف ─── */}
+            {/* ─── الوصف (أكبر وأوضح) ─── */}
             <p
               key={`desc-${currentSlide}`}
-              className="text-sm sm:text-base md:text-lg text-[#EDE6D8] max-w-2xl mx-auto leading-relaxed mb-8 font-medium drop-shadow-sm animate-in fade-in duration-700"
+              className="text-base sm:text-lg md:text-xl text-[#F5EFE3] max-w-2xl mx-auto leading-[1.9] mb-9 font-semibold drop-shadow-md animate-in fade-in duration-700"
             >
               {currentSlideData.description}
             </p>
 
-            {/* ─── زر واحد لكل شريحة ════════ */}
+            {/* ─── زر واحد لكل شريحة (تصميم موحّد برتقالي) ════════ */}
             <div className="flex items-center justify-center w-full sm:w-auto">
               {currentSlideData.primaryCTA === 'catalog' ? (
                 <button
                   type="button"
                   id="hero-shop-now-btn"
                   onClick={onScrollToCatalog}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl sm:rounded-full bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] text-white font-black text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 sm:px-9 sm:py-4 rounded-2xl sm:rounded-full bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] text-white font-black text-base sm:text-lg shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group"
                 >
-                  <Leaf className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Leaf className="w-5 h-5" />
                   <span>تسوق الآن</span>
-                  <ArrowDown className="w-4 h-4 group-hover:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
+                  <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
                 </button>
               ) : (
                 onScrollToBundles && (
                   <button
                     type="button"
                     onClick={onScrollToBundles}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl sm:rounded-full font-black text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group border-2 bg-gradient-to-r from-[#163920] to-[#0E2615] text-white border-[#F5D76E]"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 sm:px-9 sm:py-4 rounded-2xl sm:rounded-full bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] text-white font-black text-base sm:text-lg shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group"
                   >
-                    <Package className="w-4 h-4 sm:w-5 sm:h-5 text-[#F5D76E]" />
-                    <span>صناديق العائلة</span>
-                    <Sparkles className="w-4 h-4 text-[#F5D76E] animate-pulse" />
+                    <Package className="w-5 h-5" />
+                    <span>اكتشف الآن</span>
+                    <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
                   </button>
                 )
               )}
