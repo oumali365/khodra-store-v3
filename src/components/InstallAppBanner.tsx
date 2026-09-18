@@ -1,9 +1,3 @@
-// ============================================================
-// InstallAppBanner.tsx
-// بانر تثبيت التطبيق / PWA بنمط وهوية متجر خُضرة الأصيلة
-// مستوحى من هيكلية وبساطة بانر done.ma مع تدرجات خُضرة الخضراء
-// والبرتقالية الذهبية وتوافق تام مع الهواتف الذكية وiOS وAndroid
-// ============================================================
 import React, { useState, useEffect } from 'react';
 import { Download, X, Share, PlusSquare, ArrowDownCircle, ShieldCheck } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
@@ -145,11 +139,11 @@ export const InstallAppBanner: React.FC = () => {
                 تطبيق {STORE_CONFIG.storeName}
               </h3>
               <span className="px-2 py-0.5 rounded-full bg-[#163920]/10 text-[#163920] text-[10px] font-black">
-                سريع وخفيف
+                سريع
               </span>
             </div>
             <p className="text-xs text-[#6B6455] font-medium mt-0.5">
-              تسوق الخضار والفواكه الطازجة لباب دارك بفاس
+              تسوق الخضار والفواكه الطازجة لباب دارك 
             </p>
           </div>
         </div>
@@ -202,11 +196,11 @@ export const InstallAppBanner: React.FC = () => {
           /* خيارات أجهزة Android والكمبيوتر */
           <div className="space-y-3.5">
             <p className="text-xs text-[#524B3E] leading-relaxed">
-              اختر الطريقة الأنسب لك لتثبيت التطبيق على جهازك والاستمتاع بتجربة طلب سريعة:
+              اختر الطريقة الأنسب لك لتثبيت التطبيق  والاستمتاع بتجربة طلب سريعة:
             </p>
 
             <div className="space-y-2.5">
-              {/* خيار تثبيت PWA الفوري / التحميل المباشر بدون رسائل توجيهية */}
+              {/* خيار تثبيت الفوري التحميل المباشر بدون رسائل توجيهية */}
               <button
                 type="button"
                 onClick={async () => {
@@ -250,7 +244,7 @@ export const InstallAppBanner: React.FC = () => {
                         ? 'جاري التحميل المباشر...'
                         : modalInstallState === 'done'
                         ? 'تم بدء التحميل بنجاح ✅'
-                        : 'تثبيت التطبيق الفوري (PWA)'}
+                        : 'تثبيت التطبيق الفوري'}
                     </span>
                     <span className="text-[10px] text-emerald-200 font-normal">
                       {modalInstallState === 'downloading'
@@ -290,7 +284,7 @@ export const InstallAppBanner: React.FC = () => {
         <div className="mt-4 pt-3 border-t border-[#E8E1D3] flex items-center justify-between text-[11px] text-[#6B6455]">
           <span className="flex items-center gap-1.5 font-medium text-[#163920]">
             <ShieldCheck className="w-4 h-4 text-[#163920]" />
-            تطبيق متجر خُضرة الرسمي بفاس
+            تطبيق متجر خُضرة الرسمي
           </span>
           <button
             type="button"
