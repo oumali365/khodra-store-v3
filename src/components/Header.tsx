@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: Header.tsx – الإصدار 3.1
-// رأس المتجر + شارتان عائمتان أسفل الهيدر (ScrollBadges)
+// الملف: Header.tsx – الإصدار 3.0
+// رأس المتجر – تصميم متناسق مع باقي المكونات
 // ============================================================
 import React, { useState, useEffect } from 'react';
 import {
@@ -10,7 +10,6 @@ import {
 import { STORE_CONFIG } from '../data/config';
 import { ProductCategory } from '../types';
 import { CATEGORIES_CONFIG } from '../data/mockProducts';
-import { ScrollBadges } from './ScrollBadges';
 
 interface HeaderProps {
   cartCount: number;
@@ -26,8 +25,6 @@ interface HeaderProps {
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onScrollToBundles?: () => void;
-  /** اختياري: تمرير إلى قسم الكتالوج — وإلا سيُستخدم معرف القسم تلقائياً */
-  onScrollToCatalog?: () => void;
   onOpenExitModal?: () => void;
 }
 
@@ -44,7 +41,6 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleMenu,
   onCloseMenu,
   onScrollToBundles,
-  onScrollToCatalog,
   onOpenExitModal,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -57,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isAndroid, setIsAndroid] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'downloading' | 'success' | 'error'>('idle');
 
+  // ─── رسالة نجاح ───
   const showSuccessMessage = (message: string) => {
     const existingMessage = document.querySelector('.pwa-install-message');
     if (existingMessage) existingMessage.remove();
@@ -86,6 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
     }, 4000);
   };
 
+  // ─── رسالة خطأ ───
   const showErrorMessage = (message: string) => {
     const existingMessage = document.querySelector('.pwa-install-message');
     if (existingMessage) existingMessage.remove();
@@ -115,6 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
     }, 4000);
   };
 
+  // ─── التحقق من نظام التشغيل ───
   useEffect(() => {
     const userAgent = navigator.userAgent;
     const iOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
@@ -123,6 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
     setIsAndroid(android);
   }, []);
 
+  // ─── الاستماع لحدث التحميل ───
   useEffect(() => {
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
@@ -154,6 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
     };
   }, []);
 
+  // ─── دالة تحميل التطبيق ───
   const handleDownloadClick = async () => {
     setDownloadStatus('downloading');
 
@@ -211,22 +212,6 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  // ─── التمرير إلى الكتالوج ───
-  const handleScrollToCatalog = () => {
-    onCloseMenu();
-    if (onScrollToCatalog) {
-      setTimeout(() => onScrollToCatalog(), 200);
-    } else {
-      setTimeout(() => {
-        const el =
-          document.getElementById('catalog-section') ||
-          document.getElementById('products-section') ||
-          document.getElementById('hero-shop-now-btn');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 200);
-    }
-  };
-
   return (
     <>
       {/* ════════ الهيدر الرئيسي ════════ */}
@@ -236,6 +221,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* ── يمين: زر القائمة + الشعار ── */}
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              {/* زر القائمة */}
               <button
                 type="button"
                 onClick={onToggleMenu}
@@ -247,14 +233,20 @@ export const Header: React.FC<HeaderProps> = ({
                 aria-label="فتح القائمة الرئيسية"
                 aria-expanded={isMenuOpen}
               >
-                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {isMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
               </button>
 
+              {/* الشعار */}
               <button
                 type="button"
                 onClick={() => onOpenPage(null)}
                 className="flex items-center gap-2 group cursor-pointer text-right touch-manipulation select-none active:opacity-80 transition-opacity min-w-0"
               >
+                {/* أيقونة خضراء صغيرة */}
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#163920] to-[#0E2615] flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                   <Leaf className="w-5 h-5 text-[#F5D76E]" />
                 </div>
@@ -296,6 +288,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* ── يسار: بحث جوّال + واتساب + السلة ── */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* زر البحث الجوّال */}
               <button
                 type="button"
                 onClick={() => setShowMobileSearch(!showMobileSearch)}
@@ -306,9 +299,14 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
                 aria-label="بحث عن منتج"
               >
-                {showMobileSearch ? <X className="w-5 h-5 stroke-[2.5]" /> : <Search className="w-5 h-5 stroke-[2.5]" />}
+                {showMobileSearch ? (
+                  <X className="w-5 h-5 stroke-[2.5]" />
+                ) : (
+                  <Search className="w-5 h-5 stroke-[2.5]" />
+                )}
               </button>
 
+              {/* واتساب (سطح المكتب) */}
               <a
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
@@ -319,6 +317,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>واتساب</span>
               </a>
 
+              {/* زر السلة */}
               <button
                 type="button"
                 onClick={onOpenCart}
@@ -370,34 +369,11 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
         </div>
-
-        {/* ════════ الشارتان العائمتان أسفل الهيدر ════════ */}
-        <ScrollBadges
-          position="center"
-          topOffset="calc(100% + 8px)"
-          className={isMenuOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-          badges={[
-            {
-              id: 'scroll-to-catalog',
-              label: 'تسوق الآن',
-              icon: <Leaf className="w-4 h-4 text-[#F5D76E]" />,
-              onClick: handleScrollToCatalog,
-              variant: 'green',
-            },
-            {
-              id: 'scroll-to-bundles',
-              label: 'صناديق العائلة',
-              icon: <Package className="w-4 h-4 text-[#F5D76E]" />,
-              onClick: handleScrollToBundles,
-              variant: 'orange',
-            },
-          ]}
-        />
       </header>
 
       {/* ════════ القائمة الجانبية (Drawer) ════════ */}
       {isMenuOpen && (
-        <div className="fixed inset-0 z-[60] flex">
+        <div className="fixed inset-0 z-50 flex">
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
             onClick={onCloseMenu}
@@ -407,6 +383,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* ─── رأس الدرج ─── */}
             <div className="relative p-4 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shadow-md shrink-0 overflow-hidden">
+              {/* زخرفة خلفية */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,215,110,0.15),transparent_60%)] pointer-events-none" />
 
               <div className="relative flex items-center gap-3">
@@ -436,8 +413,9 @@ export const Header: React.FC<HeaderProps> = ({
             {/* ─── المحتوى ─── */}
             <div className="p-4 flex-1">
 
-              {/* ─── 🧺 قسم صناديق العائلة ─── */}
+              {/* ─── 🧺 قسم صناديق العائلة (بارز) ─── */}
               <div className="mb-5 rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300 shadow-sm overflow-hidden">
+                {/* شريط علوي */}
                 <div className="px-3 py-2 bg-gradient-to-l from-[#C25E12] to-[#9C4505] flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-[#F5D76E]" />
                   <span className="text-[11px] font-black text-white uppercase tracking-wider">
@@ -590,7 +568,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
 
-              {/* ─── خيار الخروج ─── */}
+              {/* ─── خيار الخروج من التطبيق ─── */}
               {onOpenExitModal && (
                 <div className="mt-4 pt-3 border-t border-[#E8E1D3]">
                   <button
