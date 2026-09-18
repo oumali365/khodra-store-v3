@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 4.0
-// تصميم متناسق مع Hero + خلفية وصف داكنة + مؤشر تمرير ذكي
+// الملف: CategoryFilter.tsx – الإصدار 4.1
+// نقل السهم للجهة اليسرى + خلفية وصف فاتحة مع شريط ذهبي
 // ============================================================
 import React, { useState, useRef, useEffect } from 'react';
 import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -8,7 +8,6 @@ import { ProductCategory, Product } from '../types';
 import { CATEGORIES_CONFIG } from '../data/mockProducts';
 import { SortOption } from './SortFilterModal';
 
-// ─── مسارات صور الأقسام المجهزة للتحميل في public/images/categories ───
 const CATEGORY_IMAGES: Record<string, string> = {
   all: '/images/categories/all.webp',
   veg: '/images/categories/vegetables.webp',
@@ -19,7 +18,6 @@ const CATEGORY_IMAGES: Record<string, string> = {
   cleaning: '/images/categories/cleaning.webp',
 };
 
-// ─── مكون عرض صورة الفئة: تصميم احترافي متجاوب ───
 const CategoryThumbnail: React.FC<{
   catId: string;
   name: string;
@@ -60,7 +58,6 @@ const CategoryThumbnail: React.FC<{
         referrerPolicy="no-referrer"
         onError={() => setImgError(true)}
       />
-      {/* تدرّج خفيف أسفل الصورة لمزيد من العمق */}
       <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
       {isSelected && (
         <div className="absolute inset-0 bg-[#163920]/15 pointer-events-none" />
@@ -113,7 +110,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     return '';
   };
 
-  // ─── مؤشر التمرير الذكي ───
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -147,9 +143,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
   return (
     <div className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-6 sm:my-8 ${className}`}>
-      {/* ════ الحاوية الرئيسية بنفس هوية Hero ════ */}
       <div className="relative bg-white border border-[#D4C8B5] rounded-[24px] sm:rounded-[36px] p-5 sm:p-7 md:p-8 shadow-2xl overflow-hidden">
-        {/* دوائر ضوئية خفيفة للتناسق مع Hero */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#F5D76E]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#163920]/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -158,7 +152,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
           {/* ════════ 1. الرأس ════════ */}
           <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-[#F0E9DA]">
             <div className="flex items-center gap-3 min-w-0">
-              {/* زر التصفية والفرز */}
               <button
                 type="button"
                 id="category-filter-sort-btn"
@@ -186,7 +179,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </div>
             </div>
 
-            {/* شارة التصفية النشطة */}
             {hasActiveFilters && (
               <button
                 type="button"
@@ -202,7 +194,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
           {/* ════════ 2. شبكة/شريط الفئات ════════ */}
           <div className="relative">
-            {/* زر التمرير لليسار (يمين الشاشة بصرياً في RTL) */}
+            {/* زر التمرير على سطح المكتب (يمين) */}
             {canScrollRight && (
               <button
                 type="button"
@@ -214,7 +206,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
-            {/* زر التمرير لليمين (يسار الشاشة بصرياً في RTL) */}
+            {/* زر التمرير على سطح المكتب (يسار) */}
             {canScrollLeft && (
               <button
                 type="button"
@@ -226,9 +218,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
+            {/* حاوية التمرير مع padding على اليمين حتى لا يزاحم السهم الفئة الأولى */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-2 px-1 -mx-1 md:mx-0 md:px-0 snap-x snap-mandatory scroll-smooth"
+              className="flex md:grid md:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-2 pr-9 md:pr-0 pl-1 md:px-0 snap-x snap-mandatory scroll-smooth"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               role="tablist"
               aria-label="فئات المنتجات"
@@ -264,7 +257,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                       {cat.name}
                     </span>
 
-                    {/* خط سفلي ذهبي عند التحديد */}
                     {isSelected && (
                       <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-6 h-1 rounded-full bg-[#F5D76E]" />
                     )}
@@ -273,21 +265,16 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               })}
             </div>
 
-            {/* ─── مؤشر التمرير الذكي (تدرّج + سهم متحرك) على الهاتف فقط ─── */}
-            <div
-              className={`md:hidden pointer-events-none absolute top-0 bottom-0 right-0 w-10 bg-gradient-to-l from-white via-white/80 to-transparent transition-opacity duration-300 ${
-                canScrollRight ? 'opacity-100' : 'opacity-0'
-              }`}
-            />
+            {/* ─── تدرّج يسار فقط (حيث تظهر العناصر الجديدة عند التمرير) ─── */}
             <div
               className={`md:hidden pointer-events-none absolute top-0 bottom-0 left-0 w-10 bg-gradient-to-r from-white via-white/80 to-transparent transition-opacity duration-300 ${
                 canScrollLeft ? 'opacity-100' : 'opacity-0'
               }`}
             />
 
-            {/* سهم صغير متحرك يشير لوجود المزيد */}
+            {/* ─── سهم صغير متحرك على الجهة اليسرى فقط (لا يزاحم الفئة الأولى) ─── */}
             <div
-              className={`md:hidden pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-[#163920] text-[#F5D76E] shadow-lg border border-[#F5D76E]/30 transition-opacity duration-300 ${
+              className={`md:hidden pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-[#163920] text-[#F5D76E] shadow-lg border border-[#F5D76E]/30 transition-opacity duration-300 ${
                 canScrollRight ? 'opacity-100' : 'opacity-0'
               }`}
             >
@@ -295,52 +282,46 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             </div>
           </div>
 
-          {/* ════════ 3. الوصف بخلفية داكنة متناسقة مع Hero ════════ */}
+          {/* ════════ 3. الوصف بخلفية فاتحة + شريط ذهبي جانبي ════════ */}
           {categoryInfo.description && (
             <div className="mt-5 pt-4 border-t border-[#F0E9DA]">
-              <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#163920]/20 bg-gradient-to-br from-[#163920] via-[#0E2615] to-[#0B1C10] shadow-lg">
-                {/* دوائر ضوئية داخلية */}
-                <div className="absolute -top-16 -right-16 w-40 h-40 bg-[#F5D76E]/10 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-[#C25E12]/10 rounded-full blur-2xl pointer-events-none" />
-
-                <div className="relative px-4 py-3.5 sm:px-5 sm:py-4 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-                  {/* نص الوصف */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span className="w-1.5 h-8 sm:h-9 rounded-full bg-gradient-to-b from-[#F5D76E] to-[#C25E12] shrink-0 shadow-sm" />
-                    <p className="text-[13px] sm:text-sm text-[#EDE6D8] font-semibold leading-relaxed">
-                      {categoryInfo.description}
-                    </p>
-                  </div>
-
-                  {/* شارات الفلاتر النشطة أو زر إلغاء البحث */}
-                  {(hasActiveFilters || isSearchMode) && (
-                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                      {getSortLabel() && (
-                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-[#0B1C10] bg-[#F5D76E] px-2.5 py-1 rounded-full shadow-sm">
-                          <Sparkles className="w-2.5 h-2.5" />
-                          <span>{getSortLabel()}</span>
-                        </span>
-                      )}
-                      {onlyInStock && (
-                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-[#0B1C10] bg-[#F5D76E] px-2.5 py-1 rounded-full shadow-sm">
-                          <span>المتوفر فقط</span>
-                        </span>
-                      )}
-                      {isSearchMode && onClearSearch && (
-                        <button
-                          type="button"
-                          onClick={onClearSearch}
-                          className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-black text-white bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] px-2.5 py-1 rounded-full border border-[#F5D76E]/40 transition-all cursor-pointer shadow-sm active:scale-95"
-                        >
-                          <span className="max-w-[120px] sm:max-w-none truncate">
-                            إلغاء البحث "{searchQuery}"
-                          </span>
-                          <span className="text-xs font-bold leading-none">✕</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
+              <div className="rounded-2xl bg-[#FAF8F3] border border-[#E8E1D3] px-4 py-3.5 sm:px-5 sm:py-4 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                {/* نص الوصف مع الشريط الذهبي */}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <span className="w-1.5 h-9 sm:h-10 rounded-full bg-gradient-to-b from-[#F5D76E] to-[#C25E12] shrink-0 shadow-sm" />
+                  <p className="text-[13px] sm:text-sm text-[#423C32] font-semibold leading-relaxed">
+                    {categoryInfo.description}
+                  </p>
                 </div>
+
+                {/* شارات الفلاتر النشطة أو زر إلغاء البحث */}
+                {(hasActiveFilters || isSearchMode) && (
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                    {getSortLabel() && (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-[#C25E12] bg-white px-2.5 py-1 rounded-full border border-[#FDBA74] shadow-sm">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        <span>{getSortLabel()}</span>
+                      </span>
+                    )}
+                    {onlyInStock && (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-[#C25E12] bg-white px-2.5 py-1 rounded-full border border-[#FDBA74] shadow-sm">
+                        <span>المتوفر فقط</span>
+                      </span>
+                    )}
+                    {isSearchMode && onClearSearch && (
+                      <button
+                        type="button"
+                        onClick={onClearSearch}
+                        className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-black text-white bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] px-2.5 py-1 rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
+                      >
+                        <span className="max-w-[120px] sm:max-w-none truncate">
+                          إلغاء البحث "{searchQuery}"
+                        </span>
+                        <span className="text-xs font-bold leading-none">✕</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
