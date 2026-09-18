@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 4.3
-// بطاقات فئات أطول مع هوامش داخلية أوسع
+// الملف: CategoryFilter.tsx – الإصدار 4.4
+// تقليل طفيف للهوامش الداخلية والخارجية للفئات
 // ============================================================
 import React, { useState, useRef, useEffect } from 'react';
 import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -10,7 +10,7 @@ import { SortOption } from './SortFilterModal';
 
 const CATEGORY_IMAGES: Record<string, string> = {
   all: '/images/categories/all.webp',
-  veg: '/images/categories/buy-fresh-fruits-vegetables-grocery (1).webp',
+  veg: '/images/categories/vegetables.webp',
   fruit: '/images/categories/fruits.webp',
   dairy: '/images/categories/dairy.webp',
   grocery: '/images/categories/grocery.webp',
@@ -18,7 +18,6 @@ const CATEGORY_IMAGES: Record<string, string> = {
   cleaning: '/images/categories/cleaning.webp',
 };
 
-// ─── مكون عرض صورة الفئة: أحجام أكبر + نسبة مربعة أنيقة ───
 const CategoryThumbnail: React.FC<{
   catId: string;
   name: string;
@@ -31,7 +30,7 @@ const CategoryThumbnail: React.FC<{
   if (imgError || !imageUrl) {
     return (
       <span
-        className={`text-5xl sm:text-6xl mb-4 transition-transform duration-300 drop-shadow-sm ${
+        className={`text-5xl sm:text-6xl mb-3 transition-transform duration-300 drop-shadow-sm ${
           isSelected ? 'scale-110' : 'group-hover:scale-110'
         }`}
       >
@@ -42,7 +41,7 @@ const CategoryThumbnail: React.FC<{
 
   return (
     <div
-      className={`relative w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] lg:w-[124px] lg:h-[124px] mb-4 rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-300 shrink-0 bg-stone-100 ${
+      className={`relative w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] lg:w-[124px] lg:h-[124px] mb-3 rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-300 shrink-0 bg-stone-100 ${
         isSelected
           ? 'border-2 border-[#F5D76E] shadow-xl scale-105 ring-2 ring-[#F5D76E]/30'
           : 'border border-stone-200/90 group-hover:border-[#F5D76E]/70 shadow-sm group-hover:shadow-xl group-hover:scale-105'
@@ -217,10 +216,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
-            {/* حاوية التمرير: بطاقات أطول وهوامش أوسع */}
+            {/* حاوية التمرير: هوامش رأسية مخفّفة */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-3 pr-9 md:pr-0 pl-1 md:px-0 snap-x snap-mandatory scroll-smooth"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-2 pr-9 md:pr-0 pl-1 md:px-0 snap-x snap-mandatory scroll-smooth"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               role="tablist"
               aria-label="فئات المنتجات"
@@ -235,7 +234,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                     role="tab"
                     aria-selected={isSelected}
                     onClick={() => onSelectCategory(cat.id)}
-                    className={`relative flex flex-col items-center justify-center px-4 py-6 sm:px-5 sm:py-7 md:px-4 md:py-6 lg:px-5 lg:py-7 rounded-2xl sm:rounded-3xl border-2 transition-all duration-200 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-95 shrink-0 min-w-[156px] sm:min-w-[168px] md:min-w-0 min-h-[210px] sm:min-h-[230px] md:min-h-[210px] lg:min-h-[240px] snap-start ${
+                    className={`relative flex flex-col items-center justify-center px-3.5 py-5 sm:px-4 sm:py-6 md:px-3.5 md:py-5 lg:px-4 lg:py-6 rounded-2xl sm:rounded-3xl border-2 transition-all duration-200 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-95 shrink-0 min-w-[148px] sm:min-w-[160px] md:min-w-0 min-h-[194px] sm:min-h-[212px] md:min-h-[194px] lg:min-h-[222px] snap-start ${
                       isSelected
                         ? 'bg-gradient-to-b from-[#163920] to-[#0E2615] text-white border-[#163920] shadow-xl -translate-y-1'
                         : 'bg-[#FAF8F3] hover:bg-white text-[#112616] border-[#E8E1D3] hover:border-[#F5D76E]/70 shadow-sm hover:shadow-lg hover:-translate-y-0.5'
@@ -249,7 +248,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                     />
 
                     <span
-                      className={`text-sm sm:text-base font-black text-center leading-tight mt-1 ${
+                      className={`text-sm sm:text-base font-black text-center leading-tight mt-0.5 ${
                         isSelected ? 'text-white' : 'text-[#112616]'
                       }`}
                     >
