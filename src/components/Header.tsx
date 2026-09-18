@@ -2,10 +2,10 @@
 // الملف: Header.tsx – الإصدار 3.0
 // رأس المتجر – تصميم متناسق مع باقي المكونات
 // ============================================================
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ShoppingBag, Search, Menu, X, Phone, ShieldCheck,
-  RefreshCw, Info, Download, Package, Sparkles, Leaf, LogOut,
+  RefreshCw, Info, Package, Sparkles, Leaf, LogOut,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 import { ProductCategory } from '../types';
@@ -45,160 +45,6 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
-  // ─── حالة زر التحميل ───
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallBtn, setShowInstallBtn] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
-  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'downloading' | 'success' | 'error'>('idle');
-
-  // ─── رسالة نجاح ───
-  const showSuccessMessage = (message: string) => {
-    const existingMessage = document.querySelector('.pwa-install-message');
-    if (existingMessage) existingMessage.remove();
-
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'pwa-install-message fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-[#163920] text-white px-6 py-3.5 rounded-2xl shadow-2xl z-[9999] animate-in fade-in slide-in-from-bottom-4 duration-300 font-["Almarai"] text-sm sm:text-base border-2 border-[#F5D76E]';
-    messageDiv.textContent = message;
-    messageDiv.style.direction = 'rtl';
-    messageDiv.style.boxShadow = '0 20px 60px rgba(0,0,0,0.3)';
-    messageDiv.style.maxWidth = '90%';
-    messageDiv.style.width = 'auto';
-    messageDiv.style.minWidth = '200px';
-    messageDiv.style.textAlign = 'center';
-
-    const icon = document.createElement('span');
-    icon.textContent = '✅ ';
-    icon.style.marginLeft = '8px';
-    messageDiv.prepend(icon);
-
-    document.body.appendChild(messageDiv);
-
-    setTimeout(() => {
-      messageDiv.classList.add('animate-out', 'fade-out', 'slide-out-to-bottom-4');
-      setTimeout(() => {
-        if (messageDiv.parentNode) messageDiv.remove();
-      }, 300);
-    }, 4000);
-  };
-
-  // ─── رسالة خطأ ───
-  const showErrorMessage = (message: string) => {
-    const existingMessage = document.querySelector('.pwa-install-message');
-    if (existingMessage) existingMessage.remove();
-
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'pwa-install-message fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-[#C25E12] text-white px-6 py-3.5 rounded-2xl shadow-2xl z-[9999] animate-in fade-in slide-in-from-bottom-4 duration-300 font-["Almarai"] text-sm sm:text-base border-2 border-white/30';
-    messageDiv.textContent = message;
-    messageDiv.style.direction = 'rtl';
-    messageDiv.style.boxShadow = '0 20px 60px rgba(0,0,0,0.3)';
-    messageDiv.style.maxWidth = '90%';
-    messageDiv.style.width = 'auto';
-    messageDiv.style.minWidth = '200px';
-    messageDiv.style.textAlign = 'center';
-
-    const icon = document.createElement('span');
-    icon.textContent = '⚠️ ';
-    icon.style.marginLeft = '8px';
-    messageDiv.prepend(icon);
-
-    document.body.appendChild(messageDiv);
-
-    setTimeout(() => {
-      messageDiv.classList.add('animate-out', 'fade-out', 'slide-out-to-bottom-4');
-      setTimeout(() => {
-        if (messageDiv.parentNode) messageDiv.remove();
-      }, 300);
-    }, 4000);
-  };
-
-  // ─── التحقق من نظام التشغيل ───
-  useEffect(() => {
-    const userAgent = navigator.userAgent;
-    const iOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
-    const android = /Android/.test(userAgent);
-    setIsIOS(iOS);
-    setIsAndroid(android);
-  }, []);
-
-  // ─── الاستماع لحدث التحميل ───
-  useEffect(() => {
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-      setShowInstallBtn(false);
-      return;
-    }
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstallBtn(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setShowInstallBtn(false);
-      setDownloadStatus('success');
-      console.log('✅ تم تحميل التطبيق بنجاح!');
-      showSuccessMessage('تم تحميل تطبيق خُضرة بنجاح! 🎉');
-    };
-
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
-
-  // ─── دالة تحميل التطبيق ───
-  const handleDownloadClick = async () => {
-    setDownloadStatus('downloading');
-
-    if (isIOS) {
-      setDownloadStatus('idle');
-      alert('📱 لتحميل تطبيق خُضرة على iPhone:\n\n1. اضغط على زر المشاركة ⬆️\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"');
-      return;
-    }
-
-    if (isAndroid && deferredPrompt) {
-      try {
-        deferredPrompt.prompt();
-        const result = await deferredPrompt.userChoice;
-
-        if (result.outcome === 'accepted') {
-          setShowInstallBtn(false);
-          setDownloadStatus('success');
-          showSuccessMessage('تم تحميل تطبيق خُضرة بنجاح! 🎉');
-        } else {
-          setDownloadStatus('idle');
-        }
-        setDeferredPrompt(null);
-      } catch (error) {
-        console.error('❌ خطأ في التحميل:', error);
-        setDownloadStatus('error');
-        showErrorMessage('حدث خطأ أثناء تحميل التطبيق');
-        setTimeout(() => {
-          alert('📱 لتحميل تطبيق خُضرة:\n\n1. افتح القائمة (☰)\n2. اختر "إضافة إلى الشاشة الرئيسية"');
-        }, 500);
-      }
-    } else {
-      setDownloadStatus('idle');
-      let instructions = '📱 لتحميل تطبيق خُضرة:\n\n';
-      if (isAndroid) {
-        instructions += '1. افتح القائمة (☰)\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"';
-      } else if (isIOS) {
-        instructions += '1. اضغط على زر المشاركة ⬆️\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"';
-      } else {
-        instructions += '1. افتح القائمة (☰)\n2. اختر "تثبيت التطبيق"\n3. اتبع التعليمات';
-      }
-      alert(instructions);
-    }
-  };
-
   // ─── التمرير إلى صناديق العائلة ───
   const handleScrollToBundles = () => {
     onCloseMenu();
@@ -215,17 +61,17 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <>
       {/* ════════ الهيدر الرئيسي ════════ */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#D4C8B5] shadow-sm transition-all">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#E8E1D3] shadow-xs transition-all">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 sm:h-18 gap-2 sm:gap-6">
+          <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-6">
 
-            {/* ── يمين: زر القائمة + الشعار ── */}
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            {/* ── يمين: زر القائمة + الشعار المميز بدون أيقونة ── */}
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               {/* زر القائمة */}
               <button
                 type="button"
                 onClick={onToggleMenu}
-                className={`relative w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-white transition-all duration-200 shadow-md hover:shadow-lg active:scale-90 focus:outline-none focus:ring-2 focus:ring-[#C25E12]/40 touch-manipulation select-none cursor-pointer shrink-0 ${
+                className={`relative w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-white transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#C25E12]/40 touch-manipulation select-none cursor-pointer shrink-0 ${
                   isMenuOpen
                     ? 'bg-gradient-to-br from-[#C25E12] to-[#9C4505]'
                     : 'bg-gradient-to-br from-[#1E4327] to-[#112616] hover:from-[#112616] hover:to-[#0A1A0F]'
@@ -240,38 +86,33 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </button>
 
-              {/* الشعار */}
+              {/* الشعار المطور بدون أيقونة وبأناقة طباعية عالية */}
               <button
                 type="button"
                 onClick={() => onOpenPage(null)}
-                className="flex items-center gap-2 group cursor-pointer text-right touch-manipulation select-none active:opacity-80 transition-opacity min-w-0"
+                className="group cursor-pointer text-right touch-manipulation select-none active:opacity-85 transition-opacity min-w-0"
               >
-                {/* أيقونة خضراء صغيرة */}
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#163920] to-[#0E2615] flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                  <Leaf className="w-5 h-5 text-[#F5D76E]" />
-                </div>
-
-                <div className="min-w-0">
-                  <span className="text-lg sm:text-2xl font-black text-[#112616] font-['Almarai'] block leading-none truncate">
+                <div className="flex flex-col justify-center">
+                  <span className="text-2xl sm:text-3xl font-black text-[#163920] group-hover:text-[#0E2615] font-['Almarai'] tracking-tight leading-none transition-colors">
                     {STORE_CONFIG.storeName}
                   </span>
-                  <span className="text-[10px] sm:text-[12px] text-[#524B3E] font-bold hidden sm:block mt-0.5 truncate">
+                  <span className="text-[11px] sm:text-xs text-[#6B6455] font-bold mt-1 tracking-normal hidden xs:block sm:block truncate">
                     خضر وفواكه طازجة لباب دارك
                   </span>
                 </div>
               </button>
             </div>
 
-            {/* ── وسط: حقل البحث (سطح المكتب) ── */}
+            {/* ── وسط: حقل البحث (سطح المكتب) بنمط أنظف ── */}
             <form onSubmit={onSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-4">
               <div className="relative w-full group">
-                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#524B3E] group-focus-within:text-[#C25E12] transition-colors pointer-events-none" />
+                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6455] group-focus-within:text-[#C25E12] transition-colors pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder="ابحث عن خضار، فواكه، ألبان..."
-                  className="w-full pr-10 pl-9 py-2.5 bg-[#F7F4EC] border-2 border-transparent rounded-xl text-sm text-[#1A1814] placeholder-[#787163] focus:outline-none focus:bg-white focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/15 transition-all font-['Tajawal'] font-medium shadow-xs hover:bg-white hover:border-[#D4C8B5]"
+                  className="w-full pr-10 pl-9 py-2.5 bg-[#FAF7F0] border border-[#E8E1D3] rounded-xl text-sm text-[#1A1814] placeholder-[#8A8170] focus:outline-none focus:bg-white focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/15 transition-all font-['Tajawal'] font-medium shadow-xs hover:bg-white hover:border-[#D4C8B5]"
                 />
                 {searchQuery && (
                   <button
@@ -514,59 +355,6 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                 </div>
               </div>
-
-              {/* ─── زر تحميل التطبيق ─── */}
-              {!isInstalled && (
-                <div className="mt-4 pt-4 border-t border-[#E8E1D3]">
-                  <button
-                    type="button"
-                    onClick={handleDownloadClick}
-                    disabled={downloadStatus === 'downloading'}
-                    className={`w-full flex items-center gap-3 px-3 py-3 min-h-[52px] rounded-xl font-extrabold text-sm transition-all duration-150 text-right font-['Tajawal'] group cursor-pointer touch-manipulation select-none border-2 ${
-                      downloadStatus === 'downloading'
-                        ? 'bg-stone-200 text-stone-500 border-stone-300 cursor-wait'
-                        : 'bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white border-[#0E2615] shadow-md hover:shadow-lg active:scale-95'
-                    }`}
-                  >
-                    <span className={`text-xl ${downloadStatus === 'downloading' ? 'animate-spin' : ''}`}>
-                      {downloadStatus === 'downloading' ? '⏳' : '📲'}
-                    </span>
-
-                    <span className="flex-1">
-                      {downloadStatus === 'downloading'
-                        ? 'جاري تحميل التطبيق...'
-                        : isIOS
-                          ? 'تحميل التطبيق (iOS)'
-                          : isAndroid
-                            ? 'تحميل التطبيق (Android)'
-                            : 'تحميل التطبيق'}
-                    </span>
-
-                    <Download className={`w-4 h-4 ${
-                      downloadStatus === 'downloading'
-                        ? 'opacity-50'
-                        : 'text-[#F5D76E] group-hover:translate-y-[-2px] transition-transform'
-                    }`} />
-
-                    {showInstallBtn && !isIOS && downloadStatus === 'idle' && (
-                      <span className="text-[10px] bg-[#C25E12] text-white px-2 py-0.5 rounded-full font-black animate-pulse">
-                        متاح
-                      </span>
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {isInstalled && (
-                <div className="mt-4 pt-4 border-t border-[#E8E1D3]">
-                  <div className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-emerald-50 text-emerald-900 font-extrabold text-sm text-right font-['Tajawal'] border-2 border-emerald-200">
-                    <span className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
-                      <ShieldCheck className="w-4 h-4 text-white" />
-                    </span>
-                    <span>التطبيق مثبت بالفعل ✅</span>
-                  </div>
-                </div>
-              )}
 
               {/* ─── خيار الخروج من التطبيق ─── */}
               {onOpenExitModal && (

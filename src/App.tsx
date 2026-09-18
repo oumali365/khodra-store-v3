@@ -15,6 +15,7 @@ import { CustomerReviews } from './components/CustomerReviews';
 import { Footer } from './components/Footer';
 import { SortOption } from './components/SortFilterModal';
 import { ExitScreen } from './components/ExitScreen';
+import { InstallAppBanner } from './components/InstallAppBanner';
 
 // ─── تحميل مؤجل للمودالات لتقليص الحجم الأولي وتسريع ظهور الصفحة الرئيسية ───
 const CartDrawer = React.lazy(() =>
@@ -541,6 +542,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
+
+      {/* ═══════ بانر تثبيت التطبيق / PWA بأسلوب done.ma ═══════ */}
+      <InstallAppBanner />
 
       {/* ═══════ Header ═══════ */}
       <Header

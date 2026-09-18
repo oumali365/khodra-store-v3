@@ -11,7 +11,10 @@ const manageServiceWorker = () => {
   const isDev =
     import.meta.env.DEV ||
     window.location.hostname === 'localhost' ||
-    window.location.hostname.includes('ais-dev');
+    window.location.hostname.includes('ais-dev') ||
+    window.location.hostname.includes('ais-pre') ||
+    window.location.hostname.includes('run.app') ||
+    window.self !== window.top;
 
   if (isDev) {
     // في بيئة التطوير التجريبية، نلغي أي Service Worker لتجنب تداخل الكاش مع التحديثات الحية
