@@ -10,7 +10,7 @@ import { SortOption } from './SortFilterModal';
 
 const CATEGORY_IMAGES: Record<string, string> = {
   all: '/images/categories/all.webp',
-  veg: '/images/categories/vegetables.webp',
+  veg: '/images/categories/buy-fresh-fruits-vegetables-grocery (1).webp',
   fruit: '/images/categories/fruits.webp',
   dairy: '/images/categories/dairy.webp',
   grocery: '/images/categories/grocery.webp',
