@@ -9,7 +9,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 // ─── دوال التحقق من تثبيت التطبيق مسبقاً أو تشغيله كـ App ───
-const checkIfStandalone = (): boolean => {
+export const checkIfStandalone = (): boolean => {
   if (typeof window === 'undefined') return false;
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
@@ -20,7 +20,7 @@ const checkIfStandalone = (): boolean => {
   );
 };
 
-const checkIfAlreadyInstalledOrDownloaded = (): boolean => {
+export const checkIfAlreadyInstalledOrDownloaded = (): boolean => {
   try {
     if (checkIfStandalone()) return true;
     if (localStorage.getItem('khodra_app_installed') === 'true') return true;
@@ -36,7 +36,11 @@ const checkIfAlreadyInstalledOrDownloaded = (): boolean => {
   return false;
 };
 
-export const InstallAppBanner: React.FC = () => {
+interface InstallAppBannerProps {
+  onHide?: () => void;
+}
+
+export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) => {
   // يختفي البانر تلقائياً إذا كان التطبيق مثبتاً أو قيد التشغيل في الهاتف
   const [isVisible, setIsVisible] = useState<boolean>(() => {
     return !checkIfAlreadyInstalledOrDownloaded();
@@ -55,6 +59,7 @@ export const InstallAppBanner: React.FC = () => {
       // ignore
     }
     setIsVisible(false);
+    onHide?.();
   };
 
   const triggerDirectDownload = () => {
@@ -71,6 +76,7 @@ export const InstallAppBanner: React.FC = () => {
     // إذا كان التطبيق يعمل كـ PWA أو مثبت، نضمن إخفاء البانر تماماً
     if (checkIfAlreadyInstalledOrDownloaded()) {
       setIsVisible(false);
+      onHide?.();
       return;
     }
 
@@ -127,6 +133,7 @@ export const InstallAppBanner: React.FC = () => {
       // ignore
     }
     setIsVisible(false);
+    onHide?.();
   };
 
   const handleInstallClick = async () => {
@@ -413,8 +420,8 @@ export const InstallAppBanner: React.FC = () => {
             </div>
 
             {/* الوصف الفرعي فقط بخط أوضح وأبرز */}
-            <p className="text-[#112616] font-black text-xs sm:text-sm lg:text-[15px] leading-snug font-['Tajawal'] tracking-tight truncate">
-              خضار وفواكه طازجة لباب دارك بفاس 🚚
+            <p className="text-[#112616] font-black text-sm sm:text-base lg:text-[17px] leading-snug font-['Tajawal'] tracking-tight truncate">
+              خضار وفواكه طازجة لباب دارك بفاس
             </p>
           </div>
 

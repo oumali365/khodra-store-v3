@@ -15,7 +15,8 @@ import { CustomerReviews } from './components/CustomerReviews';
 import { Footer } from './components/Footer';
 import { SortOption } from './components/SortFilterModal';
 import { ExitScreen } from './components/ExitScreen';
-import { InstallAppBanner } from './components/InstallAppBanner';
+import { InstallAppBanner, checkIfAlreadyInstalledOrDownloaded } from './components/InstallAppBanner';
+import { FreeDeliveryBanner } from './components/FreeDeliveryBanner';
 
 // ─── تحميل مؤجل للمودالات لتقليص الحجم الأولي وتسريع ظهور الصفحة الرئيسية ───
 const CartDrawer = React.lazy(() =>
@@ -145,6 +146,7 @@ export default function App() {
   const [selectedFamilyBox, setSelectedFamilyBox] = useState<FamilyBox | null>(null);
   const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
   const [isAppExited, setIsAppExited] = useState(false);
+  const [isInstallBannerVisible, setIsInstallBannerVisible] = useState<boolean>(() => !checkIfAlreadyInstalledOrDownloaded());
 
   // ─── Refs ───
   const prevStatesRef = useRef({
@@ -543,8 +545,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
 
-      {/* ═══════ بانر تثبيت التطبيق / PWA بأسلوب done.ma ═══════ */}
-      <InstallAppBanner />
+      {/* ═══════ بانر تثبيت التطبيق أو بانر التوصيل المجاني (250 DH) ═══════ */}
+      {isInstallBannerVisible ? (
+        <InstallAppBanner onHide={() => setIsInstallBannerVisible(false)} />
+      ) : (
+        <FreeDeliveryBanner cartTotal={cartTotal} />
+      )}
 
       {/* ═══════ Header ═══════ */}
       <Header

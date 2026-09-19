@@ -8,7 +8,7 @@ export const STORE_CONFIG = {
   whatsappCleanNumber: '212704274830',
   currency: 'د.م',
   standardDeliveryFee: 15,
-  freeDeliveryThreshold: 185,
+  freeDeliveryThreshold: 250,
   freshnessMaxItems: 12,
   weightStep: 1,
   weightMax: 10,
