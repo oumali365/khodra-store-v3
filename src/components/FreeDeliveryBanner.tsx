@@ -66,7 +66,7 @@ export const FreeDeliveryBanner: React.FC<FreeDeliveryBannerProps> = ({
                 أضف <span className="underline decoration-2 decoration-[#163920] font-black">{remaining.toFixed(0)} DH</span> للحصول على توصيل مجاني
               </p>
             ) : (
-              <p className="text-[#112616] font-black text-sm sm:text-base md:text-[17px] leading-snug font-['Tajawal'] tracking-tight">
+              <p className="text-[#112616] font-black text-sm sm:text-base md:text-[18px] leading-snug font-['Tajawal'] tracking-tight">
                 توصيل مجاني عند إكمال {threshold} درهم
               </p>
             )}
