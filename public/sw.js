@@ -2,17 +2,17 @@
 // ملف: sw.js – Service Worker لتطبيق خُضرة (نسخة محسنة ضد الأعطال)
 // ============================================================
 
-const CACHE_NAME = 'khodra-v4-fresh';
+const CACHE_NAME = 'khodra-v5-fresh';
 const CORE_ASSETS = [
   '/',
   '/index.html',
   '/site.webmanifest',
   '/favicon.ico',
-  '/favicon-96x96.png',
-  '/favicon.svg',
-  '/apple-touch-icon.png',
-  '/web-app-manifest-192x192.png',
-  '/web-app-manifest-512x512.png'
+  '/images/icons/favicon-96x96.png',
+  '/images/icons/favicon.svg',
+  '/images/icons/apple-touch-icon.png',
+  '/images/icons/web-app-manifest-192x192.png',
+  '/images/icons/web-app-manifest-512x512.png'
 ];
 
 // ─── تثبيت Service Worker وتخزين الأساسيات ───
@@ -141,8 +141,8 @@ self.addEventListener('push', (event) => {
   const data = event.data.json();
   const options = {
     body: data.body || 'عروض جديدة في متجر خُضرة!',
-    icon: '/web-app-manifest-192x192.png',
-    badge: '/favicon-96x96.png',
+    icon: '/images/icons/web-app-manifest-192x192.png',
+    badge: '/images/icons/favicon-96x96.png',
     vibrate: [200, 100, 200],
     data: {
       url: data.url || '/'

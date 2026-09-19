@@ -196,11 +196,11 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
         <div className="flex items-center gap-3.5 mb-4 mt-1">
           <div className="w-13 h-13 rounded-2xl bg-[#0E2615] flex items-center justify-center shadow-md shrink-0 border border-[#F5D76E]/40 overflow-hidden p-0.5">
             <img
-              src="/web-app-manifest-192x192.png"
+              src="/images/icons/web-app-manifest-192x192.png"
               alt="خُضرة"
               className="w-full h-full object-cover rounded-xl"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/apple-touch-icon.png';
+                (e.target as HTMLImageElement).src = '/images/icons/apple-touch-icon.png';
               }}
             />
           </div>
@@ -410,11 +410,11 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
             {/* أيقونة / شعار المتجر بحجم أوضح ومظهر جذاب */}
             <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white flex items-center justify-center shadow-xs shrink-0 border border-[#E5C352] overflow-hidden p-0.5">
               <img
-                src="/web-app-manifest-192x192.png"
+                src="/images/icons/web-app-manifest-192x192.png"
                 alt={STORE_CONFIG.storeName}
                 className="w-full h-full object-cover rounded-[13px]"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/apple-touch-icon.png';
+                  (e.target as HTMLImageElement).src = '/images/icons/apple-touch-icon.png';
                 }}
               />
             </div>
