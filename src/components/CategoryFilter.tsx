@@ -11,11 +11,11 @@ import { SortOption } from './SortFilterModal';
 const CATEGORY_IMAGES: Record<string, string> = {
   all: '/images/categories/all.webp',
   veg: '/images/categories/vegetables.webp',
-  fruit: '/images/categories/fruits.webp',
-  dairy: '/images/categories/dairy.webp',
-  grocery: '/images/categories/grocery.webp',
-  drinks: '/images/categories/drinks.webp',
-  cleaning: '/images/categories/cleaning.webp',
+  fruit: '/images/categories/fruits.jpg',
+  dairy: '/images/categories/dairy.jpg',
+  grocery: '/images/categories/grocery.jpg',
+  drinks: '/images/categories/drinks.jpg',
+  cleaning: '/images/categories/cleaning.jpg',
 };
 
 const CategoryThumbnail: React.FC<{
