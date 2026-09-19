@@ -8,16 +8,57 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+// ─── دوال التحقق من تثبيت التطبيق مسبقاً أو تشغيله كـ App ───
+const checkIfStandalone = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
+    Boolean((window.navigator as unknown as { standalone?: boolean }).standalone) ||
+    document.referrer.includes('android-app://')
+  );
+};
+
+const checkIfAlreadyInstalledOrDownloaded = (): boolean => {
+  try {
+    if (checkIfStandalone()) return true;
+    if (localStorage.getItem('khodra_app_installed') === 'true') return true;
+    if (localStorage.getItem('khodra_app_downloaded') === 'true') return true;
+    const dismissedAt = localStorage.getItem('khodra_banner_dismissed_time');
+    if (dismissedAt) {
+      const days = (Date.now() - parseInt(dismissedAt, 10)) / (1000 * 60 * 60 * 24);
+      if (days < 3) return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+};
+
 export const InstallAppBanner: React.FC = () => {
-  // يظهر دائماً كحالة افتراضية لضمان رؤيته فوراً في المعاينة
-  const [isVisible, setIsVisible] = useState<boolean>(true);
+  // يختفي البانر تلقائياً إذا كان التطبيق مثبتاً أو قيد التشغيل في الهاتف
+  const [isVisible, setIsVisible] = useState<boolean>(() => {
+    return !checkIfAlreadyInstalledOrDownloaded();
+  });
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState<boolean>(false);
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
   const [installStatus, setInstallStatus] = useState<'idle' | 'installing' | 'success'>('idle');
   const [modalInstallState, setModalInstallState] = useState<'idle' | 'downloading' | 'done'>('idle');
 
+  const markAsInstalled = () => {
+    try {
+      localStorage.setItem('khodra_app_installed', 'true');
+      localStorage.setItem('khodra_app_downloaded', 'true');
+    } catch {
+      // ignore
+    }
+    setIsVisible(false);
+  };
+
   const triggerDirectDownload = () => {
+    markAsInstalled();
     const link = document.createElement('a');
     link.href = '/app-release.apk';
     link.download = 'khodra-fresh.apk';
@@ -27,6 +68,12 @@ export const InstallAppBanner: React.FC = () => {
   };
 
   useEffect(() => {
+    // إذا كان التطبيق يعمل كـ PWA أو مثبت، نضمن إخفاء البانر تماماً
+    if (checkIfAlreadyInstalledOrDownloaded()) {
+      setIsVisible(false);
+      return;
+    }
+
     // 1. التحقق من نظام التشغيل
     const userAgent = window.navigator.userAgent.toLowerCase();
     const iOSDevice = /iphone|ipad|ipod/.test(userAgent) && !(window as unknown as { MSStream?: boolean }).MSStream;
@@ -39,6 +86,8 @@ export const InstallAppBanner: React.FC = () => {
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
+      // إذا كان مثبتاً مسبقاً لا داعي للبانر
+      if (checkIfAlreadyInstalledOrDownloaded()) return;
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
@@ -46,7 +95,7 @@ export const InstallAppBanner: React.FC = () => {
     };
 
     const handleAppInstalled = () => {
-      setIsVisible(false);
+      markAsInstalled();
       setInstallStatus('success');
       setDeferredPrompt(null);
     };
@@ -54,14 +103,29 @@ export const InstallAppBanner: React.FC = () => {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
+    // مراقبة الانتقال إلى وضع Standalone
+    const standaloneMedia = window.matchMedia('(display-mode: standalone)');
+    const handleDisplayChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        markAsInstalled();
+      }
+    };
+    standaloneMedia.addEventListener?.('change', handleDisplayChange);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      standaloneMedia.removeEventListener?.('change', handleDisplayChange);
     };
   }, []);
 
   const handleDismiss = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    try {
+      localStorage.setItem('khodra_banner_dismissed_time', Date.now().toString());
+    } catch {
+      // ignore
+    }
     setIsVisible(false);
   };
 
@@ -80,7 +144,7 @@ export const InstallAppBanner: React.FC = () => {
         const { outcome } = await currentPrompt.userChoice;
 
         if (outcome === 'accepted') {
-          setIsVisible(false);
+          markAsInstalled();
           setInstallStatus('success');
         } else {
           setInstallStatus('idle');
@@ -210,8 +274,8 @@ export const InstallAppBanner: React.FC = () => {
                       await prompt.prompt();
                       const { outcome } = await prompt.userChoice;
                       if (outcome === 'accepted') {
+                        markAsInstalled();
                         setShowGuideModal(false);
-                        setIsVisible(false);
                         return;
                       }
                     } catch (e) {
@@ -219,7 +283,7 @@ export const InstallAppBanner: React.FC = () => {
                     }
                   }
 
-                  // يبدأ التحميل المباشر فوراً على الهاتف بدون أي رسالة متصفح
+                  // يبدأ التحميل المباشر فوراً على الهاتف ويخفي البانر
                   setModalInstallState('downloading');
                   triggerDirectDownload();
 
@@ -228,7 +292,8 @@ export const InstallAppBanner: React.FC = () => {
                     setTimeout(() => {
                       setShowGuideModal(false);
                       setModalInstallState('idle');
-                    }, 1400);
+                      markAsInstalled();
+                    }, 1200);
                   }, 600);
                 }}
                 disabled={modalInstallState === 'downloading'}
@@ -262,6 +327,12 @@ export const InstallAppBanner: React.FC = () => {
               <a
                 href="/app-release.apk"
                 download="khodra-fresh.apk"
+                onClick={() => {
+                  markAsInstalled();
+                  setTimeout(() => {
+                    setShowGuideModal(false);
+                  }, 800);
+                }}
                 className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white hover:bg-[#FAF6EE] text-[#163920] border-2 border-[#E8E1D3] hover:border-[#C25E12]/50 shadow-xs active:scale-95 transition-all text-xs sm:text-sm font-black font-['Almarai']"
               >
                 <div className="flex items-center gap-3">
@@ -312,7 +383,7 @@ export const InstallAppBanner: React.FC = () => {
         id="pwa-install-banner-khodra-theme"
         dir="rtl"
         aria-label="بانر تثبيت تطبيق خُضرة"
-        className="w-full bg-gradient-to-l from-[#163920] via-[#112D19] to-[#0D2414] text-white border-b border-[#F5D76E]/25 shadow-sm z-40 select-none transition-all duration-300 relative"
+        className="w-full bg-[#F5D76E] text-[#112616] border-b border-[#E5C352] shadow-xs z-40 select-none transition-all duration-300 relative"
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-6">
           
@@ -323,14 +394,14 @@ export const InstallAppBanner: React.FC = () => {
               type="button"
               id="pwa-banner-dismiss-btn"
               onClick={handleDismiss}
-              className="w-7 h-7 sm:w-8 sm:h-8 min-w-[28px] min-h-[28px] flex items-center justify-center text-[#E8E1D3] hover:text-white rounded-full hover:bg-white/10 active:scale-90 transition-all cursor-pointer touch-manipulation shrink-0"
+              className="w-7 h-7 sm:w-8 sm:h-8 min-w-[28px] min-h-[28px] flex items-center justify-center text-[#163920]/80 hover:text-[#112616] rounded-full hover:bg-black/10 active:scale-90 transition-all cursor-pointer touch-manipulation shrink-0"
               aria-label="إغلاق البانر"
             >
-              <X className="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-[2.2]" />
+              <X className="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-[2.4]" />
             </button>
 
             {/* أيقونة / شعار المتجر بحجم أوضح ومظهر جذاب */}
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#0E2615] flex items-center justify-center shadow-md shrink-0 border border-[#F5D76E]/50 overflow-hidden p-0.5">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white flex items-center justify-center shadow-xs shrink-0 border border-[#E5C352] overflow-hidden p-0.5">
               <img
                 src="/web-app-manifest-192x192.png"
                 alt={STORE_CONFIG.storeName}
@@ -342,21 +413,21 @@ export const InstallAppBanner: React.FC = () => {
             </div>
 
             {/* الوصف الفرعي فقط بخط أوضح وأبرز */}
-            <p className="text-white font-bold text-xs sm:text-sm lg:text-[15px] leading-snug font-['Tajawal'] tracking-wide truncate">
+            <p className="text-[#112616] font-black text-xs sm:text-sm lg:text-[15px] leading-snug font-['Tajawal'] tracking-tight truncate">
               خضار وفواكه طازجة لباب دارك بفاس 🚚
             </p>
           </div>
 
-          {/* ─── اليسار: زر "حمل التطبيق" بعرض واضح ومميز ─── */}
+          {/* ─── اليسار: زر "حمل التطبيق" بخلفية بيضاء مميزة ─── */}
           <div className="shrink-0">
             <button
               type="button"
               id="pwa-banner-install-btn"
               onClick={handleInstallClick}
               disabled={installStatus === 'installing'}
-              className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-l from-[#C25E12] to-[#A34A07] hover:from-[#D9762B] hover:to-[#B85E1C] text-white border border-[#F5D76E]/50 shadow-sm hover:shadow-md active:scale-95 transition-all text-xs sm:text-sm font-black font-['Almarai'] whitespace-nowrap cursor-pointer touch-manipulation group"
+              className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-[#FFFDF8] active:bg-[#F7F4EC] text-[#163920] border border-white/80 shadow-sm hover:shadow-md active:scale-95 transition-all text-xs sm:text-sm font-black font-['Almarai'] whitespace-nowrap cursor-pointer touch-manipulation group"
             >
-              <Download className="w-4 h-4 text-[#F5D76E] group-hover:translate-y-0.5 transition-transform shrink-0 stroke-[2.5]" />
+              <Download className="w-4 h-4 text-[#163920] group-hover:translate-y-0.5 transition-transform shrink-0 stroke-[2.5]" />
               <span>حمل التطبيق</span>
             </button>
           </div>

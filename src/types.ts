@@ -63,7 +63,7 @@ export interface DeliverySlot {
   periodText: string;
 }
 
-// ─── واجهة تقديم الطلب ───
+// ─── واجهة تقديم الطلب (مع دعم الحماية ومكافحة الطلبات المزيفة) ───
 export interface OrderSubmission {
   orderCode: string;
   customerName: string;
@@ -86,4 +86,11 @@ export interface OrderSubmission {
   receiptFileName?: string;
   status: string;
   created_at: string;
+  // ─── حقول الأمان والتتبع ───
+  idempotencyKey?: string;
+  clientId?: string;
+  deviceFingerprint?: string;
+  ipAddress?: string;
+  turnstileToken?: string;
+  securityFlags?: Record<string, any>;
 }

@@ -6,6 +6,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Product, OrderSubmission } from '../types';
 import { STORE_CONFIG } from '../data/config';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
+import { recordOrderSuccess } from './securityService';
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -145,7 +146,7 @@ export async function submitOrder(
       return clean;
     });
 
-    // ─── بيانات الطلب ───
+    // ─── بيانات الطلب مع الحماية ومكافحة الطلبات المزيفة ───
     const orderData: Record<string, any> = {
       order_code: String(order.orderCode || `#${Date.now()}`),
       customer_name: String(order.customerName || 'عميل'),
@@ -159,16 +160,43 @@ export async function submitOrder(
       note: noteParts.join(' | ') || null,
       maps_link: order.mapsLink ? String(order.mapsLink) : null,
       created_at: new Date().toISOString(),
+      // ─── حقول الأمان والتتبع ───
+      idempotency_key: order.idempotencyKey || null,
+      client_id: order.clientId || null,
+      device_fingerprint: order.deviceFingerprint || null,
+      ip_address: order.ipAddress || null,
+      turnstile_token: order.turnstileToken || null,
+      security_flags: order.securityFlags || {},
     };
 
-    console.log('📤 إرسال الطلب:', JSON.stringify(orderData, null, 2));
+    console.log('📤 إرسال الطلب المؤمن:', JSON.stringify(orderData, null, 2));
 
-    // ─── ✅ الإدراج بدون .select() ───
+    // ─── ✅ الإدراج المباشر في Supabase ───
     const { error } = await client
       .from('orders')
       .insert([orderData]);
 
     if (error) {
+      // إذا كان الخطأ بسبب تكرار مفتاح Idempotency (رمز 23505)
+      // فهذا يعني أن الطلب مسجل مسبقاً بنفس المعاملات، نعتبره نجاحاً دون تكرار
+      if (error.code === '23505' || error.message?.toLowerCase().includes('idempotency')) {
+        console.warn('⚠️ كشف طلب مكرر (Idempotency Key) تم تأكيده مسبقاً:', order.idempotencyKey);
+        recordOrderSuccess(order.orderCode);
+        return {
+          success: true,
+          message: 'تم تأكيد طلبك مسبقاً بنجاح',
+        };
+      }
+
+      // إذا كان الخطأ متعلقاً بـ Rate Limit من الخادم (Trigger أو RPC)
+      if (error.message?.includes('RATE_LIMIT_EXCEEDED') || error.code === 'P0001') {
+        return {
+          success: false,
+          message: 'تجاوزت الحد المسموح به للطلبات مؤقتاً (3 طلبات في الساعة). يرجى الانتظار أو التواصل عبر واتساب للمساعدة.',
+          errorCode: 'RATE_LIMIT_EXCEEDED',
+        };
+      }
+
       console.error('❌ فشل حفظ الطلب:', {
         code: error.code,
         message: error.message,
@@ -183,7 +211,10 @@ export async function submitOrder(
       };
     }
 
-    console.log('✅ تم حفظ الطلب بنجاح');
+    // تسجيل نجاح الطلب لبدء عداد الـ Cooldown والـ Rate Limit فوراً
+    recordOrderSuccess(order.orderCode);
+
+    console.log('✅ تم حفظ الطلب المؤمن بنجاح');
     return { success: true };
   } catch (err: any) {
     console.error('❌ خطأ في الاتصال:', err);
@@ -363,6 +394,12 @@ export interface DbOrder {
   note?: string;
   maps_link?: string;
   created_at: string;
+  // ─── بيانات الحماية والتتبع ───
+  idempotency_key?: string;
+  client_id?: string;
+  device_fingerprint?: string;
+  ip_address?: string;
+  security_flags?: Record<string, any>;
 }
 
 function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
@@ -403,6 +440,11 @@ function mapRowToOrder(row: any): DbOrder {
     note: row.note || '',
     maps_link: row.maps_link || '',
     created_at: row.created_at || new Date().toISOString(),
+    idempotency_key: row.idempotency_key || undefined,
+    client_id: row.client_id || undefined,
+    device_fingerprint: row.device_fingerprint || undefined,
+    ip_address: row.ip_address || undefined,
+    security_flags: row.security_flags || undefined,
   };
 }
 
