@@ -67,7 +67,7 @@ export const FreeDeliveryBanner: React.FC<FreeDeliveryBannerProps> = ({
               </p>
             ) : (
               <p className="text-[#112616] font-black text-sm sm:text-base md:text-[17px] leading-snug font-['Tajawal'] tracking-tight">
-                توصيل مجاني فوق {threshold} DH
+                توصيل مجاني عند إكمال {threshold} درهم
               </p>
             )}
           </div>
