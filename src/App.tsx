@@ -4,6 +4,7 @@
 // ============================================================
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { RotateCcw, ChevronDown, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { CategoryFilter } from './components/CategoryFilter';
@@ -652,8 +653,14 @@ export default function App() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {displayedProducts.map((product) => {
+                  <motion.div
+                    key={selectedCategory}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 min-h-[320px]"
+                  >
+                    {displayedProducts.map((product, idx) => {
                       const cartItem = cart.find((c) => c.id === product.id);
                       return (
                         <ProductCard
@@ -661,10 +668,11 @@ export default function App() {
                           product={product}
                           inCartQty={cartItem ? cartItem.qty : 0}
                           onAddToCart={handleAddToCart}
+                          index={idx}
                         />
                       );
                     })}
-                  </div>
+                  </motion.div>
 
                   {/* ─── زر عرض باقي المنتجات بتصميم متناسق مع زر التقييمات ─── */}
                   {filteredProducts.length > INITIAL_VISIBLE_COUNT && (

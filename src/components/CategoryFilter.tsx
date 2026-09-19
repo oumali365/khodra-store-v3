@@ -2,7 +2,7 @@
 // الملف: CategoryFilter.tsx – الإصدار 4.4
 // تقليل طفيف للهوامش الداخلية والخارجية للفئات
 // ============================================================
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProductCategory, Product } from '../types';
 import { CATEGORIES_CONFIG } from '../data/mockProducts';
@@ -113,26 +113,41 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const scrollRaf = useRef<number | null>(null);
 
-  const updateScrollState = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollLeft(scrollLeft > 8);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 8);
-  };
+  const updateScrollState = useCallback(() => {
+    if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+    scrollRaf.current = requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const maxScroll = scrollWidth - clientWidth;
+      if (maxScroll <= 6) {
+        setCanScrollLeft(false);
+        setCanScrollRight(false);
+        return;
+      }
+      const absLeft = Math.abs(scrollLeft);
+      const hasMoreLeft = absLeft < maxScroll - 8;
+      const hasMoreRight = absLeft > 8;
+
+      setCanScrollLeft((prev) => (prev !== hasMoreLeft ? hasMoreLeft : prev));
+      setCanScrollRight((prev) => (prev !== hasMoreRight ? hasMoreRight : prev));
+    });
+  }, []);
 
   useEffect(() => {
     updateScrollState();
     const el = scrollRef.current;
     if (!el) return;
     el.addEventListener('scroll', updateScrollState, { passive: true });
-    window.addEventListener('resize', updateScrollState);
+    window.addEventListener('resize', updateScrollState, { passive: true });
     return () => {
+      if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
       el.removeEventListener('scroll', updateScrollState);
       window.removeEventListener('resize', updateScrollState);
     };
-  }, [categories.length]);
+  }, [categories.length, updateScrollState]);
 
   const scrollByAmount = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
@@ -216,11 +231,11 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
-            {/* حاوية التمرير: هوامش رأسية مخفّفة */}
+            {/* حاوية التمرير: تمرير انسيابي بدون تقطيع أو حجب للبطاقات */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-2 pr-9 md:pr-0 pl-1 md:px-0 snap-x snap-mandatory scroll-smooth"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-2 px-3 sm:px-4 md:px-0 overscroll-x-contain no-scrollbar"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
             >
@@ -234,10 +249,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                     role="tab"
                     aria-selected={isSelected}
                     onClick={() => onSelectCategory(cat.id)}
-                    className={`relative flex flex-col items-center justify-center px-3.5 py-5 sm:px-4 sm:py-6 md:px-3.5 md:py-5 lg:px-4 lg:py-6 rounded-2xl sm:rounded-3xl border-2 transition-all duration-200 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-95 shrink-0 min-w-[148px] sm:min-w-[160px] md:min-w-0 min-h-[194px] sm:min-h-[212px] md:min-h-[194px] lg:min-h-[222px] snap-start ${
+                    className={`relative flex flex-col items-center justify-center px-3.5 py-4 sm:px-4 sm:py-5 md:px-3.5 md:py-5 lg:px-4 lg:py-6 rounded-2xl sm:rounded-3xl border-2 transition-colors duration-150 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-[0.98] shrink-0 min-w-[136px] sm:min-w-[150px] md:min-w-0 min-h-[178px] sm:min-h-[195px] md:min-h-[194px] lg:min-h-[212px] ${
                       isSelected
-                        ? 'bg-gradient-to-b from-[#163920] to-[#0E2615] text-white border-[#163920] shadow-xl -translate-y-1'
-                        : 'bg-[#FAF8F3] hover:bg-white text-[#112616] border-[#E8E1D3] hover:border-[#F5D76E]/70 shadow-sm hover:shadow-lg hover:-translate-y-0.5'
+                        ? 'bg-gradient-to-b from-[#163920] to-[#0E2615] text-white border-[#163920] shadow-xl'
+                        : 'bg-[#FAF8F3] hover:bg-white text-[#112616] border-[#E8E1D3] hover:border-[#F5D76E]/70 shadow-xs hover:shadow-md'
                     }`}
                   >
                     <CategoryThumbnail
@@ -261,20 +276,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                   </button>
                 );
               })}
-            </div>
-
-            <div
-              className={`md:hidden pointer-events-none absolute top-0 bottom-0 left-0 w-10 bg-gradient-to-r from-white via-white/80 to-transparent transition-opacity duration-300 ${
-                canScrollLeft ? 'opacity-100' : 'opacity-0'
-              }`}
-            />
-
-            <div
-              className={`md:hidden pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-[#163920] text-[#F5D76E] shadow-lg border border-[#F5D76E]/30 transition-opacity duration-300 ${
-                canScrollRight ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <ChevronLeft className="w-3.5 h-3.5 animate-pulse" />
             </div>
           </div>
 

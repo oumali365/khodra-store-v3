@@ -74,28 +74,38 @@ export const CustomerReviews: React.FC = () => {
   // ─── التمرير الأفقي ───
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
   const reviewsScrollRef = React.useRef<HTMLDivElement>(null);
+  const reviewsScrollRaf = React.useRef<number | null>(null);
 
   const handleReviewsScroll = () => {
-    if (!reviewsScrollRef.current) return;
-    const container = reviewsScrollRef.current;
-    const containerRect = container.getBoundingClientRect();
-    const containerCenter = containerRect.left + containerRect.width / 2;
-    const cards = container.querySelectorAll('article');
-    let closestIdx = 0;
-    let minDiff = Infinity;
+    if (reviewsScrollRaf.current) cancelAnimationFrame(reviewsScrollRaf.current);
+    reviewsScrollRaf.current = requestAnimationFrame(() => {
+      if (!reviewsScrollRef.current) return;
+      const container = reviewsScrollRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const containerCenter = containerRect.left + containerRect.width / 2;
+      const cards = container.querySelectorAll('article');
+      let closestIdx = 0;
+      let minDiff = Infinity;
 
-    cards.forEach((card, idx) => {
-      const cardRect = card.getBoundingClientRect();
-      const cardCenter = cardRect.left + cardRect.width / 2;
-      const diff = Math.abs(cardCenter - containerCenter);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIdx = idx;
-      }
+      cards.forEach((card, idx) => {
+        const cardRect = card.getBoundingClientRect();
+        const cardCenter = cardRect.left + cardRect.width / 2;
+        const diff = Math.abs(cardCenter - containerCenter);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = idx;
+        }
+      });
+
+      setActiveReviewIndex((prev) => (prev !== closestIdx ? closestIdx : prev));
     });
-
-    setActiveReviewIndex(closestIdx);
   };
+
+  useEffect(() => {
+    return () => {
+      if (reviewsScrollRaf.current) cancelAnimationFrame(reviewsScrollRaf.current);
+    };
+  }, []);
 
   const scrollToReview = (index: number) => {
     if (!reviewsScrollRef.current) return;
@@ -467,8 +477,8 @@ export const CustomerReviews: React.FC = () => {
           <div
             ref={reviewsScrollRef}
             onScroll={handleReviewsScroll}
-            className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 text-center overflow-x-auto md:overflow-x-visible py-5 px-[14vw] sm:px-12 md:px-0 snap-x snap-mandatory overscroll-x-contain scroll-smooth no-scrollbar"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 text-center overflow-x-auto md:overflow-x-visible py-5 px-[14vw] sm:px-12 md:px-0 snap-x snap-proximity overscroll-x-contain no-scrollbar"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
           >
             {displayedReviews.map((rev, idx) => {
               const isActive = idx === activeReviewIndex;
@@ -477,7 +487,7 @@ export const CustomerReviews: React.FC = () => {
                 <article
                   key={rev.id}
                   onClick={() => scrollToReview(idx)}
-                  className={`w-[66vw] min-w-[210px] max-w-[245px] md:w-full md:max-w-none shrink-0 snap-center snap-always bg-white rounded-3xl border border-stone-200/90 shadow-[0_6px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.11)] hover:-translate-y-1.5 transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-between min-h-[310px] sm:min-h-[330px] cursor-pointer group select-none ${
+                  className={`w-[66vw] min-w-[210px] max-w-[245px] md:w-full md:max-w-none shrink-0 snap-center bg-white rounded-3xl border border-stone-200/90 shadow-[0_6px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.11)] hover:-translate-y-1.5 transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-between min-h-[310px] sm:min-h-[330px] cursor-pointer group select-none ${
                     isAdmin
                       ? 'border-2 border-amber-300 ring-2 ring-amber-100 shadow-sm'
                       : isActive

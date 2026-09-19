@@ -2,7 +2,7 @@
 // الملف: TrustBadges.tsx – الإصدار 5.0
 // شارات الثقة – تأثيرات بصرية خفيفة + لون برتقالي
 // ============================================================
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Sprout,
   Truck,
@@ -48,27 +48,38 @@ export const TrustBadges: React.FC = () => {
     },
   ];
 
+  const scrollRaf = React.useRef<number | null>(null);
+
   const handleScroll = () => {
-    if (!scrollRef.current) return;
-    const container = scrollRef.current;
-    const cards = container.querySelectorAll('article');
-    const containerCenter = container.getBoundingClientRect().left + container.offsetWidth / 2;
+    if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+    scrollRaf.current = requestAnimationFrame(() => {
+      if (!scrollRef.current) return;
+      const container = scrollRef.current;
+      const cards = container.querySelectorAll('article');
+      const containerCenter = container.getBoundingClientRect().left + container.offsetWidth / 2;
 
-    let closestIdx = 0;
-    let minDiff = Infinity;
+      let closestIdx = 0;
+      let minDiff = Infinity;
 
-    cards.forEach((card, idx) => {
-      const cardRect = card.getBoundingClientRect();
-      const cardCenter = cardRect.left + cardRect.width / 2;
-      const diff = Math.abs(cardCenter - containerCenter);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIdx = idx;
-      }
+      cards.forEach((card, idx) => {
+        const cardRect = card.getBoundingClientRect();
+        const cardCenter = cardRect.left + cardRect.width / 2;
+        const diff = Math.abs(cardCenter - containerCenter);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = idx;
+        }
+      });
+
+      setActiveCardIndex((prev) => (prev !== closestIdx ? closestIdx : prev));
     });
-
-    setActiveCardIndex(closestIdx);
   };
+
+  useEffect(() => {
+    return () => {
+      if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+    };
+  }, []);
 
   const scrollToIndex = (index: number) => {
     if (!scrollRef.current) return;
@@ -118,8 +129,8 @@ export const TrustBadges: React.FC = () => {
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex flex-row gap-4 sm:gap-6 overflow-x-auto py-5 px-[14vw] sm:px-12 md:px-6 snap-x snap-mandatory overscroll-x-contain scroll-smooth no-scrollbar"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex flex-row gap-4 sm:gap-6 overflow-x-auto py-5 px-[14vw] sm:px-12 md:px-6 snap-x snap-proximity overscroll-x-contain no-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
           {features.map((f, idx) => {
             const isActive = activeCardIndex === idx;
@@ -128,7 +139,7 @@ export const TrustBadges: React.FC = () => {
               <article
                 key={f.id}
                 onClick={() => scrollToIndex(idx)}
-                className={`w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center snap-always bg-white rounded-3xl border-2 shadow-sm transition-colors duration-200 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[300px] sm:min-h-[320px] cursor-pointer group select-none ${
+                className={`w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-colors duration-200 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[300px] sm:min-h-[320px] cursor-pointer group select-none ${
                   isActive
                     ? 'border-[#C25E12]'
                     : 'border-stone-200/90'

@@ -8,6 +8,7 @@
 import React, { useState, useRef } from 'react';
 import { Minus, Plus, Check, ShoppingBag } from 'lucide-react';
 import gsap from 'gsap';
+import { motion } from 'motion/react';
 import { Product } from '../types';
 import { STORE_CONFIG } from '../data/config';
 
@@ -15,12 +16,14 @@ interface ProductCardProps {
   product: Product;
   inCartQty: number;
   onAddToCart: (product: Product, quantity: number) => void;
+  index?: number;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   inCartQty,
   onAddToCart,
+  index = 0,
 }) => {
   const isWeight = product.type === 'weight';
   const initialQty = isWeight ? STORE_CONFIG.weightStep : 1;
@@ -150,7 +153,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const badge = getStatusBadge();
 
   return (
-    <article
+    <motion.article
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{
+        duration: 0.22,
+        ease: 'easeOut',
+      }}
       className={`relative bg-white rounded-2xl p-2.5 sm:p-3 border transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-[#C25E12] ${
         isSoldOut ? 'opacity-70 border-stone-300' : 'border-[#D4C8B5]'
       }`}
@@ -285,6 +294,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </button>
       </div>
-    </article>
+    </motion.article>
   );
 };

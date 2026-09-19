@@ -31,9 +31,9 @@
     scrollbar-width: none;
   }
 
-  /* تثبيت التمرير على بطاقة واحدة فقط عند السحب باللمس لمنع التجاوز السريع */
+  /* تمرير انسيابي طبيعي بدون تعليق أو تقطيع */
   .snap-always {
-    scroll-snap-stop: always !important;
+    scroll-snap-stop: normal !important;
   }
 
   /* تخصيص نوافذ ومؤشرات الخريطة التفاعلية */

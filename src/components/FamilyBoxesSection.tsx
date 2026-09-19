@@ -349,28 +349,38 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
   const [activeBoxIndex, setActiveBoxIndex] = useState(0);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const scrollRaf = React.useRef<number | null>(null);
 
   const handleScroll = () => {
-    if (!scrollContainerRef.current) return;
-    const container = scrollContainerRef.current;
-    const cards = container.querySelectorAll('article');
-    const containerCenter = container.getBoundingClientRect().left + container.offsetWidth / 2;
+    if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+    scrollRaf.current = requestAnimationFrame(() => {
+      if (!scrollContainerRef.current) return;
+      const container = scrollContainerRef.current;
+      const cards = container.querySelectorAll('article');
+      const containerCenter = container.getBoundingClientRect().left + container.offsetWidth / 2;
 
-    let closestIdx = 0;
-    let minDiff = Infinity;
+      let closestIdx = 0;
+      let minDiff = Infinity;
 
-    cards.forEach((card, idx) => {
-      const cardRect = card.getBoundingClientRect();
-      const cardCenter = cardRect.left + cardRect.width / 2;
-      const diff = Math.abs(cardCenter - containerCenter);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIdx = idx;
-      }
+      cards.forEach((card, idx) => {
+        const cardRect = card.getBoundingClientRect();
+        const cardCenter = cardRect.left + cardRect.width / 2;
+        const diff = Math.abs(cardCenter - containerCenter);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = idx;
+        }
+      });
+
+      setActiveBoxIndex((prev) => (prev !== closestIdx ? closestIdx : prev));
     });
-
-    setActiveBoxIndex(closestIdx);
   };
+
+  useEffect(() => {
+    return () => {
+      if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+    };
+  }, []);
 
   const scrollToBox = (index: number) => {
     if (!scrollContainerRef.current) return;
@@ -422,8 +432,8 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex flex-row md:grid md:grid-cols-3 gap-5 sm:gap-6 lg:gap-7 overflow-x-auto md:overflow-x-visible pb-6 md:pb-0 pt-2 px-2 sm:px-0 snap-x snap-mandatory overscroll-x-contain scroll-smooth no-scrollbar"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex flex-row md:grid md:grid-cols-3 gap-5 sm:gap-6 lg:gap-7 overflow-x-auto md:overflow-x-visible pb-6 md:pb-0 pt-2 px-2 sm:px-0 snap-x snap-proximity overscroll-x-contain no-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
           {FAMILY_BOXES.map((box, idx) => {
             const isAdded = addedBoxId === box.id;
@@ -432,7 +442,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
             return (
               <article
                 key={box.id}
-                className={`w-[82vw] max-w-[325px] sm:w-[340px] md:w-auto md:max-w-none shrink-0 snap-center snap-always bg-white rounded-3xl border-2 shadow-sm transition-colors duration-200 p-4 sm:p-5 text-right flex flex-col justify-between ${
+                className={`w-[82vw] max-w-[325px] sm:w-[340px] md:w-auto md:max-w-none shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-colors duration-200 p-4 sm:p-5 text-right flex flex-col justify-between ${
                   isActive ? 'border-[#008A4B]' : 'border-stone-200/90'
                 }`}
               >
