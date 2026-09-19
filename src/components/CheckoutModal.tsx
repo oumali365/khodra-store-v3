@@ -946,7 +946,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
                 <div className="space-y-0.5">
                   <p className="font-black text-amber-950 text-sm">
-                    فترة تهدئة أمنية مفعلة ({cooldown.remainingFormatted})
+                    تحقق امني بسيط ({cooldown.remainingFormatted})
                   </p>
                   <p className="text-amber-800 text-[11px] leading-relaxed">
                     لحمايتك وتفادي تكرار تسجيل نفس الطلب، يُرجى الانتظار حتى انتهاء العد التنازلي، أو تواصل معنا عبر واتساب إذا أردت تعديل طلبك السابق.
@@ -964,7 +964,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     بلغت الحد الأقصى (3 طلبات خلال ساعة)
                   </p>
                   <p className="text-red-800 text-[11px] leading-relaxed">
-                    لحماية المتجر من الطلبات الوهمية، تم حظر إرسال طلب جديد مؤقتاً. سيعود الطلب للعمل بعد {rateLimit.resetInMinutes} دقيقة، أو يمكنك التواصل معنا عبر واتساب للمساعدة.
+                    لحماية المتجر من الطلبات المتكررة، تم منع إرسال طلبك الجديد مؤقتاً. سيعود الطلب للعمل بعد دقيقة، أو يمكنك التواصل معنا عبر واتساب للمساعدة.
                   </p>
                 </div>
               </div>
@@ -1019,7 +1019,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
             <div className="flex items-center justify-center gap-1.5 text-center text-[11px] text-[#787163] font-bold">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>نظام حماية الطلبات مُفعل ومحمي بـ Idempotency Key وبصمة الأمان</span>
+              <span>نظام حماية الطلبات مُفعل 
+</span>
             </div>
           </div>
 
