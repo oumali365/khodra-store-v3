@@ -14,8 +14,8 @@ const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = 
   fruit: { primary: '/images/categories/fruits.jpg', fallback: '/images/categories/fruits.webp' },
   dairy: { primary: '/images/categories/dairy.jpg', fallback: '/images/categories/dairy.webp' },
   grocery: { primary: '/images/categories/grocery.jpg', fallback: '/images/categories/grocery.webp' },
-  drinks: { primary: '/images/categories/drinks.jpg', fallback: '/images/categories/drinks.webp' },
-  cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.webp' },
+  drinks: { primary: '/images/categories/drinks.jpg', fallback: '/images/categories/drinks.jpg' },
+  cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.jpg' },
 };
 
 const CategoryCardButton: React.FC<{
