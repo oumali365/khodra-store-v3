@@ -43,7 +43,7 @@ export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
               تحقق أمني بسيط ({cooldown.remainingFormatted})
             </p>
             <p className="text-amber-800 text-[11px] leading-relaxed">
-              لحمايتك وتفادي تكرار تسجيل نفس الطلب، يُرجى الانتظار حتى انتهاء العد التنازلي، أو تواصل معنا عبر واتساب إذا أردت تعديل طلبك السابق.
+              لحمايتك وتفادي تكرار تسجيل نفس الطلب، يُرجى الانتظار، أو تواصل معنا عبر واتساب إذا أردت تعديل طلبك السابق.
             </p>
           </div>
         </div>
@@ -58,7 +58,7 @@ export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
               بلغت الحد الأقصى (3 طلبات خلال ساعة)
             </p>
             <p className="text-red-800 text-[11px] leading-relaxed">
-              لحماية المتجر من الطلبات المتكررة، تم منع إرسال طلبك الجديد مؤقتاً. سيعود الطلب للعمل بعد دقيقة، أو يمكنك التواصل معنا عبر واتساب للمساعدة.
+               لحماية المتجر من الطلبات المتكررة، تم منع إرسال أي طلب جديد، يمكنك التواصل معنا عبر واتساب للمساعدة.
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
 
       <div className="flex items-center justify-center gap-1.5 text-center text-[11px] text-[#787163] font-bold">
         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-        <span>نظام حماية الطلبات مُفعل</span>
+        <span>يتم استخدام معلوماتك بشكل آمن لتوصيل الطلب</span>
       </div>
     </div>
   );
