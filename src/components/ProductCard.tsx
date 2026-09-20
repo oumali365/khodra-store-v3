@@ -219,7 +219,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <span className="text-lg sm:text-xl font-black text-[#B85507]">
             {product.price.toFixed(2)}
           </span>
-          <span className="text-xs sm:text-sm font-extrabold text-[#B85507]">dh</span>
+          <span className="text-xs sm:text-sm font-extrabold text-[#B85507]">DH</span>
           <span className="text-[11px] text-[#38332B] font-bold">
             / {isWeight ? 'kg' : product.unit_label || 'pièce'}
           </span>

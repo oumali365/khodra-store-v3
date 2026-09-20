@@ -6,7 +6,7 @@ export const STORE_CONFIG = {
   city: 'فاس والنواحي',
   whatsappNumber: '+212704274830',
   whatsappCleanNumber: '212704274830',
-  currency: 'د.م',
+  currency: 'DH',
   standardDeliveryFee: 15,
   freeDeliveryThreshold: 250,
   freshnessMaxItems: 12,

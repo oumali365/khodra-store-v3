@@ -196,22 +196,6 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
         </div>
-
-        {/* ─── زر الحذف التقليدي ─── */}
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemoveItem(item.key);
-          }}
-          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg text-red-600 hover:text-white hover:bg-red-600 active:scale-90 flex items-center justify-center transition-all cursor-pointer shrink-0 touch-manipulation select-none border border-transparent hover:border-red-700"
-          aria-label={`حذف ${item.name} من السلة`}
-          title="حذف من السلة"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
       </motion.div>
     </motion.div>
   );

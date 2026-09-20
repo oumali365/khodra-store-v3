@@ -91,7 +91,7 @@ export const FAMILY_BOXES: FamilyBox[] = [
     price: 89,
     originalPrice: 119,
     savings: 30,
-    savingsBadge: 'وفر 30 dh',
+    savingsBadge: 'وفر 30.00 DH',
     weight: '6-8 كغ',
     servings: '2-3 أفراد',
     itemsCountLabel: '9 أصناف',
@@ -111,7 +111,7 @@ export const FAMILY_BOXES: FamilyBox[] = [
       { name: 'باقة ورقيات (قزبر + معدنوس + نعناع)', amount: 'هدية مجانية', icon: '🌿' },
     ],
     features: [
-      'وفر 30 dh مقارنة بالشراء المنفصل',
+      'وفر 30.00 DH مقارنة بالشراء المنفصل',
       'قطف طازج صبيحة يوم التوصيل',
       'حجم مثالي لتجنب التلف والهدر',
     ],
@@ -125,7 +125,7 @@ export const FAMILY_BOXES: FamilyBox[] = [
     price: 139,
     originalPrice: 175,
     savings: 36,
-    savingsBadge: 'وفر 36 dh',
+    savingsBadge: 'وفر 36.00 DH',
     weight: '14-16 كغ',
     servings: '4-5 أفراد',
     itemsCountLabel: '14 صنفاً',
@@ -150,7 +150,7 @@ export const FAMILY_BOXES: FamilyBox[] = [
       { name: 'باقة سخية ورقيات ونعناع فاسي', amount: 'هدية مجانية', icon: '🌿' },
     ],
     features: [
-      'وفر 36 dh في سلة الأسبوع المتكاملة',
+      'وفر 36.00 DH في سلة الأسبوع المتكاملة',
       'تنوع شامل يغطي كل وجبات الأسرة',
       'مغسول ومنقى بعناية وحبة بحبة',
     ],
@@ -164,14 +164,14 @@ export const FAMILY_BOXES: FamilyBox[] = [
     price: 189,
     originalPrice: 245,
     savings: 56,
-    savingsBadge: 'وفر 56 dh',
+    savingsBadge: 'وفر 56.00 DH',
     weight: '20-22 كغ',
     servings: '6-8 أفراد',
     itemsCountLabel: '18 صنفاً',
     badge: 'التوفير الأكبر 👑',
     description:
       'صندوق البركة الشامل للعائلات الكبيرة ولمحبي الكرم والوفرة: أوزان سخية جداً من الخضار والفواكه، مع طبق بيض بلدي حر (10 بيضات) وتوصيل مجاني مباشر إلى باب بيتك.',
-    highlights: ['خضار شاملة 12 كغ', 'فواكه منوعة 6 كغ', 'طبق بيض بلدي 10 حبات', 'ورقيات وأعشاب', 'توصيل مجاني 0 د.م'],
+    highlights: ['خضار شاملة 12 كغ', 'فواكه منوعة 6 كغ', 'طبق بيض بلدي 10 حبات', 'ورقيات وأعشاب', 'توصيل مجاني (0.00 DH)'],
     items: [
       { name: 'بطاطس ممتازة (طبخ وقلي)', amount: '6 كغ', icon: '🥔' },
       { name: 'طماطم طازجة للمائدة والطهي', amount: '4 كغ', icon: '🍅' },
@@ -184,10 +184,10 @@ export const FAMILY_BOXES: FamilyBox[] = [
       { name: 'فواكه موسمية متنوعة', amount: '2 كغ', icon: '🍐' },
       { name: 'طبق بيض بلدي حر من المزرعة', amount: '10 حبات', icon: '🥚' },
       { name: 'باقة ورقيات خضراء + نعناع أصيل', amount: 'هدية مجانية', icon: '🌿' },
-      { name: 'خدمة التوصيل السريع لباب البيت', amount: 'مجاناً (0 د.م)', icon: '🚚' },
+      { name: 'خدمة التوصيل السريع لباب البيت', amount: 'مجاناً (0.00 DH)', icon: '🚚' },
     ],
     features: [
-      'أعلى قيمة توفير بالمتجر: وفر 56 dh فوراً',
+      'أعلى قيمة توفير بالمتجر: وفر 56.00 DH فوراً',
       'توصيل مجاني مباشر إلى باب البيت',
       'طبق بيض بلدي حر من المزرعة هدية',
     ],
@@ -487,11 +487,11 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
                     <div className="text-left shrink-0" dir="ltr">
                       <div className="text-2xl sm:text-3xl font-black text-[#C25E12] leading-none tracking-tight">
-                        <span>{box.price}</span>{' '}
+                        <span>{box.price.toFixed(2)}</span>{' '}
                         <span className="text-sm sm:text-base font-black text-[#C25E12]">DH</span>
                       </div>
                       <div className="text-xs text-stone-400 line-through font-bold mt-1 tracking-tight">
-                        <span>{box.originalPrice}</span> <span>DH</span>
+                        <span>{box.originalPrice.toFixed(2)}</span> <span>DH</span>
                       </div>
                     </div>
                   </div>
@@ -640,11 +640,11 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </span>
                     <div className="flex items-baseline gap-2.5" dir="ltr">
                       <span className="text-3xl sm:text-4xl font-black text-[#C25E12] leading-none">
-                        {selectedBox.price}
+                        {selectedBox.price.toFixed(2)}
                       </span>
                       <span className="text-base sm:text-lg font-black text-[#C25E12]">DH</span>
                       <span className="text-sm text-stone-400 line-through font-bold">
-                        {selectedBox.originalPrice} DH
+                        {selectedBox.originalPrice.toFixed(2)} DH
                       </span>
                     </div>
                   </div>
@@ -794,7 +794,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 <ShoppingBag className="w-5 h-5 text-[#F5D76E]" />
                 <span>أضف للسلة</span>
                 <span className="px-3 py-1 rounded-xl bg-white/15 text-[#F5D76E] text-sm font-black tabular-nums" dir="ltr">
-                  {(selectedBox.price * modalQty).toFixed(0)} DH
+                  {(selectedBox.price * modalQty).toFixed(2)} DH
                 </span>
               </button>
             </div>

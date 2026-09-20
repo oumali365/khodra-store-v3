@@ -4,7 +4,7 @@
 // ============================================================
 import React from 'react';
 import {
-  X, Trash2, ArrowLeft, Sparkles, ShoppingBag, Truck, Package,
+  X, Trash2, ArrowLeft, ShoppingBag, Truck, Package,
   ShieldCheck, Gift, Percent,
 } from 'lucide-react';
 import { CartItem } from '../types';
@@ -48,13 +48,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const bundleItemsCount = items.filter((i) => !!i.bundleId).length;
   const regularItemsCount = items.length - bundleItemsCount;
   const totalItemsCount = items.reduce((sum, i) => sum + i.qty, 0);
-
-  // ─── مقياس الطراوة ───
-  const uniqueProductCount = new Set(items.map((i) => i.id)).size;
-  const freshnessScore = Math.min(
-    100,
-    Math.max(70, Math.round((uniqueProductCount / STORE_CONFIG.freshnessMaxItems) * 100))
-  );
 
   // ─── التوفير المتوقع (اختياري: يمكن حسابه من أسعار أصلية) ───
   const estimatedSavings = isFreeDelivery ? deliveryFee : 0;
@@ -134,9 +127,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           </div>
         </div>
 
-        {/* ════════ شريط التوصيل المجاني + الطراوة ════════ */}
+        {/* ════════ شريط التوصيل المجاني ════════ */}
         {items.length > 0 && (
-          <div className="px-3 py-2.5 bg-[#F7F4EC] border-b border-[#E8E1D3] shrink-0 space-y-2">
+          <div className="px-3 py-2.5 bg-[#F7F4EC] border-b border-[#E8E1D3] shrink-0">
 
             {/* شريط التوصيل المجاني */}
             <div className={`relative p-3 rounded-xl border-2 overflow-hidden transition-all ${
@@ -175,17 +168,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-            </div>
-
-            {/* مقياس الطراوة */}
-            <div className="flex items-center justify-between text-xs font-bold bg-white px-3 py-2 rounded-xl border border-[#E8E1D3]">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-[#1E4327]" />
-                <span className="text-xs font-black text-[#112616]">طراوة السلة:</span>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-black text-[11px] border border-emerald-300">
-                {freshnessScore}% طازج
-              </span>
             </div>
           </div>
         )}

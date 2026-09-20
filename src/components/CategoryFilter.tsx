@@ -8,61 +8,128 @@ import { ProductCategory, Product } from '../types';
 import { CATEGORIES_CONFIG } from '../data/mockProducts';
 import { SortOption } from './SortFilterModal';
 
-const CATEGORY_IMAGES: Record<string, string> = {
-  all: '/images/categories/all.webp',
-  veg: '/images/categories/vegetables.webp',
-  fruit: '/images/categories/fruits.jpg',
-  dairy: '/images/categories/dairy.jpg',
-  grocery: '/images/categories/grocery.jpg',
-  drinks: '/images/categories/drinks.jpg',
-  cleaning: '/images/categories/cleaning.jpg',
+const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = {
+  all: { primary: '/images/categories/all.webp', fallback: '/images/categories/all.jpg' },
+  veg: { primary: '/images/categories/vegetables.webp', fallback: '/images/categories/vegetables.jpg' },
+  fruit: { primary: '/images/categories/fruits.jpg', fallback: '/images/categories/fruits.webp' },
+  dairy: { primary: '/images/categories/dairy.jpg', fallback: '/images/categories/dairy.webp' },
+  grocery: { primary: '/images/categories/grocery.jpg', fallback: '/images/categories/grocery.webp' },
+  drinks: { primary: '/images/categories/drinks.jpg', fallback: '/images/categories/drinks.webp' },
+  cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.webp' },
 };
 
-const CategoryThumbnail: React.FC<{
-  catId: string;
-  name: string;
-  icon: string;
+const CategoryCardButton: React.FC<{
+  category: { id: ProductCategory; name: string; icon: string };
   isSelected: boolean;
-}> = ({ catId, name, icon, isSelected }) => {
-  const [imgError, setImgError] = useState(false);
-  const imageUrl = CATEGORY_IMAGES[catId];
+  onSelect: () => void;
+}> = ({ category, isSelected, onSelect }) => {
+  const imageConfig = CATEGORY_IMAGES[category.id];
+  const [currentSrc, setCurrentSrc] = useState<string | null>(imageConfig?.primary || null);
+  const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  if (imgError || !imageUrl) {
-    return (
-      <span
-        className={`text-5xl sm:text-6xl mb-3 transition-transform duration-300 drop-shadow-sm ${
-          isSelected ? 'scale-110' : 'group-hover:scale-110'
-        }`}
-      >
-        {icon}
-      </span>
-    );
-  }
+  const handleImgError = () => {
+    // إذا فشلت الصورة الأولى وكان هناك امتداد بديل (مثلاً webp أو jpg)، نحاول تحميله
+    if (currentSrc === imageConfig?.primary && imageConfig?.fallback) {
+      setCurrentSrc(imageConfig.fallback);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  const hasBackgroundImage = Boolean(currentSrc && !hasError);
 
   return (
-    <div
-      className={`relative w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] lg:w-[124px] lg:h-[124px] mb-3 rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-300 shrink-0 bg-stone-100 ${
+    <button
+      type="button"
+      role="tab"
+      aria-selected={isSelected}
+      onClick={onSelect}
+      className={`relative flex flex-col justify-end p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border-2 transition-all duration-300 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-[0.98] shrink-0 min-w-[136px] sm:min-w-[150px] md:min-w-0 min-h-[178px] sm:min-h-[195px] md:min-h-[194px] lg:min-h-[212px] shadow-sm hover:shadow-xl ${
         isSelected
-          ? 'border-2 border-[#F5D76E] shadow-xl scale-105 ring-2 ring-[#F5D76E]/30'
-          : 'border border-stone-200/90 group-hover:border-[#F5D76E]/70 shadow-sm group-hover:shadow-xl group-hover:scale-105'
+          ? 'border-[#F5D76E] shadow-xl ring-2 ring-[#F5D76E]/40 scale-[1.02]'
+          : 'border-[#E8E1D3] hover:border-[#F5D76E]/70'
+      } ${
+        !hasBackgroundImage
+          ? isSelected
+            ? 'bg-gradient-to-b from-[#163920] to-[#0E2615] text-white'
+            : 'bg-[#FAF8F3] hover:bg-white text-[#112616]'
+          : 'bg-[#163920]'
       }`}
     >
-      <img
-        src={imageUrl}
-        alt={name}
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        loading="lazy"
-        decoding="async"
-        width="124"
-        height="124"
-        referrerPolicy="no-referrer"
-        onError={() => setImgError(true)}
-      />
-      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-      {isSelected && (
-        <div className="absolute inset-0 bg-[#163920]/15 pointer-events-none" />
+      {/* 1. خلفية الصورة الممتدة بكامل مساحة بطاقة الفئة */}
+      {currentSrc && !hasError && (
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+          <img
+            src={currentSrc}
+            alt={category.name}
+            className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 ${
+              isLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onLoad={() => setIsLoaded(true)}
+            onError={handleImgError}
+          />
+
+          {/* طبقة التدرج الداكن لحماية قراءة اسم الفئة وضمان تباين فائق (WCAG AA) */}
+          <div
+            className={`absolute inset-0 transition-opacity duration-300 ${
+              isSelected
+                ? 'bg-gradient-to-t from-[#0E2615]/95 via-[#163920]/65 to-black/25'
+                : 'bg-gradient-to-t from-black/85 via-black/40 to-black/15 group-hover:from-black/90 group-hover:via-black/50'
+            }`}
+          />
+
+          {isSelected && (
+            <div className="absolute inset-0 bg-[#F5D76E]/10 pointer-events-none" />
+          )}
+        </div>
       )}
-    </div>
+
+      {/* في حال عدم توفر الصورة (أثناء مرحلة التصميم): إظهار الأيقونة بحجم تعبيري مميز */}
+      {!hasBackgroundImage && (
+        <div className="relative z-10 flex-1 flex items-center justify-center py-2">
+          <span
+            className={`text-5xl sm:text-6xl transition-transform duration-300 drop-shadow-sm ${
+              isSelected ? 'scale-110' : 'group-hover:scale-110'
+            }`}
+          >
+            {category.icon}
+          </span>
+        </div>
+      )}
+
+      {/* 2. عنوان الفئة ومؤشر التحديد */}
+      <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-2">
+        <span
+          className={`text-sm sm:text-base font-black leading-tight drop-shadow-sm transition-colors ${
+            hasBackgroundImage
+              ? isSelected
+                ? 'text-[#F5D76E]'
+                : 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]'
+              : isSelected
+              ? 'text-white'
+              : 'text-[#112616]'
+          }`}
+        >
+          {category.name}
+        </span>
+
+        {isSelected ? (
+          <span className="w-10 h-1 rounded-full bg-[#F5D76E] mt-2 shadow-sm" />
+        ) : (
+          <span
+            className={`h-0.5 rounded-full mt-2 transition-all duration-300 ${
+              hasBackgroundImage
+                ? 'w-6 bg-white/40 group-hover:w-10 group-hover:bg-[#F5D76E]'
+                : 'w-6 bg-[#C25E12]/30 group-hover:w-10 group-hover:bg-[#C25E12]'
+            }`}
+          />
+        )}
+      </div>
+    </button>
   );
 };
 
@@ -239,43 +306,14 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               role="tablist"
               aria-label="فئات المنتجات"
             >
-              {categories.map((cat) => {
-                const isSelected = selectedCategory === cat.id;
-
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isSelected}
-                    onClick={() => onSelectCategory(cat.id)}
-                    className={`relative flex flex-col items-center justify-center px-3.5 py-4 sm:px-4 sm:py-5 md:px-3.5 md:py-5 lg:px-4 lg:py-6 rounded-2xl sm:rounded-3xl border-2 transition-colors duration-150 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-[0.98] shrink-0 min-w-[136px] sm:min-w-[150px] md:min-w-0 min-h-[178px] sm:min-h-[195px] md:min-h-[194px] lg:min-h-[212px] ${
-                      isSelected
-                        ? 'bg-gradient-to-b from-[#163920] to-[#0E2615] text-white border-[#163920] shadow-xl'
-                        : 'bg-[#FAF8F3] hover:bg-white text-[#112616] border-[#E8E1D3] hover:border-[#F5D76E]/70 shadow-xs hover:shadow-md'
-                    }`}
-                  >
-                    <CategoryThumbnail
-                      catId={cat.id}
-                      name={cat.name}
-                      icon={cat.icon}
-                      isSelected={isSelected}
-                    />
-
-                    <span
-                      className={`text-sm sm:text-base font-black text-center leading-tight mt-0.5 ${
-                        isSelected ? 'text-white' : 'text-[#112616]'
-                      }`}
-                    >
-                      {cat.name}
-                    </span>
-
-                    {isSelected && (
-                      <span className="absolute bottom-3 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-[#F5D76E]" />
-                    )}
-                  </button>
-                );
-              })}
+              {categories.map((cat) => (
+                <CategoryCardButton
+                  key={cat.id}
+                  category={cat}
+                  isSelected={selectedCategory === cat.id}
+                  onSelect={() => onSelectCategory(cat.id)}
+                />
+              ))}
             </div>
           </div>
 

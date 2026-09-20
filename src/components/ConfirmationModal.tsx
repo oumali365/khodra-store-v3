@@ -89,12 +89,12 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       (i) =>
         `• ${i.icon} ${i.name} (${i.variantLabel}${
           i.qty > 1 ? ` × ${i.qty}` : ''
-        }) — ${i.lineTotal.toFixed(2)} د.م`
+        }) — ${i.lineTotal.toFixed(2)} DH`
     ),
     ``,
-    `💰 *المجموع الفرعي:* ${order.subtotal.toFixed(2)} د.م`,
-    `🚚 *رسوم التوصيل:* ${order.deliveryFee.toFixed(2)} د.م`,
-    `⭐ *الإجمالي:* ${order.total.toFixed(2)} د.م`,
+    `💰 *المجموع الفرعي:* ${order.subtotal.toFixed(2)} DH`,
+    `🚚 *رسوم التوصيل:* ${order.deliveryFee.toFixed(2)} DH`,
+    `⭐ *الإجمالي:* ${order.total.toFixed(2)} DH`,
     ``,
     `شكراً لثقتكم بمتجر خُضرة! 🌿`,
   ].filter(Boolean);
@@ -284,7 +284,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         )}
                       </span>
                       <span className="text-xs font-black text-[#C25E12] tabular-nums shrink-0">
-                        {i.lineTotal.toFixed(2)} د.م
+                        {i.lineTotal.toFixed(2)} DH
                       </span>
                     </div>
                   ))}
