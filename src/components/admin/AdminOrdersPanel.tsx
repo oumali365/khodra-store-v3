@@ -15,7 +15,7 @@ import {
   deleteOrder,
   DbOrder,
   OrderStatus,
-} from '../services/supabaseService';
+} from '../../services/supabaseService';
 import { OrderInvoiceModal } from './OrderInvoiceModal';
 
 interface AdminOrdersPanelProps {

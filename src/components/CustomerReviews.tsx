@@ -26,7 +26,6 @@ import {
   deleteCustomerReview,
   getSupabase,
 } from '../services/supabaseService';
-import { AdminNotificationToast } from './AdminNotificationToast';
 import { useNewOrdersNotifier } from '../hooks/useNewOrdersNotifier';
 import {
   INITIAL_THREE_REVIEWS,
@@ -34,15 +33,16 @@ import {
 } from '../data/initialReviews';
 import { AddReviewModal } from './AddReviewModal';
 import {
+  AdminNotificationToast,
   PinModal,
   ChangePinModal,
   DeleteReviewModal,
-} from './AdminReviewModals';
+} from './admin';
 
 export type { CustomerReview };
 
 const AdminOrdersPanel = React.lazy(() =>
-  import('./AdminOrdersPanel').then((module) => ({ default: module.AdminOrdersPanel }))
+  import('./admin/AdminOrdersPanel').then((module) => ({ default: module.AdminOrdersPanel }))
 );
 
 const INITIAL_VISIBLE_COUNT = 3;

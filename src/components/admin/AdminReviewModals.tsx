@@ -8,7 +8,7 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
-import { CustomerReview } from '../data/initialReviews';
+import { CustomerReview } from '../../data/initialReviews';
 
 // ─── مودال إدخال الرمز السري (PIN) ───
 interface PinModalProps {
