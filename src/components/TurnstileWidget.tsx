@@ -3,7 +3,6 @@
 // يمنع الروبوتات والطلبات المزيفة مع تجربة سلسة بدون كابتشا معقدة
 // ============================================================
 import React, { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, ShieldAlert, Loader2 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 
 declare global {
@@ -149,38 +148,14 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
     };
   }, [siteKey]);
 
+  // إخفاء العرض النصي الأمني من الواجهة وفق طلب المستخدم مع الحفاظ على عملية التحقق في الخلفية
   return (
-    <div className="w-full rounded-xl bg-[#FAF7F0] border border-[#E8E1D3] p-2.5 transition-all">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs font-bold">
-          {status === 'verified' || status === 'fallback' ? (
-            <span className="flex items-center gap-1.5 text-emerald-800">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>تم التحقق الأمني ضد الروبوتات والطلبات المزيفة</span>
-            </span>
-          ) : status === 'loading' ? (
-            <span className="flex items-center gap-1.5 text-[#787163]">
-              <Loader2 className="w-4 h-4 animate-spin text-[#C25E12]" />
-              <span>جاري التحقق الأمني السريع...</span>
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 text-[#524B3E]">
-              <ShieldCheck className="w-4 h-4 text-[#163920]" />
-              <span>حماية متقدمة عبر Cloudflare Turnstile</span>
-            </span>
-          )}
-        </div>
-
-        <span className="text-[10px] text-[#8C8270] font-medium tracking-tight">
-          حماية خُضرة 🔒
-        </span>
-      </div>
-
-      {/* الحاوية التي يرسم فيها Cloudflare الواجهة إذا كان المفتاح نشطاً */}
+    <div className={siteKey ? 'w-full' : 'hidden'} aria-hidden="true">
+      {/* الحاوية التي يرسم فيها Cloudflare التحدي إذا تطلب الأمر */}
       {siteKey && (
         <div
           ref={containerRef}
-          className="mt-2 min-h-[50px] flex items-center justify-center overflow-hidden"
+          className="my-1 min-h-[50px] flex items-center justify-center overflow-hidden"
         />
       )}
     </div>
