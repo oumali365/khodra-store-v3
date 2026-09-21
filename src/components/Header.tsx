@@ -1,11 +1,12 @@
 // ============================================================
-// الملف: Header.tsx – الإصدار 3.0
-// رأس المتجر – تصميم متناسق مع باقي المكونات
+// الملف: Header.tsx – الإصدار 4.0
+// رأس المتجر وقائمة منسدلة داخلية لفئات المتجر بتصميم أنيق ومحسن
 // ============================================================
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ShoppingBag, Search, Menu, X, Phone, ShieldCheck,
-  RefreshCw, Info, Package, Sparkles, Leaf, LogOut,
+  RefreshCw, Info, Package, Leaf, LogOut,
+  ChevronDown, Layers, Check, ExternalLink
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 import { ProductCategory } from '../types';
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   onSearchChange,
   onSearchSubmit,
+  selectedCategory,
   onSelectCategory,
   onOpenPage,
   isMenuOpen,
@@ -44,6 +46,19 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenExitModal,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  // حالة القائمة المنسدلة الداخلية لفئات المتجر (مفتوحة افتراضياً أو قابلة للطي)
+  const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(true);
+
+  // إغلاق المودال بزر الهروب Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMenuOpen) {
+        onCloseMenu();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMenuOpen, onCloseMenu]);
 
   // ─── التمرير إلى صناديق العائلة ───
   const handleScrollToBundles = () => {
@@ -52,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
       setTimeout(() => onScrollToBundles(), 200);
     } else {
       setTimeout(() => {
-        const el = document.getElementById('family-bundles-section');
+        const el = document.getElementById('family-bundles-section') || document.getElementById('family-boxes-section');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 200);
     }
@@ -70,13 +85,14 @@ export const Header: React.FC<HeaderProps> = ({
               {/* زر القائمة */}
               <button
                 type="button"
+                id="main-nav-toggle-btn"
                 onClick={onToggleMenu}
                 className={`relative w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-white transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#C25E12]/40 touch-manipulation select-none cursor-pointer shrink-0 ${
                   isMenuOpen
                     ? 'bg-gradient-to-br from-[#C25E12] to-[#9C4505]'
                     : 'bg-gradient-to-br from-[#1E4327] to-[#112616] hover:from-[#112616] hover:to-[#0A1A0F]'
                 }`}
-                aria-label="فتح القائمة الرئيسية"
+                aria-label={isMenuOpen ? 'إغلاق القائمة' : 'فتح القائمة الرئيسية'}
                 aria-expanded={isMenuOpen}
               >
                 {isMenuOpen ? (
@@ -89,6 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
               {/* الشعار المطور بدون أيقونة وبأناقة طباعية عالية */}
               <button
                 type="button"
+                id="store-logo-btn"
                 onClick={() => onOpenPage(null)}
                 className="group cursor-pointer text-right touch-manipulation select-none active:opacity-85 transition-opacity min-w-0"
               >
@@ -132,6 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
               {/* زر البحث الجوّال */}
               <button
                 type="button"
+                id="mobile-search-toggle-btn"
                 onClick={() => setShowMobileSearch(!showMobileSearch)}
                 className={`md:hidden w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-all duration-150 shadow-sm active:scale-90 touch-manipulation select-none cursor-pointer shrink-0 border-2 ${
                   showMobileSearch
@@ -161,6 +179,7 @@ export const Header: React.FC<HeaderProps> = ({
               {/* زر السلة */}
               <button
                 type="button"
+                id="header-open-cart-btn"
                 onClick={onOpenCart}
                 className="relative flex items-center gap-2 px-3 sm:px-5 py-2.5 min-h-[44px] rounded-xl bg-gradient-to-l from-[#C25E12] to-[#9C4505] hover:from-[#B85507] hover:to-[#8A3D04] text-white shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 font-extrabold font-['Almarai'] touch-manipulation select-none cursor-pointer shrink-0"
                 aria-label={`سلة المشتريات (${cartCount} منتجات)`}
@@ -212,153 +231,229 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
 
-      {/* ════════ القائمة الجانبية (Drawer) ════════ */}
+      {/* ════════ القائمة الجانبية (Drawer / Menu) بتصميم محسن وأنيق ════════ */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 flex">
+          {/* الخلفية المعتمة */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
             onClick={onCloseMenu}
           />
 
-          <div className="relative ml-auto w-full max-w-xs bg-[#FBF9F5] h-full shadow-2xl flex flex-col z-50 overflow-y-auto animate-in slide-in-from-left duration-300 border-l border-[#D4C8B5]">
+          {/* لوحة القائمة الجانبية */}
+          <div className="relative ml-auto w-full max-w-[340px] sm:max-w-xs bg-[#FBF9F5] h-full shadow-2xl flex flex-col z-50 overflow-hidden animate-in slide-in-from-left duration-300 border-l border-[#D4C8B5]">
 
-            {/* ─── رأس الدرج ─── */}
-            <div className="relative p-4 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shadow-md shrink-0 overflow-hidden">
-              {/* زخرفة خلفية */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,215,110,0.15),transparent_60%)] pointer-events-none" />
-
-              <div className="relative flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center shadow-sm">
-                  <Leaf className="w-5 h-5 text-[#F5D76E]" />
+            {/* ─── رأس القائمة الجانبية ─── */}
+            <div className="relative px-4 py-4 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shadow-xs shrink-0 border-b border-[#0A1A0F]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
+                  <Leaf className="w-4 h-4 text-[#F5D76E]" />
                 </div>
                 <div>
-                  <span className="font-black text-base font-['Almarai'] block leading-tight">
-                    متجر خُضرة
+                  <span className="font-black text-base font-['Almarai'] block leading-tight text-white">
+                    {STORE_CONFIG.storeName}
                   </span>
-                  <span className="text-[10px] text-emerald-200 font-bold block">
-                    خضر وفواكه طازجة
+                  <span className="text-[11px] text-emerald-200/80 font-medium block">
+                    تسوق الخضر والفواكه الطازجة
                   </span>
                 </div>
               </div>
 
               <button
                 type="button"
+                id="menu-close-btn"
                 onClick={onCloseMenu}
-                className="relative w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center text-white transition-all cursor-pointer touch-manipulation select-none border border-white/15"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center text-white transition-all cursor-pointer touch-manipulation select-none border border-white/15"
                 aria-label="إغلاق القائمة"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* ─── المحتوى ─── */}
-            <div className="p-4 flex-1">
+            {/* ─── المحتوى القابل للتمرير ─── */}
+            <div className="p-3.5 sm:p-4 flex-1 overflow-y-auto no-scrollbar space-y-3.5">
 
-              {/* ─── 🧺 قسم صناديق العائلة (بارز) ─── */}
-              <div className="mb-5 rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300 shadow-sm overflow-hidden">
-                {/* شريط علوي */}
-                <div className="px-3 py-2 bg-gradient-to-l from-[#C25E12] to-[#9C4505] flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-[#F5D76E]" />
-                  <span className="text-[11px] font-black text-white uppercase tracking-wider">
-                    عرض خاص
-                  </span>
-                </div>
-
+              {/* ════════ 1. اكتشف فئات متجر خضرة (قائمة منسدلة داخلية) ════════ */}
+              <div className="rounded-2xl bg-white border border-[#E8E1D3] shadow-xs overflow-hidden transition-all">
+                {/* رأس القائمة المنسدلة للفئات: عرض فئات المتجر */}
                 <button
                   type="button"
-                  onClick={handleScrollToBundles}
-                  className="w-full flex items-center justify-between gap-3 px-3 py-3 min-h-[60px] bg-white hover:bg-amber-50/50 active:scale-[0.98] text-[#112616] font-extrabold text-sm transition-all text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none"
+                  id="categories-accordion-trigger"
+                  onClick={() => setIsCategoriesDropdownOpen(!isCategoriesDropdownOpen)}
+                  className="w-full flex items-center justify-between p-3.5 bg-gradient-to-l from-[#FAF7F0] to-white hover:bg-[#F4EFE3] active:bg-[#ECE5D6] text-right transition-colors cursor-pointer select-none group touch-manipulation"
+                  aria-expanded={isCategoriesDropdownOpen}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-[#163920] to-[#0E2615] flex items-center justify-center text-white shadow-sm shrink-0">
-                      <Package className="w-5 h-5 text-[#F5D76E]" />
-                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#C25E12] text-white text-[9px] flex items-center justify-center border border-white font-black">
-                        ✨
-                      </span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-[#163920]/10 border border-[#163920]/20 flex items-center justify-center text-[#163920] shrink-0 group-hover:bg-[#163920] group-hover:text-white transition-colors">
+                      <Layers className="w-4 h-4" />
                     </div>
-                    <div className="text-right min-w-0">
-                      <span className="block text-sm font-black text-[#112616] truncate">
-                        صناديق العائلة
+                    <div className="min-w-0">
+                      <span className="text-[13px] font-black text-[#112616] font-['Almarai'] block leading-tight">
+                        اكتشف فئات متجر خضرة
                       </span>
-                      <span className="text-[10px] text-amber-700 font-bold block mt-0.5">
-                        وفّر حتى 20% • توصيل مجاني
+                      <span className="text-[11px] text-[#6B6455] font-medium block mt-0.5">
+                        عرض فئات المتجر
                       </span>
                     </div>
                   </div>
 
-                  <span className="text-[10px] text-white font-black bg-[#C25E12] px-2.5 py-1 rounded-full shadow-sm shrink-0">
-                    جديد
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[#524B3E] transition-transform duration-200 shrink-0 ${isCategoriesDropdownOpen ? 'rotate-180 text-[#C25E12]' : ''}`}>
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </button>
+
+                {/* المحتوى الداخلي المنسدل للفئات */}
+                {isCategoriesDropdownOpen && (
+                  <div className="p-2 pt-1 border-t border-[#EFE8DC] bg-[#FAF8F3]/60 space-y-1 animate-in slide-in-from-top-1 duration-150">
+                    {CATEGORIES_CONFIG.map((cat) => {
+                      const isSelected = selectedCategory === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          id={`drawer-category-item-${cat.id}`}
+                          onClick={() => {
+                            onSelectCategory(cat.id);
+                            onOpenPage(null);
+                            onCloseMenu();
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-all ${
+                            isSelected
+                              ? 'bg-gradient-to-l from-[#163920] to-[#0E2615] text-white shadow-xs font-black'
+                              : 'hover:bg-white active:bg-[#EFE8DC] text-[#1A1814] hover:text-[#112616] font-bold text-xs sm:text-sm'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0 border ${
+                              isSelected
+                                ? 'bg-white/15 border-white/20 text-white'
+                                : 'bg-white border-[#E8E1D3]'
+                            }`}>
+                              {cat.icon}
+                            </span>
+                            <span className="truncate">{cat.name}</span>
+                          </div>
+
+                          {isSelected && (
+                            <span className="w-5 h-5 rounded-full bg-[#F5D76E] text-[#112616] flex items-center justify-center shrink-0">
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* ════════ 2. قسم صناديق العائلة ════════ */}
+              <div className="rounded-2xl bg-white border border-[#E8E1D3] shadow-xs overflow-hidden">
+                <button
+                  type="button"
+                  id="drawer-family-boxes-btn"
+                  onClick={handleScrollToBundles}
+                  className="w-full flex items-center justify-between p-3.5 bg-gradient-to-l from-[#FAF7F0] to-white hover:bg-[#F4EFE3] active:bg-[#ECE5D6] text-[#112616] transition-colors text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-[#C25E12]/10 border border-[#C25E12]/20 flex items-center justify-center text-[#C25E12] shrink-0 group-hover:bg-[#C25E12] group-hover:text-white transition-colors">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <div className="text-right min-w-0">
+                      <span className="block text-[13px] font-black text-[#112616] truncate font-['Almarai'] leading-tight">
+                        صناديق العائلة
+                      </span>
+                      <span className="text-[11px] text-[#6B6455] font-medium block mt-0.5">
+                        سلات أسبوعية متكاملة بأسعار مميزة
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-xs text-[#8A8170] group-hover:text-[#C25E12] transition-colors font-bold pr-1">
+                    ←
                   </span>
                 </button>
               </div>
 
-              {/* ─── تصفح الأقسام ─── */}
-              <div className="text-[11px] font-black text-[#787163] uppercase tracking-wider mb-2 font-['Almarai'] select-none">
-                تصفح الأقسام
-              </div>
-              <div className="space-y-1 mb-4">
-                {CATEGORIES_CONFIG.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      onSelectCategory(cat.id);
-                      onOpenPage(null);
-                      onCloseMenu();
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] hover:text-[#112616] font-extrabold text-sm transition-colors text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-lg bg-[#F7F4EC] group-hover:bg-white border border-[#E8E1D3] flex items-center justify-center text-base shrink-0 transition-colors">
-                        {cat.icon}
-                      </span>
-                      <span>{cat.name}</span>
-                    </div>
-                    <span className="text-xs text-[#787163] font-bold group-hover:text-[#C25E12] group-hover:translate-x-[-2px] transition-all">
-                      ←
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* ─── روابط مهمة ─── */}
-              <div className="border-t border-[#E8E1D3] pt-4">
-                <div className="text-[11px] font-black text-[#787163] uppercase tracking-wider mb-2 font-['Almarai'] select-none">
-                  روابط مهمة
+              {/* ════════ 3. روابط مهمة (ظاهرة وغير مطبقة كميزة منسدلة) ════════ */}
+              <div className="rounded-2xl bg-white border border-[#E8E1D3] p-3 shadow-xs">
+                <div className="text-[11px] font-black text-[#787163] uppercase tracking-wider mb-2 font-['Almarai'] select-none px-1 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#163920]" />
+                  <span>روابط مهمة</span>
                 </div>
                 <div className="space-y-1">
                   <button
                     type="button"
+                    id="drawer-about-link"
                     onClick={() => { onOpenPage('about'); onCloseMenu(); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl hover:bg-[#F7F4EC] text-[#1A1814] font-extrabold text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none"
+                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] font-bold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors group"
                   >
-                    <Info className="w-4 h-4 text-[#163920] shrink-0" />
-                    <span>من نحن</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#163920]">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      <span>من نحن</span>
+                    </div>
+                    <span className="text-xs text-[#8A8170] group-hover:text-[#163920] font-bold">←</span>
                   </button>
 
                   <button
                     type="button"
+                    id="drawer-policy-link"
                     onClick={() => { onOpenPage('policy'); onCloseMenu(); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl hover:bg-[#F7F4EC] text-[#1A1814] font-extrabold text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none"
+                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] font-bold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors group"
                   >
-                    <RefreshCw className="w-4 h-4 text-[#C25E12] shrink-0" />
-                    <span>سياسة الإرجاع</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center text-[#C25E12]">
+                        <RefreshCw className="w-4 h-4" />
+                      </div>
+                      <span>سياسة الإرجاع</span>
+                    </div>
+                    <span className="text-xs text-[#8A8170] group-hover:text-[#C25E12] font-bold">←</span>
                   </button>
 
                   <button
                     type="button"
+                    id="drawer-privacy-link"
                     onClick={() => { onOpenPage('privacy'); onCloseMenu(); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl hover:bg-[#F7F4EC] text-[#1A1814] font-extrabold text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none"
+                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] font-bold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors group"
                   >
-                    <ShieldCheck className="w-4 h-4 text-[#163920] shrink-0" />
-                    <span>سياسة الخصوصية</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#163920]">
+                        <ShieldCheck className="w-4 h-4" />
+                      </div>
+                      <span>سياسة الخصوصية والأمان</span>
+                    </div>
+                    <span className="text-xs text-[#8A8170] group-hover:text-[#163920] font-bold">←</span>
                   </button>
                 </div>
               </div>
 
+              {/* ─── خدمة العملاء / واتساب السريع داخل القائمة ─── */}
+              <div className="rounded-2xl bg-emerald-50/70 border border-emerald-200/70 p-3 text-right">
+                <a
+                  href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 text-[#145A25] font-bold text-xs font-['Tajawal'] cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-2xs">
+                      <Phone className="w-3.5 h-3.5 fill-current" />
+                    </div>
+                    <div>
+                      <span className="block text-xs font-black text-[#145A25] font-['Almarai']">خدمة العملاء واتساب</span>
+                      <span className="block text-[10px] text-[#2E7D32] font-semibold" dir="ltr">
+                        {STORE_CONFIG.whatsappNumber}
+                      </span>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-[#2E7D32]/70" />
+                </a>
+              </div>
+
               {/* ─── خيار الخروج من التطبيق ─── */}
               {onOpenExitModal && (
-                <div className="mt-4 pt-3 border-t border-[#E8E1D3]">
+                <div className="pt-0.5">
                   <button
                     type="button"
                     id="drawer-exit-app-btn"
@@ -366,21 +461,26 @@ export const Header: React.FC<HeaderProps> = ({
                       onCloseMenu();
                       onOpenExitModal();
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 min-h-[46px] rounded-xl hover:bg-rose-50 text-stone-600 hover:text-rose-700 font-extrabold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors border border-transparent hover:border-rose-200"
+                    className="w-full flex items-center justify-between px-3 py-2 min-h-[40px] rounded-xl hover:bg-rose-50 text-stone-600 hover:text-rose-700 font-bold text-xs text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors border border-transparent hover:border-rose-200"
                   >
-                    <LogOut className="w-4 h-4 text-stone-400 group-hover:text-rose-600 shrink-0" />
-                    <span>الخروج من التطبيق</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center text-stone-500">
+                        <LogOut className="w-3.5 h-3.5" />
+                      </div>
+                      <span>الخروج من التطبيق</span>
+                    </div>
+                    <span className="text-[10px] text-stone-400">إغلاق الجلسة</span>
                   </button>
                 </div>
               )}
             </div>
 
             {/* ─── تذييل الدرج ─── */}
-            <div className="p-3.5 bg-[#F7F4EC] border-t border-[#D4C8B5] text-right shrink-0">
+            <div className="p-3 bg-[#F4EFE3] border-t border-[#D4C8B5] text-right shrink-0">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-xs text-[#524B3E] font-['Tajawal'] font-semibold">
-                  خدمة الزبناء متوفرة يومياً من 09:00 إلى 21:00
+                <p className="text-[11px] sm:text-xs text-[#524B3E] font-['Tajawal'] font-bold">
+                  توصيل يومي لكافة أحياء فاس من 09:00 إلى 21:00
                 </p>
               </div>
             </div>
