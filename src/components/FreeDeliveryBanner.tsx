@@ -63,7 +63,7 @@ export const FreeDeliveryBanner: React.FC<FreeDeliveryBannerProps> = ({
               </p>
             ) : cartTotal > 0 ? (
               <p className="text-[#112616] font-black text-sm sm:text-base md:text-[17px] leading-snug font-['Tajawal'] tracking-tight">
-               توصيل مجاني عند إكمال<span className="underline decoration-2 decoration-[#163920] font-black">{remaining.toFixed(2)} DH</span> 
+               توصيل مجاني عند إكمال <span className="underline decoration-2 decoration-[#163920] font-black">{remaining.toFixed(2)} DH</span> 
               </p>
             ) : (
               <p className="text-[#112616] font-black text-sm sm:text-base md:text-[18px] leading-snug font-['Tajawal'] tracking-tight">
