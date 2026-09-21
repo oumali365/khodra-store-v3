@@ -9,8 +9,8 @@ import { CATEGORIES_CONFIG } from '../data/mockProducts';
 import { SortOption } from './SortFilterModal';
 
 const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = {
-  all: { primary: '/images/categories/all.webp', fallback: '/images/categories/all.jpg' },
-  veg: { primary: '/images/categories/vegetables.webp', fallback: '/images/categories/vegetables.jpg' },
+  all: { primary: '/images/categories/all.jpg', fallback: '/images/categories/all.jpg' },
+  veg: { primary: '/images/categories/vegetables.jpg', fallback: '/images/categories/vegetables.jpg' },
   fruit: { primary: '/images/categories/fruits.jpg', fallback: '/images/categories/fruits.jpg' },
   dairy: { primary: '/images/categories/dairy.jpg', fallback: '/images/categories/dairy.jpg' },
   grocery: { primary: '/images/categories/grocery.jpg', fallback: '/images/categories/grocery.webp' },
