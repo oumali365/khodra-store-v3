@@ -11,8 +11,8 @@ import { SortOption } from './SortFilterModal';
 const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = {
   all: { primary: '/images/categories/all.webp', fallback: '/images/categories/all.jpg' },
   veg: { primary: '/images/categories/vegetables.webp', fallback: '/images/categories/vegetables.jpg' },
-  fruit: { primary: '/images/categories/fruits.jpg', fallback: '/images/categories/fruits.webp' },
-  dairy: { primary: '/images/categories/dairy.jpg', fallback: '/images/categories/dairy.webp' },
+  fruit: { primary: '/images/categories/fruits.jpg', fallback: '/images/categories/fruits.jpg' },
+  dairy: { primary: '/images/categories/dairy.jpg', fallback: '/images/categories/dairy.jpg' },
   grocery: { primary: '/images/categories/grocery.jpg', fallback: '/images/categories/grocery.webp' },
   drinks: { primary: '/images/categories/drinks.jpg', fallback: '/images/categories/drinks.jpg' },
   cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.jpg' },
