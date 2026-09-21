@@ -821,12 +821,6 @@ export default function App() {
 
       {/* ═══════ Footer ═══════ */}
       <Footer onOpenPage={handleOpenPage} />
-       
-      <FreeDeliveryBanner cartTotal={cartTotal} />
-<div
-  style={{ height: 'var(--free-delivery-banner-h, 0px)' }}
-  aria-hidden="true"
-/>
 
     </div>
   );
