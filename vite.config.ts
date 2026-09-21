@@ -3,9 +3,33 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
+function productImagesAliasPlugin() {
+  return {
+    name: 'product-images-alias',
+    configureServer(server: any) {
+      server.middlewares.use((req: any, _res: any, next: any) => {
+        if (req.url) {
+          if (req.url.startsWith('/images/products/vegetables/')) {
+            req.url = req.url.replace('/images/products/vegetables/', '/products/veg/');
+          } else if (req.url.startsWith('/products/vegetables/')) {
+            req.url = req.url.replace('/products/vegetables/', '/products/veg/');
+          } else if (req.url.startsWith('/images/products/fruits/')) {
+            req.url = req.url.replace('/images/products/fruits/', '/products/fruit/');
+          } else if (req.url.startsWith('/products/fruits/')) {
+            req.url = req.url.replace('/products/fruits/', '/products/fruit/');
+          } else if (req.url.startsWith('/images/products/')) {
+            req.url = req.url.replace('/images/products/', '/products/');
+          }
+        }
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), productImagesAliasPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

@@ -29,6 +29,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const initialQty = isWeight ? STORE_CONFIG.weightStep : 1;
   const [selectedQty, setSelectedQty] = useState<number>(initialQty);
   const [isJustAdded, setIsJustAdded] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const imgContainerRef = useRef<HTMLDivElement>(null);
 
   const isSoldOut = product.stock <= 0;
@@ -177,7 +178,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           ref={imgContainerRef}
           className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-[#F7F4EC] border border-[#DDD5C5] flex items-center justify-center text-4xl mb-1.5 shadow-2xs hover:shadow-sm transition-all duration-300 group-hover:scale-105 overflow-hidden"
         >
-          {product.image_url ? (
+          {product.image_url && !imgError ? (
             <img
               src={product.image_url}
               alt={product.name}
@@ -186,19 +187,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               decoding="async"
               width="96"
               height="96"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                const parent = e.currentTarget.parentElement;
-                if (parent) {
-                  const icon = document.createElement('span');
-                  icon.textContent = product.icon || '🛒';
-                  icon.className = 'text-4xl';
-                  parent.appendChild(icon);
-                }
-              }}
+              onError={() => setImgError(true)}
             />
           ) : (
-            <span>{product.icon}</span>
+            <span>{product.icon || '🛒'}</span>
           )}
         </div>
 

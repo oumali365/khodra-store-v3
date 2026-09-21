@@ -21,6 +21,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
 }) => {
   const [isRemoving, setIsRemoving] = useState(false);
   const [isPastThreshold, setIsPastThreshold] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const x = useMotionValue(0);
 
   // إظهار أيقونة وتأثير الحذف عند السحب
@@ -123,15 +124,13 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
         <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#F7F4EC] border border-[#E8E1D3] flex items-center justify-center shrink-0 overflow-visible shadow-xs pointer-events-none">
           {/* الصورة أو الأيقونة */}
           <div className="w-full h-full rounded-xl overflow-hidden flex items-center justify-center">
-            {item.image_url ? (
+            {item.image_url && !imgError ? (
               <img
                 src={item.image_url}
                 alt={item.name}
                 className="w-full h-full object-cover"
                 loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
+                onError={() => setImgError(true)}
               />
             ) : (
               <span className="text-2xl sm:text-3xl">{item.icon}</span>

@@ -25,6 +25,21 @@ export function getSupabase(): SupabaseClient | null {
 // ─── المنتجات ───
 // ═══════════════════════════════════════════════════════════════
 
+export function resolveProductImageUrl(url?: string | null): string | undefined {
+  if (!url || typeof url !== 'string') return undefined;
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+
+  // إذا كان رابطاً مطلقاً (http:// أو https:// أو data: أو //)
+  if (/^(https?:|data:|\/\/)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // التأكد من وجود الشرطة المائلة في البداية
+  const clean = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return clean;
+}
+
 function normalizeProduct(row: any): Product {
   return {
     id: Number(row.id),
@@ -35,7 +50,7 @@ function normalizeProduct(row: any): Product {
     unit_label: row.unit_label || undefined,
     stock: Number(row.stock) || 0,
     icon: row.icon || '🛒',
-    image_url: row.image_url || undefined,
+    image_url: resolveProductImageUrl(row.image_url),
     active: row.active !== undefined ? Boolean(row.active) : true,
     description: row.description || undefined,
     origin: row.origin || undefined,
