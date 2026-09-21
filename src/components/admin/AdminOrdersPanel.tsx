@@ -13,6 +13,8 @@ import {
   fetchOrders,
   updateOrderStatus,
   deleteOrder,
+  subscribeToOrdersChanges,
+  unsubscribeFromOrdersChanges,
   DbOrder,
   OrderStatus,
 } from '../../services/supabaseService';
@@ -141,10 +143,51 @@ function buildOrderText(order: DbOrder): string {
   return lines.join('\n');
 }
 
+// دالة نغمة تنبيه صوتية لطيفة عند وصول طلب جديد
+function playOrderChime() {
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0.14, now);
+    gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.12);
+    gain2.gain.setValueAtTime(0.18, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.55);
+  } catch {
+    // تجاهل قيود المتصفح إذا لم يتفاعل الزائر بعد
+  }
+}
+
 export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onClose, onOrdersChange }) => {
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | number | null>(null);
   const [deletingId, setDeletingId] = useState<string | number | null>(null);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
@@ -166,13 +209,45 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
     if (!isOpen) return;
     let mounted = true;
     setIsLoading(true);
+
     fetchOrders().then((data) => {
       if (mounted) {
         setOrders(data);
         setIsLoading(false);
       }
     });
-    return () => { mounted = false; };
+
+    // ⚡ اشتراك Realtime لحظي: استقبال فوري لأي طلب جديد أو تعديل حالة أو حذف
+    const channel = subscribeToOrdersChanges(
+      (payload) => {
+        if (!mounted) return;
+        console.log('⚡ Realtime order update in AdminOrdersPanel:', payload.eventType);
+
+        // جلب البيانات المحدثة تلقائياً
+        fetchOrders().then((data) => {
+          if (mounted) {
+            setOrders(data);
+          }
+        });
+
+        if (payload.eventType === 'INSERT') {
+          playOrderChime();
+          const clientName = payload.new?.client_name || payload.new?.customer_name || 'زبون';
+          const code = payload.new?.order_code ? `(${payload.new.order_code})` : '';
+          showToast('success', `🔔 طلب جديد وصل الآن من ${clientName} ${code}!`);
+        }
+      },
+      (status) => {
+        if (mounted) {
+          setIsRealtimeActive(status === 'SUBSCRIBED');
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      unsubscribeFromOrdersChanges(channel);
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -314,6 +389,18 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
             </div>
 
             <div className="relative flex items-center gap-2 shrink-0">
+              {isRealtimeActive && (
+                <span
+                  className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 text-[10px] font-black backdrop-blur-xs"
+                  title="الاستقبال اللحظي للطلبات مفعّل (Supabase Realtime)"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                  </span>
+                  <span>مباشر (Realtime)</span>
+                </span>
+              )}
               <button
                 type="button"
                 onClick={handleRefresh}

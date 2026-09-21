@@ -594,3 +594,52 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   delivered: 'تم التسليم',
   cancelled: 'ملغى',
 };
+
+// ═══════════════════════════════════════════════════════════════
+// ─── Realtime: الاستماع الفوري لتحديثات الطلبات ───
+// ═══════════════════════════════════════════════════════════════
+
+export type OrdersRealtimeCallback = (payload: {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE' | string;
+  new: any;
+  old: any;
+}) => void;
+
+export function subscribeToOrdersChanges(
+  callback: OrdersRealtimeCallback,
+  onStatusChange?: (status: string) => void
+) {
+  const client = getSupabase();
+  if (!client) return null;
+
+  try {
+    const channel = client
+      .channel('orders-realtime-global')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload: any) => {
+          callback(payload);
+        }
+      )
+      .subscribe((status) => {
+        if (onStatusChange) onStatusChange(status);
+      });
+
+    return channel;
+  } catch (e) {
+    console.warn('Realtime subscription error:', e);
+    return null;
+  }
+}
+
+export function unsubscribeFromOrdersChanges(channel: any) {
+  const client = getSupabase();
+  if (client && channel) {
+    try {
+      client.removeChannel(channel);
+    } catch {
+      // ignore
+    }
+  }
+}

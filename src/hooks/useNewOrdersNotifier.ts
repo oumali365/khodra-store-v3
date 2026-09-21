@@ -3,7 +3,11 @@
 // منطق مضمون: يعتمد على آخر ID شوهد، بسيط ولا يتضارب
 // ============================================================
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchOrders } from '../services/supabaseService';
+import {
+  fetchOrders,
+  subscribeToOrdersChanges,
+  unsubscribeFromOrdersChanges,
+} from '../services/supabaseService';
 
 interface UseNewOrdersNotifierOptions {
   enabled: boolean;
@@ -153,8 +157,14 @@ export function useNewOrdersNotifier({
     // فحص أولي
     checkOrders();
 
-    // فحص دوري كل 45 ثانية
+    // فحص دوري كل 45 ثانية كاحتياط
     const interval = setInterval(checkOrders, pollIntervalMs);
+
+    // ⚡ اشتراك Realtime لحظي: تحديث فوري فور تسجيل أو تعديل أي طلب
+    const channel = subscribeToOrdersChanges((payload) => {
+      console.log('⚡ Realtime order event received:', payload.eventType);
+      refresh();
+    });
 
     // فحص عند العودة للتبويب
     const handleVisibilityChange = () => {
@@ -170,6 +180,7 @@ export function useNewOrdersNotifier({
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
+      unsubscribeFromOrdersChanges(channel);
     };
   }, [enabled, pollIntervalMs, checkOrders, refresh]);
 
