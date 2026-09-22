@@ -19,6 +19,7 @@ interface CheckoutSecuritySubmitProps {
   errors: Record<string, string>;
   grandTotal: number;
   onTurnstileVerify: (token: string) => void;
+  isZoneRejected?: boolean;
 }
 
 export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
@@ -28,6 +29,7 @@ export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
   errors,
   grandTotal,
   onTurnstileVerify,
+  isZoneRejected = false,
 }) => {
   return (
     <div className="pt-3 border-t-2 border-[#F0E9DA] space-y-3">
@@ -82,13 +84,18 @@ export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
       {/* 1️⃣ زر التأكيد مع تعطيل فوري ومؤشر تحميل */}
       <button
         type="submit"
-        disabled={isSubmitting || cooldown.inCooldown || !rateLimit.allowed}
+        disabled={isSubmitting || cooldown.inCooldown || !rateLimit.allowed || isZoneRejected}
         className="w-full min-h-[56px] py-4 px-4 rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-base shadow-lg hover:shadow-xl active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer border-2 border-[#0E2615]"
       >
         {isSubmitting ? (
           <>
             <span className="w-5 h-5 border-2 border-[#F5D76E] border-t-transparent rounded-full animate-spin" />
             <span>جارٍ التحقق وتأكيد الطلب بأمان...</span>
+          </>
+        ) : isZoneRejected ? (
+          <>
+            <AlertCircle className="w-5 h-5 text-red-300" />
+            <span>تأكيد الطلب معطل (خارج نطاق فاس)</span>
           </>
         ) : cooldown.inCooldown ? (
           <>

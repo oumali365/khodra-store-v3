@@ -1,4 +1,6 @@
 import { BankAccount, DeliverySlot } from '../types';
+export { FEZ_DELIVERY_ZONES, OUT_OF_DELIVERY_CITIES, detectAddressZone } from './deliveryZones';
+export type { FezZoneId, FezZoneConfig, AddressDetectionResult } from './deliveryZones';
 
 export const STORE_CONFIG = {
   storeName: 'خُضرة',
@@ -115,46 +117,6 @@ export const DELIVERY_SLOTS: DeliverySlot[] = [
     periodText: 'مساءً'
   }
 ];
-
-// ─── تقسيم مناطق فاس إلى مسارات ذكية (Smart Route Batching) ───
-export const FEZ_DELIVERY_ZONES = {
-  north: {
-    id: 'north',
-    name: 'المنطقة الشمالية',
-    neighborhoods: ['أكدال', 'الشارع الملكي', 'طريق إيموزار', 'الأطلس', 'المدينة الجديدة', 'ملعب الخيل'],
-    targetTime: '20-30 دقيقة',
-    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    color: '#059669',
-    description: 'شوارع واسعة، حركة سريعة للدراجات',
-  },
-  central: {
-    id: 'central',
-    name: 'المنطقة الوسطى',
-    neighborhoods: ['النرجس', 'سايس', 'المرينيين', 'حي طارق', 'مونفلوري', 'عين قادوس'],
-    targetTime: '25-35 دقيقة',
-    badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
-    color: '#d97706',
-    description: 'كثافة سكانية عالية، طلبات أسرية متقاربة',
-  },
-  south: {
-    id: 'south',
-    name: 'المنطقة الجنوبية',
-    neighborhoods: ['بنسودة', 'عين هارون', 'زواغة', 'حي الأمل', 'طريق صفرو'],
-    targetTime: '30-40 دقيقة',
-    badgeClass: 'bg-orange-100 text-orange-800 border-orange-300',
-    color: '#ea580c',
-    description: 'قرب نقطة تموين الجملة ببنسودة',
-  },
-  other: {
-    id: 'other',
-    name: 'أحياء فاس الأخرى',
-    neighborhoods: ['فاس البالي', 'الرصيف', 'عين الشقف والنواحي'],
-    targetTime: '35-50 دقيقة',
-    badgeClass: 'bg-zinc-100 text-zinc-800 border-zinc-300',
-    color: '#71717a',
-    description: 'مسافات متباعدة أو أزقة المشاة',
-  },
-} as const;
 
 // ─── شركات وتطبيقات التوصيل الفوري بفاس ───
 export const DELIVERY_PROVIDERS = [

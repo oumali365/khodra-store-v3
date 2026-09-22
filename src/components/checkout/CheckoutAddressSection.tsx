@@ -10,8 +10,10 @@ import {
   LocateFixed,
   Check,
   ExternalLink,
+  MessageCircle,
 } from 'lucide-react';
-import { DELIVERY_SLOTS } from '../../data/config';
+import { DELIVERY_SLOTS, STORE_CONFIG } from '../../data/config';
+import { AddressDetectionResult } from '../../data/deliveryZones';
 
 interface CheckoutAddressSectionProps {
   name: string;
@@ -30,6 +32,7 @@ interface CheckoutAddressSectionProps {
   onGetLocation: () => void;
   currentMapsUrl: string;
   errors: Record<string, string>;
+  zoneDetection?: AddressDetectionResult;
 }
 
 export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
@@ -49,6 +52,7 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
   onGetLocation,
   currentMapsUrl,
   errors,
+  zoneDetection,
 }) => {
   return (
     <div className="bg-white border border-[#E8E1D3] rounded-2xl p-4 sm:p-5 shadow-sm">
@@ -120,14 +124,90 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
             type="text"
             value={street}
             onChange={(e) => onStreetChange(e.target.value)}
-            placeholder="شارع الحسن الثاني، طريق إيموزار..."
+            placeholder="مثال: حي النرجس، عمارة 5 / طريق إيموزار..."
             className={`w-full px-4 py-3 rounded-xl border text-sm text-[#112616] bg-[#F7F4EC] focus:bg-white focus:outline-none transition-all placeholder:text-[#787163] ${
-              errors.street
+              zoneDetection?.status === 'rejected' || errors.street
                 ? 'border-red-500 ring-2 ring-red-100'
+                : zoneDetection?.status === 'accepted'
+                ? 'border-emerald-500 ring-2 ring-emerald-100'
                 : 'border-[#E8E1D3] focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/15'
             }`}
           />
-          {errors.street && (
+
+          {/* ✅ سيناريو 1: عنوان صحيح في فاس */}
+          {zoneDetection?.status === 'accepted' && (
+            <div className="mt-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-300 flex items-center justify-between text-xs font-black text-emerald-950 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <span className="text-base shrink-0">🟢</span>
+                <div>
+                  <span className="font-black text-emerald-900">{zoneDetection.zoneBadge}</span>
+                  <span className="text-emerald-700 text-[11px] block font-bold">
+                    وقت التوصيل التقديري: {zoneDetection.estimatedTime}
+                  </span>
+                </div>
+              </div>
+              <span className="bg-emerald-200/90 text-emerald-900 px-2 py-0.5 rounded-lg text-[10px] font-black shrink-0">
+                منطقة معتمدة ✓
+              </span>
+            </div>
+          )}
+
+          {/* ❌ سيناريو 2: عنوان خارج فاس */}
+          {zoneDetection?.status === 'rejected' && (
+            <div className="mt-2.5 p-3.5 rounded-2xl bg-red-50 border-2 border-red-300 text-right space-y-2.5 animate-in fade-in duration-200">
+              <div className="flex items-start gap-2 text-red-800">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-black text-xs sm:text-sm text-red-950">
+                    ⚠️ خارج نطاق التوصيل
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-red-700 font-medium leading-relaxed mt-0.5">
+                    عذراً، متجر خُضرة يقدم خدماته حالياً حصرياً لمدينة فاس وأحيائها المعتمدة.
+                  </p>
+                </div>
+              </div>
+
+              {/* قائمة المناطق المعتمدة في فاس */}
+              <div className="bg-white/90 p-2.5 rounded-xl border border-red-200 text-[11px] space-y-1.5">
+                <p className="font-black text-stone-900 text-xs">المناطق المعتمدة للتوصيل بفاس:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] font-bold text-stone-700">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span>المنطقة الشمالية: الأطلس، النرجس، سايس</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <span>المنطقة الوسطى: إيموزار، فلورنس، أكدال</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                    <span>المنطقة الجنوبية: بنسودة، زواغة، عين هارون</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                    <span>المنطقة الشرقية: طريق صفرو، الزهور، فاس البالي</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* زر واتساب للاستفسار */}
+              <a
+                href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}?text=${encodeURIComponent(
+                  `السلام عليكم، أردت الاستفسار عن التوصيل لعنواني خارج فاس (${street})`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white font-black text-xs transition-all shadow-xs"
+              >
+                <MessageCircle className="w-4 h-4 fill-white" />
+                <span>تواصل معنا عبر واتساب للاستفسار</span>
+              </a>
+            </div>
+          )}
+
+          {/* ⚠️ سيناريو 3: عنوان غامض لا تطابق واضح -> لا تظهر رسالة إيجابية ولا سلبية ويُقبل الطلب ليراجعه المدير يدوياً */}
+
+          {errors.street && zoneDetection?.status !== 'rejected' && (
             <p className="text-red-600 text-xs font-black mt-1.5 flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5" />
               <span>{errors.street}</span>

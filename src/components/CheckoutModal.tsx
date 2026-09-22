@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ShoppingBag, Sparkles } from 'lucide-react';
 import { CartItem, PaymentMethod, OrderSubmission } from '../types';
 import { STORE_CONFIG, MOROCCAN_BANKS, DELIVERY_SLOTS } from '../data/config';
+import { detectAddressZone } from '../data/deliveryZones';
 import {
   getClientId,
   getDeviceFingerprint,
@@ -70,6 +71,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [rateLimit, setRateLimit] = useState(() => checkClientRateLimit());
   const [turnstileToken, setTurnstileToken] = useState<string>('');
   const [ipAddress, setIpAddress] = useState<string | null>(null);
+
+  // ─── كشف المسار والمنطقة تلقائياً من العنوان ───
+  const zoneDetection = React.useMemo(() => detectAddressZone(street), [street]);
 
   useEffect(() => {
     fetchClientIp().then((ip) => {
@@ -192,10 +196,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       newErrors.phone = phoneCheck.error || 'يرجى إدخال رقم هاتف مغربي صحيح';
     }
 
-    // 3. فحص تفاصيل العنوان
+    // 3. فحص تفاصيل العنوان والمسار المعتمد
     const cleanStreet = sanitizeInput(street);
     if (!cleanStreet || cleanStreet.length < 3) {
       newErrors.street = 'يرجى إدخال اسم الشارع / الزنقة بوضوح';
+    } else if (zoneDetection.status === 'rejected') {
+      newErrors.street = 'العنوان خارج نطاق التوصيل لمدينة فاس (نخدم أحياء فاس فقط)';
     }
 
     if (!deliverySlot) {
@@ -270,6 +276,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       customerName: sanitizeInput(name),
       phone: cleanCustomerPhone,
       address: fullAddress,
+      delivery_zone: zoneDetection.zoneId || 'north',
       street: sanitizeInput(street),
       city: targetCity,
       coordinates: locationCoords || undefined,
@@ -293,6 +300,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         verified_at: new Date().toISOString(),
         client_cooldown_passed: true,
         source: 'khodra_web_pwa',
+        delivery_zone: zoneDetection.zoneId || 'north',
+        zone_status: zoneDetection.status,
       },
     };
 
@@ -390,6 +399,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             onGetLocation={handleGetLocation}
             currentMapsUrl={currentMapsUrl}
             errors={errors}
+            zoneDetection={zoneDetection}
           />
 
           {/* 3. طريقة الدفع وتفاصيل التحويل البنكي */}
@@ -412,6 +422,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             errors={errors}
             grandTotal={grandTotal}
             onTurnstileVerify={(token) => setTurnstileToken(token)}
+            isZoneRejected={zoneDetection.status === 'rejected'}
           />
         </form>
       </div>

@@ -29,7 +29,7 @@ import {
   FEZ_DELIVERY_ZONES,
   STORE_PICKUP_HUB,
 } from '../../data/config';
-import { DeliveryProvider, DeliveryDispatchStatus, DeliveryDispatchInfo } from '../../types';
+import { DeliveryProvider, DeliveryDispatchStatus, DeliveryDispatchInfo, FezZoneId } from '../../types';
 
 interface AdminOrdersPanelProps {
   isOpen: boolean;
@@ -840,7 +840,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       };
                       const isExpanded = expandedDispatchId === order.id;
                       const providerCfg = DELIVERY_PROVIDERS.find((p) => p.id === draft.provider) || DELIVERY_PROVIDERS[0];
-                      const zoneCfg = FEZ_DELIVERY_ZONES[draft.zone || 'other'] || FEZ_DELIVERY_ZONES.other;
+                      const zoneCfg = FEZ_DELIVERY_ZONES[draft.zone || 'north'] || FEZ_DELIVERY_ZONES.north;
 
                       return (
                         <div className="mb-3 rounded-xl border-2 border-emerald-200/90 bg-emerald-50/40 overflow-hidden text-xs">
@@ -905,18 +905,18 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                                     منطقة فاس (Smart Zone):
                                   </label>
                                   <select
-                                    value={draft.zone || 'other'}
+                                    value={draft.zone || 'north'}
                                     onChange={(e) =>
                                       handleUpdateDispatchDraft(order.id, {
-                                        zone: e.target.value as 'north' | 'central' | 'south' | 'other',
+                                        zone: e.target.value as FezZoneId,
                                       })
                                     }
                                     className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600"
                                   >
-                                    <option value="north">المنطقة الشمالية (أكدال، إيموزار، الأطلس)</option>
-                                    <option value="central">المنطقة الوسطى (النرجس، سايس، المرينيين)</option>
+                                    <option value="north">المنطقة الشمالية (الأطلس، النرجس، سايس)</option>
+                                    <option value="central">المنطقة الوسطى (طريق إيموزار، فلورنس، أكدال)</option>
                                     <option value="south">المنطقة الجنوبية (بنسودة، عين هارون، زواغة)</option>
-                                    <option value="other">أحياء فاس الأخرى</option>
+                                    <option value="east">المنطقة الشرقية (الزهور، طريق صفرو، فاس البالي)</option>
                                   </select>
                                 </div>
                               </div>

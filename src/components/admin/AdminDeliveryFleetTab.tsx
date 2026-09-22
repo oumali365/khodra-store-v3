@@ -21,6 +21,7 @@ import {
   FEZ_DELIVERY_ZONES,
   STORE_PICKUP_HUB,
 } from '../../data/config';
+import { FezZoneId } from '../../data/deliveryZones';
 
 interface AdminDeliveryFleetTabProps {
   orders: DbOrder[];
@@ -52,24 +53,27 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   );
   const netDeliveryProfit = totalDeliveryRevenue - totalDriverCost;
 
-  // ─── تجميع حسب المناطق ───
-  const zoneGroups = {
+  // ─── تجميع حسب المناطق الأربعة ───
+  const zoneGroups: Record<FezZoneId, DbOrder[]> = {
     north: nonCancelledOrders.filter(
-      (o) => (o.delivery_dispatch?.zone || 'other') === 'north'
+      (o) => (o.delivery_zone || o.delivery_dispatch?.zone || 'north') === 'north'
     ),
     central: nonCancelledOrders.filter(
-      (o) => (o.delivery_dispatch?.zone || 'other') === 'central'
+      (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'central'
     ),
     south: nonCancelledOrders.filter(
-      (o) => (o.delivery_dispatch?.zone || 'other') === 'south'
+      (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'south'
+    ),
+    east: nonCancelledOrders.filter(
+      (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'east'
     ),
   };
 
-  const zones = ['north', 'central', 'south'] as const;
+  const zones: FezZoneId[] = ['north', 'central', 'south', 'east'];
 
   // ─── ألوان المناطق ───
   const zoneStyles: Record<
-    (typeof zones)[number],
+    FezZoneId,
     { border: string; bg: string; badge: string; btn: string; icon: string }
   > = {
     north: {
@@ -93,11 +97,18 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       btn: 'bg-orange-700 hover:bg-orange-800',
       icon: 'text-orange-300',
     },
+    east: {
+      border: 'border-purple-200',
+      bg: 'bg-purple-50/40',
+      badge: 'bg-purple-200 text-purple-900',
+      btn: 'bg-purple-700 hover:bg-purple-800',
+      icon: 'text-purple-300',
+    },
   };
 
   // ─── نسخ جولة مجمعة ───
   const handleCopyBatchRoute = async (
-    zoneKey: (typeof zones)[number],
+    zoneKey: FezZoneId,
     zoneName: string
   ) => {
     const zoneOrders = zoneGroups[zoneKey];
@@ -210,7 +221,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {zones.map((zoneKey) => {
             const info = FEZ_DELIVERY_ZONES[zoneKey];
             const styles = zoneStyles[zoneKey];

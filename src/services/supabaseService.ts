@@ -3,10 +3,11 @@
 // مُصحَّح: تنظيف items + RLS + RPC للطلبات
 // ============================================================
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Product, OrderSubmission, DeliveryDispatchInfo } from '../types';
+import { Product, OrderSubmission, DeliveryDispatchInfo, FezZoneId } from '../types';
 import { STORE_CONFIG } from '../data/config';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
 import { recordOrderSuccess } from './securityService';
+import { detectAddressZone } from '../data/deliveryZones';
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -161,12 +162,16 @@ export async function submitOrder(
       return clean;
     });
 
+    // ─── كشف المنطقة الذكية لمدينة فاس ───
+    const detectedZone = order.delivery_zone || detectFezZone(order.address);
+
     // ─── بيانات الطلب مع الحماية ومكافحة الطلبات المزيفة ───
     const orderData: Record<string, any> = {
       order_code: String(order.orderCode || `#${Date.now()}`),
       customer_name: String(order.customerName || 'عميل'),
       phone: String(order.phone || ''),
       address: String(order.address || ''),
+      delivery_zone: detectedZone,
       items: cleanItems,
       subtotal: Number(order.subtotal) || 0,
       delivery_fee: Number(order.deliveryFee) || 0,
@@ -181,7 +186,10 @@ export async function submitOrder(
       device_fingerprint: order.deviceFingerprint || null,
       ip_address: order.ipAddress || null,
       turnstile_token: order.turnstileToken || null,
-      security_flags: order.securityFlags || {},
+      security_flags: {
+        ...(order.securityFlags || {}),
+        delivery_zone: detectedZone,
+      },
     };
 
     console.log('📤 إرسال الطلب المؤمن:', JSON.stringify(orderData, null, 2));
@@ -407,6 +415,7 @@ export interface DbOrder {
   customer_name: string;
   phone: string;
   address: string;
+  delivery_zone?: FezZoneId;
   items: Array<{
     name: string;
     variantLabel?: string;
@@ -431,45 +440,13 @@ export interface DbOrder {
   delivery_dispatch?: DeliveryDispatchInfo;
 }
 
-// ─── كشف منطقة فاس تلقائياً من العنوان للتجميع الذكي (Smart Batching) ───
-export function detectFezZone(address: string = ''): 'north' | 'central' | 'south' | 'other' {
-  const norm = address.toLowerCase();
-  // المنطقة الشمالية
-  if (
-    norm.includes('أكدال') || norm.includes('agdal') ||
-    norm.includes('إيموزار') || norm.includes('imouzzer') ||
-    norm.includes('الملكي') || norm.includes('شارع مصر') ||
-    norm.includes('الأطلس') || norm.includes('atlas') ||
-    norm.includes('الجديدة') || norm.includes('ville nouvelle') ||
-    norm.includes('ملعب الخيل') || norm.includes('champ de course')
-  ) {
-    return 'north';
+// ─── كشف مسار فاس تلقائياً من العنوان للتجميع الذكي (4 مسارات ذكية) ───
+export function detectFezZone(address: string = ''): FezZoneId {
+  const result = detectAddressZone(address);
+  if (result.zoneId) {
+    return result.zoneId;
   }
-
-  // المنطقة الوسطى
-  if (
-    norm.includes('نرجس') || norm.includes('narjiss') ||
-    norm.includes('سايس') || norm.includes('saiss') ||
-    norm.includes('مرينيين') || norm.includes('merinides') ||
-    norm.includes('طارق') || norm.includes('tariq') ||
-    norm.includes('مونفلوري') || norm.includes('montfleuri') ||
-    norm.includes('قادوس') || norm.includes('kadous')
-  ) {
-    return 'central';
-  }
-
-  // المنطقة الجنوبية
-  if (
-    norm.includes('بنسودة') || norm.includes('bensouda') ||
-    norm.includes('هارون') || norm.includes('عين هارون') ||
-    norm.includes('زواغة') || norm.includes('zouagha') ||
-    norm.includes('أمل') || norm.includes('amal') ||
-    norm.includes('صفرو') || norm.includes('sefrou')
-  ) {
-    return 'south';
-  }
-
-  return 'other';
+  return 'north';
 }
 
 function getStoredDispatch(orderCode: string, id?: string | number): DeliveryDispatchInfo | undefined {
@@ -561,6 +538,9 @@ function mapRowToOrder(row: any): DbOrder {
   const orderCode = row.order_code || row.orderCode || `#${row.id}`;
   const address = row.address || '-';
   const autoZone = detectFezZone(address);
+  const rowZone = row.delivery_zone || (row.security_flags?.delivery_zone);
+  const validZones: FezZoneId[] = ['north', 'central', 'south', 'east'];
+  const finalZone: FezZoneId = (rowZone && validZones.includes(rowZone)) ? rowZone : autoZone;
   const storedDispatch = getStoredDispatch(orderCode, row.id);
   const rowDispatch = row.delivery_dispatch || (row.security_flags?.delivery_dispatch);
 
@@ -572,7 +552,7 @@ function mapRowToOrder(row: any): DbOrder {
     trackingCode: storedDispatch?.trackingCode || rowDispatch?.trackingCode || '',
     dispatchStatus: storedDispatch?.dispatchStatus || rowDispatch?.dispatchStatus || 'waiting_driver',
     dispatchedAt: storedDispatch?.dispatchedAt || rowDispatch?.dispatchedAt || '',
-    zone: storedDispatch?.zone || rowDispatch?.zone || autoZone,
+    zone: storedDispatch?.zone || rowDispatch?.zone || finalZone,
     notes: storedDispatch?.notes || rowDispatch?.notes || '',
   };
 
@@ -582,6 +562,7 @@ function mapRowToOrder(row: any): DbOrder {
     customer_name: row.customer_name || row.customerName || '-',
     phone: String(row.phone || '-'),
     address: address,
+    delivery_zone: finalZone,
     items: (() => {
       if (Array.isArray(row.items)) return row.items;
       if (typeof row.items === 'string') {
@@ -612,6 +593,8 @@ function readLocalOrders(): DbOrder[] {
       const orderCode = o.orderCode || `#${idx}`;
       const address = o.address || '-';
       const autoZone = detectFezZone(address);
+      const validZones: FezZoneId[] = ['north', 'central', 'south', 'east'];
+      const localZone: FezZoneId = (o.delivery_zone && validZones.includes(o.delivery_zone)) ? o.delivery_zone : autoZone;
       const storedDispatch = getStoredDispatch(orderCode, `local-${idx}`);
       const oDispatch = o.delivery_dispatch;
 
@@ -623,7 +606,7 @@ function readLocalOrders(): DbOrder[] {
         trackingCode: storedDispatch?.trackingCode || oDispatch?.trackingCode || '',
         dispatchStatus: storedDispatch?.dispatchStatus || oDispatch?.dispatchStatus || 'waiting_driver',
         dispatchedAt: storedDispatch?.dispatchedAt || oDispatch?.dispatchedAt || '',
-        zone: storedDispatch?.zone || oDispatch?.zone || autoZone,
+        zone: storedDispatch?.zone || oDispatch?.zone || localZone,
         notes: storedDispatch?.notes || oDispatch?.notes || '',
       };
 
@@ -633,6 +616,7 @@ function readLocalOrders(): DbOrder[] {
         customer_name: o.customerName || '-',
         phone: o.phone || '-',
         address: address,
+        delivery_zone: localZone,
         items: o.items || [],
         subtotal: Number(o.subtotal) || 0,
         delivery_fee: Number(o.deliveryFee) || 0,

@@ -74,6 +74,8 @@ export type DeliveryDispatchStatus =
   | 'in_transit'
   | 'delivered';
 
+export type FezZoneId = 'north' | 'central' | 'south' | 'east';
+
 export interface DeliveryDispatchInfo {
   provider: DeliveryProvider;
   driverName?: string;
@@ -82,7 +84,7 @@ export interface DeliveryDispatchInfo {
   trackingCode?: string;
   dispatchStatus: DeliveryDispatchStatus;
   dispatchedAt?: string;
-  zone?: 'north' | 'central' | 'south' | 'other';
+  zone?: FezZoneId;
   notes?: string;
   packagingType?: string;
 }
@@ -93,6 +95,7 @@ export interface OrderSubmission {
   customerName: string;
   phone: string;
   address: string;
+  delivery_zone?: FezZoneId;
   street?: string;
   building?: string;
   neighborhood?: string;

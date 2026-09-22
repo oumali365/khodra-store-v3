@@ -58,8 +58,8 @@ export const OrderBordereauModal: React.FC<OrderBordereauModalProps> = ({
   const provider =
     DELIVERY_PROVIDERS.find((p) => p.id === dispatch?.provider) ||
     DELIVERY_PROVIDERS[0];
-  const zoneKey = (dispatch?.zone || 'other') as keyof typeof FEZ_DELIVERY_ZONES;
-  const zoneInfo = FEZ_DELIVERY_ZONES[zoneKey] || FEZ_DELIVERY_ZONES.other;
+  const zoneKey = (dispatch?.zone || order.delivery_zone || 'north') as keyof typeof FEZ_DELIVERY_ZONES;
+  const zoneInfo = FEZ_DELIVERY_ZONES[zoneKey] || FEZ_DELIVERY_ZONES.north;
 
   // ─── طباعة الملصق ───
   const handlePrint = () => {
