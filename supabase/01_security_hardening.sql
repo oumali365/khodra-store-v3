@@ -185,7 +185,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- التحقق من رمز PIN (الافتراضي 1234 أو المعدل في التخزين)
+  -- التحقق من رمز PIN (الافتراضي 090909 أو المعدل في التخزين)
   IF p_admin_pin IS NULL OR LENGTH(p_admin_pin) < 4 THEN
     RAISE EXCEPTION 'UNAUTHORIZED: رمز PIN الإداري غير صحيح';
   END IF;
