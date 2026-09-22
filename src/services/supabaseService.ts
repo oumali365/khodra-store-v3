@@ -3,7 +3,7 @@
 // مُصحَّح: تنظيف items + RLS + RPC للطلبات
 // ============================================================
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Product, OrderSubmission } from '../types';
+import { Product, OrderSubmission, DeliveryDispatchInfo } from '../types';
 import { STORE_CONFIG } from '../data/config';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
 import { recordOrderSuccess } from './securityService';
@@ -363,13 +363,25 @@ export async function deleteCustomerReview(
     return { success: false, message: 'لا يوجد اتصال بقاعدة البيانات' };
   }
 
-  const pin = getAdminPin();
+  let pin = getAdminPin();
 
   try {
-    const { error } = await client.rpc('delete_review_secure', {
+    let { error } = await client.rpc('delete_review_secure', {
       p_review_id: reviewId,
       p_admin_pin: pin,
     });
+
+    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
+      const remotePin = await syncAdminPinFromRemote();
+      if (remotePin && remotePin !== pin) {
+        pin = remotePin;
+        const retry = await client.rpc('delete_review_secure', {
+          p_review_id: reviewId,
+          p_admin_pin: pin,
+        });
+        error = retry.error;
+      }
+    }
 
     if (error) {
       console.error('❌ فشل حذف التعليق:', error.message);
@@ -415,6 +427,73 @@ export interface DbOrder {
   device_fingerprint?: string;
   ip_address?: string;
   security_flags?: Record<string, any>;
+  // ─── بيانات التوصيل الفوري والسائق (inDrive, DONE, Yassir) ───
+  delivery_dispatch?: DeliveryDispatchInfo;
+}
+
+// ─── كشف منطقة فاس تلقائياً من العنوان للتجميع الذكي (Smart Batching) ───
+export function detectFezZone(address: string = ''): 'north' | 'central' | 'south' | 'other' {
+  const norm = address.toLowerCase();
+  // المنطقة الشمالية
+  if (
+    norm.includes('أكدال') || norm.includes('agdal') ||
+    norm.includes('إيموزار') || norm.includes('imouzzer') ||
+    norm.includes('الملكي') || norm.includes('شارع مصر') ||
+    norm.includes('الأطلس') || norm.includes('atlas') ||
+    norm.includes('الجديدة') || norm.includes('ville nouvelle') ||
+    norm.includes('ملعب الخيل') || norm.includes('champ de course')
+  ) {
+    return 'north';
+  }
+
+  // المنطقة الوسطى
+  if (
+    norm.includes('نرجس') || norm.includes('narjiss') ||
+    norm.includes('سايس') || norm.includes('saiss') ||
+    norm.includes('مرينيين') || norm.includes('merinides') ||
+    norm.includes('طارق') || norm.includes('tariq') ||
+    norm.includes('مونفلوري') || norm.includes('montfleuri') ||
+    norm.includes('قادوس') || norm.includes('kadous')
+  ) {
+    return 'central';
+  }
+
+  // المنطقة الجنوبية
+  if (
+    norm.includes('بنسودة') || norm.includes('bensouda') ||
+    norm.includes('هارون') || norm.includes('عين هارون') ||
+    norm.includes('زواغة') || norm.includes('zouagha') ||
+    norm.includes('أمل') || norm.includes('amal') ||
+    norm.includes('صفرو') || norm.includes('sefrou')
+  ) {
+    return 'south';
+  }
+
+  return 'other';
+}
+
+function getStoredDispatch(orderCode: string, id?: string | number): DeliveryDispatchInfo | undefined {
+  try {
+    const raw = localStorage.getItem('khodra_order_dispatches');
+    if (!raw) return undefined;
+    const map = JSON.parse(raw);
+    const key = orderCode || String(id || '');
+    return map[key] || (id ? map[String(id)] : undefined);
+  } catch {
+    return undefined;
+  }
+}
+
+function setStoredDispatch(orderCode: string, id: string | number, dispatch: DeliveryDispatchInfo) {
+  try {
+    const raw = localStorage.getItem('khodra_order_dispatches');
+    const map = raw ? JSON.parse(raw) : {};
+    if (orderCode) map[orderCode] = dispatch;
+    if (id) map[String(id)] = dispatch;
+    localStorage.setItem('khodra_order_dispatches', JSON.stringify(map));
+  } catch {
+    // ignore
+  }
 }
 
 function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
@@ -426,21 +505,83 @@ function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
   return 'pending';
 }
 
-function getAdminPin(): string {
+let cachedAdminPin: string | null = null;
+
+export function getAdminPin(): string {
+  if (cachedAdminPin) return cachedAdminPin;
   try {
-    return localStorage.getItem('khodra_admin_pin') || '1234';
+    const val = localStorage.getItem('khodra_admin_pin');
+    if (val && val.trim()) return val.trim();
   } catch {
-    return '1234';
+    // ignore
+  }
+  return STORE_CONFIG.adminPin || '090909';
+}
+
+export function setCachedAdminPin(newPin: string): void {
+  cachedAdminPin = newPin.trim();
+  try {
+    localStorage.setItem('khodra_admin_pin', cachedAdminPin);
+  } catch {
+    // ignore
   }
 }
 
+/**
+ * مزامنة تلقائية لرمز المدير (PIN) من جدول store_settings في Supabase
+ */
+export async function syncAdminPinFromRemote(): Promise<string> {
+  const client = getSupabase();
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('store_settings')
+        .select('value')
+        .eq('key', 'admin_pin')
+        .maybeSingle();
+
+      if (!error && data?.value && typeof data.value === 'string' && data.value.trim()) {
+        const pin = data.value.trim();
+        setCachedAdminPin(pin);
+        return pin;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return getAdminPin();
+}
+
+// مزامنة فورية في الخلفية عند تحميل الصفحة
+if (typeof window !== 'undefined') {
+  syncAdminPinFromRemote().catch(() => {});
+}
+
 function mapRowToOrder(row: any): DbOrder {
+  const orderCode = row.order_code || row.orderCode || `#${row.id}`;
+  const address = row.address || '-';
+  const autoZone = detectFezZone(address);
+  const storedDispatch = getStoredDispatch(orderCode, row.id);
+  const rowDispatch = row.delivery_dispatch || (row.security_flags?.delivery_dispatch);
+
+  const finalDispatch: DeliveryDispatchInfo = {
+    provider: storedDispatch?.provider || rowDispatch?.provider || 'indrive',
+    driverName: storedDispatch?.driverName || rowDispatch?.driverName || '',
+    driverPhone: storedDispatch?.driverPhone || rowDispatch?.driverPhone || '',
+    deliveryCost: storedDispatch?.deliveryCost ?? rowDispatch?.deliveryCost ?? 25,
+    trackingCode: storedDispatch?.trackingCode || rowDispatch?.trackingCode || '',
+    dispatchStatus: storedDispatch?.dispatchStatus || rowDispatch?.dispatchStatus || 'waiting_driver',
+    dispatchedAt: storedDispatch?.dispatchedAt || rowDispatch?.dispatchedAt || '',
+    zone: storedDispatch?.zone || rowDispatch?.zone || autoZone,
+    notes: storedDispatch?.notes || rowDispatch?.notes || '',
+  };
+
   return {
     id: row.id,
-    order_code: row.order_code || row.orderCode || `#${row.id}`,
+    order_code: orderCode,
     customer_name: row.customer_name || row.customerName || '-',
     phone: String(row.phone || '-'),
-    address: row.address || '-',
+    address: address,
     items: (() => {
       if (Array.isArray(row.items)) return row.items;
       if (typeof row.items === 'string') {
@@ -460,27 +601,49 @@ function mapRowToOrder(row: any): DbOrder {
     device_fingerprint: row.device_fingerprint || undefined,
     ip_address: row.ip_address || undefined,
     security_flags: row.security_flags || undefined,
+    delivery_dispatch: finalDispatch,
   };
 }
 
 function readLocalOrders(): DbOrder[] {
   try {
     const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
-    return local.map((o: any, idx: number): DbOrder => ({
-      id: `local-${idx}`,
-      order_code: o.orderCode || `#${idx}`,
-      customer_name: o.customerName || '-',
-      phone: o.phone || '-',
-      address: o.address || '-',
-      items: o.items || [],
-      subtotal: Number(o.subtotal) || 0,
-      delivery_fee: Number(o.deliveryFee) || 0,
-      total: Number(o.total) || 0,
-      status: 'pending',
-      note: o.deliverySlot || '',
-      maps_link: o.mapsLink || '',
-      created_at: o.created_at || new Date().toISOString(),
-    }));
+    return local.map((o: any, idx: number): DbOrder => {
+      const orderCode = o.orderCode || `#${idx}`;
+      const address = o.address || '-';
+      const autoZone = detectFezZone(address);
+      const storedDispatch = getStoredDispatch(orderCode, `local-${idx}`);
+      const oDispatch = o.delivery_dispatch;
+
+      const finalDispatch: DeliveryDispatchInfo = {
+        provider: storedDispatch?.provider || oDispatch?.provider || 'indrive',
+        driverName: storedDispatch?.driverName || oDispatch?.driverName || '',
+        driverPhone: storedDispatch?.driverPhone || oDispatch?.driverPhone || '',
+        deliveryCost: storedDispatch?.deliveryCost ?? oDispatch?.deliveryCost ?? 25,
+        trackingCode: storedDispatch?.trackingCode || oDispatch?.trackingCode || '',
+        dispatchStatus: storedDispatch?.dispatchStatus || oDispatch?.dispatchStatus || 'waiting_driver',
+        dispatchedAt: storedDispatch?.dispatchedAt || oDispatch?.dispatchedAt || '',
+        zone: storedDispatch?.zone || oDispatch?.zone || autoZone,
+        notes: storedDispatch?.notes || oDispatch?.notes || '',
+      };
+
+      return {
+        id: `local-${idx}`,
+        order_code: orderCode,
+        customer_name: o.customerName || '-',
+        phone: o.phone || '-',
+        address: address,
+        items: o.items || [],
+        subtotal: Number(o.subtotal) || 0,
+        delivery_fee: Number(o.deliveryFee) || 0,
+        total: Number(o.total) || 0,
+        status: 'pending',
+        note: o.deliverySlot || '',
+        maps_link: o.mapsLink || '',
+        created_at: o.created_at || new Date().toISOString(),
+        delivery_dispatch: finalDispatch,
+      };
+    });
   } catch {
     return [];
   }
@@ -490,10 +653,29 @@ export async function fetchOrders(): Promise<DbOrder[]> {
   const client = getSupabase();
   if (!client) return readLocalOrders();
 
+  let pin = getAdminPin();
+
   try {
-    const { data, error } = await client.rpc('get_orders_secure', {
-      p_admin_pin: getAdminPin(),
+    let { data, error } = await client.rpc('get_orders_secure', {
+      p_admin_pin: pin,
     });
+
+    // إذا فشل بسبب رمز PIN غير صحيح، نستعلم الرمز من store_settings ونعيد المحاولة تلقائياً
+    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
+      const remotePin = await syncAdminPinFromRemote();
+      if (remotePin && remotePin !== pin) {
+        pin = remotePin;
+        const retryResult = await client.rpc('get_orders_secure', {
+          p_admin_pin: pin,
+        });
+        if (!retryResult.error) {
+          data = retryResult.data;
+          error = null;
+        } else {
+          error = retryResult.error;
+        }
+      }
+    }
 
     if (error) {
       console.error('❌ fetchOrders RPC error:', error.message);
@@ -526,12 +708,27 @@ export async function updateOrderStatus(
   const client = getSupabase();
   if (!client) return { success: false, message: 'لا يوجد اتصال' };
 
+  let pin = getAdminPin();
+
   try {
-    const { error } = await client.rpc('update_order_status_secure', {
+    let { error } = await client.rpc('update_order_status_secure', {
       p_order_id: orderId,
       p_new_status: status,
-      p_admin_pin: getAdminPin(),
+      p_admin_pin: pin,
     });
+
+    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
+      const remotePin = await syncAdminPinFromRemote();
+      if (remotePin && remotePin !== pin) {
+        pin = remotePin;
+        const retry = await client.rpc('update_order_status_secure', {
+          p_order_id: orderId,
+          p_new_status: status,
+          p_admin_pin: pin,
+        });
+        error = retry.error;
+      }
+    }
 
     if (error) {
       console.warn('updateOrderStatus RPC error:', error.message);
@@ -562,11 +759,25 @@ export async function deleteOrder(
   const client = getSupabase();
   if (!client) return { success: false, message: 'لا يوجد اتصال' };
 
+  let pin = getAdminPin();
+
   try {
-    const { error } = await client.rpc('delete_order_secure', {
+    let { error } = await client.rpc('delete_order_secure', {
       p_order_id: orderId,
-      p_admin_pin: getAdminPin(),
+      p_admin_pin: pin,
     });
+
+    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
+      const remotePin = await syncAdminPinFromRemote();
+      if (remotePin && remotePin !== pin) {
+        pin = remotePin;
+        const retry = await client.rpc('delete_order_secure', {
+          p_order_id: orderId,
+          p_admin_pin: pin,
+        });
+        error = retry.error;
+      }
+    }
 
     if (error) {
       console.warn('deleteOrder RPC error:', error.message);
@@ -579,6 +790,58 @@ export async function deleteOrder(
   }
 }
 
+export async function updateOrderDispatch(
+  orderId: string | number,
+  orderCodeOrDispatch: string | DeliveryDispatchInfo,
+  maybeDispatch?: DeliveryDispatchInfo
+): Promise<{ success: boolean; message?: string }> {
+  const orderCode =
+    typeof orderCodeOrDispatch === 'string' ? orderCodeOrDispatch : String(orderId);
+  const dispatch =
+    typeof orderCodeOrDispatch === 'string'
+      ? (maybeDispatch as DeliveryDispatchInfo)
+      : orderCodeOrDispatch;
+
+  // حفظ محلياً في خريطة التوصيل والسائقين
+  setStoredDispatch(orderCode, orderId, dispatch);
+
+  // تحديث الطلب محلياً إن وجد
+  try {
+    const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
+    let updatedLocal = false;
+    for (let i = 0; i < local.length; i++) {
+      if (local[i].orderCode === orderCode || `local-${i}` === String(orderId)) {
+        local[i].delivery_dispatch = dispatch;
+        updatedLocal = true;
+      }
+    }
+    if (updatedLocal) {
+      localStorage.setItem('khodra_recent_orders', JSON.stringify(local));
+    }
+  } catch {
+    // ignore
+  }
+
+  // تحديث Supabase إن كان متوفراً
+  const client = getSupabase();
+  if (client && !String(orderId).startsWith('local-')) {
+    try {
+      await client
+        .from('orders')
+        .update({
+          security_flags: {
+            delivery_dispatch: dispatch,
+          },
+        })
+        .eq('id', orderId);
+    } catch (err) {
+      console.warn('Error saving dispatch to Supabase:', err);
+    }
+  }
+
+  return { success: true, message: 'تم حفظ بيانات السائق والتوصيل بنجاح' };
+}
+
 export async function fetchPendingOrdersCount(): Promise<number> {
   const client = getSupabase();
 
@@ -586,10 +849,26 @@ export async function fetchPendingOrdersCount(): Promise<number> {
     return readLocalOrders().filter((o) => o.status === 'pending').length;
   }
 
+  let pin = getAdminPin();
+
   try {
-    const { data, error } = await client.rpc('get_orders_secure', {
-      p_admin_pin: getAdminPin(),
+    let { data, error } = await client.rpc('get_orders_secure', {
+      p_admin_pin: pin,
     });
+
+    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
+      const remotePin = await syncAdminPinFromRemote();
+      if (remotePin && remotePin !== pin) {
+        pin = remotePin;
+        const retry = await client.rpc('get_orders_secure', {
+          p_admin_pin: pin,
+        });
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      }
+    }
 
     if (error) {
       console.warn('fetchPendingOrdersCount error:', error.message);

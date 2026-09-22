@@ -25,6 +25,9 @@ import {
   submitCustomerReview,
   deleteCustomerReview,
   getSupabase,
+  getAdminPin,
+  setCachedAdminPin,
+  syncAdminPinFromRemote,
 } from '../services/supabaseService';
 import { useNewOrdersNotifier } from '../hooks/useNewOrdersNotifier';
 import {
@@ -138,14 +141,6 @@ export const CustomerReviews: React.FC = () => {
     enabled: isAdmin,
     pollIntervalMs: 45000,
   });
-
-  const getAdminPin = (): string => {
-    try {
-      return localStorage.getItem('khodra_admin_pin') || STORE_CONFIG.adminPin || '1234';
-    } catch {
-      return '1234';
-    }
-  };
 
   const handleToggleSound = useCallback(() => {
     setSoundEnabled((prev) => {
@@ -273,9 +268,20 @@ export const CustomerReviews: React.FC = () => {
     };
   }, [isAdmin]);
 
-  const handlePinLogin = (pin: string): boolean => {
-    const correctPin = getAdminPin();
-    if (pin.trim() === correctPin.trim()) {
+  const handlePinLogin = async (pin: string): Promise<boolean> => {
+    let correctPin = getAdminPin();
+    const inputPin = pin.trim();
+
+    // إذا لم يتطابق مع المخزن محلياً، نتحقق مع Supabase store_settings أولاً
+    if (inputPin !== correctPin.trim()) {
+      const remotePin = await syncAdminPinFromRemote();
+      if (remotePin) {
+        correctPin = remotePin;
+      }
+    }
+
+    if (inputPin === correctPin.trim()) {
+      setCachedAdminPin(inputPin);
       setIsAdmin(true);
       try {
         sessionStorage.setItem('khodra_admin_auth', 'true');
@@ -329,9 +335,7 @@ export const CustomerReviews: React.FC = () => {
         return false;
       }
 
-      try {
-        localStorage.setItem('khodra_admin_pin', newPin);
-      } catch {}
+      setCachedAdminPin(newPin);
 
       setAdminNotification('✅ تم تحديث الرمز السري في Supabase و localStorage.');
       setTimeout(() => setAdminNotification(null), 4000);

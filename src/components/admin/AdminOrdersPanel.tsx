@@ -1,13 +1,14 @@
 // ============================================================
-// AdminOrdersPanel.tsx – الإصدار 2.0
-// نافذة إدارة الطلبات – تصميم متناسق مع المتجر
+// AdminOrdersPanel.tsx – الإصدار 3.0
+// نافذة إدارة الطلبات والأسطول الفوري بفاس (inDrive, DONE, Yassir)
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, Package, Clock, CheckCircle2, XCircle, Search, Loader2,
   Phone, MapPin, MessageCircle, RefreshCw, ShoppingBag, ExternalLink,
   User, TrendingUp, Calendar, AlertCircle, Inbox, Copy, Trash2, Check,
-  Printer, Sparkles, ShieldCheck, Percent,
+  Printer, Sparkles, ShieldCheck, Percent, Bike, Truck, Navigation,
+  ChevronDown, ChevronUp, Send, Save, Share2, Layers,
 } from 'lucide-react';
 import {
   fetchOrders,
@@ -15,10 +16,20 @@ import {
   deleteOrder,
   subscribeToOrdersChanges,
   unsubscribeFromOrdersChanges,
+  updateOrderDispatch,
+  detectFezZone,
   DbOrder,
   OrderStatus,
 } from '../../services/supabaseService';
 import { OrderInvoiceModal } from './OrderInvoiceModal';
+import { OrderBordereauModal } from './OrderBordereauModal';
+import { AdminDeliveryFleetTab } from './AdminDeliveryFleetTab';
+import {
+  DELIVERY_PROVIDERS,
+  FEZ_DELIVERY_ZONES,
+  STORE_PICKUP_HUB,
+} from '../../data/config';
+import { DeliveryProvider, DeliveryDispatchStatus, DeliveryDispatchInfo } from '../../types';
 
 interface AdminOrdersPanelProps {
   isOpen: boolean;
@@ -183,7 +194,55 @@ function playOrderChime() {
   }
 }
 
+// دالة رسالة استدعاء وتفويض سائق التوصيل الفوري (inDrive, DONE, Yassir)
+function buildDriverDispatchMessage(order: DbOrder): string {
+  const hub = STORE_PICKUP_HUB;
+  const dispatch = order.delivery_dispatch;
+  const providerObj = DELIVERY_PROVIDERS.find((p) => p.id === dispatch?.provider) || DELIVERY_PROVIDERS[0];
+
+  return `السلام عليكم 🚴
+طلب توصيل عبر (${providerObj.name}) لمتجر خُضرة فاس 🌿
+رقم الطلب: ${order.order_code}
+
+📍 نقطة الاستلام (Hub):
+${hub.name}
+${hub.address}
+
+📍 نقطة التسليم (الزبون):
+👤 الزبون: ${order.customer_name}
+📞 الهاتف: ${order.phone}
+🏠 العنوان: ${order.address}
+${order.maps_link ? `🗺️ الخريطة: ${order.maps_link}` : ''}
+
+💵 مبلغ التحصيل المطلوب (COD):
+${order.total.toFixed(2)} درهم (نقداً عند التسليم)
+
+📦 طبيعة الطرد: صندوق عازل خضار وفواكه طازجة (${order.items.length} أصناف).`;
+}
+
+// دالة رسالة إشعار الزبون بمغادرة الطلب مع السائق وفق استراتيجية خُضرة
+function buildCustomerNotifyMessage(order: DbOrder): string {
+  const dispatch = order.delivery_dispatch;
+  const provider = DELIVERY_PROVIDERS.find((p) => p.id === dispatch?.provider)?.name || 'inDrive Delivery';
+  const driverName = dispatch?.driverName || 'سائق التوصيل الفوري';
+  const driverPhone = dispatch?.driverPhone || '';
+
+  return `مرحباً ${order.customer_name} 👋
+
+طلبك #${order.order_code} في الطريق إليك! 🚴
+
+📍 شركة التوصيل: ${provider}
+👤 السائق: ${driverName}
+${driverPhone ? `📞 رقم التواصل مع السائق: ${driverPhone}\n` : ''}⏰ الوصول المتوقع: خلال 25-45 دقيقة
+
+💵 المبلغ المطلوب: ${order.total.toFixed(2)} درهم
+(الدفع نقداً عند التسليم)
+
+شكراً لثقتك في خُضرة 🌿`;
+}
+
 export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onClose, onOrdersChange }) => {
+  const [activeTab, setActiveTab] = useState<'orders' | 'fleet'>('orders');
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -198,6 +257,12 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<DbOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState<DbOrder | null>(null);
+  const [bordereauOrder, setBordereauOrder] = useState<DbOrder | null>(null);
+
+  // إدارة تفاصيل التوصيل الفوري والسائقين
+  const [expandedDispatchId, setExpandedDispatchId] = useState<string | number | null>(null);
+  const [dispatchDrafts, setDispatchDrafts] = useState<Record<string, DeliveryDispatchInfo>>({});
+  const [savingDispatchId, setSavingDispatchId] = useState<string | number | null>(null);
 
   useEffect(() => {
     if (!onOrdersChange) return;
@@ -312,6 +377,94 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
       } catch {
         showToast('error', 'تعذّر النسخ، حاول مرة أخرى');
       }
+    }
+  };
+
+  const handleToggleDispatchEdit = (order: DbOrder) => {
+    const idKey = String(order.id);
+    if (!dispatchDrafts[idKey]) {
+      setDispatchDrafts((prev) => ({
+        ...prev,
+        [idKey]: order.delivery_dispatch || {
+          provider: 'indrive',
+          driverName: '',
+          driverPhone: '',
+          deliveryCost: 25,
+          dispatchStatus: 'ready_for_pickup',
+          zone: detectFezZone(order.address),
+          packagingType: 'cooler_box',
+        },
+      }));
+    }
+    setExpandedDispatchId((prev) => (prev === order.id ? null : order.id));
+  };
+
+  const handleUpdateDispatchDraft = (
+    orderId: string | number,
+    patch: Partial<DeliveryDispatchInfo>
+  ) => {
+    const idKey = String(orderId);
+    setDispatchDrafts((prev) => ({
+      ...prev,
+      [idKey]: {
+        ...(prev[idKey] || {
+          provider: 'indrive',
+          driverName: '',
+          driverPhone: '',
+          deliveryCost: 25,
+          dispatchStatus: 'ready_for_pickup',
+          zone: 'north',
+          packagingType: 'cooler_box',
+        }),
+        ...patch,
+      },
+    }));
+  };
+
+  const handleSaveDispatch = async (order: DbOrder) => {
+    const idKey = String(order.id);
+    const draft = dispatchDrafts[idKey];
+    if (!draft) return;
+
+    setSavingDispatchId(order.id);
+    const res = await updateOrderDispatch(order.id, draft);
+    setSavingDispatchId(null);
+
+    if (res.success) {
+      setOrders((prev) =>
+        prev.map((o) => (o.id === order.id ? { ...o, delivery_dispatch: draft } : o))
+      );
+      showToast('success', `تم حفظ وتحديث بيانات التوصيل للطلب ${order.order_code}`);
+      setExpandedDispatchId(null);
+    } else {
+      showToast('error', `فشل حفظ بيانات التوصيل: ${res.message || 'خطأ غير معروف'}`);
+    }
+  };
+
+  const handleSendDriverDispatch = (order: DbOrder) => {
+    const draft = dispatchDrafts[String(order.id)] || order.delivery_dispatch;
+    const driverPhone = draft?.driverPhone;
+    const msg = buildDriverDispatchMessage(order);
+
+    if (driverPhone) {
+      const wa = toWhatsApp(driverPhone);
+      window.open(`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, '_blank');
+      showToast('success', 'تم فتح واتساب لإرسال بيانات الشحنة للسائق');
+    } else {
+      navigator.clipboard.writeText(msg);
+      showToast('success', 'تم نسخ تفاصيل الرحلة ونقطة الانطلاق من بنسودة لسائق inDrive');
+    }
+  };
+
+  const handleSendCustomerDispatchNotify = (order: DbOrder) => {
+    const msg = buildCustomerNotifyMessage(order);
+    const wa = toWhatsApp(order.phone);
+    if (wa) {
+      window.open(`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, '_blank');
+      showToast('success', 'تم فتح واتساب لإشعار الزبون بمغادرة الطلب');
+    } else {
+      navigator.clipboard.writeText(msg);
+      showToast('success', 'تم نسخ نص إشعار خروج الطلب للزبون');
     }
   };
 
@@ -437,8 +590,54 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
             </div>
           )}
 
-          {/* ═══════════ Stats Row ═══════════ */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 sm:p-4 bg-white border-b border-[#E8E1D3]">
+          {/* ═══════════ Tab Switcher ═══════════ */}
+          <div className="flex border-b border-[#E8E1D3] bg-white text-xs font-black shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab('orders')}
+              className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
+                activeTab === 'orders'
+                  ? 'border-[#163920] text-[#163920] bg-emerald-50/40'
+                  : 'border-transparent text-[#787163] hover:text-[#112616] hover:bg-[#F7F4EC]'
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span>الطلبات والمبيعات</span>
+              <span className="px-2 py-0.5 rounded-full bg-[#163920]/10 text-[#163920] text-[10px]">
+                {orders.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('fleet')}
+              className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
+                activeTab === 'fleet'
+                  ? 'border-[#C25E12] text-[#C25E12] bg-amber-50/40'
+                  : 'border-transparent text-[#787163] hover:text-[#112616] hover:bg-[#F7F4EC]'
+              }`}
+            >
+              <Bike className="w-4 h-4 text-[#C25E12]" />
+              <span>🚴 أسطول التوصيل ومسارات فاس</span>
+              <span className="px-2 py-0.5 rounded-full bg-[#C25E12]/15 text-[#C25E12] text-[10px]">
+                inDrive + تجميع المسارات
+              </span>
+            </button>
+          </div>
+
+          {activeTab === 'fleet' ? (
+            <div className="flex-1 overflow-y-auto p-3 sm:p-5">
+              <AdminDeliveryFleetTab
+                orders={orders}
+                onSelectOrderForBordereau={(o) => setBordereauOrder(o)}
+                onOpenOrderInvoice={(o) => setInvoiceOrder(o)}
+                showToast={showToast}
+              />
+            </div>
+          ) : (
+            <>
+              {/* ═══════════ Stats Row ═══════════ */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 sm:p-4 bg-white border-b border-[#E8E1D3]">
             {STATUS_ORDER.map((s) => {
               const cfg = STATUS_CONFIG[s];
               const Icon = cfg.Icon;
@@ -626,6 +825,208 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                       </div>
                     )}
 
+                    {/* ─── قسم التوصيل الفوري والسائق (inDrive / فاس) ─── */}
+                    {(() => {
+                      const idKey = String(order.id);
+                      const currentDispatch = order.delivery_dispatch;
+                      const draft = dispatchDrafts[idKey] || currentDispatch || {
+                        provider: 'indrive' as DeliveryProvider,
+                        driverName: '',
+                        driverPhone: '',
+                        deliveryCost: 25,
+                        dispatchStatus: 'ready_for_pickup' as DeliveryDispatchStatus,
+                        zone: detectFezZone(order.address),
+                        packagingType: 'cooler_box',
+                      };
+                      const isExpanded = expandedDispatchId === order.id;
+                      const providerCfg = DELIVERY_PROVIDERS.find((p) => p.id === draft.provider) || DELIVERY_PROVIDERS[0];
+                      const zoneCfg = FEZ_DELIVERY_ZONES[draft.zone || 'other'] || FEZ_DELIVERY_ZONES.other;
+
+                      return (
+                        <div className="mb-3 rounded-xl border-2 border-emerald-200/90 bg-emerald-50/40 overflow-hidden text-xs">
+                          {/* شريط رأس التوصيل */}
+                          <div className="p-2.5 bg-gradient-to-r from-emerald-100/80 to-emerald-50 flex items-center justify-between gap-2 border-b border-emerald-200">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              <span className="inline-flex items-center gap-1 font-black text-emerald-900">
+                                <Bike className="w-4 h-4 text-emerald-700" />
+                                <span>{providerCfg.name}</span>
+                              </span>
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white border border-emerald-300 text-emerald-800">
+                                {zoneCfg.name}
+                              </span>
+                              {draft.driverName ? (
+                                <span className="text-[11px] font-bold text-stone-700">
+                                  كابتن: <strong className="text-emerald-950">{draft.driverName}</strong>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-amber-800 font-bold bg-amber-100/70 px-1.5 py-0.5 rounded">
+                                  بانتظار تخصيص السائق
+                                </span>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleDispatchEdit(order)}
+                              className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 bg-white hover:bg-emerald-50 px-2 py-1 rounded-md border border-emerald-300 transition-colors cursor-pointer"
+                            >
+                              <span>{isExpanded ? 'إخفاء' : 'تعديل السائق'}</span>
+                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+
+                          {/* نموذج تعديل السائق والتوصيل (Expandable) */}
+                          {isExpanded && (
+                            <div className="p-3 bg-white border-b border-emerald-200 space-y-2.5">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-black text-stone-600 mb-1">
+                                    شركة / منصة التوصيل:
+                                  </label>
+                                  <select
+                                    value={draft.provider}
+                                    onChange={(e) =>
+                                      handleUpdateDispatchDraft(order.id, {
+                                        provider: e.target.value as DeliveryProvider,
+                                      })
+                                    }
+                                    className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600"
+                                  >
+                                    {DELIVERY_PROVIDERS.map((p) => (
+                                      <option key={p.id} value={p.id}>
+                                        {p.name} {p.recommended ? '⭐ (موصى به)' : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-black text-stone-600 mb-1">
+                                    منطقة فاس (Smart Zone):
+                                  </label>
+                                  <select
+                                    value={draft.zone || 'other'}
+                                    onChange={(e) =>
+                                      handleUpdateDispatchDraft(order.id, {
+                                        zone: e.target.value as 'north' | 'central' | 'south' | 'other',
+                                      })
+                                    }
+                                    className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600"
+                                  >
+                                    <option value="north">المنطقة الشمالية (أكدال، إيموزار، الأطلس)</option>
+                                    <option value="central">المنطقة الوسطى (النرجس، سايس، المرينيين)</option>
+                                    <option value="south">المنطقة الجنوبية (بنسودة، عين هارون، زواغة)</option>
+                                    <option value="other">أحياء فاس الأخرى</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-black text-stone-600 mb-1">
+                                    اسم السائق / المندوب:
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={draft.driverName || ''}
+                                    onChange={(e) =>
+                                      handleUpdateDispatchDraft(order.id, { driverName: e.target.value })
+                                    }
+                                    placeholder="مثال: يوسف العلوي (inDrive)"
+                                    className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white text-stone-800 focus:outline-emerald-600"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-black text-stone-600 mb-1">
+                                    هاتف السائق:
+                                  </label>
+                                  <input
+                                    type="tel"
+                                    value={draft.driverPhone || ''}
+                                    onChange={(e) =>
+                                      handleUpdateDispatchDraft(order.id, { driverPhone: e.target.value })
+                                    }
+                                    placeholder="06XXXXXXXX"
+                                    className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white text-stone-800 focus:outline-emerald-600"
+                                    dir="ltr"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-black text-stone-600 mb-1">
+                                    تكلفة التوصيل المتفق عليها (DH):
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={draft.deliveryCost ?? 25}
+                                    onChange={(e) =>
+                                      handleUpdateDispatchDraft(order.id, {
+                                        deliveryCost: Number(e.target.value) || 0,
+                                      })
+                                    }
+                                    className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1">
+                                <span className="text-[10px] text-stone-500">
+                                  نقطة الاستلام: {STORE_PICKUP_HUB.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={savingDispatchId === order.id}
+                                  onClick={() => handleSaveDispatch(order)}
+                                  className="py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                                >
+                                  {savingDispatchId === order.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Save className="w-3.5 h-3.5" />
+                                  )}
+                                  <span>حفظ بيانات التوصيل</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* أزرار الإجراءات الفورية للسائق والزبون */}
+                          <div className="p-2 grid grid-cols-1 sm:grid-cols-3 gap-1.5 bg-emerald-50/70">
+                            <button
+                              type="button"
+                              onClick={() => handleSendDriverDispatch(order)}
+                              className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-100/70 text-emerald-900 border border-emerald-300 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                              title="استدعاء وإرسال بيانات الشحنة ونقطة بنسودة لسائق inDrive"
+                            >
+                              <Send className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>استدعاء سائق inDrive</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleSendCustomerDispatchNotify(order)}
+                              className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-100/70 text-emerald-900 border border-emerald-300 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                              title="إشعار الزبون بمغادرة الطلب مع كابتن التوصيل عبر واتساب"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
+                              <span>إشعار الزبون بالانطلاق</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setBordereauOrder(order)}
+                              className="py-1.5 px-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                              title="معاينة وطباعة ملصق الشحن الحراري والصندوق العازل 50L"
+                            >
+                              <Printer className="w-3.5 h-3.5 text-[#F5D76E]" />
+                              <span>ملصق الشحن (Bordereau)</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* ─── أزرار الإجراءات ─── */}
                     <div className="mb-3 space-y-2">
 
@@ -763,6 +1164,8 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
               إغلاق
             </button>
           </div>
+            </>
+          )}
 
         </div>
 
@@ -842,6 +1245,13 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
         order={invoiceOrder}
         isOpen={!!invoiceOrder}
         onClose={() => setInvoiceOrder(null)}
+      />
+
+      {/* ═══════════ نافذة ملصق الشحن والتوصيل ═══════════ */}
+      <OrderBordereauModal
+        order={bordereauOrder}
+        isOpen={!!bordereauOrder}
+        onClose={() => setBordereauOrder(null)}
       />
     </>
   );

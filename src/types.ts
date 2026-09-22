@@ -61,6 +61,30 @@ export interface DeliverySlot {
   label: string;
   cutoffHour: number | null;
   periodText: string;
+  isInstant?: boolean;
+}
+
+// ─── شركات وتطبيقات التوصيل الفوري بفاس ───
+export type DeliveryProvider = 'indrive' | 'done' | 'yassir' | 'glovo' | 'custom';
+
+export type DeliveryDispatchStatus =
+  | 'ready_for_pickup'
+  | 'waiting_driver'
+  | 'picked_up'
+  | 'in_transit'
+  | 'delivered';
+
+export interface DeliveryDispatchInfo {
+  provider: DeliveryProvider;
+  driverName?: string;
+  driverPhone?: string;
+  deliveryCost?: number;
+  trackingCode?: string;
+  dispatchStatus: DeliveryDispatchStatus;
+  dispatchedAt?: string;
+  zone?: 'north' | 'central' | 'south' | 'other';
+  notes?: string;
+  packagingType?: string;
 }
 
 // ─── واجهة تقديم الطلب (مع دعم الحماية ومكافحة الطلبات المزيفة) ───
