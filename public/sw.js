@@ -2,7 +2,7 @@
 // ملف: sw.js – Service Worker لتطبيق خُضرة (نسخة محسنة ضد الأعطال)
 // ============================================================
 
-const CACHE_NAME = 'khodra-v5-fresh';
+const CACHE_NAME = 'khodra-v6-fresh';
 const CORE_ASSETS = [
   '/',
   '/index.html',

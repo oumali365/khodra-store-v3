@@ -376,17 +376,30 @@ export async function deleteCustomerReview(
   try {
     let { error } = await client.rpc('delete_review_secure', {
       p_review_id: reviewId,
-      p_admin_pin: pin,
+      p_pin: pin,
     });
+    if (error && error.message?.includes('schema cache')) {
+      const retry = await client.rpc('delete_review_secure', {
+        p_review_id: reviewId,
+        p_admin_pin: pin,
+      });
+      error = retry.error;
+    }
 
     if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
       const remotePin = await syncAdminPinFromRemote();
       if (remotePin && remotePin !== pin) {
         pin = remotePin;
-        const retry = await client.rpc('delete_review_secure', {
+        let retry = await client.rpc('delete_review_secure', {
           p_review_id: reviewId,
-          p_admin_pin: pin,
+          p_pin: pin,
         });
+        if (retry.error && retry.error.message?.includes('schema cache')) {
+          retry = await client.rpc('delete_review_secure', {
+            p_review_id: reviewId,
+            p_admin_pin: pin,
+          });
+        }
         error = retry.error;
       }
     }
@@ -552,13 +565,20 @@ export async function updateAdminPinRemote(
 
   try {
     // 1. محاولة استدعاء الدالة الآمنة update_store_setting_secure
-    const { error: rpcError } = await client.rpc('update_store_setting_secure', {
+    let rpcRes = await client.rpc('update_store_setting_secure', {
       p_key: 'admin_pin',
       p_value: trimmed,
-      p_admin_pin: currentPin,
+      p_pin: currentPin,
     });
+    if (rpcRes.error && rpcRes.error.message?.includes('schema cache')) {
+      rpcRes = await client.rpc('update_store_setting_secure', {
+        p_key: 'admin_pin',
+        p_value: trimmed,
+        p_admin_pin: currentPin,
+      });
+    }
 
-    if (!rpcError) {
+    if (!rpcRes.error) {
       return { success: true, message: 'تم تحديث الرمز السري ومزامنته مع السيرفر بنجاح' };
     }
 
@@ -718,17 +738,29 @@ export async function fetchOrders(): Promise<DbOrder[]> {
 
   try {
     let { data, error } = await client.rpc('get_orders_secure', {
-      p_admin_pin: pin,
+      p_pin: pin,
     });
+    if (error && error.message?.includes('schema cache')) {
+      const retry = await client.rpc('get_orders_secure', {
+        p_admin_pin: pin,
+      });
+      data = retry.data;
+      error = retry.error;
+    }
 
     // إذا فشل بسبب رمز PIN غير صحيح، نستعلم الرمز من store_settings ونعيد المحاولة تلقائياً
     if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
       const remotePin = await syncAdminPinFromRemote();
       if (remotePin && remotePin !== pin) {
         pin = remotePin;
-        const retryResult = await client.rpc('get_orders_secure', {
-          p_admin_pin: pin,
+        let retryResult = await client.rpc('get_orders_secure', {
+          p_pin: pin,
         });
+        if (retryResult.error && retryResult.error.message?.includes('schema cache')) {
+          retryResult = await client.rpc('get_orders_secure', {
+            p_admin_pin: pin,
+          });
+        }
         if (!retryResult.error) {
           data = retryResult.data;
           error = null;
@@ -776,20 +808,35 @@ export async function updateOrderStatus(
 
   try {
     let { error } = await client.rpc('update_order_status_secure', {
-      p_order_id: orderId,
+      p_order_id: String(orderId),
       p_new_status: status,
-      p_admin_pin: pin,
+      p_pin: pin,
     });
+    if (error && error.message?.includes('schema cache')) {
+      const retry = await client.rpc('update_order_status_secure', {
+        p_order_id: String(orderId),
+        p_new_status: status,
+        p_admin_pin: pin,
+      });
+      error = retry.error;
+    }
 
     if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
       const remotePin = await syncAdminPinFromRemote();
       if (remotePin && remotePin !== pin) {
         pin = remotePin;
-        const retry = await client.rpc('update_order_status_secure', {
-          p_order_id: orderId,
+        let retry = await client.rpc('update_order_status_secure', {
+          p_order_id: String(orderId),
           p_new_status: status,
-          p_admin_pin: pin,
+          p_pin: pin,
         });
+        if (retry.error && retry.error.message?.includes('schema cache')) {
+          retry = await client.rpc('update_order_status_secure', {
+            p_order_id: String(orderId),
+            p_new_status: status,
+            p_admin_pin: pin,
+          });
+        }
         error = retry.error;
       }
     }
@@ -823,17 +870,30 @@ export async function deleteOrder(
   try {
     let { error } = await client.rpc('delete_order_secure', {
       p_order_id: String(orderId),
-      p_admin_pin: pin,
+      p_pin: pin,
     });
+    if (error && error.message?.includes('schema cache')) {
+      const retry = await client.rpc('delete_order_secure', {
+        p_order_id: String(orderId),
+        p_admin_pin: pin,
+      });
+      error = retry.error;
+    }
 
     if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
       const remotePin = await syncAdminPinFromRemote();
       if (remotePin && remotePin !== pin) {
         pin = remotePin;
-        const retry = await client.rpc('delete_order_secure', {
+        let retry = await client.rpc('delete_order_secure', {
           p_order_id: String(orderId),
-          p_admin_pin: pin,
+          p_pin: pin,
         });
+        if (retry.error && retry.error.message?.includes('schema cache')) {
+          retry = await client.rpc('delete_order_secure', {
+            p_order_id: String(orderId),
+            p_admin_pin: pin,
+          });
+        }
         error = retry.error;
       }
     }
