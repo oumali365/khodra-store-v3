@@ -12,6 +12,7 @@
 ALTER TABLE public.orders REPLICA IDENTITY FULL;
 ALTER TABLE public.reviews REPLICA IDENTITY FULL;
 ALTER TABLE public.products REPLICA IDENTITY FULL;
+ALTER TABLE public.store_settings REPLICA IDENTITY FULL;
 
 -- إضافة الجداول لمنشور البث اللحظي supabase_realtime
 DO $$
@@ -44,5 +45,13 @@ BEGIN
     WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'products'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+  END IF;
+
+  -- إضافة جدول store_settings لتزامن الـ PIN والإعدادات لحظياً عبر الأجهزة
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'store_settings'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.store_settings;
   END IF;
 END $$;

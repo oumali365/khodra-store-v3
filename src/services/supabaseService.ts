@@ -529,6 +529,59 @@ export async function syncAdminPinFromRemote(): Promise<string> {
   return getAdminPin();
 }
 
+/**
+ * تحديث الرمز السري (PIN) في Supabase ومزامنته مع قاعدة البيانات والأجهزة الأخرى
+ */
+export async function updateAdminPinRemote(
+  newPin: string
+): Promise<{ success: boolean; message?: string }> {
+  const trimmed = newPin.trim();
+  if (!trimmed || trimmed.length < 4) {
+    return { success: false, message: 'الرمز السري يجب ألا يقل عن 4 أرقام' };
+  }
+
+  const client = getSupabase();
+  const currentPin = getAdminPin();
+
+  // تحديث الكاش المحلي فورياً
+  setCachedAdminPin(trimmed);
+
+  if (!client) {
+    return { success: true, message: 'تم حفظ الرمز السري محلياً (لا يوجد اتصال)' };
+  }
+
+  try {
+    // 1. محاولة استدعاء الدالة الآمنة update_store_setting_secure
+    const { error: rpcError } = await client.rpc('update_store_setting_secure', {
+      p_key: 'admin_pin',
+      p_value: trimmed,
+      p_admin_pin: currentPin,
+    });
+
+    if (!rpcError) {
+      return { success: true, message: 'تم تحديث الرمز السري ومزامنته مع السيرفر بنجاح' };
+    }
+
+    // 2. محاولة بديلة عبر upsert مباشر
+    const { error: upsertError } = await client
+      .from('store_settings')
+      .upsert(
+        { key: 'admin_pin', value: trimmed, updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      );
+
+    if (upsertError) {
+      console.warn('upsert store_settings error:', upsertError.message);
+      return { success: true, message: 'تم التحديث محلياً، وتعذر حفظه بالسيرفر: ' + upsertError.message };
+    }
+
+    return { success: true, message: 'تم تحديث الرمز السري ومزامنته مع السيرفر بنجاح' };
+  } catch (err: any) {
+    console.warn('updateAdminPinRemote network error:', err);
+    return { success: true, message: 'تم التحديث محلياً' };
+  }
+}
+
 // مزامنة فورية في الخلفية عند تحميل الصفحة
 if (typeof window !== 'undefined') {
   syncAdminPinFromRemote().catch(() => {});

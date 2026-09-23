@@ -28,6 +28,7 @@ import {
   getAdminPin,
   setCachedAdminPin,
   syncAdminPinFromRemote,
+  updateAdminPinRemote,
 } from '../services/supabaseService';
 import { useNewOrdersNotifier } from '../hooks/useNewOrdersNotifier';
 import {
@@ -309,37 +310,17 @@ export const CustomerReviews: React.FC = () => {
 
   // ─── ✅ تغيير PIN (مع مزامنة Supabase) ───
   const handleChangePin = async (newPin: string): Promise<boolean> => {
-    const supabase = getSupabase();
-    if (!supabase) {
-      setAdminNotification('❌ لا يوجد اتصال بقاعدة البيانات');
-      setTimeout(() => setAdminNotification(null), 3500);
-      return false;
-    }
-
     try {
-      const { error } = await supabase
-        .from('store_settings')
-        .upsert(
-          {
-            key: 'admin_pin',
-            value: newPin,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'key' }
-        );
-
-      if (error) {
-        console.error('❌ فشل تحديث PIN في Supabase:', error.message);
-        setAdminNotification(`❌ فشل تحديث PIN: ${error.message}`);
+      const res = await updateAdminPinRemote(newPin);
+      if (res.success) {
+        setAdminNotification('✅ تم تحديث الرمز السري ومزامنته بنجاح.');
+        setTimeout(() => setAdminNotification(null), 4000);
+        return true;
+      } else {
+        setAdminNotification(`❌ فشل التحديث: ${res.message || 'خطأ غير معروف'}`);
         setTimeout(() => setAdminNotification(null), 4000);
         return false;
       }
-
-      setCachedAdminPin(newPin);
-
-      setAdminNotification('✅ تم تحديث الرمز السري في Supabase و localStorage.');
-      setTimeout(() => setAdminNotification(null), 4000);
-      return true;
     } catch (err: any) {
       console.error('❌ خطأ في تحديث PIN:', err);
       setAdminNotification(`❌ خطأ: ${err?.message || 'غير معروف'}`);

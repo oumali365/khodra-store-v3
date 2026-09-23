@@ -28,7 +28,7 @@
 | `02_security_and_triggers.sql` | `store security`, `Untitled query` | فحص صحة الهاتف المغربي، فترة التهدئة Cooldown (3 دقائق)، سقف الطلبات Rate Limit (3 طلبات/ساعة)، وفهرس Idempotency الفريد لمنع تكرار الطلبات. |
 | `03_functions_and_rpc.sql` | `Functions`, `orders admin pin`, `read orders`, `orders status`, `soft delete` | دوال الخادم الآمنة برمز PIN: `get_orders_secure`, `update_order_status_secure`, `delete_order_secure`, `purge_deleted_orders_secure`, `delete_review_secure`. |
 | `04_rls_policies.sql` | `RLS policies`, `allow public insert` | سياسات أمان الصفوف: إتاحة إرسال الطلبات للزبائن دون كشف بيانات الزبائن الآخرين، وحصر القراءة للمدير. |
-| `05_seed_data.sql` | `products values`, `store settings key` | البيانات الأولية: إعدادات المتجر (PIN = `090909`), تقييمات الزبائن لمدينة فاس، وكافة المنتجات الـ 47 بتسعيرتها وأصولها. |
+| `05_seed_data.sql` | `products values`, `store settings key` | البيانات الأولية: إعدادات المتجر (PIN = `090909`), تقييمات الزبائن لمدينة فاس، وكافة المنتجات الـ 100 بتسعيرتها وأصولها وتصنيفاتها الـ 6 الكاملة. |
 | `06_realtime_setup.sql` | التزامن اللحظي | تفعيل `supabase_realtime` و `REPLICA IDENTITY FULL` للبث الفوري عند إضافة طلب أو حذفه. |
 | `07_cleanup_and_reset.sql` | تنظيف التضاربات | حذف الدوال والتريغرات والسياسات القديمة المتضاربة لتهيئة بيئة نظيفة. |
 
