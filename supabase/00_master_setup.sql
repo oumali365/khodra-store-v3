@@ -19,31 +19,7 @@
 BEGIN;
 
 -- ═════════════════════════════════════════════════════════════════════════════
--- 1️⃣ تنظيف العناصر القديمة
--- ═════════════════════════════════════════════════════════════════════════════
-DROP TRIGGER IF EXISTS trg_check_order_security_rate_limit ON public.orders;
-DROP TRIGGER IF EXISTS trg_orders_updated_at ON public.orders;
-DROP TRIGGER IF EXISTS trg_products_updated_at ON public.products;
-DROP TRIGGER IF EXISTS trg_store_settings_updated_at ON public.store_settings;
-
-DROP FUNCTION IF EXISTS public.check_order_security_rate_limit();
-DROP FUNCTION IF EXISTS public.set_updated_at();
-DROP FUNCTION IF EXISTS public.verify_admin_pin(TEXT);
-DROP FUNCTION IF EXISTS public.get_orders_secure(TEXT);
-DROP FUNCTION IF EXISTS public.update_order_status_secure(BIGINT, TEXT, TEXT);
-DROP FUNCTION IF EXISTS public.update_order_status_secure(TEXT, TEXT, TEXT);
-DROP FUNCTION IF EXISTS public.delete_order_secure(BIGINT, TEXT);
-DROP FUNCTION IF EXISTS public.delete_order_secure(TEXT, TEXT);
-DROP FUNCTION IF EXISTS public.delete_order_secure(TEXT, TEXT, BOOLEAN);
-DROP FUNCTION IF EXISTS public.delete_review_secure(BIGINT, TEXT);
-DROP FUNCTION IF EXISTS public.delete_review_secure(TEXT, TEXT);
-DROP FUNCTION IF EXISTS public.delete_review_secure(TEXT, TEXT, BOOLEAN);
-DROP FUNCTION IF EXISTS public.purge_deleted_orders_secure(TEXT);
-DROP FUNCTION IF EXISTS public.get_store_setting(TEXT);
-DROP FUNCTION IF EXISTS public.update_store_setting_secure(TEXT, TEXT, TEXT);
-
--- ═════════════════════════════════════════════════════════════════════════════
--- 2️⃣ بناء الجداول والفهارس
+-- 1️⃣ إنشاء وتحديث الجداول والفهارس أولاً (Tables & Indexes First)
 -- ═════════════════════════════════════════════════════════════════════════════
 
 -- ─── جدول المنتجات (products) ───
@@ -166,6 +142,46 @@ CREATE TABLE IF NOT EXISTS public.order_security_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_security_logs_created_at ON public.order_security_logs (created_at DESC);
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- 2️⃣ تنظيف الدوال والسياسات القديمة بأمان
+-- ═════════════════════════════════════════════════════════════════════════════
+
+-- إزالة التريغرات القديمة إن وُجدت بأمان بدون خطأ عدم وجود الجداول
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'orders') THEN
+    EXECUTE 'DROP TRIGGER IF EXISTS trg_check_order_security_rate_limit ON public.orders';
+    EXECUTE 'DROP TRIGGER IF EXISTS trg_orders_updated_at ON public.orders';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'products') THEN
+    EXECUTE 'DROP TRIGGER IF EXISTS trg_products_updated_at ON public.products';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'store_settings') THEN
+    EXECUTE 'DROP TRIGGER IF EXISTS trg_store_settings_updated_at ON public.store_settings';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
+-- إزالة الدوال القديمة لتحديث تعريفاتها بدون تضارب
+DROP FUNCTION IF EXISTS public.check_order_security_rate_limit();
+DROP FUNCTION IF EXISTS public.set_updated_at();
+DROP FUNCTION IF EXISTS public.verify_admin_pin(TEXT);
+DROP FUNCTION IF EXISTS public.get_orders_secure(TEXT);
+DROP FUNCTION IF EXISTS public.update_order_status_secure(BIGINT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.update_order_status_secure(TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.delete_order_secure(BIGINT, TEXT);
+DROP FUNCTION IF EXISTS public.delete_order_secure(TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.delete_order_secure(TEXT, TEXT, BOOLEAN);
+DROP FUNCTION IF EXISTS public.delete_review_secure(BIGINT, TEXT);
+DROP FUNCTION IF EXISTS public.delete_review_secure(TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.delete_review_secure(TEXT, TEXT, BOOLEAN);
+DROP FUNCTION IF EXISTS public.purge_deleted_orders_secure(TEXT);
+DROP FUNCTION IF EXISTS public.get_store_setting(TEXT);
+DROP FUNCTION IF EXISTS public.update_store_setting_secure(TEXT, TEXT, TEXT);
 
 -- ═════════════════════════════════════════════════════════════════════════════
 -- 3️⃣ نظام الحماية ومكافحة التكرار والتريغرات
