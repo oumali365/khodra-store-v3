@@ -288,6 +288,16 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
         if (!mounted) return;
         console.log('⚡ Realtime order update in AdminOrdersPanel:', payload.eventType);
 
+        // إذا كان الحدث حذف قطعي أو حذف مرن عبر is_deleted
+        if (payload.eventType === 'DELETE' || (payload.eventType === 'UPDATE' && payload.new?.is_deleted)) {
+          const removedId = payload.old?.id || payload.new?.id;
+          const removedCode = payload.old?.order_code || payload.new?.order_code;
+          setOrders((prev) =>
+            prev.filter((o) => String(o.id) !== String(removedId) && o.order_code !== removedCode)
+          );
+          return;
+        }
+
         // جلب البيانات المحدثة تلقائياً
         fetchOrders().then((data) => {
           if (mounted) {
@@ -476,8 +486,8 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
     const res = await deleteOrder(deleteConfirmOrder.id);
 
     if (res.success) {
-      setOrders((prev) => prev.filter((o) => o.id !== deleteConfirmOrder.id));
-      showToast('success', `تم حذف الطلب ${deleteConfirmOrder.order_code} نهائياً`);
+      setOrders((prev) => prev.filter((o) => o.id !== deleteConfirmOrder.id && o.order_code !== deleteConfirmOrder.order_code));
+      showToast('success', `تم حذف الطلب ${deleteConfirmOrder.order_code} بنجاح`);
       setDeleteConfirmOrder(null);
     } else {
       showToast('error', `فشل الحذف: ${res.message || 'خطأ غير معروف'}`);

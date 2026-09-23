@@ -586,10 +586,34 @@ function mapRowToOrder(row: any): DbOrder {
   };
 }
 
+function cleanupLocalOrder(orderId: string | number): void {
+  try {
+    const strId = String(orderId);
+    const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
+    const filtered = local.filter((o: any, idx: number) => {
+      if (`local-${idx}` === strId) return false;
+      if (o.id && String(o.id) === strId) return false;
+      if (o.orderCode && (String(o.orderCode) === strId || String(o.orderCode) === `#${strId}`)) return false;
+      if (o.order_code && (String(o.order_code) === strId || String(o.order_code) === `#${strId}`)) return false;
+      return true;
+    });
+    localStorage.setItem('khodra_recent_orders', JSON.stringify(filtered));
+
+    // تنظيف بيانات التوصيل المرتبطة
+    const dispatches = JSON.parse(localStorage.getItem('khodra_order_dispatches') || '{}');
+    delete dispatches[strId];
+    localStorage.setItem('khodra_order_dispatches', JSON.stringify(dispatches));
+  } catch {
+    // ignore
+  }
+}
+
 function readLocalOrders(): DbOrder[] {
   try {
     const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
-    return local.map((o: any, idx: number): DbOrder => {
+    return local
+      .filter((o: any) => !o.is_deleted && !o.deleted_at)
+      .map((o: any, idx: number): DbOrder => {
       const orderCode = o.orderCode || `#${idx}`;
       const address = o.address || '-';
       const autoZone = detectFezZone(address);
@@ -666,7 +690,10 @@ export async function fetchOrders(): Promise<DbOrder[]> {
       return readLocalOrders();
     }
 
-    return (data || []).map(mapRowToOrder);
+    // استبعاد تام للطلبات الموسومة كمحذوفة (Soft Delete)
+    return (data || [])
+      .filter((row: any) => !row.is_deleted && !row.deleted_at)
+      .map(mapRowToOrder);
   } catch (err) {
     console.warn('Network error while fetching orders:', err);
     return readLocalOrders();
@@ -728,26 +755,21 @@ export async function updateOrderStatus(
 export async function deleteOrder(
   orderId: string | number
 ): Promise<{ success: boolean; message?: string }> {
+  // تنظيف شامل للطلب من التخزين المحلي فورياً
+  cleanupLocalOrder(orderId);
+
   if (String(orderId).startsWith('local-')) {
-    try {
-      const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
-      const idx = Number(String(orderId).replace('local-', ''));
-      if (!isNaN(idx)) {
-        local.splice(idx, 1);
-        localStorage.setItem('khodra_recent_orders', JSON.stringify(local));
-      }
-    } catch { /* ignore */ }
     return { success: true, message: 'تم حذف الطلب المحلي' };
   }
 
   const client = getSupabase();
-  if (!client) return { success: false, message: 'لا يوجد اتصال' };
+  if (!client) return { success: true, message: 'تم حذف الطلب محلياً' };
 
   let pin = getAdminPin();
 
   try {
     let { error } = await client.rpc('delete_order_secure', {
-      p_order_id: orderId,
+      p_order_id: String(orderId),
       p_admin_pin: pin,
     });
 
@@ -756,7 +778,7 @@ export async function deleteOrder(
       if (remotePin && remotePin !== pin) {
         pin = remotePin;
         const retry = await client.rpc('delete_order_secure', {
-          p_order_id: orderId,
+          p_order_id: String(orderId),
           p_admin_pin: pin,
         });
         error = retry.error;
@@ -767,7 +789,7 @@ export async function deleteOrder(
       console.warn('deleteOrder RPC error:', error.message);
       return { success: false, message: error.message };
     }
-    return { success: true, message: 'تم حذف الطلب نهائياً' };
+    return { success: true, message: 'تم حذف الطلب بنجاح' };
   } catch (err) {
     console.warn('Network error while deleting order:', err);
     return { success: false, message: 'تعذّر الاتصال' };
