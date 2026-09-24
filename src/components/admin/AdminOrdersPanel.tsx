@@ -8,7 +8,7 @@ import {
   Phone, MapPin, MessageCircle, RefreshCw, ShoppingBag, ExternalLink,
   User, TrendingUp, Calendar, AlertCircle, Inbox, Copy, Trash2, Check,
   Printer, Sparkles, ShieldCheck, Bike, Navigation,
-  ChevronDown, ChevronUp, Send, Save,
+  ChevronDown, ChevronUp, Send, Save, Percent,
 } from 'lucide-react';
 import {
   fetchOrders,
