@@ -617,6 +617,18 @@ CREATE POLICY "store_settings_admin_all" ON public.store_settings FOR ALL TO ser
 DROP POLICY IF EXISTS "logs_admin_all" ON public.order_security_logs;
 CREATE POLICY "logs_admin_all" ON public.order_security_logs FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+-- ─── منح الصلاحيات الصريحة (Explicit Table Grants) لـ Data API (تحديث Supabase 30 أكتوبر) ───
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT SELECT ON public.products TO anon, authenticated;
+GRANT ALL ON public.products TO service_role;
+GRANT INSERT ON public.orders TO anon, authenticated;
+GRANT ALL ON public.orders TO service_role;
+GRANT SELECT, INSERT ON public.reviews TO anon, authenticated;
+GRANT ALL ON public.reviews TO service_role;
+GRANT SELECT ON public.store_settings TO anon, authenticated;
+GRANT ALL ON public.store_settings TO service_role;
+GRANT ALL ON public.order_security_logs TO service_role;
+
 -- ═════════════════════════════════════════════════════════════════════════════
 -- 6️⃣ تعبئة البيانات الأولية (الإعدادات والمنتجات)
 -- ═════════════════════════════════════════════════════════════════════════════

@@ -113,3 +113,23 @@ CREATE POLICY "logs_admin_all"
   TO service_role
   USING (true)
   WITH CHECK (true);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 7️⃣ منح الصلاحيات الصريحة (Explicit Table Grants)
+-- متوافق مع تحديث Supabase الجديد (30 أكتوبر) لضمان عمل Data API
+-- ─────────────────────────────────────────────────────────────────────────────
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+GRANT SELECT ON public.products TO anon, authenticated;
+GRANT ALL ON public.products TO service_role;
+
+GRANT INSERT ON public.orders TO anon, authenticated;
+GRANT ALL ON public.orders TO service_role;
+
+GRANT SELECT, INSERT ON public.reviews TO anon, authenticated;
+GRANT ALL ON public.reviews TO service_role;
+
+GRANT SELECT ON public.store_settings TO anon, authenticated;
+GRANT ALL ON public.store_settings TO service_role;
+
+GRANT ALL ON public.order_security_logs TO service_role;

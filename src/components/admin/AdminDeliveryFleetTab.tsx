@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import {
   Bike, Navigation, Clock, Coins, TrendingUp,
-  MapPin, ExternalLink, Copy, Check, Calendar,
+  MapPin, ExternalLink, Copy, Check, Calendar, FileText, Printer,
 } from 'lucide-react';
 import { DbOrder } from '../../services/supabaseService';
 import {
@@ -123,6 +123,33 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
             {netDeliveryProfit >= 0 ? '+' : ''}{netDeliveryProfit.toFixed(0)} <span className="text-sm font-normal">د.م</span>
           </div>
           <p className="text-[11px] text-stone-500 mt-1">يُعوّض عبر قيمة السلة</p>
+        </div>
+      </div>
+
+      {/* ─── زر طباعة عقد سائق التوصيل للمدير فقط ─── */}
+      <div className="bg-gradient-to-l from-emerald-50 to-white border-2 border-emerald-300/80 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-[#163920] text-[#F5D76E] flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-xs sm:text-sm font-black text-[#112616]">
+              عقد شراكة سائق التوصيل (نموذج رسمي A4)
+            </h4>
+            <p className="text-[11px] text-[#696153]">
+              طباعة أو حفظ عقد الشراكة المعتمد لسائقي التوصيل بفاس بصيغة PDF جاهز للتوقيع والمصادقة
+            </p>
+          </div>
+        </div>
+        <div className="w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => window.open('/docs/driver-contract.html', '_blank')}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-white text-xs font-black cursor-pointer shadow-xs transition-all active:scale-95"
+          >
+            <Printer className="w-4 h-4 text-[#F5D76E]" />
+            <span>طباعة عقد السائق (PDF)</span>
+          </button>
         </div>
       </div>
 
