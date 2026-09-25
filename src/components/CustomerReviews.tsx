@@ -196,8 +196,13 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
         refreshOrders();
       } catch {}
     };
+    const handleOpenFinanceEvent = () => setIsFinancePanelOpen(true);
     window.addEventListener('khodra_orders_updated', handleUpdated);
-    return () => window.removeEventListener('khodra_orders_updated', handleUpdated);
+    window.addEventListener('khodra_open_finance_panel', handleOpenFinanceEvent);
+    return () => {
+      window.removeEventListener('khodra_orders_updated', handleUpdated);
+      window.removeEventListener('khodra_open_finance_panel', handleOpenFinanceEvent);
+    };
   }, [refreshOrders]);
 
   // ─── ✅ جلب التقييمات ───

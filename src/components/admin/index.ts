@@ -11,3 +11,11 @@ export {
   DeleteReviewModal,
 } from './AdminReviewModals';
 export { OrderInvoiceModal } from './OrderInvoiceModal';
+export { OrderBordereauModal } from './OrderBordereauModal';
+export { FinancePanel } from './FinancePanel';
+export type {
+  FinancePanelProps,
+  MonthData,
+  MonthResult,
+  Assumptions,
+} from './FinancePanel';

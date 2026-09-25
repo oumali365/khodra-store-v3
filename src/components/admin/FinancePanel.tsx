@@ -1,28 +1,28 @@
 // ============================================================
 // FinancePanel.tsx – اللوحة المالية التفاعلية لمتجر خُضرة
-// modal مستقل يُفتح من البطاقة الصفراء
+// مودال متكامل للتوقعات المالية ونموذج العمل والحسابات التقديرية
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, TrendingUp, DollarSign, Package, Target,
   Download, RotateCcw, Save, BarChart3, LineChart, Percent,
-  Info, Sparkles, ChevronDown, ChevronUp, Settings,
+  Info, Sparkles, ChevronDown, ChevronUp, Settings, CheckCircle2, AlertCircle,
 } from 'lucide-react';
 
-interface FinancePanelProps {
+export interface FinancePanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// ─── الأنواع ───
-interface MonthData {
+// ─── الأنواع والواجهات ───
+export interface MonthData {
   month: number;
   ordersPerDay: number;
   workingDays: number;
   avgBasket: number;
 }
 
-interface MonthResult extends MonthData {
+export interface MonthResult extends MonthData {
   totalOrders: number;
   revenue: number;
   cogs: number;
@@ -36,7 +36,7 @@ interface MonthResult extends MonthData {
   margin: number;
 }
 
-interface Assumptions {
+export interface Assumptions {
   cogsPercent: number;
   deliveryCostPerOrder: number;
   fixedCostsPerMonth: number;
@@ -44,7 +44,7 @@ interface Assumptions {
 }
 
 // ─── البيانات الأولية ───
-const INITIAL_MONTHS: MonthData[] = [
+export const INITIAL_MONTHS: MonthData[] = [
   { month: 1, ordersPerDay: 5, workingDays: 26, avgBasket: 90 },
   { month: 2, ordersPerDay: 8, workingDays: 26, avgBasket: 90 },
   { month: 3, ordersPerDay: 11, workingDays: 26, avgBasket: 95 },
@@ -59,23 +59,25 @@ const INITIAL_MONTHS: MonthData[] = [
   { month: 12, ordersPerDay: 25, workingDays: 26, avgBasket: 115 },
 ];
 
-const INITIAL_ASSUMPTIONS: Assumptions = {
+export const INITIAL_ASSUMPTIONS: Assumptions = {
   cogsPercent: 68,
   deliveryCostPerOrder: 8,
   fixedCostsPerMonth: 550,
   taxPercent: 1,
 };
 
-// ─── أدوات مساعدة ───
-const fmt = (n: number) => new Intl.NumberFormat('ar-MA', {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-}).format(n);
+// ─── أدوات التنسيق الرقمي ───
+const fmt = (n: number) =>
+  new Intl.NumberFormat('ar-MA', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(n);
 
-const fmtDecimal = (n: number) => new Intl.NumberFormat('ar-MA', {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-}).format(n);
+const fmtDecimal = (n: number) =>
+  new Intl.NumberFormat('ar-MA', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(n);
 
 const getProfitColor = (profit: number) => {
   if (profit > 10000) return 'text-emerald-700 bg-emerald-50 border-emerald-300';
@@ -92,7 +94,7 @@ const getMarginColor = (margin: number) => {
 };
 
 export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) => {
-  // ─── الحالة ───
+  // ─── الحالة التخزينية ───
   const [months, setMonths] = useState<MonthData[]>(() => {
     try {
       const saved = localStorage.getItem('khodra_finance_months');
@@ -114,6 +116,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
   const [showAssumptions, setShowAssumptions] = useState(false);
   const [showMonths, setShowMonths] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   // ─── حفظ تلقائي ───
   useEffect(() => {
@@ -128,16 +132,18 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     } catch {}
   }, [assumptions]);
 
-  // ─── قفل التمرير ───
+  // ─── قفل التمرير عند فتح المودال ───
   useEffect(() => {
     if (isOpen) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
+      return () => {
+        document.body.style.overflow = prev;
+      };
     }
   }, [isOpen]);
 
-  // ─── Escape للإغلاق ───
+  // ─── زر الهروب Escape للإغلاق ───
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
@@ -147,7 +153,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
-  // ─── الحسابات ───
+  // ─── الحسابات المالية الدورية ───
   const results: MonthResult[] = useMemo(() => {
     return months.map((m) => {
       const totalOrders = m.ordersPerDay * m.workingDays;
@@ -179,7 +185,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     });
   }, [months, assumptions]);
 
-  // ─── الإجماليات ───
+  // ─── الإجماليات السنوية ───
   const totals = useMemo(() => {
     const totalRevenue = results.reduce((s, r) => s + r.revenue, 0);
     const totalExpenses = results.reduce((s, r) => s + r.totalExpenses, 0);
@@ -198,14 +204,17 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     );
   };
 
-  // ─── إعادة تعيين ───
-  const handleReset = () => {
-    if (confirm('هل أنت متأكد من إعادة كل الأرقام للحالة الأصلية؟')) {
-      setMonths(INITIAL_MONTHS);
-      setAssumptions(INITIAL_ASSUMPTIONS);
-      setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 2000);
-    }
+  // ─── إعادة التعيين الآمنة بدون window.confirm ───
+  const handleConfirmReset = () => {
+    setMonths(INITIAL_MONTHS);
+    setAssumptions(INITIAL_ASSUMPTIONS);
+    setConfirmingReset(false);
+    setSavedFlash(true);
+    setFeedbackMessage('تمت استعادة الإعدادات الأولية بنجاح');
+    setTimeout(() => {
+      setSavedFlash(false);
+      setFeedbackMessage(null);
+    }, 2500);
   };
 
   // ─── حفظ يدوي ───
@@ -214,17 +223,22 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
       localStorage.setItem('khodra_finance_months', JSON.stringify(months));
       localStorage.setItem('khodra_finance_assumptions', JSON.stringify(assumptions));
       setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 2000);
+      setFeedbackMessage('تم حفظ التعديلات بنجاح');
+      setTimeout(() => {
+        setSavedFlash(false);
+        setFeedbackMessage(null);
+      }, 2500);
     } catch {
-      alert('تعذّر الحفظ');
+      setFeedbackMessage('تعذر الحفظ في المتصفح');
+      setTimeout(() => setFeedbackMessage(null), 3000);
     }
   };
 
-  // ─── تصدير CSV ───
+  // ─── تصدير ملف إكسل CSV ───
   const handleExportCSV = () => {
     const headers = [
       'الشهر', 'طلبات/يوم', 'أيام العمل', 'إجمالي الطلبات', 'متوسط السلة',
-      'الإيرادات', 'تكلفة المنتجات', 'تكلفة التوصيل', 'مصاريف ثابتة',
+      'الإيرادات (درهم)', 'تكلفة المنتجات', 'تكلفة التوصيل', 'مصاريف ثابتة',
       'تسويق', 'تغليف', 'ضرائب', 'إجمالي المصاريف', 'صافي الربح', 'الهامش %',
     ];
 
@@ -254,15 +268,18 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     a.download = `khodra_financial_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    setFeedbackMessage('تم تصدير ملف CSV بنجاح');
+    setTimeout(() => setFeedbackMessage(null), 2500);
   };
 
   // ─── نقطة التعادل ───
   const breakEven = useMemo(() => {
     const avgBasket = totals.avgBasket || 100;
-    const variableCostPerOrder = (avgBasket * assumptions.cogsPercent) / 100
-      + assumptions.deliveryCostPerOrder
-      + 2
-      + (avgBasket * assumptions.taxPercent) / 100;
+    const variableCostPerOrder =
+      (avgBasket * assumptions.cogsPercent) / 100 +
+      assumptions.deliveryCostPerOrder +
+      2 +
+      (avgBasket * assumptions.taxPercent) / 100;
     const contribution = avgBasket - variableCostPerOrder;
     if (contribution <= 0) return 999;
     return Math.ceil(assumptions.fixedCostsPerMonth / contribution);
@@ -281,35 +298,35 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     >
       <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-[#FAF8F4] w-full sm:max-w-6xl shadow-2xl z-10 sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[95vh] overflow-hidden text-right">
+      <div className="relative bg-[#FAF8F4] w-full sm:max-w-6xl shadow-2xl z-10 sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[95vh] overflow-hidden text-right border border-[#E8E1D3]">
 
         {/* ═══════ Header ═══════ */}
         <div className="p-4 sm:p-5 bg-gradient-to-l from-[#C25E12] to-[#9C4505] text-white flex items-center justify-between shrink-0 shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center shadow-inner">
               <BarChart3 className="w-5 h-5 text-[#F5D76E]" />
             </div>
             <div>
               <h2 className="font-black text-base sm:text-lg flex items-center gap-2">
-                <span>اللوحة المالية</span>
+                <span>اللوحة المالية والتوقعات</span>
                 <Sparkles className="w-4 h-4 text-[#F5D76E]" />
               </h2>
               <p className="text-[11px] sm:text-xs text-orange-100/90 font-medium">
-                توقعات متجر خُضرة • السنة الأولى
+                توقعات نموذج عمل خُضرة فاس • خطة 12 شهراً
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {savedFlash && (
-              <span className="hidden sm:inline-block text-[11px] bg-emerald-500 text-white px-2 py-1 rounded-lg font-bold">
-                ✓ تم
+              <span className="hidden sm:inline-block text-[11px] bg-emerald-500 text-white px-2.5 py-1 rounded-lg font-bold shadow-xs">
+                ✓ تم الحفظ
               </span>
             )}
             <button
               type="button"
               onClick={handleSave}
               className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              title="حفظ"
+              title="حفظ التعديلات"
             >
               <Save className="w-4 h-4" />
             </button>
@@ -317,15 +334,15 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
               type="button"
               onClick={handleExportCSV}
               className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              title="تصدير CSV"
+              title="تصدير جدول Excel / CSV"
             >
               <Download className="w-4 h-4" />
             </button>
             <button
               type="button"
-              onClick={handleReset}
+              onClick={() => setConfirmingReset(true)}
               className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              title="إعادة تعيين"
+              title="إعادة التعيين للوضع الأصلي"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -340,10 +357,49 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
           </div>
         </div>
 
-        {/* ═══════ Body ═══════ */}
+        {/* ═══════ إشعار تنبيهي أو تأكيد ═══════ */}
+        {feedbackMessage && (
+          <div className="bg-emerald-50 border-b border-emerald-200 px-4 py-2 text-xs font-bold text-emerald-900 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>{feedbackMessage}</span>
+            </div>
+            <button type="button" onClick={() => setFeedbackMessage(null)} className="text-emerald-700 hover:text-emerald-900">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* ═══════ شريط تأكيد الاستعادة ═══════ */}
+        {confirmingReset && (
+          <div className="bg-amber-50 border-b border-amber-300 p-3 sm:px-5 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-amber-950">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>هل تريد فعلاً استعادة الأرقام الافتراضية وحذف التعديلات المحفوظة؟</span>
+            </div>
+            <div className="flex items-center gap-2 mr-auto">
+              <button
+                type="button"
+                onClick={handleConfirmReset}
+                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-xs cursor-pointer active:scale-95"
+              >
+                نعم، استعد
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingReset(false)}
+                className="px-3 py-1.5 rounded-lg bg-white border border-stone-300 text-stone-700 font-bold text-xs cursor-pointer hover:bg-stone-50"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════ المحتوى الرئيسي ═══════ */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4">
 
-          {/* ─── 4 KPI Cards ─── */}
+          {/* ─── 4 بطاقات مؤشرات أداء رئيسية KPI Cards ─── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
             <div className="bg-white border-2 border-emerald-200 rounded-2xl p-3 sm:p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs text-emerald-800 font-bold mb-1">
@@ -396,19 +452,19 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          {/* ─── نقطة التعادل ─── */}
+          {/* ─── بطاقة نقطة التعادل ─── */}
           <div className="bg-gradient-to-l from-emerald-50 to-blue-50 border border-emerald-300 rounded-2xl p-3 sm:p-4 flex items-start gap-3 text-xs sm:text-sm">
             <Info className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <div className="font-black text-emerald-950 mb-0.5">🎯 نقطة التعادل</div>
+              <div className="font-black text-emerald-950 mb-0.5">🎯 نقطة التعادل (Break-even Point)</div>
               <div className="text-emerald-800 font-semibold leading-relaxed">
                 تحتاج فقط إلى <strong className="text-emerald-900 text-base">{breakEven}</strong> طلب في الشهر للوصول لنقطة التعادل
-                (≈ <strong className="text-emerald-900">{Math.ceil(breakEven / 26)}</strong> طلب/يوم).
+                (≈ <strong className="text-emerald-900">{Math.ceil(breakEven / 26)}</strong> طلب/يوم عمل).
               </div>
             </div>
           </div>
 
-          {/* ─── الفرضيات ─── */}
+          {/* ─── الفرضيات الأساسية القابلة للتعديل ─── */}
           <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl overflow-hidden shadow-xs">
             <button
               type="button"
@@ -418,7 +474,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
               <div className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-[#1E4327]" />
                 <span className="font-black text-sm text-[#1E4327]">
-                  ⚙️ الفرضيات الأساسية
+                  ⚙️ الفرضيات الأساسية ونسب التكاليف
                 </span>
               </div>
               {showAssumptions ? <ChevronUp className="w-5 h-5 text-stone-500" /> : <ChevronDown className="w-5 h-5 text-stone-500" />}
@@ -427,7 +483,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             {showAssumptions && (
               <div className="border-t border-[#E8E1D3] p-3 sm:p-4 grid grid-cols-2 lg:grid-cols-4 gap-3 bg-[#FAF8F4]">
                 <label className="block">
-                  <span className="text-xs font-bold text-stone-700 block mb-1">تكلفة المنتجات %</span>
+                  <span className="text-xs font-bold text-stone-700 block mb-1">تكلفة المنتجات (COGS) %</span>
                   <input
                     type="number"
                     value={assumptions.cogsPercent}
@@ -457,7 +513,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold text-stone-700 block mb-1">الضرائب %</span>
+                  <span className="text-xs font-bold text-stone-700 block mb-1">الضرائب التقديرية %</span>
                   <input
                     type="number"
                     value={assumptions.taxPercent}
@@ -470,7 +526,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             )}
           </div>
 
-          {/* ─── تعديل الأشهر ─── */}
+          {/* ─── محرر بيانات الأشهر الـ 12 ─── */}
           <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl overflow-hidden shadow-xs">
             <button
               type="button"
@@ -480,7 +536,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-[#1E4327]" />
                 <span className="font-black text-sm text-[#1E4327]">
-                  📅 بيانات الأشهر الـ 12
+                  📅 تعديل مدخلات الأشهر الـ 12 (الطلبات اليومية ومتوسط السلة)
                 </span>
               </div>
               {showMonths ? <ChevronUp className="w-5 h-5 text-stone-500" /> : <ChevronDown className="w-5 h-5 text-stone-500" />}
@@ -491,7 +547,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                 {months.map((m, i) => (
                   <div key={m.month} className="bg-[#FAF8F4] border border-[#E8E1D3] rounded-xl p-2.5 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-[#1E4327] text-white flex items-center justify-center font-black text-xs shrink-0">
-                      {m.month}
+                      ش{m.month}
                     </div>
                     <div className="flex-1 grid grid-cols-2 gap-1.5">
                       <label className="block">
@@ -521,11 +577,11 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             )}
           </div>
 
-          {/* ─── الجدول الشهري ─── */}
+          {/* ─── الجدول الشهري التفصيلي ─── */}
           <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl overflow-hidden shadow-xs">
             <div className="p-3 sm:p-4 bg-gradient-to-l from-[#C25E12] to-[#9C4505] text-white flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-[#F5D76E]" />
-              <span className="font-black text-sm">الجدول الشهري التفصيلي</span>
+              <span className="font-black text-sm">الجدول الشهري التفصيلي للأرباح والتكاليف</span>
             </div>
 
             <div className="overflow-x-auto">
@@ -536,13 +592,13 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                     <th className="p-2 text-center">الطلبات</th>
                     <th className="p-2 text-center">الإيرادات</th>
                     <th className="p-2 text-center">المصاريف</th>
-                    <th className="p-2 text-center">الربح</th>
-                    <th className="p-2 text-center">الهامش</th>
+                    <th className="p-2 text-center">الربح الصافي</th>
+                    <th className="p-2 text-center">هامش الربح</th>
                   </tr>
                 </thead>
                 <tbody>
                   {results.map((r) => (
-                    <tr key={r.month} className="border-b border-[#F0E9DA] hover:bg-[#FAF8F4]">
+                    <tr key={r.month} className="border-b border-[#F0E9DA] hover:bg-[#FAF8F4] transition-colors">
                       <td className="p-2 text-right">
                         <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#1E4327] text-white font-black text-[11px]">
                           {r.month}
@@ -559,7 +615,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                           <div className="w-12 h-1.5 bg-stone-200 rounded-full overflow-hidden">
                             <div
                               className={`h-full ${getMarginColor(r.margin)}`}
-                              style={{ width: `${Math.min(100, r.margin * 3)}%` }}
+                              style={{ width: `${Math.min(100, Math.max(0, r.margin * 3))}%` }}
                             />
                           </div>
                           <span className="text-[10px] sm:text-xs font-bold tabular-nums">
@@ -582,7 +638,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          {/* ─── المخططات ─── */}
+          {/* ─── المخططات البيانية ─── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
             <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl p-3 sm:p-4 shadow-xs">
               <h3 className="font-black text-sm text-[#1E4327] mb-3 flex items-center gap-2">
@@ -635,8 +691,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          <div className="text-center text-[11px] text-stone-500 py-3 border-t border-[#E8E1D3]">
-            💾 كل تعديل يُحفظ تلقائياً • 📥 استخدم زر التصدير لفتح الملف في Excel
+          <div className="text-center text-[11px] text-stone-500 py-2 border-t border-[#E8E1D3]">
+            💾 كل تعديل يُحفظ تلقائياً في المتصفح • 📥 استخدم زر التصدير لفتح الملف في Microsoft Excel أو Google Sheets
           </div>
         </div>
 
@@ -644,15 +700,15 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
         <div className="p-3 sm:p-4 bg-white border-t border-[#E8E1D3] flex items-center justify-between gap-2 shrink-0">
           <div className="text-[11px] text-stone-500 font-medium">
             {savedFlash ? (
-              <span className="text-emerald-600 font-bold">✓ تم الحفظ</span>
+              <span className="text-emerald-600 font-bold">✓ تم الحفظ التلقائي</span>
             ) : (
-              <>حفظ تلقائي</>
+              <>حفظ تلقائي مفعّل</>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-[#C25E12] hover:bg-[#9C4505] text-white text-xs font-black cursor-pointer active:scale-95 transition-all"
+            className="px-5 py-2 rounded-xl bg-[#C25E12] hover:bg-[#9C4505] text-white text-xs font-black cursor-pointer active:scale-95 transition-all shadow-sm"
           >
             إغلاق
           </button>
@@ -662,3 +718,5 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     </div>
   );
 };
+
+export default FinancePanel;

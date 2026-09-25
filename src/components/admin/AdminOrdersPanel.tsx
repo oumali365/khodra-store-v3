@@ -8,7 +8,7 @@ import {
   Phone, MapPin, MessageCircle, RefreshCw, ShoppingBag, ExternalLink,
   User, TrendingUp, Calendar, AlertCircle, Inbox, Copy, Trash2, Check,
   Printer, Sparkles, ShieldCheck, Bike, Navigation,
-  ChevronDown, ChevronUp, Send, Save, Percent,
+  ChevronDown, ChevronUp, Send, Save, Percent, BarChart3,
 } from 'lucide-react';
 import {
   fetchOrders,
@@ -24,6 +24,7 @@ import {
 import { OrderInvoiceModal } from './OrderInvoiceModal';
 import { OrderBordereauModal } from './OrderBordereauModal';
 import { AdminDeliveryFleetTab } from './AdminDeliveryFleetTab';
+import { FinancePanel } from './FinancePanel';
 import {
   DELIVERY_PROVIDERS,
   FEZ_DELIVERY_ZONES,
@@ -250,6 +251,13 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
   const [isDeleting, setIsDeleting] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState<DbOrder | null>(null);
   const [bordereauOrder, setBordereauOrder] = useState<DbOrder | null>(null);
+  const [isFinanceOpen, setIsFinanceOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenFinance = () => setIsFinanceOpen(true);
+    window.addEventListener('khodra_open_finance_panel', handleOpenFinance);
+    return () => window.removeEventListener('khodra_open_finance_panel', handleOpenFinance);
+  }, []);
 
   const [expandedDispatchId, setExpandedDispatchId] = useState<string | number | null>(null);
   const [dispatchDrafts, setDispatchDrafts] = useState<Record<string, DeliveryDispatchInfo>>({});
@@ -570,6 +578,14 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                   <span>مباشر</span>
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setIsFinanceOpen(true)}
+                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer border border-white/15"
+                title="اللوحة المالية والتوقعات"
+              >
+                <BarChart3 className="w-4 h-4 text-[#F5D76E]" />
+              </button>
               <button type="button" onClick={handleRefresh} disabled={isRefreshing}
                 className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 border border-white/15" title="تحديث">
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -614,6 +630,16 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
               <Bike className="w-4 h-4 text-[#C25E12]" />
               <span>مسارات التوصيل</span>
               <span className="px-2 py-0.5 rounded-full bg-[#C25E12]/15 text-[#C25E12] text-[10px]">inDrive + فاس</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsFinanceOpen(true)}
+              className="py-3 px-4 flex items-center justify-center gap-2 border-b-2 border-transparent text-[#787163] hover:text-[#C25E12] hover:bg-[#F7F4EC] transition-all cursor-pointer"
+              title="اللوحة المالية والتوقعات"
+            >
+              <BarChart3 className="w-4 h-4 text-[#C25E12]" />
+              <span>اللوحة المالية</span>
+              <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">نموذج العمل</span>
             </button>
           </div>
 
@@ -1057,6 +1083,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
 
       <OrderInvoiceModal order={invoiceOrder} isOpen={!!invoiceOrder} onClose={() => setInvoiceOrder(null)} />
       <OrderBordereauModal order={bordereauOrder} isOpen={!!bordereauOrder} onClose={() => setBordereauOrder(null)} />
+      <FinancePanel isOpen={isFinanceOpen} onClose={() => setIsFinanceOpen(false)} />
     </>
   );
 };
