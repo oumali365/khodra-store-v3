@@ -1,6 +1,6 @@
 // ============================================================
-// CustomerReviews.tsx – الإصدار 4.1 (مُصحَّح ومُكتمل)
-// Soft Delete + مزامنة PIN + تصميم متناسق
+// CustomerReviews.tsx – الإصدار 4.2 (بزر اللوحة المالية)
+// Soft Delete + مزامنة PIN + تصميم متناسق + Finance Panel
 // ============================================================
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   Quote,
   Sparkles,
+  BarChart3,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 import {
@@ -42,6 +43,7 @@ import {
   ChangePinModal,
   DeleteReviewModal,
   AdminErrorBoundary,
+  FinancePanel,
 } from './admin';
 
 export type { CustomerReview };
@@ -79,6 +81,9 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
 
   // ─── Orders panel ───
   const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
+
+  // ─── Finance panel ───
+  const [isFinancePanelOpen, setIsFinancePanelOpen] = useState(false);
 
   // ─── التمرير الأفقي ───
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
@@ -176,6 +181,14 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
       refreshOrders();
     } catch {}
   }, [refreshOrders]);
+
+  const handleOpenFinance = useCallback(() => {
+    setIsFinancePanelOpen(true);
+  }, []);
+
+  const handleCloseFinance = useCallback(() => {
+    setIsFinancePanelOpen(false);
+  }, []);
 
   useEffect(() => {
     const handleUpdated = () => {
@@ -423,6 +436,16 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                     {totalPending > 99 ? '99+' : totalPending}
                   </span>
                 )}
+              </button>
+
+              {/* ═══ زر اللوحة المالية (جديد) ═══ */}
+              <button
+                type="button"
+                onClick={handleOpenFinance}
+                className="relative px-3.5 py-2 rounded-xl bg-gradient-to-l from-[#C25E12] to-[#9C4505] hover:from-[#9C4505] hover:to-[#7A3405] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95 border-2 border-[#9C4505]"
+              >
+                <BarChart3 className="w-4 h-4 text-[#F5D76E]" />
+                <span>اللوحة المالية</span>
               </button>
 
               <button
@@ -674,6 +697,12 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           </React.Suspense>
         </AdminErrorBoundary>
       )}
+
+      {/* ════════ 💰 اللوحة المالية ════════ */}
+      <FinancePanel
+        isOpen={isFinancePanelOpen}
+        onClose={handleCloseFinance}
+      />
 
       {/* ════════ 🔔 إشعار الطلبات الجديدة ════════ */}
       {isAdmin && (
