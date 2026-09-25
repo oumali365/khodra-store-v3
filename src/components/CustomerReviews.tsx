@@ -41,6 +41,7 @@ import {
   PinModal,
   ChangePinModal,
   DeleteReviewModal,
+  AdminErrorBoundary,
 } from './admin';
 
 export type { CustomerReview };
@@ -51,7 +52,11 @@ const AdminOrdersPanel = React.lazy(() =>
 
 const INITIAL_VISIBLE_COUNT = 3;
 
-export const CustomerReviews: React.FC = () => {
+interface CustomerReviewsProps {
+  onOpenOrdersPanel?: () => void;
+}
+
+export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPanel }) => {
   const [reviews, setReviews] = useState<CustomerReview[]>(INITIAL_THREE_REVIEWS);
 
   const [showAllReviews, setShowAllReviews] = useState(false);
@@ -156,13 +161,30 @@ export const CustomerReviews: React.FC = () => {
   }, []);
 
   const handleOpenOrders = useCallback(() => {
-    setIsOrdersPanelOpen(true);
     markAsSeen();
-  }, [markAsSeen]);
+    if (onOpenOrdersPanel) {
+      onOpenOrdersPanel();
+    } else {
+      setIsOrdersPanelOpen(true);
+      window.dispatchEvent(new CustomEvent('khodra_open_admin_orders'));
+    }
+  }, [markAsSeen, onOpenOrdersPanel]);
 
   const handleCloseOrdersPanel = useCallback(() => {
     setIsOrdersPanelOpen(false);
-    refreshOrders();
+    try {
+      refreshOrders();
+    } catch {}
+  }, [refreshOrders]);
+
+  useEffect(() => {
+    const handleUpdated = () => {
+      try {
+        refreshOrders();
+      } catch {}
+    };
+    window.addEventListener('khodra_orders_updated', handleUpdated);
+    return () => window.removeEventListener('khodra_orders_updated', handleUpdated);
   }, [refreshOrders]);
 
   // ─── ✅ جلب التقييمات ───
@@ -641,14 +663,16 @@ export const CustomerReviews: React.FC = () => {
       />
 
       {/* ════════ لوحة إدارة الطلبات ════════ */}
-      {isOrdersPanelOpen && (
-        <React.Suspense fallback={null}>
-          <AdminOrdersPanel
-            isOpen={isOrdersPanelOpen}
-            onClose={handleCloseOrdersPanel}
-            onOrdersChange={() => refreshOrders()}
-          />
-        </React.Suspense>
+      {!onOpenOrdersPanel && isOrdersPanelOpen && (
+        <AdminErrorBoundary onClose={handleCloseOrdersPanel}>
+          <React.Suspense fallback={null}>
+            <AdminOrdersPanel
+              isOpen={isOrdersPanelOpen}
+              onClose={handleCloseOrdersPanel}
+              onOrdersChange={refreshOrders}
+            />
+          </React.Suspense>
+        </AdminErrorBoundary>
       )}
 
       {/* ════════ 🔔 إشعار الطلبات الجديدة ════════ */}

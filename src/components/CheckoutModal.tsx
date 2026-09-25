@@ -64,7 +64,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   // ─── الأخطاء وحالة الإرسال ───
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [highlightedField, setHighlightedField] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   // ─── أنظمة الحماية ومكافحة التكرار ───
   const [cooldown, setCooldown] = useState(() => checkOrderCooldown());
@@ -249,7 +251,50 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       return;
     }
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      // تحديد الخانة الأولى التي لم يملأها العميل
+      let firstErrorField: string | null = null;
+      const nameCheck = validateCustomerName(name);
+      const phoneCheck = validateMoroccanPhone(phone);
+      const cleanStreet = sanitizeInput(street);
+
+      if (!nameCheck.valid) {
+        firstErrorField = 'name';
+      } else if (!phoneCheck.valid) {
+        firstErrorField = 'phone';
+      } else if (!cleanStreet || cleanStreet.length < 3 || zoneDetection.status === 'rejected') {
+        firstErrorField = 'street';
+      } else if (!locationCoords || typeof locationCoords.lat !== 'number' || typeof locationCoords.lng !== 'number') {
+        firstErrorField = 'location';
+      } else if (!deliverySlot) {
+        firstErrorField = 'slot';
+      } else if (paymentMethod === 'bank' && !receiptFile) {
+        firstErrorField = 'receipt';
+      }
+
+      if (firstErrorField) {
+        setHighlightedField(firstErrorField);
+
+        // التوجيه التلقائي المباشر للبطاقة والخانة المحددة في الأعلى مع التركيز عليها
+        setTimeout(() => {
+          const targetId = `checkout-field-${firstErrorField}`;
+          const el = document.getElementById(targetId) || document.getElementById('checkout-address-card');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const input = el.querySelector('input, select, textarea, button') as HTMLElement | null;
+            if (input && typeof input.focus === 'function') {
+              input.focus();
+            }
+          }
+        }, 50);
+
+        // مسح التمييز البصري بعد 3.5 ثانية
+        setTimeout(() => {
+          setHighlightedField((curr) => (curr === firstErrorField ? null : curr));
+        }, 3500);
+      }
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -354,6 +399,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         {/* ════════ Scrollable Form Body ════════ */}
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 text-right"
         >
@@ -400,6 +446,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             currentMapsUrl={currentMapsUrl}
             errors={errors}
             zoneDetection={zoneDetection}
+            highlightedField={highlightedField}
           />
 
           {/* 3. طريقة الدفع وتفاصيل التحويل البنكي */}

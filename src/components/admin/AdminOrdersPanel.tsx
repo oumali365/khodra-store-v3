@@ -2,7 +2,7 @@
 // AdminOrdersPanel.tsx – الإصدار 4.0 (نظيف واحترافي)
 // نافذة إدارة الطلبات ومسارات التوصيل الفوري بفاس
 // ============================================================
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X, Package, Clock, CheckCircle2, XCircle, Search, Loader2,
   Phone, MapPin, MessageCircle, RefreshCw, ShoppingBag, ExternalLink,
@@ -255,52 +255,115 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
   const [dispatchDrafts, setDispatchDrafts] = useState<Record<string, DeliveryDispatchInfo>>({});
   const [savingDispatchId, setSavingDispatchId] = useState<string | number | null>(null);
 
+  // حماية من التكرار اللانهائي لإعادة التصير (Infinite Loop Prevention)
+  const lastNotifiedRef = useRef<{ total: number; pending: number } | null>(null);
+
   useEffect(() => {
     if (!onOrdersChange) return;
     const pending = orders.filter((o) => o.status === 'pending').length;
-    onOrdersChange({ total: orders.length, pending });
+    const total = orders.length;
+
+    if (
+      !lastNotifiedRef.current ||
+      lastNotifiedRef.current.total !== total ||
+      lastNotifiedRef.current.pending !== pending
+    ) {
+      lastNotifiedRef.current = { total, pending };
+      try {
+        onOrdersChange({ total, pending });
+      } catch (err) {
+        console.warn('onOrdersChange callback error:', err);
+      }
+    }
   }, [orders, onOrdersChange]);
 
   useEffect(() => {
     if (!isOpen) return;
     let mounted = true;
     setIsLoading(true);
-    fetchOrders().then((data) => {
-      if (mounted) { setOrders(data); setIsLoading(false); }
-    });
 
-    const channel = subscribeToOrdersChanges(
-      (payload) => {
-        if (!mounted) return;
-        if (payload.eventType === 'DELETE' || (payload.eventType === 'UPDATE' && payload.new?.is_deleted)) {
-          const removedId = payload.old?.id || payload.new?.id;
-          const removedCode = payload.old?.order_code || payload.new?.order_code;
-          setOrders((prev) =>
-            prev.filter((o) => String(o.id) !== String(removedId) && o.order_code !== removedCode)
-          );
-          return;
+    fetchOrders()
+      .then((data) => {
+        if (mounted) {
+          setOrders(data);
+          setIsLoading(false);
         }
-        fetchOrders().then((data) => { if (mounted) setOrders(data); });
-        if (payload.eventType === 'INSERT') {
-          playOrderChime();
-          const clientName = payload.new?.client_name || payload.new?.customer_name || 'زبون';
-          const code = payload.new?.order_code ? `(${payload.new.order_code})` : '';
-          showToast('success', `🔔 طلب جديد من ${clientName} ${code}`);
-        }
-      },
-      (status) => { if (mounted) setIsRealtimeActive(status === 'SUBSCRIBED'); }
-    );
+      })
+      .catch((err) => {
+        console.warn('Failed to fetch orders in AdminOrdersPanel:', err);
+        if (mounted) setIsLoading(false);
+      });
 
-    return () => { mounted = false; unsubscribeFromOrdersChanges(channel); };
+    let channel: any = null;
+    try {
+      channel = subscribeToOrdersChanges(
+        (payload) => {
+          if (!mounted) return;
+          if (payload.eventType === 'DELETE' || (payload.eventType === 'UPDATE' && payload.new?.is_deleted)) {
+            const removedId = payload.old?.id || payload.new?.id;
+            const removedCode = payload.old?.order_code || payload.new?.order_code;
+            setOrders((prev) =>
+              prev.filter((o) => String(o.id) !== String(removedId) && o.order_code !== removedCode)
+            );
+            return;
+          }
+          fetchOrders().then((data) => { if (mounted) setOrders(data); }).catch(() => {});
+          if (payload.eventType === 'INSERT') {
+            playOrderChime();
+            const clientName = payload.new?.client_name || payload.new?.customer_name || 'زبون';
+            const code = payload.new?.order_code ? `(${payload.new.order_code})` : '';
+            showToast('success', `🔔 طلب جديد من ${clientName} ${code}`);
+          }
+        },
+        (status) => { if (mounted) setIsRealtimeActive(status === 'SUBSCRIBED'); }
+      );
+    } catch (err) {
+      console.warn('Realtime subscription error in AdminOrdersPanel:', err);
+    }
+
+    return () => {
+      mounted = false;
+      if (channel) {
+        try {
+          unsubscribeFromOrdersChanges(channel);
+        } catch {}
+      }
+    };
   }, [isOpen]);
 
+  // تأمين التمرير للصفحة الرئيسية ومنع تجميدها بعد الخروج
   useEffect(() => {
     if (isOpen) {
-      const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
+      return () => {
+        document.body.style.overflow = '';
+      };
     }
   }, [isOpen]);
+
+  // إغلاق النوافذ الفرعية أو اللوحة عند الضغط على Escape
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (deleteConfirmOrder) {
+          setDeleteConfirmOrder(null);
+        } else if (invoiceOrder) {
+          setInvoiceOrder(null);
+        } else if (bordereauOrder) {
+          setBordereauOrder(null);
+        } else if (expandedDispatchId !== null) {
+          setExpandedDispatchId(null);
+        } else {
+          onClose();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, deleteConfirmOrder, invoiceOrder, bordereauOrder, expandedDispatchId, onClose]);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });

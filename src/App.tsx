@@ -35,6 +35,10 @@ const ExitConfirmationModal = React.lazy(() =>
 const SortFilterModal = React.lazy(() =>
   import('./components/SortFilterModal').then((m) => ({ default: m.SortFilterModal }))
 );
+const AdminOrdersPanel = React.lazy(() =>
+  import('./components/admin/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
+);
+import { AdminErrorBoundary } from './components/admin';
 
 // ─── تحميل مؤجل للصفحات الإضافية والخريطة ───
 const InfoPages = React.lazy(() =>
@@ -146,6 +150,7 @@ export default function App() {
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
   const [selectedFamilyBox, setSelectedFamilyBox] = useState<FamilyBox | null>(null);
   const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
+  const [isAdminOrdersOpen, setIsAdminOrdersOpen] = useState(false);
   const [isAppExited, setIsAppExited] = useState(false);
   const [isInstallBannerVisible, setIsInstallBannerVisible] = useState<boolean>(() => !checkIfAlreadyInstalledOrDownloaded());
 
@@ -159,6 +164,7 @@ export default function App() {
     isSortModalOpen: false,
     selectedFamilyBox: null as FamilyBox | null,
     isExitConfirmOpen: false,
+    isAdminOrdersOpen: false,
   });
 
   const searchResultsRef = useRef<HTMLDivElement>(null);
@@ -188,6 +194,19 @@ export default function App() {
     }
   }, [cart]);
 
+  // ─── استقبال أحداث فتح وإغلاق لوحة الإدارة المركزية ───
+  useEffect(() => {
+    const handleOpenAdmin = () => setIsAdminOrdersOpen(true);
+    const handleCloseAdmin = () => setIsAdminOrdersOpen(false);
+
+    window.addEventListener('khodra_open_admin_orders', handleOpenAdmin);
+    window.addEventListener('khodra_close_admin_orders', handleCloseAdmin);
+    return () => {
+      window.removeEventListener('khodra_open_admin_orders', handleOpenAdmin);
+      window.removeEventListener('khodra_close_admin_orders', handleCloseAdmin);
+    };
+  }, []);
+
   // ─── Handle browser / mobile hardware back button ───
   useEffect(() => {
     // إرسال حالة رئيسية للتاريخ لضمان التقاط زر الرجوع
@@ -195,6 +214,13 @@ export default function App() {
     window.history.pushState({ page: 'main' }, '');
 
     const handlePopState = () => {
+      // 0. إذا كانت لوحة إدارة الطلبات مفتوحة: زر الرجوع يغلقها فقط ويعود للمتجر بأمان بدون أي خروج من التطبيق!
+      if (isAdminOrdersOpen) {
+        setIsAdminOrdersOpen(false);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
       // 1. إذا كانت نافذة تأكيد الخروج مفتوحة: زر الرجوع يلغيها ويبقي العميل في المتجر
       if (isExitConfirmOpen) {
         setIsExitConfirmOpen(false);
@@ -260,6 +286,7 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [
+    isAdminOrdersOpen,
     isExitConfirmOpen,
     selectedFamilyBox,
     isCheckoutOpen,
@@ -281,7 +308,8 @@ export default function App() {
       !!activeInfoPage ||
       isSortModalOpen ||
       !!selectedFamilyBox ||
-      isExitConfirmOpen;
+      isExitConfirmOpen ||
+      isAdminOrdersOpen;
 
     const prevHasOpen =
       prev.isMenuOpen ||
@@ -291,7 +319,8 @@ export default function App() {
       !!prev.activeInfoPage ||
       prev.isSortModalOpen ||
       !!prev.selectedFamilyBox ||
-      prev.isExitConfirmOpen;
+      prev.isExitConfirmOpen ||
+      prev.isAdminOrdersOpen;
 
     if (currentHasOpen && !prevHasOpen) {
       window.history.pushState({ page: 'modal' }, '');
@@ -306,6 +335,7 @@ export default function App() {
       isSortModalOpen,
       selectedFamilyBox,
       isExitConfirmOpen,
+      isAdminOrdersOpen,
     };
   }, [
     isMenuOpen,
@@ -316,6 +346,7 @@ export default function App() {
     isSortModalOpen,
     selectedFamilyBox,
     isExitConfirmOpen,
+    isAdminOrdersOpen,
   ]);
 
   // ─── حماية السلة عند محاولة مغادرة الصفحة أو إغلاق التبويب (beforeunload) ───
@@ -742,13 +773,26 @@ export default function App() {
             </MapErrorBoundary>
 
             {/* ─── Customer Reviews ─── */}
-            <CustomerReviews />
+            <CustomerReviews onOpenOrdersPanel={() => setIsAdminOrdersOpen(true)} />
           </>
         )}
       </main>
 
       {/* ═══════ Lazy Loaded Modals ═══════ */}
       <Suspense fallback={null}>
+        {/* ─── لوحة إدارة طلبات المتجر للمدير ─── */}
+        {isAdminOrdersOpen && (
+          <AdminErrorBoundary onClose={() => setIsAdminOrdersOpen(false)}>
+            <AdminOrdersPanel
+              isOpen={isAdminOrdersOpen}
+              onClose={() => {
+                setIsAdminOrdersOpen(false);
+                window.dispatchEvent(new CustomEvent('khodra_orders_updated'));
+              }}
+            />
+          </AdminErrorBoundary>
+        )}
+
         {isCartOpen && (
           <CartDrawer
             isOpen={isCartOpen}

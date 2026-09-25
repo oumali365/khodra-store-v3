@@ -1,7 +1,6 @@
 // ============================================================
-// الملف: Header.tsx – الإصدار 4.1
+// الملف: Header.tsx – الإصدار 4.0
 // رأس المتجر وقائمة منسدلة داخلية لفئات المتجر بتصميم أنيق ومحسن
-// تحسينات: إغلاق تلقائي لفئات المتجر، توسيط أفضل، تصميم أكثر احترافية
 // ============================================================
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -47,8 +46,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenExitModal,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
-  // ✅ تم التعديل: القائمة المنسدلة للفئات مغلقة افتراضياً
-  const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
+  // حالة القائمة المنسدلة الداخلية لفئات المتجر (مفتوحة افتراضياً أو قابلة للطي)
+  const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(true);
 
   // إغلاق المودال بزر الهروب Escape
   useEffect(() => {
@@ -60,13 +59,6 @@ export const Header: React.FC<HeaderProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMenuOpen, onCloseMenu]);
-
-  // ✅ إعادة ضبط حالة القائمة المنسدلة عند فتح/إغلاق القائمة الجانبية
-  useEffect(() => {
-    if (!isMenuOpen) {
-      setIsCategoriesDropdownOpen(false);
-    }
-  }, [isMenuOpen]);
 
   // ─── التمرير إلى صناديق العائلة ───
   const handleScrollToBundles = () => {
@@ -297,7 +289,10 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                     <div className="min-w-0">
                       <span className="text-[13px] font-black text-[#112616] font-['Almarai'] block leading-tight">
-                        اكتشف فئات المتجر 
+                        اكتشف فئات متجر خضرة
+                      </span>
+                      <span className="text-[11px] text-[#6B6455] font-medium block mt-0.5">
+                        عرض فئات المتجر
                       </span>
                     </div>
                   </div>
@@ -379,7 +374,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               </div>
 
-              {/* ════════ 3. روابط مهمة ════════ */}
+              {/* ════════ 3. روابط مهمة (ظاهرة وغير مطبقة كميزة منسدلة) ════════ */}
               <div className="rounded-2xl bg-white border border-[#E8E1D3] p-3 shadow-xs">
                 <div className="text-[11px] font-black text-[#787163] uppercase tracking-wider mb-2 font-['Almarai'] select-none px-1 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#163920]" />
@@ -474,6 +469,7 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                       <span>الخروج من التطبيق</span>
                     </div>
+                    <span className="text-[10px] text-stone-400">إغلاق الجلسة</span>
                   </button>
                 </div>
               )}

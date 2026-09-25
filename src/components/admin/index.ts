@@ -3,6 +3,7 @@
 // تصدير مركزي لجميع ملفات ومكونات لوحة تحكم وإدارة المدير
 // ============================================================
 export { AdminOrdersPanel } from './AdminOrdersPanel';
+export { AdminErrorBoundary } from './AdminErrorBoundary';
 export { AdminNotificationToast } from './AdminNotificationToast';
 export {
   PinModal,
