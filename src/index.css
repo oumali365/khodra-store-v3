@@ -57,20 +57,4 @@
   .hide-map-labels .map-location-label {
     display: none !important;
   }
-
-  /* تأثير لفت الانتباه وتوجيه العميل للخانة غير المكتملة في نموذج الطلب */
-  @keyframes attentionPulse {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    20%, 60% {
-      transform: translateY(-4px);
-    }
-    40%, 80% {
-      transform: translateY(2px);
-    }
-  }
-  .animate-attention {
-    animation: attentionPulse 0.5s ease-in-out;
-  }
 }

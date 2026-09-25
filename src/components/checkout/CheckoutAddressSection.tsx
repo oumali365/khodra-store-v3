@@ -33,7 +33,6 @@ interface CheckoutAddressSectionProps {
   currentMapsUrl: string;
   errors: Record<string, string>;
   zoneDetection?: AddressDetectionResult;
-  highlightedField?: string | null;
 }
 
 export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
@@ -54,16 +53,11 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
   currentMapsUrl,
   errors,
   zoneDetection,
-  highlightedField,
 }) => {
   return (
     <div
       id="checkout-address-card"
-      className={`bg-white border rounded-2xl p-4 sm:p-5 shadow-sm transition-all duration-300 ${
-        highlightedField
-          ? 'border-amber-400 ring-2 ring-amber-200'
-          : 'border-[#E8E1D3]'
-      }`}
+      className="bg-white border border-[#E8E1D3] rounded-2xl p-4 sm:p-5 shadow-sm"
     >
       <div className="flex items-center gap-2.5 pb-3 border-b border-[#F0E9DA] mb-4">
         <div className="w-8 h-8 rounded-lg bg-[#C25E12]/10 flex items-center justify-center">
@@ -76,31 +70,17 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
 
       <div className="space-y-3.5">
         {/* الاسم الكامل */}
-        <div
-          id="checkout-field-name"
-          className={`transition-all duration-300 rounded-xl ${
-            highlightedField === 'name'
-              ? 'ring-4 ring-amber-400/80 bg-amber-50/80 p-2.5 -m-2.5 animate-attention'
-              : ''
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs sm:text-sm font-black text-[#112616]">
-              الاسم الكامل <span className="text-red-500">*</span>
-            </label>
-            {highlightedField === 'name' && (
-              <span className="text-[11px] font-black text-amber-900 bg-amber-200/90 px-2 py-0.5 rounded-md animate-pulse">
-                👈 يرجى كتابة اسمك هنا
-              </span>
-            )}
-          </div>
+        <div id="checkout-field-name">
+          <label className="block text-xs sm:text-sm font-black text-[#112616] mb-1.5">
+            الاسم الكامل <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
             placeholder="مثال: يوسف الإدريسي"
             className={`w-full px-4 py-3 rounded-xl border text-sm text-[#112616] bg-[#F7F4EC] focus:bg-white focus:outline-none transition-all placeholder:text-[#787163] ${
-              highlightedField === 'name' || errors.name
+              errors.name
                 ? 'border-red-500 ring-2 ring-red-100'
                 : 'border-[#E8E1D3] focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/15'
             }`}
@@ -114,24 +94,10 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
         </div>
 
         {/* رقم الهاتف */}
-        <div
-          id="checkout-field-phone"
-          className={`transition-all duration-300 rounded-xl ${
-            highlightedField === 'phone'
-              ? 'ring-4 ring-amber-400/80 bg-amber-50/80 p-2.5 -m-2.5 animate-attention'
-              : ''
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs sm:text-sm font-black text-[#112616]">
-              رقم الهاتف <span className="text-red-500">*</span>
-            </label>
-            {highlightedField === 'phone' && (
-              <span className="text-[11px] font-black text-amber-900 bg-amber-200/90 px-2 py-0.5 rounded-md animate-pulse">
-                👈 يرجى إدخال رقم الهاتف هنا
-              </span>
-            )}
-          </div>
+        <div id="checkout-field-phone">
+          <label className="block text-xs sm:text-sm font-black text-[#112616] mb-1.5">
+            رقم الهاتف <span className="text-red-500">*</span>
+          </label>
           <input
             type="tel"
             value={phone}
@@ -139,7 +105,7 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
             placeholder="0612345678"
             dir="ltr"
             className={`w-full px-4 py-3 rounded-xl border text-sm text-[#112616] bg-[#F7F4EC] focus:bg-white focus:outline-none transition-all placeholder:text-[#787163] ${
-              highlightedField === 'phone' || errors.phone
+              errors.phone
                 ? 'border-red-500 ring-2 ring-red-100'
                 : 'border-[#E8E1D3] focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/15'
             }`}
@@ -153,31 +119,17 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
         </div>
 
         {/* الشارع / الحي */}
-        <div
-          id="checkout-field-street"
-          className={`transition-all duration-300 rounded-xl ${
-            highlightedField === 'street'
-              ? 'ring-4 ring-amber-400/80 bg-amber-50/80 p-2.5 -m-2.5 animate-attention'
-              : ''
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs sm:text-sm font-black text-[#112616]">
-              الشارع / الزنقة / الحي <span className="text-red-500">*</span>
-            </label>
-            {highlightedField === 'street' && (
-              <span className="text-[11px] font-black text-amber-900 bg-amber-200/90 px-2 py-0.5 rounded-md animate-pulse">
-                👈 يرجى كتابة عنوان التوصيل هنا
-              </span>
-            )}
-          </div>
+        <div id="checkout-field-street">
+          <label className="block text-xs sm:text-sm font-black text-[#112616] mb-1.5">
+            الشارع / الزنقة / الحي <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             value={street}
             onChange={(e) => onStreetChange(e.target.value)}
             placeholder="مثال: حي النرجس، عمارة 5 / طريق إيموزار..."
             className={`w-full px-4 py-3 rounded-xl border text-sm text-[#112616] bg-[#F7F4EC] focus:bg-white focus:outline-none transition-all placeholder:text-[#787163] ${
-              highlightedField === 'street' || zoneDetection?.status === 'rejected' || errors.street
+              zoneDetection?.status === 'rejected' || errors.street
                 ? 'border-red-500 ring-2 ring-red-100'
                 : zoneDetection?.status === 'accepted'
                 ? 'border-emerald-500 ring-2 ring-emerald-100'
@@ -267,26 +219,12 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
         </div>
 
         {/* فترات التوصيل (مدمجة مباشرة داخل البطاقة فوق زر الموقع) */}
-        <div
-          id="checkout-field-slot"
-          className={`pt-2 pb-1 border-t border-[#F0E9DA] transition-all duration-300 rounded-xl ${
-            highlightedField === 'deliverySlot' || highlightedField === 'slot'
-              ? 'ring-4 ring-amber-400/80 bg-amber-50/80 p-2.5 -m-2.5 animate-attention'
-              : ''
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#C25E12]" />
-              <label className="text-xs sm:text-sm font-black text-[#112616]">
-                وقت التسليم المفضل <span className="text-red-500">*</span>
-              </label>
-            </div>
-            {(highlightedField === 'deliverySlot' || highlightedField === 'slot') && (
-              <span className="text-[11px] font-black text-amber-900 bg-amber-200/90 px-2 py-0.5 rounded-md animate-pulse">
-                👈 اختر فترة التوصيل
-              </span>
-            )}
+        <div id="checkout-field-slot" className="pt-2 pb-1 border-t border-[#F0E9DA]">
+          <div className="flex items-center gap-2 mb-2.5">
+            <Clock className="w-4 h-4 text-[#C25E12]" />
+            <label className="text-xs sm:text-sm font-black text-[#112616]">
+              وقت التسليم المفضل <span className="text-red-500">*</span>
+            </label>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -340,14 +278,7 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
         </div>
 
         {/* زر تحديد الموقع الحالي (إلزامي) */}
-        <div
-          id="checkout-field-location"
-          className={`pt-2 border-t border-[#F0E9DA] transition-all duration-300 rounded-xl ${
-            highlightedField === 'location'
-              ? 'ring-4 ring-amber-400/80 bg-amber-50/80 p-2.5 -m-2.5 animate-attention'
-              : ''
-          }`}
-        >
+        <div id="checkout-field-location" className="pt-2 border-t border-[#F0E9DA]">
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-1.5">
               <LocateFixed className="w-4 h-4 text-[#C25E12]" />
@@ -355,11 +286,6 @@ export const CheckoutAddressSection: React.FC<CheckoutAddressSectionProps> = ({
                 تحديد الموقع الجغرافي (GPS) <span className="text-red-500">*</span>
               </label>
             </div>
-            {highlightedField === 'location' && !locationCoords && (
-              <span className="text-[11px] font-black text-amber-900 bg-amber-200/90 px-2 py-0.5 rounded-md animate-pulse">
-                👈 اضغط هنا لتحديد موقعك
-              </span>
-            )}
             {locationCoords && (
               <span className="text-[11px] font-black text-emerald-700 bg-emerald-100/90 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                 <Check className="w-3.5 h-3.5 stroke-[2.5]" />

@@ -64,7 +64,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   // ─── الأخطاء وحالة الإرسال ───
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [highlightedField, setHighlightedField] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
 
@@ -252,7 +251,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
 
     if (!validateForm()) {
-      // تحديد الخانة الأولى التي لم يملأها العميل
+      // توجيه العميل تلقائياً إلى الخانة أو البطاقة غير المكتملة في الأعلى بسلاسة وبدون فتح لوحة المفاتيح
       let firstErrorField: string | null = null;
       const nameCheck = validateCustomerName(name);
       const phoneCheck = validateMoroccanPhone(phone);
@@ -273,25 +272,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
 
       if (firstErrorField) {
-        setHighlightedField(firstErrorField);
-
-        // التوجيه التلقائي المباشر للبطاقة والخانة المحددة في الأعلى مع التركيز عليها
         setTimeout(() => {
           const targetId = `checkout-field-${firstErrorField}`;
           const el = document.getElementById(targetId) || document.getElementById('checkout-address-card');
           if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            const input = el.querySelector('input, select, textarea, button') as HTMLElement | null;
-            if (input && typeof input.focus === 'function') {
-              input.focus();
-            }
           }
         }, 50);
-
-        // مسح التمييز البصري بعد 3.5 ثانية
-        setTimeout(() => {
-          setHighlightedField((curr) => (curr === firstErrorField ? null : curr));
-        }, 3500);
       }
       return;
     }
@@ -446,7 +433,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             currentMapsUrl={currentMapsUrl}
             errors={errors}
             zoneDetection={zoneDetection}
-            highlightedField={highlightedField}
           />
 
           {/* 3. طريقة الدفع وتفاصيل التحويل البنكي */}
