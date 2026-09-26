@@ -1,7 +1,7 @@
 // ============================================================
-// الملف: Hero.tsx – الإصدار 4.6
+// الملف: Hero.tsx – الإصدار 4.7
 // بطاقات الهيرو مع تمرير يدوي أفقي
-// تحسينات: Ripple effect + حفظ/استعادة البطاقة الأخيرة
+// تحسينات: توسيط مثالي + snap-mandatory + تبديل برتقالي/ذهبي
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -23,7 +23,6 @@ export const HERO_PUBLIC_IMAGES: Record<string, { primary: string; fallback: str
   },
 };
 
-// ✅ مفتاح التخزين المحلي
 const STORAGE_KEY = 'hero:lastActiveSlideIndex';
 
 const HeroImageDisplay: React.FC<{
@@ -69,7 +68,6 @@ const HeroImageDisplay: React.FC<{
   );
 };
 
-// ✅ زر بموجة Ripple (يُعاد استخدامه لكلا الزرين)
 const RippleButton: React.FC<{
   onClick?: () => void;
   className: string;
@@ -149,7 +147,6 @@ const HERO_SLIDES = [
 const PARALLAX_MAX = 22;
 const FOCUS_PULSE_MS = 700;
 
-// ✅ قراءة القيمة المحفوظة بأمان
 const readStoredIndex = (): number => {
   if (typeof window === 'undefined') return 0;
   try {
@@ -167,7 +164,6 @@ export const Hero: React.FC<HeroProps> = ({
   onScrollToCatalog,
   onScrollToBundles,
 }) => {
-  // ✅ نبدأ من البطاقة المحفوظة
   const initialIndex = readStoredIndex();
   const [activeSlideIndex, setActiveSlideIndex] = useState(initialIndex);
   const [offsets, setOffsets] = useState<number[]>(() => HERO_SLIDES.map(() => 0));
@@ -179,11 +175,15 @@ export const Hero: React.FC<HeroProps> = ({
   const prevActiveRef = useRef(initialIndex);
   const didInitialRestoreRef = useRef(false);
 
+  // ✅ حساب فوري للبطاقة الأقرب للمركز (باستخدام مركز الـ snapport)
   const updateLayout = () => {
     if (!scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
     const cards = container.querySelectorAll('article');
+    if (!cards.length) return;
+
     const containerRect = container.getBoundingClientRect();
+    // ✅ المركز الفعلي للـ viewport داخل الحاوية (وليس منتصف الحاوية)
     const containerCenter = containerRect.left + containerRect.width / 2;
 
     let closestIdx = 0;
@@ -214,12 +214,10 @@ export const Hero: React.FC<HeroProps> = ({
     scrollRaf.current = requestAnimationFrame(updateLayout);
   };
 
-  // ✅ حفظ البطاقة النشطة + تشغيل نبضة التركيز
   useEffect(() => {
     if (prevActiveRef.current === activeSlideIndex) return;
     prevActiveRef.current = activeSlideIndex;
 
-    // حفظ في localStorage
     try {
       window.localStorage.setItem(STORAGE_KEY, String(activeSlideIndex));
     } catch {
@@ -233,13 +231,11 @@ export const Hero: React.FC<HeroProps> = ({
     }, FOCUS_PULSE_MS);
   }, [activeSlideIndex]);
 
-  // ✅ عند التركيب: استعادة البطاقة المحفوظة ثم حساب الإزاحات
   useEffect(() => {
     if (!didInitialRestoreRef.current && scrollContainerRef.current) {
       didInitialRestoreRef.current = true;
       const idx = readStoredIndex();
       if (idx > 0) {
-        // تمرير فوري (بدون smooth) للبطاقة المحفوظة
         const container = scrollContainerRef.current;
         const cards = container.querySelectorAll('article');
         const card = cards[idx] as HTMLElement | undefined;
@@ -252,7 +248,6 @@ export const Hero: React.FC<HeroProps> = ({
       }
     }
 
-    // حساب أولي بعد الاستعادة
     requestAnimationFrame(updateLayout);
 
     return () => {
@@ -285,7 +280,7 @@ export const Hero: React.FC<HeroProps> = ({
       className="relative overflow-hidden pt-3 pb-5 sm:pt-6 sm:pb-8 px-3 sm:px-6 lg:px-8"
       aria-label="الواجهة الرئيسية للمتجر"
     >
-      {/* ════════ الأنماط الحركية ════════ */}
+      {/* ════════ الأنماط الحركية + الـ Spacer ════════ */}
       <style>{`
         @keyframes heroFadeInRight {
           0%   { opacity: 0; transform: translateX(60px) scale(0.97); }
@@ -305,7 +300,6 @@ export const Hero: React.FC<HeroProps> = ({
           animation: heroFocusPulse ${FOCUS_PULSE_MS}ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ✅ موجة Ripple */
         @keyframes heroRippleExpand {
           0%   { transform: scale(0); opacity: 0.55; }
           100% { transform: scale(2.6); opacity: 0; }
@@ -319,6 +313,20 @@ export const Hero: React.FC<HeroProps> = ({
           will-change: transform, opacity;
         }
 
+        /* ✅ Spacer ذكي: يجبر أول/آخر بطاقة على التوسيط عند snap-center */
+        .hero-spacer {
+          flex-shrink: 0;
+          width: calc(50% - 44vw - 1rem); /* container/2 - card/2 - gap */
+        }
+        @media (min-width: 640px) {
+          .hero-spacer {
+            width: calc(50% - 190px - 1.5rem);
+          }
+        }
+        @media (min-width: 768px) {
+          .hero-spacer { display: none; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .hero-fade-in-right,
           .hero-focus-pulse,
@@ -327,12 +335,17 @@ export const Hero: React.FC<HeroProps> = ({
       `}</style>
 
       <div className="relative max-w-3xl mx-auto">
+        {/* ─── حاوية البطاقات ─── */}
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex flex-row md:grid md:grid-cols-2 gap-4 sm:gap-6 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 pt-2 px-2 sm:px-0 snap-x snap-proximity overscroll-x-contain no-scrollbar"
+          // ✅ snap-mandatory للالتقاط القوي + إزالة padding جانبي (الـ spacer يوفره)
+          className="flex flex-row md:grid md:grid-cols-2 gap-4 sm:gap-6 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 pt-2 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
+          {/* ✅ Spacer أيسر (جوال فقط) */}
+          <div className="hero-spacer" aria-hidden="true" />
+
           {HERO_SLIDES.map((slide, index) => {
             const isActive = activeSlideIndex === index;
             const isPulsing = pulsingIndex === index;
@@ -360,13 +373,15 @@ export const Hero: React.FC<HeroProps> = ({
 
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10]/95 via-[#0B1C10]/70 to-[#0B1C10]/45 pointer-events-none" />
 
-                <div className="absolute -top-20 -right-20 w-60 h-60 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
+                {/* 🟠 دوائر ضوئية — بعد التبديل: العلوية برتقالية، السفلية خضراء */}
+                <div className="absolute -top-20 -right-20 w-60 h-60 bg-[#C25E12]/18 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-[#2D6A3F]/45 rounded-full blur-3xl pointer-events-none" />
 
-                {/* ════════ شارة علوية (برتقالية) ════════ */}
+                {/* ════════ شارة علوية (ذهبية الآن) ════════ */}
                 <div className="relative z-10 flex items-center justify-center">
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#C25E12] to-[#9C4505] backdrop-blur-md border border-[#EAB308]/40 text-white text-[11px] sm:text-xs font-black tracking-wide shadow-lg shadow-[#C25E12]/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#EAB308] animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#EAB308] to-[#CA8A04] backdrop-blur-md border border-[#C25E12]/50 text-[#1A3D24] text-[11px] sm:text-xs font-black tracking-wide shadow-lg shadow-[#EAB308]/35">
+                    {/* 🟠 نقطة برتقالية نابضة */}
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#C25E12] animate-pulse" />
                     <span>{slide.badge}</span>
                   </span>
                 </div>
@@ -375,9 +390,11 @@ export const Hero: React.FC<HeroProps> = ({
                 <div className="relative z-10 flex flex-col items-center justify-center flex-1 mx-auto py-4 text-center">
                   <h1 className="text-[24px] sm:text-[28px] lg:text-[30px] font-black text-white leading-[1.25] tracking-tight mb-4 drop-shadow-lg">
                     {slide.title}{' '}
-                    <span className="relative inline-block text-[#EAB308]">
+                    {/* 🟠 النص المميز برتقالي الآن */}
+                    <span className="relative inline-block text-[#F59E0B]">
                       {slide.highlight}
-                      <span className="absolute -bottom-1 left-0 right-0 h-[3px] bg-[#EAB308]/70 rounded-full" />
+                      {/* 🟠 تسطير برتقالي */}
+                      <span className="absolute -bottom-1 left-0 right-0 h-[3px] bg-[#C25E12]/80 rounded-full" />
                     </span>
                   </h1>
 
@@ -387,7 +404,6 @@ export const Hero: React.FC<HeroProps> = ({
 
                   <div className="flex items-center justify-center w-full">
                     {slide.primaryCTA === 'catalog' ? (
-                      // ✅ زر Ripple - تسوق الآن
                       <RippleButton
                         id="hero-shop-now-btn"
                         onClick={onScrollToCatalog}
@@ -400,7 +416,6 @@ export const Hero: React.FC<HeroProps> = ({
                       </RippleButton>
                     ) : (
                       onScrollToBundles && (
-                        // ✅ زر Ripple - اكتشف الآن
                         <RippleButton
                           onClick={onScrollToBundles}
                           rippleColor="rgba(45,106,63,0.30)"
@@ -425,13 +440,15 @@ export const Hero: React.FC<HeroProps> = ({
                   </div>
                 </div>
 
-                {/* ✅ نبضة التركيز */}
                 {isPulsing && (
                   <div className="hero-focus-pulse absolute inset-0 rounded-3xl bg-white/8 pointer-events-none" />
                 )}
               </article>
             );
           })}
+
+          {/* ✅ Spacer أيمن (جوال فقط) */}
+          <div className="hero-spacer" aria-hidden="true" />
         </div>
 
         {/* ─── نقاط التنقل ─── */}
