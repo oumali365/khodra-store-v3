@@ -428,29 +428,6 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               </div>
 
-              {/* ─── خدمة العملاء / واتساب السريع داخل القائمة ─── */}
-              <div className="rounded-2xl bg-emerald-50/70 border border-emerald-200/70 p-3 text-right">
-                <a
-                  href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between gap-2 text-[#145A25] font-bold text-xs font-['Tajawal'] cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-[#25D366] text-white flex items-center justify-center shadow-2xs">
-                      <Phone className="w-3.5 h-3.5 fill-current" />
-                    </div>
-                    <div>
-                      <span className="block text-xs font-black text-[#145A25] font-['Almarai']">خدمة العملاء واتساب</span>
-                      <span className="block text-[10px] text-[#2E7D32] font-semibold" dir="ltr">
-                        {STORE_CONFIG.whatsappNumber}
-                      </span>
-                    </div>
-                  </div>
-                  <ExternalLink className="w-3.5 h-3.5 text-[#2E7D32]/70" />
-                </a>
-              </div>
-
               {/* ─── خيار الخروج من التطبيق ─── */}
               {onOpenExitModal && (
                 <div className="pt-0.5">

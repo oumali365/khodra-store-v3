@@ -1,7 +1,7 @@
 import { Product, ProductCategory } from '../types';
 
 export const CATEGORIES_CONFIG: { id: ProductCategory; name: string; icon: string; description: string }[] = [
-  { id: 'all', name: 'الكل', icon: '🌟', description: 'جميع المنتجات المتوفرة بجودة عالية وطراوة يومية مضمونة.' },
+  { id: 'all', name: 'جميع المنتجات', icon: '🌟', description: 'جميع المنتجات المتوفرة بجودة عالية وطراوة يومية مضمونة.' },
   { id: 'veg', name: 'خضروات', icon: '🥬', description: 'خضروات طازجة منتقاة بعناية من الحقول المغربية تصلكم مباشرة.' },
   { id: 'fruit', name: 'فواكه', icon: '🍎', description: 'أشهى الفواكه الموسمية الغنية بالفيتامينات والانتعاش الطبيعي.' },
   { id: 'dairy', name: 'ألبان وأجبان', icon: '🥛', description: 'ألبان مبسترة، جبن بلدي، بيض حر، وزبدة بلدية أصلية.' },

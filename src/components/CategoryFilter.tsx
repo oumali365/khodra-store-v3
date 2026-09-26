@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 4.4
-// تقليل طفيف للهوامش الداخلية والخارجية للفئات
+// الملف: CategoryFilter.tsx – الإصدار 5.0
+// تكبير بطاقات الفئات بنسبة 10% + تمرير أوتوماتيكي للفئة المحددة وإبرازها + حذف تعريف الفئات
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -29,8 +29,7 @@ const CategoryCardButton: React.FC<{
   const [isLoaded, setIsLoaded] = useState(false);
 
   const handleImgError = () => {
-    // إذا فشلت الصورة الأولى وكان هناك امتداد بديل (مثلاً webp أو jpg)، نحاول تحميله
-    if (currentSrc === imageConfig?.primary && imageConfig?.fallback) {
+    if (currentSrc === imageConfig?.primary && imageConfig?.fallback && currentSrc !== imageConfig.fallback) {
       setCurrentSrc(imageConfig.fallback);
     } else {
       setHasError(true);
@@ -43,11 +42,12 @@ const CategoryCardButton: React.FC<{
     <button
       type="button"
       role="tab"
+      data-category-id={category.id}
       aria-selected={isSelected}
       onClick={onSelect}
-      className={`relative flex flex-col justify-end p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border-2 transition-all duration-300 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-[0.98] shrink-0 min-w-[136px] sm:min-w-[150px] md:min-w-0 min-h-[178px] sm:min-h-[195px] md:min-h-[194px] lg:min-h-[212px] shadow-sm hover:shadow-xl ${
+      className={`relative flex flex-col justify-end p-4 sm:p-4.5 rounded-2xl sm:rounded-3xl border-2 transition-all duration-300 cursor-pointer overflow-hidden group touch-manipulation select-none active:scale-[0.98] shrink-0 min-w-[150px] sm:min-w-[165px] md:min-w-0 min-h-[196px] sm:min-h-[215px] md:min-h-[214px] lg:min-h-[233px] shadow-sm hover:shadow-xl ${
         isSelected
-          ? 'border-[#F5D76E] shadow-xl ring-2 ring-[#F5D76E]/40 scale-[1.02]'
+          ? 'border-[#F5D76E] shadow-xl ring-4 ring-[#F5D76E]/50 scale-[1.03]'
           : 'border-[#E8E1D3] hover:border-[#F5D76E]/70'
       } ${
         !hasBackgroundImage
@@ -73,22 +73,22 @@ const CategoryCardButton: React.FC<{
             onError={handleImgError}
           />
 
-          {/* طبقة التدرج الداكن لحماية قراءة اسم الفئة وضمان تباين فائق (WCAG AA) */}
+          {/* طبقة التدرج الداكن لحماية قراءة اسم الفئة وضمان تباين فائق */}
           <div
             className={`absolute inset-0 transition-opacity duration-300 ${
               isSelected
-                ? 'bg-gradient-to-t from-[#0E2615]/95 via-[#163920]/65 to-black/25'
+                ? 'bg-gradient-to-t from-[#0E2615]/95 via-[#163920]/65 to-black/20'
                 : 'bg-gradient-to-t from-black/85 via-black/40 to-black/15 group-hover:from-black/90 group-hover:via-black/50'
             }`}
           />
 
           {isSelected && (
-            <div className="absolute inset-0 bg-[#F5D76E]/10 pointer-events-none" />
+            <div className="absolute inset-0 bg-[#F5D76E]/15 pointer-events-none" />
           )}
         </div>
       )}
 
-      {/* في حال عدم توفر الصورة (أثناء مرحلة التصميم): إظهار الأيقونة بحجم تعبيري مميز */}
+      {/* في حال عدم توفر الصورة: إظهار الأيقونة بحجم تعبيري مميز */}
       {!hasBackgroundImage && (
         <div className="relative z-10 flex-1 flex items-center justify-center py-2">
           <span
@@ -104,7 +104,7 @@ const CategoryCardButton: React.FC<{
       {/* 2. عنوان الفئة ومؤشر التحديد */}
       <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-2">
         <span
-          className={`text-sm sm:text-base font-black leading-tight drop-shadow-sm transition-colors ${
+          className={`text-[15px] sm:text-[17px] font-black leading-tight drop-shadow-sm transition-colors ${
             hasBackgroundImage
               ? isSelected
                 ? 'text-[#F5D76E]'
@@ -118,13 +118,13 @@ const CategoryCardButton: React.FC<{
         </span>
 
         {isSelected ? (
-          <span className="w-10 h-1 rounded-full bg-[#F5D76E] mt-2 shadow-sm" />
+          <span className="w-12 h-1.5 rounded-full bg-[#F5D76E] mt-2 shadow-sm" />
         ) : (
           <span
             className={`h-0.5 rounded-full mt-2 transition-all duration-300 ${
               hasBackgroundImage
-                ? 'w-6 bg-white/40 group-hover:w-10 group-hover:bg-[#F5D76E]'
-                : 'w-6 bg-[#C25E12]/30 group-hover:w-10 group-hover:bg-[#C25E12]'
+                ? 'w-7 bg-white/40 group-hover:w-11 group-hover:bg-[#F5D76E]'
+                : 'w-7 bg-[#C25E12]/30 group-hover:w-11 group-hover:bg-[#C25E12]'
             }`}
           />
         )}
@@ -146,7 +146,7 @@ interface CategoryFilterProps {
   products: Product[];
   className?: string;
 
-  categoryInfo: CategoryHeaderInfo;
+  categoryInfo?: CategoryHeaderInfo;
   sortBy: SortOption;
   onlyInStock: boolean;
   onOpenSort: () => void;
@@ -157,9 +157,7 @@ interface CategoryFilterProps {
 export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   selectedCategory,
   onSelectCategory,
-  products,
   className = '',
-  categoryInfo,
   sortBy,
   onlyInStock,
   onOpenSort,
@@ -216,6 +214,31 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     };
   }, [categories.length, updateScrollState]);
 
+  // ─── تمرير أوتوماتيكي أفقي للفئة المحددة وإبرازها عند اختيارها من القائمة أو الشريط ───
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    if (selectedCategory === 'all') {
+      container.scrollTo({ left: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const targetCard = container.querySelector<HTMLElement>(
+      `[data-category-id="${selectedCategory}"]`
+    );
+    if (targetCard) {
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = targetCard.getBoundingClientRect();
+      const deltaX =
+        cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
+
+      if (Math.abs(deltaX) > 4) {
+        container.scrollBy({ left: deltaX, behavior: 'smooth' });
+      }
+    }
+  }, [selectedCategory]);
+
   const scrollByAmount = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
@@ -261,20 +284,35 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </div>
             </div>
 
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={onOpenSort}
-                className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FFF4EC] to-[#FFE8D4] hover:from-[#FFE8D4] hover:to-[#FFD9B8] text-[#C25E12] border border-[#FDBA74] px-3.5 py-2 rounded-full text-xs font-black cursor-pointer transition-all active:scale-95 shadow-sm shrink-0"
-                title="تعديل خيارات التصفية"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{getSortLabel() || (onlyInStock ? 'المتوفر فقط' : 'مصفّى')}</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {isSearchMode && onClearSearch && (
+                <button
+                  type="button"
+                  onClick={onClearSearch}
+                  className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-black text-white bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] px-3 py-1.5 rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <span className="max-w-[110px] sm:max-w-none truncate">
+                    إلغاء البحث "{searchQuery}"
+                  </span>
+                  <span className="text-xs font-bold leading-none">✕</span>
+                </button>
+              )}
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={onOpenSort}
+                  className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FFF4EC] to-[#FFE8D4] hover:from-[#FFE8D4] hover:to-[#FFD9B8] text-[#C25E12] border border-[#FDBA74] px-3.5 py-2 rounded-full text-xs font-black cursor-pointer transition-all active:scale-95 shadow-sm shrink-0"
+                  title="تعديل خيارات التصفية"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{getSortLabel() || (onlyInStock ? 'المتوفر فقط' : 'مصفّى')}</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* ════════ 2. شبكة/شريط الفئات ════════ */}
+          {/* ════════ 2. شبكة/شريط الفئات (مكبّرة بنسبة 10% وبدون تعريف الفئات) ════════ */}
           <div className="relative">
             {canScrollRight && (
               <button
@@ -298,10 +336,9 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
-            {/* حاوية التمرير: تمرير انسيابي بدون تقطيع أو حجب للبطاقات */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-2 px-3 sm:px-4 md:px-0 overscroll-x-contain no-scrollbar"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-2.5 px-3 sm:px-4 md:px-0 overscroll-x-contain no-scrollbar"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
@@ -316,48 +353,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               ))}
             </div>
           </div>
-
-          {/* ════════ 3. الوصف ════════ */}
-          {categoryInfo.description && (
-            <div className="mt-5 pt-4 border-t border-[#F0E9DA]">
-              <div className="rounded-2xl bg-[#FAF8F3] border border-[#E8E1D3] px-4 py-3.5 sm:px-5 sm:py-4 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <span className="w-1.5 h-9 sm:h-10 rounded-full bg-gradient-to-b from-[#F5D76E] to-[#C25E12] shrink-0 shadow-sm" />
-                  <p className="text-[13px] sm:text-sm text-[#423C32] font-semibold leading-relaxed">
-                    {categoryInfo.description}
-                  </p>
-                </div>
-
-                {(hasActiveFilters || isSearchMode) && (
-                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                    {getSortLabel() && (
-                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-[#C25E12] bg-white px-2.5 py-1 rounded-full border border-[#FDBA74] shadow-sm">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        <span>{getSortLabel()}</span>
-                      </span>
-                    )}
-                    {onlyInStock && (
-                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-[#C25E12] bg-white px-2.5 py-1 rounded-full border border-[#FDBA74] shadow-sm">
-                        <span>المتوفر فقط</span>
-                      </span>
-                    )}
-                    {isSearchMode && onClearSearch && (
-                      <button
-                        type="button"
-                        onClick={onClearSearch}
-                        className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-black text-white bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] px-2.5 py-1 rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
-                      >
-                        <span className="max-w-[120px] sm:max-w-none truncate">
-                          إلغاء البحث "{searchQuery}"
-                        </span>
-                        <span className="text-xs font-bold leading-none">✕</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
         </div>
       </div>

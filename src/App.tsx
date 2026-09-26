@@ -125,7 +125,7 @@ export default function App() {
   });
 
   // ─── Navigation & filter states ───
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('veg');
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeInfoPage, setActiveInfoPage] = useState<'about' | 'policy' | 'privacy' | null>(null);
 
@@ -501,9 +501,11 @@ export default function App() {
     setSelectedCategory(cat);
     if (activeInfoPage) setActiveInfoPage(null);
 
-    // عند اختيار فئة من شريط الفئات نفسه، لا نقفز إلى بطاقات المنتجات
-    // بل تتم معاينة شريط الفئات والوصف المحدّث في مكانه
-    if (!fromCategoryFilter) {
+    if (fromCategoryFilter) {
+      // عند تحديد فئة معينة من قسم CategoryFilter: توجيه تلقائي لقسم بطاقات المنتجات (ProductCard)
+      setTimeout(() => scrollToCatalog(), 100);
+    } else {
+      // عند تحديد فئة معينة من القائمة (Header): توجيه تلقائي لقسم CategoryFilter مع التمرير الأوتوماتيكي للفئة وإبرازها
       setTimeout(() => scrollToCategoryFilter(), 100);
     }
   };
@@ -553,10 +555,10 @@ export default function App() {
     if (category) return category;
 
     return {
-      id: 'veg',
-      name: 'خضروات',
-      icon: '🥬',
-      description: 'خضروات طازجة منتقاة بعناية من الحقول المغربية تصلكم مباشرة',
+      id: 'all',
+      name: 'جميع المنتجات',
+      icon: '🌟',
+      description: 'جميع المنتجات المتوفرة بجودة عالية وطراوة يومية مضمونة.',
     };
   }, [selectedCategory, searchQuery, filteredProducts.length]);
 
@@ -630,7 +632,7 @@ export default function App() {
                 searchQuery={searchQuery}
                 onClearSearch={() => {
                   setSearchQuery('');
-                  setSelectedCategory('veg');
+                  setSelectedCategory('all');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               />
@@ -640,9 +642,9 @@ export default function App() {
             <section
               id="search-results-section"
               ref={searchResultsRef}
-              className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mb-12"
+              className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mb-12 scroll-mt-24"
             >
-              <div ref={catalogSectionRef} id="catalog-section" />
+              <div ref={catalogSectionRef} id="catalog-section" className="scroll-mt-24" />
 
               {/* Grid or Empty/Loading state */}
               {isLoading ? (
@@ -673,13 +675,13 @@ export default function App() {
                     type="button"
                     onClick={() => {
                       setSearchQuery('');
-                      setSelectedCategory('veg');
+                      setSelectedCategory('all');
                       setSortBy('default');
                       setOnlyInStock(false);
                     }}
                     className="px-5 py-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:shadow-lg text-white font-black text-xs sm:text-sm shadow-md transition-all cursor-pointer border-2 border-[#0E2615] active:scale-95"
                   >
-                    {searchQuery ? 'عرض الخضروات المتوفرة' : 'عرض جميع المنتجات المتوفرة'}
+                    عرض جميع المنتجات المتوفرة
                   </button>
                 </div>
               ) : (

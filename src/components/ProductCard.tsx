@@ -1,9 +1,10 @@
 // ============================================================
-// الملف: ProductCard.tsx – الإصدار 3.0
-// زر "أضف للسلة" بحالات ثلاث:
-//   - عادي: أخضر داكن "أضف للسلة"
-//   - في السلة: برتقالي "أضف المزيد"
-//   - تمت الإضافة: أخضر زمردي "تمت الإضافة"
+// الملف: ProductCard.tsx – الإصدار 4.0
+// تحسينات بطاقة المنتج:
+//   - 4.1 تكبير طفيف لصور المنتجات (5%-8%) مع حذف الخلفية والحدود لشكل نقي على الخلفية البيضاء
+//   - 4.2 تكبير طفيف لشارة المنتج مع حذف كلمة "طازج" لتصبح "متوفر"
+//   - 4.3 تكبير طفيف لعداد الكمية وزر "أضف للسلة"
+//   - 4.4 الحفاظ على حجم اسم المنتج ومصدره (origin) كما هو
 // ============================================================
 import React, { useState, useRef } from 'react';
 import { Minus, Plus, Check, ShoppingBag } from 'lucide-react';
@@ -23,7 +24,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   inCartQty,
   onAddToCart,
-  index = 0,
 }) => {
   const isWeight = product.type === 'weight';
   const initialQty = isWeight ? STORE_CONFIG.weightStep : 1;
@@ -87,7 +87,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       const img = document.createElement('img');
       img.src = product.image_url;
       img.alt = product.name;
-      img.className = 'w-full h-full object-cover';
+      img.className = 'w-full h-full object-contain';
       flyer.appendChild(img);
     } else {
       const icon = document.createElement('span');
@@ -140,7 +140,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     setTimeout(() => setIsJustAdded(false), 1200);
   };
 
-  // شارة الحالة
+  // 4.2 شارة الحالة (حذف كلمة "طازج" وتكبير طفيف)
   const getStatusBadge = () => {
     if (isSoldOut) {
       return { text: 'نفد المخزون', cls: 'bg-red-50 text-red-800 border-red-200 font-bold' };
@@ -148,7 +148,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     if (isLimited) {
       return { text: 'كمية محدودة', cls: 'bg-amber-50 text-amber-900 border-amber-300 font-bold' };
     }
-    return { text: 'متوفر طازج', cls: 'bg-emerald-50 text-[#0F2D16] border-emerald-300 font-black' };
+    return { text: 'متوفر', cls: 'bg-emerald-50 text-[#0F2D16] border-emerald-300 font-black' };
   };
 
   const badge = getStatusBadge();
@@ -161,32 +161,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         duration: 0.22,
         ease: 'easeOut',
       }}
-      className={`relative bg-white rounded-2xl p-2.5 sm:p-3 border transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-[#C25E12] ${
+      className={`group relative bg-white rounded-2xl p-2.5 sm:p-3.5 border transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-[#C25E12] ${
         isSoldOut ? 'opacity-70 border-stone-300' : 'border-[#D4C8B5]'
       }`}
     >
-      {/* ─── شارة الحالة ─── */}
+      {/* ─── 4.2 شارة الحالة (تكبير طفيف 5%-8%) ─── */}
       <div className="flex items-center w-full mb-1 sm:mb-1.5">
-        <span className={`text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border shadow-2xs ${badge.cls}`}>
+        <span className={`text-[11px] sm:text-[12px] font-extrabold px-3 py-1 rounded-full border shadow-2xs ${badge.cls}`}>
           {badge.text}
         </span>
       </div>
 
-      {/* ─── الصورة / الأيقونة + الاسم + السعر ─── */}
+      {/* ─── 4.1 الصورة بدون خلفية أو حدود + 4.4 الحفاظ على حجم الاسم والمصدر ─── */}
       <div className="flex flex-col items-center text-center">
         <div
           ref={imgContainerRef}
-          className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-[#F7F4EC] border border-[#DDD5C5] flex items-center justify-center text-4xl mb-1.5 shadow-2xs hover:shadow-sm transition-all duration-300 group-hover:scale-105 overflow-hidden"
+          className="w-[86px] h-[86px] sm:w-[104px] sm:h-[104px] bg-transparent flex items-center justify-center text-[42px] mb-1.5 transition-transform duration-300 group-hover:scale-105"
         >
           {product.image_url && !imgError ? (
             <img
               src={product.image_url}
               alt={product.name}
-              className="w-full h-full object-cover rounded-xl"
+              className="w-full h-full object-contain"
               loading="lazy"
               decoding="async"
-              width="96"
-              height="96"
+              width="104"
+              height="104"
               onError={() => setImgError(true)}
             />
           ) : (
@@ -194,6 +194,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
+        {/* 4.4 حجم اسم المنتج والمصدر كما هو في الوضع الحالي بدون تكبير */}
         <h3 className="font-extrabold text-sm sm:text-base text-[#112616] line-clamp-1 mb-0.5">
           {product.name}
         </h3>
@@ -218,21 +219,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
 
-      {/* ─── عداد الكمية وزر الإضافة بتصميم مضغوط ومتناسق ─── */}
-      <div className="mt-2 pt-2 border-t border-[#E8E1D3]">
+      {/* ─── 4.3 عداد الكمية وزر الإضافة (تكبير طفيف 5%-8%) ─── */}
+      <div className="mt-2.5 pt-2.5 border-t border-[#E8E1D3]">
         {!isSoldOut && (
-          <div className="flex items-center justify-between bg-[#F7F4EC] rounded-lg p-1 border border-[#D4C8B5] mb-1.5">
+          <div className="flex items-center justify-between bg-[#F7F4EC] rounded-xl p-1.5 border border-[#D4C8B5] mb-2">
             <button
               type="button"
               onClick={handleIncrement}
-              className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-2xs touch-manipulation select-none"
+              className="w-[30px] h-[30px] sm:w-8 sm:h-8 min-w-[30px] min-h-[30px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-2xs touch-manipulation select-none"
               aria-label="زيادة الكمية"
             >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <Plus className="w-4 h-4 stroke-[2.5]" />
             </button>
 
-            <div className="flex items-center justify-center leading-none select-none px-1">
-              <span dir="ltr" className="text-xs sm:text-sm font-black text-[#112616] tabular-nums">
+            <div className="flex items-center justify-center leading-none select-none px-1.5">
+              <span dir="ltr" className="text-[13px] sm:text-[15px] font-black text-[#112616] tabular-nums">
                 {selectedQty} {isWeight ? 'kg' : ''}
               </span>
             </div>
@@ -240,10 +241,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               type="button"
               onClick={handleDecrement}
-              className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-2xs touch-manipulation select-none"
+              className="w-[30px] h-[30px] sm:w-8 sm:h-8 min-w-[30px] min-h-[30px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-2xs touch-manipulation select-none"
               aria-label="إنقاص الكمية"
             >
-              <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <Minus className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
         )}
@@ -253,7 +254,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           type="button"
           disabled={isSoldOut}
           onClick={handleAdd}
-          className={`w-full h-9 sm:h-10 min-h-[36px] sm:min-h-[40px] px-2.5 rounded-lg font-black text-xs sm:text-[13px] flex items-center justify-center gap-1.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
+          className={`w-full h-[39px] sm:h-[43px] min-h-[39px] sm:min-h-[43px] px-3 rounded-xl font-black text-[13px] sm:text-[14px] flex items-center justify-center gap-1.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
             isSoldOut
               ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed'
               : isJustAdded
@@ -267,20 +268,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <span>غير متوفر</span>
           ) : isJustAdded ? (
             <>
-              <Check className="w-3.5 h-3.5 text-[#F5D76E] animate-in zoom-in stroke-[2.5]" />
+              <Check className="w-4 h-4 text-[#F5D76E] animate-in zoom-in stroke-[2.5]" />
               <span>تمت الإضافة</span>
             </>
           ) : inCartQty > 0 ? (
             <>
-              <ShoppingBag className="w-3.5 h-3.5 text-white" />
+              <ShoppingBag className="w-4 h-4 text-white" />
               <span>أضف المزيد</span>
-              <span className="px-1.5 py-0.2 rounded bg-white/20 text-white text-[10px] font-black tabular-nums">
+              <span className="px-1.5 py-0.5 rounded bg-white/20 text-white text-[11px] font-black tabular-nums">
                 {inCartQty}
               </span>
             </>
           ) : (
             <>
-              <ShoppingBag className="w-3.5 h-3.5 text-[#F5D76E]" />
+              <ShoppingBag className="w-4 h-4 text-[#F5D76E]" />
               <span>أضف للسلة</span>
             </>
           )}

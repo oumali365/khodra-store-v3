@@ -9,16 +9,16 @@ function productImagesAliasPlugin() {
     configureServer(server: any) {
       server.middlewares.use((req: any, _res: any, next: any) => {
         if (req.url) {
-          if (req.url.startsWith('/images/products/vegetables/')) {
-            req.url = req.url.replace('/images/products/vegetables/', '/products/veg/');
+          if (req.url.startsWith('/products/veg/')) {
+            req.url = req.url.replace('/products/veg/', '/images/products/vegetables/');
           } else if (req.url.startsWith('/products/vegetables/')) {
-            req.url = req.url.replace('/products/vegetables/', '/products/veg/');
-          } else if (req.url.startsWith('/images/products/fruits/')) {
-            req.url = req.url.replace('/images/products/fruits/', '/products/fruit/');
+            req.url = req.url.replace('/products/vegetables/', '/images/products/vegetables/');
+          } else if (req.url.startsWith('/products/fruit/')) {
+            req.url = req.url.replace('/products/fruit/', '/images/products/fruits/');
           } else if (req.url.startsWith('/products/fruits/')) {
-            req.url = req.url.replace('/products/fruits/', '/products/fruit/');
-          } else if (req.url.startsWith('/images/products/')) {
-            req.url = req.url.replace('/images/products/', '/products/');
+            req.url = req.url.replace('/products/fruits/', '/images/products/fruits/');
+          } else if (req.url.startsWith('/products/')) {
+            req.url = req.url.replace('/products/', '/images/products/');
           }
         }
         next();
