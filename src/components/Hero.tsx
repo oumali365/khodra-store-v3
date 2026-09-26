@@ -1,7 +1,7 @@
 // ============================================================
-// الملف: Hero.tsx – الإصدار 7.0
+// الملف: Hero.tsx – الإصدار 7.1
 // بطاقات الهيرو المفصولة مع تمرير يدوي أفقي (نموذج مشابه لـ Family Boxes)
-// وصور منظمة داخل مجلد /images/hero-images/
+// عرض متناسق غير عريض + نقاط تنقل باللون الأصفر + صور في /images/hero-images/
 // ============================================================
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -154,12 +154,12 @@ export const Hero: React.FC<HeroProps> = ({
       className="relative overflow-hidden pt-3 pb-5 sm:pt-6 sm:pb-8 px-3 sm:px-6 lg:px-8"
       aria-label="الواجهة الرئيسية للمتجر"
     >
-      <div className="max-w-7xl mx-auto">
-        {/* ─── حاوية البطاقات المفصولة مع التمرير اليدوي الأفقي (نموذج مشابه لـ Family Boxes) ─── */}
+      <div className="relative max-w-3xl mx-auto">
+        {/* ─── حاوية البطاقات المفصولة مع التمرير اليدوي الأفقي (بنفس أبعاد وتناسق Family Boxes) ─── */}
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex flex-row md:grid md:grid-cols-2 gap-4 sm:gap-6 lg:gap-7 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 pt-1 px-1 sm:px-0 snap-x snap-mandatory overscroll-x-contain no-scrollbar"
+          className="flex flex-row md:grid md:grid-cols-2 gap-5 sm:gap-6 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 pt-1 px-2 sm:px-0 snap-x snap-proximity overscroll-x-contain no-scrollbar"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
           {HERO_SLIDES.map((slide, index) => {
@@ -168,8 +168,8 @@ export const Hero: React.FC<HeroProps> = ({
             return (
               <article
                 key={slide.id}
-                className={`group relative w-[86vw] max-w-[390px] sm:w-[460px] md:w-auto md:max-w-none shrink-0 snap-center rounded-[24px] sm:rounded-[32px] min-h-[420px] sm:min-h-[460px] p-5 sm:p-8 md:p-9 border-2 shadow-xl text-center overflow-hidden flex flex-col justify-between select-none transition-colors duration-200 ${
-                  isActive ? 'border-[#008A4B]' : 'border-[#D4C8B5]'
+                className={`group relative w-[80vw] max-w-[315px] sm:w-[335px] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl min-h-[390px] sm:min-h-[420px] p-5 sm:p-6 border-2 shadow-xl text-center overflow-hidden flex flex-col justify-between select-none transition-colors duration-200 ${
+                  isActive ? 'border-[#F5B800]' : 'border-[#D4C8B5]'
                 }`}
               >
                 {/* ════════ صورة الخلفية ════════ */}
@@ -186,52 +186,52 @@ export const Hero: React.FC<HeroProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10]/95 via-[#0B1C10]/70 to-[#0B1C10]/45 pointer-events-none" />
 
                 {/* ════════ دوائر ضوئية ════════ */}
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#F5D76E]/15 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-[#163920]/40 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -top-20 -right-20 w-56 h-56 bg-[#F5D76E]/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-20 -left-20 w-56 h-56 bg-[#163920]/40 rounded-full blur-3xl pointer-events-none" />
 
                 {/* ════════ شارة علوية ════════ */}
                 <div className="relative z-10 flex items-center justify-center">
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#F5D76E] text-xs font-black tracking-wide shadow-sm">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#F5D76E] text-[11px] sm:text-xs font-black tracking-wide shadow-sm">
                     <span>{slide.badge}</span>
                   </span>
                 </div>
 
                 {/* ════════ المحتوى ════════ */}
-                <div className="relative z-10 flex flex-col items-center justify-center flex-1 max-w-xl mx-auto py-5 text-center">
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-[1.25] tracking-tight mb-4 drop-shadow-lg">
+                <div className="relative z-10 flex flex-col items-center justify-center flex-1 mx-auto py-4 text-center">
+                  <h1 className="text-xl sm:text-2xl font-black text-white leading-[1.3] tracking-tight mb-3 drop-shadow-lg">
                     {slide.title}{' '}
                     <span className="relative inline-block text-[#F5D76E]">
                       {slide.highlight}
-                      <span className="absolute -bottom-1 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-[#C25E12] to-transparent rounded-full opacity-90" />
+                      <span className="absolute -bottom-1 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#C25E12] to-transparent rounded-full opacity-90" />
                     </span>
                   </h1>
 
-                  <p className="text-sm sm:text-base text-[#F5EFE3] max-w-md mx-auto leading-[1.85] mb-7 font-semibold drop-shadow-md">
+                  <p className="text-xs sm:text-sm text-[#F5EFE3] leading-[1.8] mb-5 font-semibold drop-shadow-md">
                     {slide.description}
                   </p>
 
-                  <div className="flex items-center justify-center w-full sm:w-auto">
+                  <div className="flex items-center justify-center w-full">
                     {slide.primaryCTA === 'catalog' ? (
                       <button
                         type="button"
                         id="hero-shop-now-btn"
                         onClick={onScrollToCatalog}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl sm:rounded-full bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] text-white font-black text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group/btn"
+                        className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] text-white font-black text-sm shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer group/btn"
                       >
-                        <Leaf className="w-5 h-5" />
+                        <Leaf className="w-4 h-4" />
                         <span>تسوق الآن</span>
-                        <ArrowDown className="w-4 h-4 sm:w-5 sm:h-5 group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
+                        <ArrowDown className="w-4 h-4 group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
                       </button>
                     ) : (
                       onScrollToBundles && (
                         <button
                           type="button"
                           onClick={onScrollToBundles}
-                          className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-2xl sm:rounded-full bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] text-white font-black text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer group/btn"
+                          className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-[#C25E12] to-[#9C4505] hover:from-[#EA580C] hover:to-[#C25E12] text-white font-black text-sm shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer group/btn"
                         >
-                          <Package className="w-5 h-5" />
+                          <Package className="w-4 h-4" />
                           <span>اكتشف الآن</span>
-                          <ArrowDown className="w-4 h-4 sm:w-5 sm:h-5 group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
+                          <ArrowDown className="w-4 h-4 group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
                         </button>
                       )
                     )}
@@ -239,8 +239,8 @@ export const Hero: React.FC<HeroProps> = ({
                 </div>
 
                 {/* ════════ الأسفل: حالة التوصيل ════════ */}
-                <div className="relative z-10 pt-3.5 border-t border-white/15 flex items-center justify-center">
-                  <div className="flex items-center gap-2 text-[11px] sm:text-xs font-extrabold text-[#EDE6D8] bg-white/5 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-white/10">
+                <div className="relative z-10 pt-3 border-t border-white/15 flex items-center justify-center">
+                  <div className="flex items-center gap-2 text-[11px] font-extrabold text-[#EDE6D8] bg-white/5 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm" />
                     <span>
                       خدمة التوصيل نشطة اليوم في {STORE_CONFIG.city}
@@ -252,15 +252,17 @@ export const Hero: React.FC<HeroProps> = ({
           })}
         </div>
 
-        {/* ─── نقاط التمرير اليدوي (مماثل لقسم Family Boxes) ─── */}
+        {/* ─── نقاط التنقل باللون الأصفر ─── */}
         <div className="flex md:hidden items-center justify-center gap-2 mt-3">
           {HERO_SLIDES.map((_, i) => (
             <button
               key={i}
               type="button"
               onClick={() => scrollToSlide(i)}
-              className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
-                activeSlideIndex === i ? 'w-6 bg-[#008A4B]' : 'w-2 bg-stone-300'
+              className={`h-2.5 rounded-full transition-all duration-200 cursor-pointer ${
+                activeSlideIndex === i
+                  ? 'w-7 bg-[#F5B800] shadow-xs'
+                  : 'w-2.5 bg-[#F5B800]/35 hover:bg-[#F5B800]/60'
               }`}
               aria-label={`الانتقال إلى البطاقة ${i + 1}`}
             />
