@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: StickyBottomBar.tsx – الإصدار 2.0
-// شريط السلة السفلي العائم – تصميم محسّن
+// الملف: StickyBottomBar.tsx – الإصدار 2.1
+// تعطيل زر الأيقونة + تقليل الارتفاع + زر فتح السلة
 // ============================================================
 import React from 'react';
 import { ShoppingBag, ArrowLeft, Truck } from 'lucide-react';
@@ -17,7 +17,6 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
   cartCount,
   cartTotal,
   onOpenCart,
-  onOpenCheckout,
 }) => {
   // حساب التوصيل المجاني
   const isFreeDelivery = cartTotal >= STORE_CONFIG.freeDeliveryThreshold;
@@ -33,48 +32,51 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
       }`}
     >
       {/* ─── البطاقة العائمة ─── */}
-      <div className="w-full px-3 sm:px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pointer-events-auto">
-        <div className="relative max-w-7xl mx-auto bg-white/95 backdrop-blur-md border border-[#D4C8B5] rounded-2xl shadow-2xl overflow-hidden transition-all duration-200">
+      <div className="w-full px-3 sm:px-4 pb-[max(0.6rem,env(safe-area-inset-bottom))] pointer-events-auto">
+        <div className="relative max-w-7xl mx-auto bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 rounded-2xl shadow-[0_6px_22px_rgba(45,106,63,0.18)] overflow-hidden transition-all duration-200">
 
-          {/* ─── شريط علوي: تقدم التوصيل المجاني ─── */}
-          <div className={`px-4 py-1.5 text-[11px] font-black flex items-center gap-1.5 border-b ${
+          {/* ─── شريط علوي: تقدم التوصيل المجاني (أنحف) ─── */}
+          <div className={`px-4 py-1 text-[11px] font-black flex items-center gap-1.5 border-b ${
             isFreeDelivery
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-amber-50 text-amber-900 border-amber-200'
+              ? 'bg-[#2D6A3F]/10 text-[#1A3D24] border-[#2D6A3F]/15'
+              : 'bg-[#FEF3C7] text-[#92400E] border-[#EAB308]/30'
           }`}>
-            <Truck className={`w-3.5 h-3.5 shrink-0 ${isFreeDelivery ? 'text-emerald-600' : 'text-[#C25E12]'}`} />
+            <Truck
+              className={`w-3.5 h-3.5 shrink-0 ${isFreeDelivery ? 'text-[#2D6A3F]' : 'text-[#EA580C]'}`}
+              strokeWidth={2.5}
+            />
             {isFreeDelivery ? (
               <span className="flex items-center gap-1">
-                🎉 <strong className="text-emerald-700">مبروك!</strong> حصلت على توصيل مجاني
+                🎉 <strong className="text-[#2D6A3F]">مبروك!</strong> حصلت على توصيل مجاني
               </span>
             ) : (
               <span>
-                أضف <strong className="text-[#C25E12]">{remainingForFree.toFixed(2)} {STORE_CONFIG.currency}</strong> للحصول على توصيل مجاني
+                أضف <strong className="text-[#EA580C]">{remainingForFree.toFixed(2)} {STORE_CONFIG.currency}</strong> للحصول على توصيل مجاني
               </span>
             )}
           </div>
 
-          {/* ─── المحتوى الرئيسي ─── */}
-          <div className="py-2 sm:py-2.5 px-3 sm:px-4">
+          {/* ─── المحتوى الرئيسي (ارتفاع أقل) ─── */}
+          <div className="py-1.5 sm:py-2 px-3 sm:px-4">
             <div className="flex items-center justify-between gap-2.5 sm:gap-4">
 
-              {/* ─── زر عرض السلة ─── */}
-              <button
-                type="button"
-                onClick={onOpenCart}
-                className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-2.5 py-1.5 min-h-[52px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] transition-all cursor-pointer text-right group flex-1 min-w-0 touch-manipulation select-none"
-                aria-label={`عرض السلة (${cartCount} منتجات)`}
+              {/* ─── 🔒 منطقة السلة (غير قابلة للنقر — عرض فقط) ─── */}
+              <div
+                className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-2.5 py-1 min-h-[44px] rounded-xl text-right group flex-1 min-w-0 select-none"
+                aria-label={`عرض معلومات السلة: ${cartCount} منتجات بقيمة ${cartTotal.toFixed(2)}`}
+                role="status"
               >
-                {/* أيقونة السلة مع العدد */}
+                {/* 🔒 أيقونة السلة معطّلة (بدون hover/click) */}
                 <div
                   id="sticky-cart-icon"
-                  className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[#C25E12] to-[#9C4505] text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:shadow-lg transition-all duration-200 select-none"
+                  className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] text-white flex items-center justify-center shrink-0 shadow-sm select-none border border-[#EAB308]/25"
+                  aria-hidden="true"
                 >
-                  <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <ShoppingBag className="w-5 h-5 text-[#EAB308]" strokeWidth={2.5} />
 
                   {/* شارة العدد */}
                   {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-[#112616] text-white text-[11px] font-black flex items-center justify-center border-2 border-white shadow-md">
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-[#EA580C] text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow-sm">
                       {cartCount > 99 ? '99+' : cartCount}
                     </span>
                   )}
@@ -82,24 +84,28 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
 
                 {/* معلومات السلة */}
                 <div className="flex flex-col leading-tight min-w-0 flex-1">
-                  <span className="text-[10px] text-[#524B3E] font-bold mb-0.5">
+                  <span className="text-[10px] text-[#5A6B5F] font-bold mb-0.5">
                     سلة التسوق
                   </span>
-                  <span className="text-base sm:text-lg font-black text-[#112616] truncate tabular-nums" dir="ltr">
-                    {cartTotal.toFixed(2)} <span className="text-xs font-black text-[#C25E12]">{STORE_CONFIG.currency}</span>
+                  <span className="text-sm sm:text-base font-black text-[#1A3D24] truncate tabular-nums" dir="ltr">
+                    {cartTotal.toFixed(2)} <span className="text-xs font-black text-[#EA580C]">{STORE_CONFIG.currency}</span>
                   </span>
                 </div>
-              </button>
+              </div>
 
-              {/* ─── زر تأكيد الطلب ─── */}
+              {/* ─── 🔄 زر فتح السلة (بدل تأكيد الطلب) ─── */}
               <button
                 type="button"
-                onClick={onOpenCheckout}
-                className="relative min-h-[52px] py-2.5 px-5 sm:px-7 rounded-xl bg-gradient-to-r from-[#1E4327] to-[#112616] hover:from-[#112616] hover:to-[#0A1A0F] text-white font-black text-sm shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-150 flex items-center gap-2 cursor-pointer shrink-0 whitespace-nowrap border border-[#0A1A0F] touch-manipulation select-none group"
+                onClick={onOpenCart}
+                aria-label={`فتح السلة وإتمام الطلب (${cartCount} منتجات)`}
+                className="relative min-h-[44px] py-2 px-5 sm:px-7 rounded-xl bg-gradient-to-l from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] text-white font-black text-sm shadow-[0_4px_14px_rgba(234,88,12,0.30)] hover:shadow-[0_6px_22px_rgba(234,88,12,0.42)] hover:scale-[1.02] active:scale-95 transition-all duration-150 flex items-center gap-2 cursor-pointer shrink-0 whitespace-nowrap border border-[#EAB308]/25 touch-manipulation select-none group overflow-hidden"
               >
-                <span className="hidden sm:inline">تأكيد الطلب</span>
-                <span className="sm:hidden">تأكيد</span>
-                <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1 stroke-[2.5]" />
+                {/* Ripple effect */}
+                <span className="relative z-10 flex items-center gap-2">
+                  <span className="hidden sm:inline">فتح السلة</span>
+                  <span className="sm:hidden">السلة</span>
+                  <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1 stroke-[2.5]" />
+                </span>
               </button>
             </div>
           </div>
