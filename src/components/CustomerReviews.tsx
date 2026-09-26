@@ -1,8 +1,8 @@
 // ============================================================
-// CustomerReviews.tsx – الإصدار 4.2 (بزر اللوحة المالية)
-// Soft Delete + مزامنة PIN + تصميم متناسق + Finance Panel
+// CustomerReviews.tsx – الإصدار 4.3
+// هوية خضرة الموحّدة + الحفاظ الكامل على الوظائف الإدارية
 // ============================================================
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Star,
   MapPin,
@@ -12,7 +12,6 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
-  Lock,
   ShieldCheck,
   KeyRound,
   ShoppingBag,
@@ -53,6 +52,51 @@ const AdminOrdersPanel = React.lazy(() =>
 );
 
 const INITIAL_VISIBLE_COUNT = 3;
+const FOCUS_PULSE_MS = 700;
+
+// ═══════ زر Ripple ═══════
+const RippleButton: React.FC<{
+  onClick?: () => void;
+  className: string;
+  children: React.ReactNode;
+  rippleColor?: string;
+  ariaLabel?: string;
+}> = ({ onClick, className, children, rippleColor = 'rgba(255,255,255,0.30)', ariaLabel }) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const btn = buttonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6;
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      const ripple = document.createElement('span');
+      ripple.className = 'rev-ripple';
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      ripple.style.background = rippleColor;
+      btn.appendChild(ripple);
+
+      window.setTimeout(() => ripple.remove(), 650);
+    }
+    onClick?.();
+  };
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      aria-label={ariaLabel}
+      onClick={handleClick}
+      className={`relative overflow-hidden ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
 
 interface CustomerReviewsProps {
   onOpenOrdersPanel?: () => void;
@@ -79,16 +123,15 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
   const [isDeleting, setIsDeleting] = useState(false);
   const [adminNotification, setAdminNotification] = useState<string | null>(null);
 
-  // ─── Orders panel ───
   const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
-
-  // ─── Finance panel ───
   const [isFinancePanelOpen, setIsFinancePanelOpen] = useState(false);
 
   // ─── التمرير الأفقي ───
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
-  const reviewsScrollRef = React.useRef<HTMLDivElement>(null);
-  const reviewsScrollRaf = React.useRef<number | null>(null);
+  const [pulsingIndex, setPulsingIndex] = useState<number | null>(null);
+  const reviewsScrollRef = useRef<HTMLDivElement>(null);
+  const reviewsScrollRaf = useRef<number | null>(null);
+  const pulseTimer = useRef<number | null>(null);
 
   const handleReviewsScroll = () => {
     if (reviewsScrollRaf.current) cancelAnimationFrame(reviewsScrollRaf.current);
@@ -111,13 +154,22 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
         }
       });
 
-      setActiveReviewIndex((prev) => (prev !== closestIdx ? closestIdx : prev));
+      setActiveReviewIndex((prev) => {
+        if (prev !== closestIdx) {
+          setPulsingIndex(closestIdx);
+          if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
+          pulseTimer.current = window.setTimeout(() => setPulsingIndex(null), FOCUS_PULSE_MS);
+          return closestIdx;
+        }
+        return prev;
+      });
     });
   };
 
   useEffect(() => {
     return () => {
       if (reviewsScrollRaf.current) cancelAnimationFrame(reviewsScrollRaf.current);
+      if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
     };
   }, []);
 
@@ -261,7 +313,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     return reviews.slice(0, INITIAL_VISIBLE_COUNT);
   }, [reviews, showAllReviews]);
 
-  // ─── ✅ إضافة تقييم جديد ───
   const handleReviewSubmit = async (newRev: {
     author: string;
     neighborhood: string;
@@ -313,7 +364,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     let correctPin = getAdminPin();
     const inputPin = pin.trim();
 
-    // إذا لم يتطابق مع المخزن محلياً، نتحقق مع Supabase store_settings أولاً
     if (inputPin !== correctPin.trim()) {
       const remotePin = await syncAdminPinFromRemote();
       if (remotePin) {
@@ -348,7 +398,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     setTimeout(() => setAdminNotification(null), 3000);
   };
 
-  // ─── ✅ تغيير PIN (مع مزامنة Supabase) ───
   const handleChangePin = async (newPin: string): Promise<boolean> => {
     try {
       const res = await updateAdminPinRemote(newPin);
@@ -369,7 +418,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     }
   };
 
-  // ─── ✅ حذف التعليق (Soft Delete) ───
   const handleExecuteDelete = async () => {
     if (!deleteConfirmReview) return;
     setIsDeleting(true);
@@ -400,11 +448,64 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
         id="customer-reviews-section"
         aria-label="آراء وتقييمات زبناء متجر خضرة"
       >
+        {/* ═══════ الأنماط الحركية ═══════ */}
+        <style>{`
+          @keyframes revRippleExpand {
+            0%   { transform: scale(0); opacity: 0.55; }
+            100% { transform: scale(2.6); opacity: 0; }
+          }
+          .rev-ripple {
+            position: absolute;
+            border-radius: 9999px;
+            pointer-events: none;
+            transform: scale(0);
+            animation: revRippleExpand 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, opacity;
+          }
+
+          @keyframes revFadeInRight {
+            0%   { opacity: 0; transform: translateX(40px); }
+            100% { opacity: 1; transform: translateX(0); }
+          }
+          .rev-fade-in-right {
+            animation: revFadeInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+            will-change: opacity, transform;
+          }
+
+          @keyframes revFocusPulse {
+            0%   { opacity: 0.5; }
+            100% { opacity: 0; }
+          }
+          .rev-focus-pulse {
+            animation: revFocusPulse ${FOCUS_PULSE_MS}ms cubic-bezier(0.4, 0, 0.2, 1);
+          }
+
+          /* ✅ Spacer ذكي للجوال */
+          .rev-spacer {
+            flex-shrink: 0;
+            width: calc(50% - 33vw - 0.5rem);
+          }
+          @media (min-width: 640px) {
+            .rev-spacer {
+              width: calc(50% - 122px - 0.75rem);
+            }
+          }
+          @media (min-width: 768px) {
+            .rev-spacer { display: none; }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .rev-ripple,
+            .rev-fade-in-right,
+            .rev-focus-pulse { animation: none; }
+          }
+        `}</style>
+
         {/* ════════ إشعار إداري ════════ */}
         {adminNotification && (
-          <div className="mb-5 max-w-2xl mx-auto py-3 px-4 rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] text-white text-xs sm:text-sm font-black shadow-md flex items-center justify-between gap-3 animate-in fade-in duration-200 text-right border-2 border-[#F5D76E]/30">
+          <div className="mb-5 max-w-2xl mx-auto py-3 px-4 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] text-white text-xs sm:text-sm font-black shadow-[0_4px_14px_rgba(45,106,63,0.30)] flex items-center justify-between gap-3 animate-in fade-in duration-200 text-right border-2 border-[#EAB308]/30">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#F5D76E] shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#EAB308] shrink-0" strokeWidth={2.5} />
               <span>{adminNotification}</span>
             </div>
             <button
@@ -412,60 +513,63 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
               onClick={() => setAdminNotification(null)}
               className="text-white/80 hover:text-white cursor-pointer p-1 rounded-md hover:bg-white/10 transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" strokeWidth={2.5} />
             </button>
           </div>
         )}
 
         {/* ════════ شريط المدير ════════ */}
         {isAdmin && (
-          <div className="mb-6 max-w-2xl mx-auto p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300 text-amber-950 flex flex-wrap items-center justify-between gap-2.5 text-xs font-black text-right shadow-sm">
+          <div className="mb-6 max-w-2xl mx-auto p-3.5 rounded-2xl bg-gradient-to-r from-[#FEF3C7]/70 via-[#FED7AA]/70 to-[#FEF3C7]/70 border-2 border-[#EAB308]/40 text-[#1A3D24] flex flex-wrap items-center justify-between gap-2.5 text-xs font-black text-right shadow-sm">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#C25E12] flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4 h-4 text-white" />
+              <div className="w-7 h-7 rounded-lg bg-[#2D6A3F] flex items-center justify-center shrink-0 shadow-sm">
+                <ShieldCheck className="w-4 h-4 text-[#EAB308]" strokeWidth={2.5} />
               </div>
               <span>
                 <strong>وضع المدير مفعّل:</strong> إدارة الطلبات + التنبيهات
               </span>
             </div>
             <div className="flex items-center gap-2 mr-auto flex-wrap">
-              <button
-                type="button"
+              {/* زر إدارة الطلبات */}
+              <RippleButton
                 onClick={handleOpenOrders}
-                className="relative px-3.5 py-2 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95 border-2 border-[#0E2615]"
+                rippleColor="rgba(255,255,255,0.30)"
+                className="relative px-3.5 py-2 rounded-xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_4px_14px_rgba(45,106,63,0.30)] active:scale-95 border border-[#EAB308]/25"
               >
-                <ShoppingBag className="w-4 h-4 text-[#F5D76E]" />
-                <span>إدارة الطلبات</span>
+                <ShoppingBag className="w-4 h-4 text-[#EAB308] relative z-10" strokeWidth={2.5} />
+                <span className="relative z-10">إدارة الطلبات</span>
                 {totalPending > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black border-2 border-white shadow-md animate-pulse">
+                  <span className="relative z-10 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#EA580C] text-white text-[10px] font-black border-2 border-white shadow-md animate-pulse">
                     {totalPending > 99 ? '99+' : totalPending}
                   </span>
                 )}
-              </button>
+              </RippleButton>
 
-              {/* ═══ زر اللوحة المالية (جديد) ═══ */}
-              <button
-                type="button"
+              {/* زر اللوحة المالية */}
+              <RippleButton
                 onClick={handleOpenFinance}
-                className="relative px-3.5 py-2 rounded-xl bg-gradient-to-l from-[#C25E12] to-[#9C4505] hover:from-[#9C4505] hover:to-[#7A3405] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95 border-2 border-[#9C4505]"
+                rippleColor="rgba(255,255,255,0.30)"
+                className="relative px-3.5 py-2 rounded-xl bg-gradient-to-l from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_4px_14px_rgba(234,88,12,0.30)] active:scale-95 border border-[#EAB308]/25"
               >
-                <BarChart3 className="w-4 h-4 text-[#F5D76E]" />
-                <span>اللوحة المالية</span>
-              </button>
+                <BarChart3 className="w-4 h-4 text-[#EAB308] relative z-10" strokeWidth={2.5} />
+                <span className="relative z-10">اللوحة المالية</span>
+              </RippleButton>
 
+              {/* زر تغيير PIN */}
               <button
                 type="button"
                 onClick={() => setIsChangePinModalOpen(true)}
-                className="px-3 py-2 rounded-xl bg-white border-2 border-amber-300 hover:bg-amber-100 text-amber-900 text-xs font-black transition-colors cursor-pointer flex items-center gap-1.5"
+                className="px-3 py-2 rounded-xl bg-white border-2 border-[#EAB308]/50 hover:bg-[#FEF3C7] text-[#1A3D24] text-xs font-black transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
               >
-                <KeyRound className="w-3.5 h-3.5 text-amber-700" />
+                <KeyRound className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
                 <span>الرمز السري</span>
               </button>
 
+              {/* زر الخروج */}
               <button
                 type="button"
                 onClick={handleLogoutAdmin}
-                className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-800 border-2 border-red-200 text-xs font-black transition-colors cursor-pointer"
+                className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border-2 border-rose-200 text-xs font-black transition-colors cursor-pointer active:scale-95"
               >
                 خروج
               </button>
@@ -473,37 +577,46 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           </div>
         )}
 
-        {/* ════════ 1. بطاقة العنوان والوصف ════════ */}
-        <div className="bg-white rounded-3xl border border-stone-200/90 shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-6 sm:p-8 text-center max-w-md sm:max-w-xl mx-auto mb-8 sm:mb-10 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#163920]/10 text-[#163920] font-black text-xs sm:text-sm mb-3">
-            <Sparkles className="w-4 h-4 text-[#C25E12]" />
-            <span>آراء وتجارب حقيقية</span>
-            <Quote className="w-3.5 h-3.5 text-[#163920]" />
-          </div>
+        {/* ════════ 1. بطاقة العنوان ════════ */}
+        <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_10px_rgba(45,106,63,0.06)] p-6 sm:p-8 text-center max-w-md sm:max-w-xl mx-auto mb-8 sm:mb-10 overflow-hidden">
+          {/* دوائر ضوئية */}
+          <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-[#2D6A3F]/10 rounded-full blur-3xl pointer-events-none" />
 
-          <h2 className="text-2xl sm:text-3xl font-black text-[#112616] tracking-tight mb-2.5">
-            آراء زبنائنا بمدينة فاس
-          </h2>
-
-          <p className="text-xs sm:text-sm text-[#524B3E] font-medium leading-relaxed mb-4">
-            تجارب حية لعائلات تثق بخدمة وجودة متجر خُضرة يومياً
-          </p>
-
-          <div className="inline-flex items-center gap-2.5 bg-[#F7F4EC] px-4 py-2 rounded-full border border-[#E8E1D3] shadow-xs text-xs font-black text-[#112616] select-none">
-            <span className="font-black text-[#C25E12] text-base tabular-nums">4.9</span>
-            <div className="flex text-amber-500 text-sm gap-0.5">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              ))}
+          <div className="relative">
+            {/* شارة ذهبية */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] border border-[#EAB308]/50 text-[#1A3D24] font-black text-xs sm:text-sm mb-4 shadow-[0_3px_12px_rgba(234,179,8,0.30)]">
+              <Sparkles className="w-4 h-4" strokeWidth={2.5} />
+              <span>آراء وتجارب حقيقية</span>
+              <Quote className="w-3.5 h-3.5" strokeWidth={2.5} />
             </div>
-            <span className="text-[11px] text-[#787163] font-bold border-r border-[#E8E1D3] pr-2.5 mr-1">
-              {reviews.length}+ تقييم معتمد
-            </span>
-          </div>
 
-          <div className="flex md:hidden items-center justify-center gap-1.5 mt-4 pt-3 border-t border-stone-100 text-[#787163]">
-            <span className="text-[11px] font-bold text-stone-500">مرر أفقياً لقراءة المزيد</span>
-            <span className="text-xs text-[#163920] font-black">←</span>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight mb-3 flex items-center justify-center gap-2 flex-wrap">
+              آراء زبنائنا بمدينة فاس
+              <span className="inline-block w-2 h-2 rounded-full bg-[#EAB308]" />
+            </h2>
+
+            <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold leading-relaxed mb-5">
+              تجارب حية لعائلات تثق بخدمة وجودة متجر خُضرة يومياً
+            </p>
+
+            {/* ملخص التقييم */}
+            <div className="inline-flex items-center gap-3 bg-white/70 backdrop-blur-sm px-4 py-2.5 rounded-full border border-[#2D6A3F]/20 shadow-sm text-xs font-black text-[#1A3D24] select-none">
+              <span className="font-black text-[#EA580C] text-lg tabular-nums">4.9</span>
+              <div className="flex text-amber-400 text-sm gap-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <span className="text-[11px] text-[#5A6B5F] font-bold border-r border-[#2D6A3F]/15 pr-3 mr-1">
+                {reviews.length}+ تقييم معتمد
+              </span>
+            </div>
+
+            <div className="flex md:hidden items-center justify-center gap-2 mt-5 pt-4 border-t border-[#2D6A3F]/10">
+              <span className="text-[11px] font-black text-[#1A3D24]">اسحب أفقياً لقراءة المزيد</span>
+              <span className="text-xs text-[#2D6A3F]">←</span>
+            </div>
           </div>
         </div>
 
@@ -512,37 +625,43 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           <div
             ref={reviewsScrollRef}
             onScroll={handleReviewsScroll}
-            className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 text-center overflow-x-auto md:overflow-x-visible py-5 px-[14vw] sm:px-12 md:px-0 snap-x snap-proximity overscroll-x-contain no-scrollbar"
+            className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 text-center overflow-x-auto md:overflow-x-visible py-5 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
           >
+            {/* Spacer أيسر (جوال) */}
+            <div className="rev-spacer md:hidden" aria-hidden="true" />
+
             {displayedReviews.map((rev, idx) => {
               const isActive = idx === activeReviewIndex;
+              const isPulsing = pulsingIndex === idx;
 
               return (
                 <article
                   key={rev.id}
                   onClick={() => scrollToReview(idx)}
-                  className={`w-[66vw] min-w-[210px] max-w-[245px] md:w-full md:max-w-none shrink-0 snap-center bg-white rounded-3xl border border-stone-200/90 shadow-[0_6px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.11)] hover:-translate-y-1.5 transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-between min-h-[310px] sm:min-h-[330px] cursor-pointer group select-none ${
+                  style={{ animationDelay: `${idx * 90}ms` }}
+                  className={`rev-fade-in-right group relative w-[66vw] min-w-[210px] max-w-[245px] md:w-full md:max-w-none shrink-0 snap-center bg-white rounded-3xl border-2 transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-between min-h-[310px] sm:min-h-[330px] cursor-pointer select-none ${
                     isAdmin
-                      ? 'border-2 border-amber-300 ring-2 ring-amber-100 shadow-sm'
+                      ? 'border-[#EAB308]/50 ring-2 ring-[#EAB308]/15 shadow-[0_4px_14px_rgba(234,179,8,0.20)]'
                       : isActive
-                      ? 'ring-2 ring-[#163920]/35 ring-offset-2 ring-offset-[#FAF8F4] scale-[1.02]'
-                      : 'opacity-90 hover:opacity-100 scale-[0.98]'
+                      ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.20)] scale-[1.02]'
+                      : 'border-[#2D6A3F]/20 shadow-sm opacity-90 hover:opacity-100 hover:border-[#2D6A3F]/45'
                   }`}
                 >
-                  <div className="w-full flex flex-col items-center text-center">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#F7F4EC] border border-[#E0D7C6] flex items-center justify-center shadow-xs mb-3.5 transition-transform duration-300 group-hover:scale-105">
-                      <span className="text-xl sm:text-2xl font-black text-[#163920]">
+                  <div className="w-full flex flex-col items-center text-center relative z-10">
+                    {/* الأفاتار */}
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#2D6A3F]/10 to-[#EAB308]/10 border-2 border-[#2D6A3F]/15 flex items-center justify-center shadow-sm mb-3.5 transition-transform duration-300 group-hover:scale-105">
+                      <span className="text-xl sm:text-2xl font-black text-[#2D6A3F]">
                         {rev.author.trim().charAt(0) || 'خ'}
                       </span>
                     </div>
 
-                    <h3 className="text-base sm:text-lg font-black text-[#112616] leading-snug mb-1 text-center">
+                    <h3 className="text-base sm:text-lg font-black text-[#1A3D24] leading-snug mb-1 text-center">
                       {rev.author}
                     </h3>
 
-                    <p className="text-[11px] sm:text-xs text-[#787163] font-bold mb-3 flex items-center justify-center gap-1">
-                      <MapPin className="w-3 h-3 text-[#C25E12] shrink-0" />
+                    <p className="text-[11px] sm:text-xs text-[#5A6B5F] font-bold mb-3 flex items-center justify-center gap-1">
+                      <MapPin className="w-3 h-3 text-[#EA580C] shrink-0" strokeWidth={2.5} />
                       <span>{rev.neighborhood}</span>
                     </p>
 
@@ -553,24 +672,24 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${
+                          className={`w-4 h-4 sm:w-[18px] sm:h-[18px] ${
                             i < rev.rating
-                              ? 'fill-amber-400 text-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.3)]'
+                              ? 'fill-amber-400 text-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.35)]'
                               : 'fill-stone-200 text-stone-200'
                           }`}
                         />
                       ))}
                     </div>
 
-                    <p className="text-xs sm:text-[13px] text-[#524B3E] font-medium leading-relaxed text-center">
+                    <p className="text-xs sm:text-[13px] text-[#5A6B5F] font-semibold leading-relaxed text-center">
                       "{rev.comment}"
                     </p>
                   </div>
 
                   {isAdmin && (
-                    <div className="w-full mt-4 pt-3 border-t-2 border-amber-200 flex items-center justify-between text-xs">
-                      <span className="font-black text-amber-900 flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#C25E12]" />
+                    <div className="w-full mt-4 pt-3 border-t-2 border-[#EAB308]/30 flex items-center justify-between text-xs relative z-10">
+                      <span className="font-black text-[#1A3D24] flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
                         <span>إدارة</span>
                       </span>
                       <button
@@ -579,18 +698,30 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                           e.stopPropagation();
                           setDeleteConfirmReview(rev);
                         }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-black transition-all cursor-pointer active:scale-95"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black transition-all cursor-pointer active:scale-95"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" strokeWidth={2.5} />
                         <span>حذف</span>
                       </button>
                     </div>
                   )}
+
+                  {/* نبضة التركيز */}
+                  {isPulsing && (
+                    <div
+                      className="rev-focus-pulse absolute inset-0 rounded-3xl bg-[#EAB308]/12 pointer-events-none"
+                      aria-hidden="true"
+                    />
+                  )}
                 </article>
               );
             })}
+
+            {/* Spacer أيمن (جوال) */}
+            <div className="rev-spacer md:hidden" aria-hidden="true" />
           </div>
 
+          {/* نقاط التنقل */}
           {displayedReviews.length > 1 && (
             <div className="flex md:hidden items-center justify-center gap-2 mt-4">
               {displayedReviews.map((_, i) => (
@@ -599,7 +730,9 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                   type="button"
                   onClick={() => scrollToReview(i)}
                   className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                    activeReviewIndex === i ? 'w-7 bg-[#163920]' : 'w-2 bg-stone-300'
+                    activeReviewIndex === i
+                      ? 'w-7 bg-[#2D6A3F] shadow-xs'
+                      : 'w-2.5 bg-[#2D6A3F]/30 hover:bg-[#2D6A3F]/55'
                   }`}
                   aria-label={`الانتقال للتقييم رقم ${i + 1}`}
                 />
@@ -609,116 +742,26 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
 
           {reviews.length > INITIAL_VISIBLE_COUNT && (
             <div className="mt-5 text-center">
-              <button
-                type="button"
+              <RippleButton
                 onClick={() => setShowAllReviews(!showAllReviews)}
-                className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-white border-2 border-[#E8E1D3] hover:border-[#C25E12] hover:bg-[#F7F4EC] text-[#163920] text-xs font-black transition-all cursor-pointer active:scale-95 shadow-sm"
+                rippleColor="rgba(45,106,63,0.20)"
+                className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-white border-2 border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:bg-[#FAF8F3] text-[#1A3D24] text-xs font-black transition-all cursor-pointer active:scale-95 shadow-sm"
               >
                 {showAllReviews ? (
                   <>
-                    <ChevronUp className="w-4 h-4" />
-                    <span>عرض أقل</span>
+                    <ChevronUp className="w-4 h-4 relative z-10" strokeWidth={2.5} />
+                    <span className="relative z-10">عرض أقل</span>
                   </>
                 ) : (
                   <>
-                    <ChevronDown className="w-4 h-4" />
-                    <span>عرض باقي التقييمات ({reviews.length - INITIAL_VISIBLE_COUNT})</span>
+                    <ChevronDown className="w-4 h-4 relative z-10" strokeWidth={2.5} />
+                    <span className="relative z-10">عرض باقي التقييمات ({reviews.length - INITIAL_VISIBLE_COUNT})</span>
                   </>
                 )}
-              </button>
+              </RippleButton>
             </div>
           )}
         </div>
 
         {/* ════════ 3. بطاقة دعوة التقييم ════════ */}
-        <div className="bg-white rounded-3xl border border-stone-200/90 shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-6 sm:p-8 max-w-md sm:max-w-xl mx-auto transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] text-center sm:text-right">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-5">
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 text-xs font-black text-[#163920] justify-center sm:justify-start">
-                <MessageSquarePlus className="w-4 h-4 text-[#C25E12]" />
-                <span>شاركنا تجربتك</span>
-              </div>
-              <h3 className="text-base sm:text-lg font-black text-[#112616] leading-snug">
-                هل تسوقت من متجر خُضرة مؤخراً؟
-              </h3>
-              <p className="text-xs sm:text-[13px] text-[#524B3E] font-medium leading-relaxed">
-                يسعدنا دائماً الاستماع إلى رأيك لمواصلة تقديم أفضل خدمة ومنتجات لك ولعائلتك.
-              </p>
-            </div>
-
-            <div className="shrink-0 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 min-h-[48px] rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border-2 border-[#0E2615]"
-              >
-                <MessageSquarePlus className="w-4 h-4 text-[#F5D76E]" />
-                <span>إضافة تقييم</span>
-                <Sparkles className="w-3.5 h-3.5 text-[#F5D76E]" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ════════ نافذة إضافة الرأي ════════ */}
-      <AddReviewModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleReviewSubmit}
-      />
-
-      {/* ════════ PIN Modal ════════ */}
-      <PinModal
-        isOpen={isPinModalOpen}
-        onClose={() => setIsPinModalOpen(false)}
-        onSubmit={handlePinLogin}
-      />
-
-      {/* ════════ Change PIN Modal ════════ */}
-      <ChangePinModal
-        isOpen={isChangePinModalOpen}
-        onClose={() => setIsChangePinModalOpen(false)}
-        onSubmit={handleChangePin}
-      />
-
-      {/* ════════ Delete Review Confirmation ════════ */}
-      <DeleteReviewModal
-        review={deleteConfirmReview}
-        isDeleting={isDeleting}
-        onClose={() => !isDeleting && setDeleteConfirmReview(null)}
-        onConfirm={handleExecuteDelete}
-      />
-
-      {/* ════════ لوحة إدارة الطلبات ════════ */}
-      {!onOpenOrdersPanel && isOrdersPanelOpen && (
-        <AdminErrorBoundary onClose={handleCloseOrdersPanel}>
-          <React.Suspense fallback={null}>
-            <AdminOrdersPanel
-              isOpen={isOrdersPanelOpen}
-              onClose={handleCloseOrdersPanel}
-              onOrdersChange={refreshOrders}
-            />
-          </React.Suspense>
-        </AdminErrorBoundary>
-      )}
-
-      {/* ════════ 💰 اللوحة المالية ════════ */}
-      <FinancePanel
-        isOpen={isFinancePanelOpen}
-        onClose={handleCloseFinance}
-      />
-
-      {/* ════════ 🔔 إشعار الطلبات الجديدة ════════ */}
-      {isAdmin && (
-        <AdminNotificationToast
-          newCount={newCount}
-          onOpenOrders={handleOpenOrders}
-          onDismiss={markAsSeen}
-          soundEnabled={soundEnabled}
-          onToggleSound={handleToggleSound}
-        />
-      )}
-    </>
-  );
-};
+        <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_10px_rgba(45,106,63,0.
