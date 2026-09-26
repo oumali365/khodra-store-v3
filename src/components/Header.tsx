@@ -1,12 +1,13 @@
 // ============================================================
-// الملف: Header.tsx – الإصدار 4.0
-// رأس المتجر وقائمة منسدلة داخلية لفئات المتجر بتصميم أنيق ومحسن
+// الملف: Header.tsx – الإصدار 4.1
+// رأس المتجر مع قائمة جانبية موحّدة الهوية (أخضر + ذهبي + برتقالي)
+// تحسينات: Ripple + ظلال عضوية + أيقونات متناسقة
 // ============================================================
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   ShoppingBag, Search, Menu, X, Phone, ShieldCheck,
   RefreshCw, Info, Package, Leaf, LogOut,
-  ChevronDown, Layers, Check, ExternalLink
+  ChevronDown, Layers, Check
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
 import { ProductCategory } from '../types';
@@ -29,6 +30,62 @@ interface HeaderProps {
   onOpenExitModal?: () => void;
 }
 
+// ═══════ زر Ripple (نفس نمط Hero و CategoryFilter) ═══════
+const RippleButton: React.FC<{
+  onClick?: () => void;
+  className: string;
+  children: React.ReactNode;
+  rippleColor?: string;
+  ariaLabel?: string;
+  id?: string;
+  ariaExpanded?: boolean;
+}> = ({
+  onClick,
+  className,
+  children,
+  rippleColor = 'rgba(255,255,255,0.28)',
+  ariaLabel,
+  id,
+  ariaExpanded,
+}) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const btn = buttonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6;
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      const ripple = document.createElement('span');
+      ripple.className = 'header-ripple';
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      ripple.style.background = rippleColor;
+      btn.appendChild(ripple);
+
+      window.setTimeout(() => ripple.remove(), 650);
+    }
+    onClick?.();
+  };
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      id={id}
+      onClick={handleClick}
+      aria-label={ariaLabel}
+      aria-expanded={ariaExpanded}
+      className={`relative overflow-hidden ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
 export const Header: React.FC<HeaderProps> = ({
   cartCount,
   cartTotal,
@@ -46,10 +103,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenExitModal,
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
-  // حالة القائمة المنسدلة الداخلية لفئات المتجر (مفتوحة افتراضياً أو قابلة للطي)
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(true);
 
-  // إغلاق المودال بزر الهروب Escape
+  // ─── إغلاق بزر الهروب ───
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isMenuOpen) {
@@ -60,8 +116,20 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMenuOpen, onCloseMenu]);
 
-  // ─── التمرير إلى صناديق العائلة ───
-  const handleScrollToBundles = () => {
+  // ─── قفل التمرير عند فتح القائمة ───
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMenuOpen]);
+
+  // ─── التمرير لصناديق العائلة ───
+  const handleScrollToBundles = useCallback(() => {
     onCloseMenu();
     if (onScrollToBundles) {
       setTimeout(() => onScrollToBundles(), 200);
@@ -71,38 +139,78 @@ export const Header: React.FC<HeaderProps> = ({
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 200);
     }
-  };
+  }, [onCloseMenu, onScrollToBundles]);
 
   return (
     <>
+      {/* ═══════ الأنماط الحركية ═══════ */}
+      <style>{`
+        @keyframes headerRippleExpand {
+          0%   { transform: scale(0); opacity: 0.55; }
+          100% { transform: scale(2.6); opacity: 0; }
+        }
+        .header-ripple {
+          position: absolute;
+          border-radius: 9999px;
+          pointer-events: none;
+          transform: scale(0);
+          animation: headerRippleExpand 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform, opacity;
+        }
+
+        @keyframes headerSlideInLeft {
+          0%   { opacity: 0; transform: translateX(-20px); }
+          100% { opacity: 1; transform: translateX(0); }
+        }
+        .header-slide-in-left {
+          animation: headerSlideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+
+        @keyframes headerSlideDown {
+          0%   { opacity: 0; transform: translateY(-8px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .header-slide-down {
+          animation: headerSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .header-ripple,
+          .header-slide-in-left,
+          .header-slide-down { animation: none; }
+        }
+      `}</style>
+
       {/* ════════ الهيدر الرئيسي ════════ */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#E8E1D3] shadow-xs transition-all">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#2D6A3F]/12 shadow-[0_2px_12px_rgba(45,106,63,0.06)] transition-all">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-6">
 
-            {/* ── يمين: زر القائمة + الشعار المميز بدون أيقونة ── */}
+            {/* ── يمين: زر القائمة + الشعار ── */}
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              {/* زر القائمة */}
-              <button
-                type="button"
+              {/* زر القائمة — موحّد مع Hero */}
+              <RippleButton
                 id="main-nav-toggle-btn"
                 onClick={onToggleMenu}
-                className={`relative w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-white transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#C25E12]/40 touch-manipulation select-none cursor-pointer shrink-0 ${
+                ariaLabel={isMenuOpen ? 'إغلاق القائمة' : 'فتح القائمة الرئيسية'}
+                ariaExpanded={isMenuOpen}
+                rippleColor="rgba(255,255,255,0.30)"
+                className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl flex items-center justify-center text-white transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#2D6A3F]/35 touch-manipulation select-none cursor-pointer shrink-0 ${
                   isMenuOpen
-                    ? 'bg-gradient-to-br from-[#C25E12] to-[#9C4505]'
-                    : 'bg-gradient-to-br from-[#1E4327] to-[#112616] hover:from-[#112616] hover:to-[#0A1A0F]'
+                    ? 'bg-gradient-to-br from-[#EA580C] to-[#C25E12] shadow-[0_4px_14px_rgba(234,88,12,0.35)]'
+                    : 'bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] shadow-[0_4px_14px_rgba(45,106,63,0.30)] hover:from-[#3A8152] hover:to-[#2D6A3F]'
                 }`}
-                aria-label={isMenuOpen ? 'إغلاق القائمة' : 'فتح القائمة الرئيسية'}
-                aria-expanded={isMenuOpen}
               >
                 {isMenuOpen ? (
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5 relative z-10" strokeWidth={2.5} />
                 ) : (
-                  <Menu className="w-6 h-6" />
+                  <Menu className="w-5 h-5 relative z-10" strokeWidth={2.5} />
                 )}
-              </button>
+              </RippleButton>
 
-              {/* الشعار المطور بدون أيقونة وبأناقة طباعية عالية */}
+              {/* الشعار */}
               <button
                 type="button"
                 id="store-logo-btn"
@@ -110,119 +218,120 @@ export const Header: React.FC<HeaderProps> = ({
                 className="group cursor-pointer text-right touch-manipulation select-none active:opacity-85 transition-opacity min-w-0"
               >
                 <div className="flex flex-col justify-center">
-                  <span className="text-2xl sm:text-3xl font-black text-[#163920] group-hover:text-[#0E2615] font-['Almarai'] tracking-tight leading-none transition-colors">
+                  <span className="text-2xl sm:text-3xl font-black text-[#1A3D24] group-hover:text-[#2D6A3F] font-['Almarai'] tracking-tight leading-none transition-colors flex items-center gap-1.5">
                     {STORE_CONFIG.storeName}
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#EAB308] mb-4 sm:mb-5" />
                   </span>
-                  <span className="text-[11px] sm:text-xs text-[#6B6455] font-bold mt-1 tracking-normal hidden xs:block sm:block truncate">
+                  <span className="text-[11px] sm:text-xs text-[#5A6B5F] font-bold mt-1 tracking-normal hidden xs:block sm:block truncate">
                     خضر وفواكه طازجة لباب دارك
                   </span>
                 </div>
               </button>
             </div>
 
-            {/* ── وسط: حقل البحث (سطح المكتب) بنمط أنظف ── */}
+            {/* ── وسط: حقل البحث (سطح المكتب) ── */}
             <form onSubmit={onSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-4">
               <div className="relative w-full group">
-                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6455] group-focus-within:text-[#C25E12] transition-colors pointer-events-none" />
+                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A6B5F] group-focus-within:text-[#2D6A3F] transition-colors pointer-events-none" strokeWidth={2.5} />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder="ابحث عن خضار، فواكه، ألبان..."
-                  className="w-full pr-10 pl-9 py-2.5 bg-[#FAF7F0] border border-[#E8E1D3] rounded-xl text-sm text-[#1A1814] placeholder-[#8A8170] focus:outline-none focus:bg-white focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/15 transition-all font-['Tajawal'] font-medium shadow-xs hover:bg-white hover:border-[#D4C8B5]"
+                  className="w-full pr-10 pl-9 py-2.5 bg-[#FAF8F3] border border-[#2D6A3F]/15 rounded-2xl text-sm text-[#112616] placeholder-[#8A8170] focus:outline-none focus:bg-white focus:border-[#2D6A3F]/50 focus:ring-2 focus:ring-[#2D6A3F]/12 transition-all font-['Tajawal'] font-medium shadow-sm hover:bg-white hover:border-[#2D6A3F]/30"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => onSearchChange('')}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#787163] hover:text-[#C25E12] text-xs p-1.5 rounded-full hover:bg-[#EAE2D2] active:scale-90 transition-all touch-manipulation select-none cursor-pointer"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6B5F] hover:text-[#EA580C] text-xs p-1.5 rounded-full hover:bg-[#EA580C]/10 active:scale-90 transition-all touch-manipulation select-none cursor-pointer"
                     aria-label="مسح البحث"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3.5 h-3.5" strokeWidth={2.5} />
                   </button>
                 )}
               </div>
             </form>
 
-            {/* ── يسار: بحث جوّال + واتساب + السلة ── */}
+            {/* ── يسار: بحث جوال + واتساب + السلة ── */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {/* زر البحث الجوّال */}
+              {/* بحث الجوال */}
               <button
                 type="button"
                 id="mobile-search-toggle-btn"
                 onClick={() => setShowMobileSearch(!showMobileSearch)}
-                className={`md:hidden w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-all duration-150 shadow-sm active:scale-90 touch-manipulation select-none cursor-pointer shrink-0 border-2 ${
+                className={`md:hidden w-10 h-10 min-w-[40px] min-h-[40px] rounded-2xl flex items-center justify-center transition-all duration-150 active:scale-90 touch-manipulation select-none cursor-pointer shrink-0 border-2 ${
                   showMobileSearch
-                    ? 'bg-[#C25E12] border-[#C25E12] text-white'
-                    : 'bg-white border-[#C25E12] text-[#C25E12] hover:bg-[#F7F4EC]'
+                    ? 'bg-[#EA580C] border-[#EA580C] text-white shadow-[0_4px_12px_rgba(234,88,12,0.30)]'
+                    : 'bg-white border-[#2D6A3F]/25 text-[#2D6A3F] hover:bg-[#FAF8F3] hover:border-[#2D6A3F]/50'
                 }`}
                 aria-label="بحث عن منتج"
               >
                 {showMobileSearch ? (
-                  <X className="w-5 h-5 stroke-[2.5]" />
+                  <X className="w-5 h-5" strokeWidth={2.5} />
                 ) : (
-                  <Search className="w-5 h-5 stroke-[2.5]" />
+                  <Search className="w-5 h-5" strokeWidth={2.5} />
                 )}
               </button>
 
-              {/* واتساب (سطح المكتب) */}
+              {/* واتساب */}
               <a
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366]/15 text-[#145A25] border border-[#25D366]/40 hover:bg-[#25D366]/25 active:scale-95 transition-all text-xs font-black font-['Almarai'] shadow-xs touch-manipulation select-none"
+                className="hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366]/12 text-[#145A25] border border-[#25D366]/35 hover:bg-[#25D366]/20 active:scale-95 transition-all text-xs font-black font-['Almarai'] shadow-sm touch-manipulation select-none"
               >
                 <Phone className="w-3.5 h-3.5 fill-current" />
                 <span>واتساب</span>
               </a>
 
               {/* زر السلة */}
-              <button
-                type="button"
+              <RippleButton
                 id="header-open-cart-btn"
                 onClick={onOpenCart}
-                className="relative flex items-center gap-2 px-3 sm:px-5 py-2.5 min-h-[44px] rounded-xl bg-gradient-to-l from-[#C25E12] to-[#9C4505] hover:from-[#B85507] hover:to-[#8A3D04] text-white shadow-md hover:shadow-lg active:scale-95 transition-all duration-150 font-extrabold font-['Almarai'] touch-manipulation select-none cursor-pointer shrink-0"
-                aria-label={`سلة المشتريات (${cartCount} منتجات)`}
+                ariaLabel={`سلة المشتريات (${cartCount} منتجات)`}
+                rippleColor="rgba(255,255,255,0.30)"
+                className="flex items-center gap-2 px-3 sm:px-5 py-2.5 min-h-[44px] rounded-2xl bg-gradient-to-l from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] text-white shadow-[0_4px_14px_rgba(234,88,12,0.30)] hover:shadow-[0_6px_22px_rgba(234,88,12,0.42)] active:scale-95 transition-all duration-150 font-extrabold font-['Almarai'] touch-manipulation select-none cursor-pointer shrink-0 border border-[#FACC15]/25"
               >
-                <div className="relative">
-                  <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+                <div className="relative z-10">
+                  <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
                   {cartCount > 0 && (
-                    <span className="absolute -top-2.5 -left-2.5 min-w-[22px] h-[22px] px-1 rounded-full bg-[#112616] text-white text-[11px] font-black flex items-center justify-center border-2 border-white shadow-md animate-pulse">
+                    <span className="absolute -top-2.5 -left-2.5 min-w-[22px] h-[22px] px-1 rounded-full bg-[#1A3D24] text-[#EAB308] text-[11px] font-black flex items-center justify-center border-2 border-white shadow-md">
                       {cartCount > 99 ? '99+' : cartCount}
                     </span>
                   )}
                 </div>
-                <div className="hidden sm:flex flex-col items-start leading-none text-right">
+                <div className="hidden sm:flex flex-col items-start leading-none text-right relative z-10">
                   <span className="text-[10px] text-amber-100 font-bold">السلة</span>
                   <span className="text-xs sm:text-sm font-black tabular-nums" dir="ltr">
                     {cartTotal.toFixed(2)} {STORE_CONFIG.currency}
                   </span>
                 </div>
-              </button>
+              </RippleButton>
             </div>
           </div>
 
-          {/* ── حقل البحث الجوّال (منسدل) ── */}
+          {/* ── حقل البحث الجوّال ── */}
           {showMobileSearch && (
-            <div className="md:hidden pb-3 pt-1 animate-in slide-in-from-top-2 duration-200">
+            <div className="md:hidden pb-3 pt-1 header-slide-down">
               <form onSubmit={onSearchSubmit} className="relative w-full">
-                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#524B3E] pointer-events-none" />
+                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A6B5F] pointer-events-none" strokeWidth={2.5} />
                 <input
                   type="text"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder="ابحث عن خضار، فواكه، ألبان..."
-                  className="w-full pr-10 pl-9 py-3 bg-white border-2 border-[#C25E12]/40 rounded-xl text-sm text-[#1A1814] placeholder-[#787163] focus:outline-none focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/15 transition-all font-['Tajawal'] font-medium shadow-sm"
+                  className="w-full pr-10 pl-9 py-3 bg-white border-2 border-[#2D6A3F]/30 rounded-2xl text-sm text-[#112616] placeholder-[#8A8170] focus:outline-none focus:border-[#2D6A3F] focus:ring-2 focus:ring-[#2D6A3F]/15 transition-all font-['Tajawal'] font-medium shadow-sm"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => onSearchChange('')}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#787163] hover:text-[#C25E12] text-xs p-1.5 rounded-full hover:bg-[#EAE2D2] transition-colors"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6B5F] hover:text-[#EA580C] text-xs p-1.5 rounded-full hover:bg-[#EA580C]/10 transition-colors"
                     aria-label="مسح البحث"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3.5 h-3.5" strokeWidth={2.5} />
                   </button>
                 )}
               </form>
@@ -231,29 +340,34 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
 
-      {/* ════════ القائمة الجانبية (Drawer / Menu) بتصميم محسن وأنيق ════════ */}
+      {/* ════════ القائمة الجانبية ════════ */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 flex">
           {/* الخلفية المعتمة */}
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/55 backdrop-blur-sm transition-opacity"
             onClick={onCloseMenu}
+            aria-hidden="true"
           />
 
-          {/* لوحة القائمة الجانبية */}
-          <div className="relative ml-auto w-full max-w-[340px] sm:max-w-xs bg-[#FBF9F5] h-full shadow-2xl flex flex-col z-50 overflow-hidden animate-in slide-in-from-left duration-300 border-l border-[#D4C8B5]">
+          {/* لوحة القائمة */}
+          <div className="relative ml-auto w-full max-w-[340px] sm:max-w-xs bg-[#FBF9F5] h-full shadow-2xl flex flex-col z-50 overflow-hidden header-slide-in-left border-l border-[#2D6A3F]/15">
 
-            {/* ─── رأس القائمة الجانبية ─── */}
-            <div className="relative px-4 py-4 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shadow-xs shrink-0 border-b border-[#0A1A0F]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
-                  <Leaf className="w-4 h-4 text-[#F5D76E]" />
+            {/* ─── رأس القائمة ─── */}
+            <div className="relative px-4 py-4 bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] text-white flex items-center justify-between shadow-sm shrink-0 border-b border-[#0A1A0F]/40">
+              {/* دوائر ضوئية خفيفة */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#EAB308]/12 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-[#2D6A3F]/30 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="relative flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center backdrop-blur-sm">
+                  <Leaf className="w-4 h-4 text-[#EAB308]" strokeWidth={2.5} />
                 </div>
                 <div>
                   <span className="font-black text-base font-['Almarai'] block leading-tight text-white">
                     {STORE_CONFIG.storeName}
                   </span>
-                  <span className="text-[11px] text-emerald-200/80 font-medium block">
+                  <span className="text-[11px] text-emerald-100/80 font-medium block">
                     تسوق الخضر والفواكه الطازجة
                   </span>
                 </div>
@@ -263,48 +377,46 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 id="menu-close-btn"
                 onClick={onCloseMenu}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center text-white transition-all cursor-pointer touch-manipulation select-none border border-white/15"
+                className="relative w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center text-white transition-all cursor-pointer touch-manipulation select-none border border-white/15"
                 aria-label="إغلاق القائمة"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" strokeWidth={2.5} />
               </button>
             </div>
 
-            {/* ─── المحتوى القابل للتمرير ─── */}
+            {/* ─── المحتوى ─── */}
             <div className="p-3.5 sm:p-4 flex-1 overflow-y-auto no-scrollbar space-y-3.5">
 
-              {/* ════════ 1. اكتشف فئات متجر خضرة (قائمة منسدلة داخلية) ════════ */}
-              <div className="rounded-2xl bg-white border border-[#E8E1D3] shadow-xs overflow-hidden transition-all">
-                {/* رأس القائمة المنسدلة للفئات: عرض فئات المتجر */}
+              {/* ═══════ 1. قائمة الفئات المنسدلة ═══════ */}
+              <div className="rounded-2xl bg-white border border-[#2D6A3F]/12 shadow-sm overflow-hidden">
                 <button
                   type="button"
                   id="categories-accordion-trigger"
                   onClick={() => setIsCategoriesDropdownOpen(!isCategoriesDropdownOpen)}
-                  className="w-full flex items-center justify-between p-3.5 bg-gradient-to-l from-[#FAF7F0] to-white hover:bg-[#F4EFE3] active:bg-[#ECE5D6] text-right transition-colors cursor-pointer select-none group touch-manipulation"
+                  className="w-full flex items-center justify-between p-3.5 bg-gradient-to-l from-[#FAF8F3] to-white hover:bg-[#F4EFE3] active:bg-[#ECE5D6] text-right transition-colors cursor-pointer select-none group touch-manipulation"
                   aria-expanded={isCategoriesDropdownOpen}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-[#163920]/10 border border-[#163920]/20 flex items-center justify-center text-[#163920] shrink-0 group-hover:bg-[#163920] group-hover:text-white transition-colors">
-                      <Layers className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-xl bg-[#2D6A3F]/10 border border-[#2D6A3F]/20 flex items-center justify-center text-[#2D6A3F] shrink-0 group-hover:bg-[#2D6A3F] group-hover:text-[#EAB308] transition-colors">
+                      <Layers className="w-4 h-4" strokeWidth={2.5} />
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[13px] font-black text-[#112616] font-['Almarai'] block leading-tight">
+                      <span className="text-[13px] font-black text-[#1A3D24] font-['Almarai'] block leading-tight">
                         اكتشف فئات متجر خضرة
                       </span>
-                      <span className="text-[11px] text-[#6B6455] font-medium block mt-0.5">
+                      <span className="text-[11px] text-[#5A6B5F] font-medium block mt-0.5">
                         عرض فئات المتجر
                       </span>
                     </div>
                   </div>
 
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[#524B3E] transition-transform duration-200 shrink-0 ${isCategoriesDropdownOpen ? 'rotate-180 text-[#C25E12]' : ''}`}>
-                    <ChevronDown className="w-4 h-4" />
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[#5A6B5F] transition-transform duration-200 shrink-0 ${isCategoriesDropdownOpen ? 'rotate-180 text-[#2D6A3F]' : ''}`}>
+                    <ChevronDown className="w-4 h-4" strokeWidth={2.5} />
                   </div>
                 </button>
 
-                {/* المحتوى الداخلي المنسدل للفئات */}
                 {isCategoriesDropdownOpen && (
-                  <div className="p-2 pt-1 border-t border-[#EFE8DC] bg-[#FAF8F3]/60 space-y-1 animate-in slide-in-from-top-1 duration-150">
+                  <div className="p-2 pt-1 border-t border-[#2D6A3F]/8 bg-[#FAF8F3]/60 space-y-1 header-slide-down">
                     {CATEGORIES_CONFIG.map((cat) => {
                       const isSelected = selectedCategory === cat.id;
                       return (
@@ -319,15 +431,15 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                           className={`w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-all ${
                             isSelected
-                              ? 'bg-gradient-to-l from-[#163920] to-[#0E2615] text-white shadow-xs font-black'
-                              : 'hover:bg-white active:bg-[#EFE8DC] text-[#1A1814] hover:text-[#112616] font-bold text-xs sm:text-sm'
+                              ? 'bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] text-white shadow-[0_3px_10px_rgba(45,106,63,0.25)] font-black'
+                              : 'hover:bg-white active:bg-[#EFE8DC] text-[#112616] hover:text-[#1A3D24] font-bold text-xs sm:text-sm'
                           }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0 border ${
                               isSelected
                                 ? 'bg-white/15 border-white/20 text-white'
-                                : 'bg-white border-[#E8E1D3]'
+                                : 'bg-white border-[#2D6A3F]/12'
                             }`}>
                               {cat.icon}
                             </span>
@@ -335,7 +447,7 @@ export const Header: React.FC<HeaderProps> = ({
                           </div>
 
                           {isSelected && (
-                            <span className="w-5 h-5 rounded-full bg-[#F5D76E] text-[#112616] flex items-center justify-center shrink-0">
+                            <span className="w-5 h-5 rounded-full bg-[#EAB308] text-[#1A3D24] flex items-center justify-center shrink-0 shadow-sm">
                               <Check className="w-3 h-3 stroke-[3]" />
                             </span>
                           )}
@@ -346,38 +458,38 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
 
-              {/* ════════ 2. قسم صناديق العائلة ════════ */}
-              <div className="rounded-2xl bg-white border border-[#E8E1D3] shadow-xs overflow-hidden">
+              {/* ═══════ 2. صناديق العائلة ═══════ */}
+              <div className="rounded-2xl bg-white border border-[#2D6A3F]/12 shadow-sm overflow-hidden">
                 <button
                   type="button"
                   id="drawer-family-boxes-btn"
                   onClick={handleScrollToBundles}
-                  className="w-full flex items-center justify-between p-3.5 bg-gradient-to-l from-[#FAF7F0] to-white hover:bg-[#F4EFE3] active:bg-[#ECE5D6] text-[#112616] transition-colors text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none group"
+                  className="w-full flex items-center justify-between p-3.5 bg-gradient-to-l from-[#FAF8F3] to-white hover:bg-[#F4EFE3] active:bg-[#ECE5D6] text-[#112616] transition-colors text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none group"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-[#C25E12]/10 border border-[#C25E12]/20 flex items-center justify-center text-[#C25E12] shrink-0 group-hover:bg-[#C25E12] group-hover:text-white transition-colors">
-                      <Package className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-xl bg-[#EA580C]/10 border border-[#EA580C]/20 flex items-center justify-center text-[#EA580C] shrink-0 group-hover:bg-[#EA580C] group-hover:text-white transition-colors">
+                      <Package className="w-4 h-4" strokeWidth={2.5} />
                     </div>
                     <div className="text-right min-w-0">
-                      <span className="block text-[13px] font-black text-[#112616] truncate font-['Almarai'] leading-tight">
+                      <span className="block text-[13px] font-black text-[#1A3D24] truncate font-['Almarai'] leading-tight">
                         صناديق العائلة
                       </span>
-                      <span className="text-[11px] text-[#6B6455] font-medium block mt-0.5">
+                      <span className="text-[11px] text-[#5A6B5F] font-medium block mt-0.5">
                         سلات أسبوعية متكاملة بأسعار مميزة
                       </span>
                     </div>
                   </div>
 
-                  <span className="text-xs text-[#8A8170] group-hover:text-[#C25E12] transition-colors font-bold pr-1">
+                  <span className="text-xs text-[#8A8170] group-hover:text-[#EA580C] transition-colors font-bold pr-1">
                     ←
                   </span>
                 </button>
               </div>
 
-              {/* ════════ 3. روابط مهمة (ظاهرة وغير مطبقة كميزة منسدلة) ════════ */}
-              <div className="rounded-2xl bg-white border border-[#E8E1D3] p-3 shadow-xs">
-                <div className="text-[11px] font-black text-[#787163] uppercase tracking-wider mb-2 font-['Almarai'] select-none px-1 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#163920]" />
+              {/* ═══════ 3. روابط مهمة ═══════ */}
+              <div className="rounded-2xl bg-white border border-[#2D6A3F]/12 p-3 shadow-sm">
+                <div className="text-[11px] font-black text-[#5A6B5F] uppercase tracking-wider mb-2 font-['Almarai'] select-none px-1 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#EAB308]" />
                   <span>روابط مهمة</span>
                 </div>
                 <div className="space-y-1">
@@ -385,50 +497,50 @@ export const Header: React.FC<HeaderProps> = ({
                     type="button"
                     id="drawer-about-link"
                     onClick={() => { onOpenPage('about'); onCloseMenu(); }}
-                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] font-bold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors group"
+                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl hover:bg-[#FAF8F3] active:bg-[#EFE8DC] text-[#112616] font-bold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors group"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#163920]">
-                        <Info className="w-4 h-4" />
+                      <div className="w-7 h-7 rounded-lg bg-[#2D6A3F]/10 border border-[#2D6A3F]/15 flex items-center justify-center text-[#2D6A3F]">
+                        <Info className="w-4 h-4" strokeWidth={2.5} />
                       </div>
                       <span>من نحن</span>
                     </div>
-                    <span className="text-xs text-[#8A8170] group-hover:text-[#163920] font-bold">←</span>
+                    <span className="text-xs text-[#8A8170] group-hover:text-[#2D6A3F] font-bold">←</span>
                   </button>
 
                   <button
                     type="button"
                     id="drawer-policy-link"
                     onClick={() => { onOpenPage('policy'); onCloseMenu(); }}
-                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] font-bold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors group"
+                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl hover:bg-[#FAF8F3] active:bg-[#EFE8DC] text-[#112616] font-bold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors group"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center text-[#C25E12]">
-                        <RefreshCw className="w-4 h-4" />
+                      <div className="w-7 h-7 rounded-lg bg-[#EA580C]/10 border border-[#EA580C]/15 flex items-center justify-center text-[#EA580C]">
+                        <RefreshCw className="w-4 h-4" strokeWidth={2.5} />
                       </div>
                       <span>سياسة الإرجاع</span>
                     </div>
-                    <span className="text-xs text-[#8A8170] group-hover:text-[#C25E12] font-bold">←</span>
+                    <span className="text-xs text-[#8A8170] group-hover:text-[#EA580C] font-bold">←</span>
                   </button>
 
                   <button
                     type="button"
                     id="drawer-privacy-link"
                     onClick={() => { onOpenPage('privacy'); onCloseMenu(); }}
-                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl hover:bg-[#F7F4EC] active:bg-[#EFE8DC] text-[#1A1814] font-bold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors group"
+                    className="w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl hover:bg-[#FAF8F3] active:bg-[#EFE8DC] text-[#112616] font-bold text-xs sm:text-sm text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors group"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#163920]">
-                        <ShieldCheck className="w-4 h-4" />
+                      <div className="w-7 h-7 rounded-lg bg-[#2D6A3F]/10 border border-[#2D6A3F]/15 flex items-center justify-center text-[#2D6A3F]">
+                        <ShieldCheck className="w-4 h-4" strokeWidth={2.5} />
                       </div>
                       <span>سياسة الخصوصية والأمان</span>
                     </div>
-                    <span className="text-xs text-[#8A8170] group-hover:text-[#163920] font-bold">←</span>
+                    <span className="text-xs text-[#8A8170] group-hover:text-[#2D6A3F] font-bold">←</span>
                   </button>
                 </div>
               </div>
 
-              {/* ─── خيار الخروج من التطبيق ─── */}
+              {/* ═══════ 4. زر الخروج ═══════ */}
               {onOpenExitModal && (
                 <div className="pt-0.5">
                   <button
@@ -438,11 +550,11 @@ export const Header: React.FC<HeaderProps> = ({
                       onCloseMenu();
                       onOpenExitModal();
                     }}
-                    className="w-full flex items-center justify-between px-3 py-2 min-h-[40px] rounded-xl hover:bg-rose-50 text-stone-600 hover:text-rose-700 font-bold text-xs text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors border border-transparent hover:border-rose-200"
+                    className="w-full flex items-center justify-between px-3 py-2 min-h-[40px] rounded-xl hover:bg-rose-50 text-[#5A6B5F] hover:text-rose-700 font-bold text-xs text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-colors border border-transparent hover:border-rose-200"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center text-stone-500">
-                        <LogOut className="w-3.5 h-3.5" />
+                        <LogOut className="w-3.5 h-3.5" strokeWidth={2.5} />
                       </div>
                       <span>الخروج من التطبيق</span>
                     </div>
@@ -452,11 +564,11 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* ─── تذييل الدرج ─── */}
-            <div className="p-3 bg-[#F4EFE3] border-t border-[#D4C8B5] text-right shrink-0">
+            {/* ─── تذييل ─── */}
+            <div className="p-3 bg-[#F4EFE3] border-t border-[#2D6A3F]/12 text-right shrink-0">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[11px] sm:text-xs text-[#524B3E] font-['Tajawal'] font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-sm" />
+                <p className="text-[11px] sm:text-xs text-[#1A3D24] font-['Tajawal'] font-bold">
                   توصيل يومي لكافة أحياء فاس من 09:00 إلى 21:00
                 </p>
               </div>
