@@ -1,7 +1,7 @@
 // ============================================================
-// الملف: Hero.tsx – الإصدار 4.7
-// بطاقات الهيرو مع تمرير يدوي أفقي
-// تحسينات: توسيط مثالي + snap-mandatory + تبديل برتقالي/ذهبي
+// الملف: Hero.tsx – الإصدار 4.8
+// تحسينات: هوامش رأسية أوسع + ذهبي نقي في الشارة 
+//          + برتقالي نقي في العنوان + إبراز العنوان والوصف
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -175,7 +175,6 @@ export const Hero: React.FC<HeroProps> = ({
   const prevActiveRef = useRef(initialIndex);
   const didInitialRestoreRef = useRef(false);
 
-  // ✅ حساب فوري للبطاقة الأقرب للمركز (باستخدام مركز الـ snapport)
   const updateLayout = () => {
     if (!scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
@@ -183,7 +182,6 @@ export const Hero: React.FC<HeroProps> = ({
     if (!cards.length) return;
 
     const containerRect = container.getBoundingClientRect();
-    // ✅ المركز الفعلي للـ viewport داخل الحاوية (وليس منتصف الحاوية)
     const containerCenter = containerRect.left + containerRect.width / 2;
 
     let closestIdx = 0;
@@ -277,10 +275,11 @@ export const Hero: React.FC<HeroProps> = ({
 
   return (
     <section
-      className="relative overflow-hidden pt-3 pb-5 sm:pt-6 sm:pb-8 px-3 sm:px-6 lg:px-8"
+      // ✅ هوامش رأسية أوسع (تنفّس بصري)
+      className="relative overflow-hidden pt-8 pb-10 sm:pt-12 sm:pb-14 lg:pt-16 lg:pb-16 px-3 sm:px-6 lg:px-8"
       aria-label="الواجهة الرئيسية للمتجر"
     >
-      {/* ════════ الأنماط الحركية + الـ Spacer ════════ */}
+      {/* ════════ الأنماط الحركية ════════ */}
       <style>{`
         @keyframes heroFadeInRight {
           0%   { opacity: 0; transform: translateX(60px) scale(0.97); }
@@ -313,10 +312,9 @@ export const Hero: React.FC<HeroProps> = ({
           will-change: transform, opacity;
         }
 
-        /* ✅ Spacer ذكي: يجبر أول/آخر بطاقة على التوسيط عند snap-center */
         .hero-spacer {
           flex-shrink: 0;
-          width: calc(50% - 44vw - 1rem); /* container/2 - card/2 - gap */
+          width: calc(50% - 44vw - 1rem);
         }
         @media (min-width: 640px) {
           .hero-spacer {
@@ -339,11 +337,10 @@ export const Hero: React.FC<HeroProps> = ({
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          // ✅ snap-mandatory للالتقاط القوي + إزالة padding جانبي (الـ spacer يوفره)
-          className="flex flex-row md:grid md:grid-cols-2 gap-4 sm:gap-6 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 pt-2 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
+          // ✅ حشو داخلي رأسي أوسع داخل منطقة التمرير
+          className="flex flex-row md:grid md:grid-cols-2 gap-4 sm:gap-6 overflow-x-auto md:overflow-x-visible py-4 md:py-0 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
-          {/* ✅ Spacer أيسر (جوال فقط) */}
           <div className="hero-spacer" aria-hidden="true" />
 
           {HERO_SLIDES.map((slide, index) => {
@@ -371,34 +368,36 @@ export const Hero: React.FC<HeroProps> = ({
                   />
                 </div>
 
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10]/95 via-[#0B1C10]/70 to-[#0B1C10]/45 pointer-events-none" />
+                {/* تدرج داكن أقوى لضمان وضوح النصوص */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10]/98 via-[#0B1C10]/80 to-[#0B1C10]/50 pointer-events-none" />
 
-                {/* 🟠 دوائر ضوئية — بعد التبديل: العلوية برتقالية، السفلية خضراء */}
-                <div className="absolute -top-20 -right-20 w-60 h-60 bg-[#C25E12]/18 rounded-full blur-3xl pointer-events-none" />
+                {/* 🟡 دائرة ذهبية علوية (بدون برتقالي) */}
+                <div className="absolute -top-20 -right-20 w-60 h-60 bg-[#EAB308]/18 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-[#2D6A3F]/45 rounded-full blur-3xl pointer-events-none" />
 
-                {/* ════════ شارة علوية (ذهبية الآن) ════════ */}
+                {/* ════════ الشارة العلوية: ذهبي نقي ════════ */}
                 <div className="relative z-10 flex items-center justify-center">
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#EAB308] to-[#CA8A04] backdrop-blur-md border border-[#C25E12]/50 text-[#1A3D24] text-[11px] sm:text-xs font-black tracking-wide shadow-lg shadow-[#EAB308]/35">
-                    {/* 🟠 نقطة برتقالية نابضة */}
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#C25E12] animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] backdrop-blur-md border border-[#EAB308]/60 text-[#1A3D24] text-[11px] sm:text-xs font-black tracking-wide shadow-lg shadow-[#EAB308]/40">
+                    {/* ✅ نقطة بيضاء نابضة (محايدة) */}
+                    <span className="w-1.5 h-1.5 rounded-full bg-white/90 animate-pulse" />
                     <span>{slide.badge}</span>
                   </span>
                 </div>
 
                 {/* ════════ المحتوى ════════ */}
-                <div className="relative z-10 flex flex-col items-center justify-center flex-1 mx-auto py-4 text-center">
-                  <h1 className="text-[24px] sm:text-[28px] lg:text-[30px] font-black text-white leading-[1.25] tracking-tight mb-4 drop-shadow-lg">
+                <div className="relative z-10 flex flex-col items-center justify-center flex-1 mx-auto py-5 text-center">
+                  {/* ✅ العنوان: أكبر وأوضح + برتقالي نقي في الـ highlight */}
+                  <h1 className="text-[26px] sm:text-[30px] lg:text-[34px] font-black text-white leading-[1.3] tracking-tight mb-5 drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
                     {slide.title}{' '}
-                    {/* 🟠 النص المميز برتقالي الآن */}
-                    <span className="relative inline-block text-[#F59E0B]">
+                    <span className="relative inline-block text-[#FB923C] drop-shadow-[0_2px_8px_rgba(234,88,12,0.45)]">
                       {slide.highlight}
-                      {/* 🟠 تسطير برتقالي */}
-                      <span className="absolute -bottom-1 left-0 right-0 h-[3px] bg-[#C25E12]/80 rounded-full" />
+                      {/* 🟠 تسطير برتقالي نقي */}
+                      <span className="absolute -bottom-1.5 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#EA580C] to-transparent rounded-full" />
                     </span>
                   </h1>
 
-                  <p className="text-[13px] sm:text-sm text-[#FAFAF7] leading-[1.85] mb-5 font-semibold drop-shadow-md max-w-[95%]">
+                  {/* ✅ الوصف: أكبر + تباين أعلى + خلفية خفيفة */}
+                  <p className="text-[14px] sm:text-[15px] text-white leading-[1.9] mb-6 font-bold drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)] max-w-[94%] bg-black/15 backdrop-blur-[2px] px-3 py-2 rounded-xl border border-white/10">
                     {slide.description}
                   </p>
 
@@ -447,12 +446,11 @@ export const Hero: React.FC<HeroProps> = ({
             );
           })}
 
-          {/* ✅ Spacer أيمن (جوال فقط) */}
           <div className="hero-spacer" aria-hidden="true" />
         </div>
 
         {/* ─── نقاط التنقل ─── */}
-        <div className="flex md:hidden items-center justify-center gap-2 mt-3">
+        <div className="flex md:hidden items-center justify-center gap-2 mt-5">
           {HERO_SLIDES.map((_, i) => (
             <button
               key={i}
