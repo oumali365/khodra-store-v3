@@ -1,16 +1,15 @@
 // ============================================================
-// الملف: Header.tsx – الإصدار 4.1
-// رأس المتجر مع قائمة جانبية موحّدة الهوية (أخضر + ذهبي + برتقالي)
-// تحسينات: Ripple + ظلال عضوية + أيقونات متناسقة
+// الملف: Header.tsx – الإصدار 4.2
+// إضافة: عدّاد منتجات لكل فئة + توهّج عند إضافة منتج للسلة
 // ============================================================
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   ShoppingBag, Search, Menu, X, Phone, ShieldCheck,
   RefreshCw, Info, Package, Leaf, LogOut,
   ChevronDown, Layers, Check
 } from 'lucide-react';
 import { STORE_CONFIG } from '../data/config';
-import { ProductCategory } from '../types';
+import { ProductCategory, Product } from '../types';
 import { CATEGORIES_CONFIG } from '../data/mockProducts';
 
 interface HeaderProps {
@@ -28,9 +27,11 @@ interface HeaderProps {
   onCloseMenu: () => void;
   onScrollToBundles?: () => void;
   onOpenExitModal?: () => void;
+  // ✅ جديد: لحساب عدّاد كل فئة
+  products?: Product[];
 }
 
-// ═══════ زر Ripple (نفس نمط Hero و CategoryFilter) ═══════
+// ═══════ زر Ripple ═══════
 const RippleButton: React.FC<{
   onClick?: () => void;
   className: string;
@@ -101,9 +102,47 @@ export const Header: React.FC<HeaderProps> = ({
   onCloseMenu,
   onScrollToBundles,
   onOpenExitModal,
+  products = [],
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(true);
+
+  // ✅ حالة توهّج السلة
+  const [isCartGlowing, setIsCartGlowing] = useState(false);
+  const prevCartCountRef = useRef(cartCount);
+  const glowTimerRef = useRef<number | null>(null);
+
+  // ✅ حساب عدد المنتجات لكل فئة
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const cat of CATEGORIES_CONFIG) {
+      if (cat.id === 'all') {
+        counts[cat.id] = products.length;
+      } else {
+        counts[cat.id] = products.filter((p) => p.category === cat.id).length;
+      }
+    }
+    return counts;
+  }, [products]);
+
+  // ✅ كشف إضافة منتج جديد → توهّج ذهبي
+  useEffect(() => {
+    if (cartCount > prevCartCountRef.current) {
+      setIsCartGlowing(true);
+      if (glowTimerRef.current) window.clearTimeout(glowTimerRef.current);
+      glowTimerRef.current = window.setTimeout(() => {
+        setIsCartGlowing(false);
+      }, 1400);
+    }
+    prevCartCountRef.current = cartCount;
+  }, [cartCount]);
+
+  // ─── تنظيف المؤقتات ───
+  useEffect(() => {
+    return () => {
+      if (glowTimerRef.current) window.clearTimeout(glowTimerRef.current);
+    };
+  }, []);
 
   // ─── إغلاق بزر الهروب ───
   useEffect(() => {
@@ -116,7 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMenuOpen, onCloseMenu]);
 
-  // ─── قفل التمرير عند فتح القائمة ───
+  // ─── قفل التمرير ───
   useEffect(() => {
     if (isMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -128,7 +167,6 @@ export const Header: React.FC<HeaderProps> = ({
     };
   }, [isMenuOpen]);
 
-  // ─── التمرير لصناديق العائلة ───
   const handleScrollToBundles = useCallback(() => {
     onCloseMenu();
     if (onScrollToBundles) {
@@ -176,10 +214,63 @@ export const Header: React.FC<HeaderProps> = ({
           will-change: opacity, transform;
         }
 
+        /* ✅ توهّج ذهبي لزر السلة عند إضافة منتج */
+        @keyframes cartGlowPulse {
+          0% {
+            box-shadow: 0 4px 14px rgba(234,88,12,0.30),
+                        0 0 0 0 rgba(234,179,8,0.55);
+          }
+          50% {
+            box-shadow: 0 6px 24px rgba(234,88,12,0.55),
+                        0 0 0 10px rgba(234,179,8,0.15);
+          }
+          100% {
+            box-shadow: 0 4px 14px rgba(234,88,12,0.30),
+                        0 0 0 0 rgba(234,179,8,0);
+          }
+        }
+        .cart-glowing {
+          animation: cartGlowPulse 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ✅ وميض داخلي ذهبي */
+        @keyframes cartShineSweep {
+          0%   { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
+          40%  { opacity: 1; }
+          100% { transform: translateX(220%) skewX(-15deg); opacity: 0; }
+        }
+        .cart-shine {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 40%;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(234,179,8,0.55) 50%,
+            transparent 100%
+          );
+          animation: cartShineSweep 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+          pointer-events: none;
+        }
+
+        /* ✅ عدّاد الفئة (شارة صغيرة) */
+        @keyframes countBadgePop {
+          0%   { transform: scale(0.7); opacity: 0; }
+          60%  { transform: scale(1.08); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .category-count-badge {
+          animation: countBadgePop 0.35s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .header-ripple,
           .header-slide-in-left,
-          .header-slide-down { animation: none; }
+          .header-slide-down,
+          .cart-glowing,
+          .cart-shine,
+          .category-count-badge { animation: none; }
         }
       `}</style>
 
@@ -190,7 +281,6 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* ── يمين: زر القائمة + الشعار ── */}
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              {/* زر القائمة — موحّد مع Hero */}
               <RippleButton
                 id="main-nav-toggle-btn"
                 onClick={onToggleMenu}
@@ -210,7 +300,6 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </RippleButton>
 
-              {/* الشعار */}
               <button
                 type="button"
                 id="store-logo-btn"
@@ -229,7 +318,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* ── وسط: حقل البحث (سطح المكتب) ── */}
+            {/* ── وسط: البحث ── */}
             <form onSubmit={onSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-4">
               <div className="relative w-full group">
                 <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A6B5F] group-focus-within:text-[#2D6A3F] transition-colors pointer-events-none" strokeWidth={2.5} />
@@ -255,7 +344,6 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* ── يسار: بحث جوال + واتساب + السلة ── */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {/* بحث الجوال */}
               <button
                 type="button"
                 id="mobile-search-toggle-btn"
@@ -274,7 +362,6 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </button>
 
-              {/* واتساب */}
               <a
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
@@ -285,18 +372,25 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>واتساب</span>
               </a>
 
-              {/* زر السلة */}
+              {/* ✅ زر السلة مع توهّج ذهبي */}
               <RippleButton
                 id="header-open-cart-btn"
                 onClick={onOpenCart}
                 ariaLabel={`سلة المشتريات (${cartCount} منتجات)`}
                 rippleColor="rgba(255,255,255,0.30)"
-                className="flex items-center gap-2 px-3 sm:px-5 py-2.5 min-h-[44px] rounded-2xl bg-gradient-to-l from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] text-white shadow-[0_4px_14px_rgba(234,88,12,0.30)] hover:shadow-[0_6px_22px_rgba(234,88,12,0.42)] active:scale-95 transition-all duration-150 font-extrabold font-['Almarai'] touch-manipulation select-none cursor-pointer shrink-0 border border-[#FACC15]/25"
+                className={`flex items-center gap-2 px-3 sm:px-5 py-2.5 min-h-[44px] rounded-2xl bg-gradient-to-l from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] text-white shadow-[0_4px_14px_rgba(234,88,12,0.30)] hover:shadow-[0_6px_22px_rgba(234,88,12,0.42)] active:scale-95 transition-all duration-150 font-extrabold font-['Almarai'] touch-manipulation select-none cursor-pointer shrink-0 border border-[#FACC15]/25 ${
+                  isCartGlowing ? 'cart-glowing' : ''
+                }`}
               >
+                {/* ✅ لمعان يمشي عبر الزر عند الإضافة */}
+                {isCartGlowing && <span className="cart-shine" aria-hidden="true" />}
+
                 <div className="relative z-10">
                   <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
                   {cartCount > 0 && (
-                    <span className="absolute -top-2.5 -left-2.5 min-w-[22px] h-[22px] px-1 rounded-full bg-[#1A3D24] text-[#EAB308] text-[11px] font-black flex items-center justify-center border-2 border-white shadow-md">
+                    <span className={`absolute -top-2.5 -left-2.5 min-w-[22px] h-[22px] px-1 rounded-full bg-[#1A3D24] text-[#EAB308] text-[11px] font-black flex items-center justify-center border-2 border-white shadow-md transition-transform ${
+                      isCartGlowing ? 'scale-110' : 'scale-100'
+                    }`}>
                       {cartCount > 99 ? '99+' : cartCount}
                     </span>
                   )}
@@ -311,7 +405,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* ── حقل البحث الجوّال ── */}
+          {/* ── بحث الجوال ── */}
           {showMobileSearch && (
             <div className="md:hidden pb-3 pt-1 header-slide-down">
               <form onSubmit={onSearchSubmit} className="relative w-full">
@@ -343,19 +437,16 @@ export const Header: React.FC<HeaderProps> = ({
       {/* ════════ القائمة الجانبية ════════ */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 flex">
-          {/* الخلفية المعتمة */}
           <div
             className="fixed inset-0 bg-black/55 backdrop-blur-sm transition-opacity"
             onClick={onCloseMenu}
             aria-hidden="true"
           />
 
-          {/* لوحة القائمة */}
           <div className="relative ml-auto w-full max-w-[340px] sm:max-w-xs bg-[#FBF9F5] h-full shadow-2xl flex flex-col z-50 overflow-hidden header-slide-in-left border-l border-[#2D6A3F]/15">
 
-            {/* ─── رأس القائمة ─── */}
+            {/* ─── رأس الدرج ─── */}
             <div className="relative px-4 py-4 bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] text-white flex items-center justify-between shadow-sm shrink-0 border-b border-[#0A1A0F]/40">
-              {/* دوائر ضوئية خفيفة */}
               <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#EAB308]/12 rounded-full blur-2xl pointer-events-none" />
               <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-[#2D6A3F]/30 rounded-full blur-2xl pointer-events-none" />
 
@@ -387,7 +478,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* ─── المحتوى ─── */}
             <div className="p-3.5 sm:p-4 flex-1 overflow-y-auto no-scrollbar space-y-3.5">
 
-              {/* ═══════ 1. قائمة الفئات المنسدلة ═══════ */}
+              {/* ═══════ 1. قائمة الفئات ═══════ */}
               <div className="rounded-2xl bg-white border border-[#2D6A3F]/12 shadow-sm overflow-hidden">
                 <button
                   type="button"
@@ -417,8 +508,10 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {isCategoriesDropdownOpen && (
                   <div className="p-2 pt-1 border-t border-[#2D6A3F]/8 bg-[#FAF8F3]/60 space-y-1 header-slide-down">
-                    {CATEGORIES_CONFIG.map((cat) => {
+                    {CATEGORIES_CONFIG.map((cat, index) => {
                       const isSelected = selectedCategory === cat.id;
+                      const count = categoryCounts[cat.id] ?? 0;
+
                       return (
                         <button
                           key={cat.id}
@@ -429,13 +522,13 @@ export const Header: React.FC<HeaderProps> = ({
                             onOpenPage(null);
                             onCloseMenu();
                           }}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-all ${
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 min-h-[40px] rounded-xl text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-all ${
                             isSelected
                               ? 'bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] text-white shadow-[0_3px_10px_rgba(45,106,63,0.25)] font-black'
                               : 'hover:bg-white active:bg-[#EFE8DC] text-[#112616] hover:text-[#1A3D24] font-bold text-xs sm:text-sm'
                           }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0 border ${
                               isSelected
                                 ? 'bg-white/15 border-white/20 text-white'
@@ -446,11 +539,29 @@ export const Header: React.FC<HeaderProps> = ({
                             <span className="truncate">{cat.name}</span>
                           </div>
 
-                          {isSelected && (
-                            <span className="w-5 h-5 rounded-full bg-[#EAB308] text-[#1A3D24] flex items-center justify-center shrink-0 shadow-sm">
-                              <Check className="w-3 h-3 stroke-[3]" />
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {/* ✅ عدّاد المنتجات */}
+                            <span
+                              key={`${cat.id}-${count}`}
+                              className={`category-count-badge inline-flex items-center justify-center min-w-[28px] h-[22px] px-2 rounded-full text-[10px] font-black tabular-nums transition-colors ${
+                                isSelected
+                                  ? 'bg-[#EAB308] text-[#1A3D24]'
+                                  : count > 0
+                                  ? 'bg-[#2D6A3F]/10 text-[#2D6A3F]'
+                                  : 'bg-[#EAE2D2] text-[#8A8170]'
+                              }`}
+                              style={{ animationDelay: `${index * 40}ms` }}
+                              aria-label={`${count} منتج`}
+                            >
+                              {count}
                             </span>
-                          )}
+
+                            {isSelected && (
+                              <span className="w-5 h-5 rounded-full bg-[#EAB308] text-[#1A3D24] flex items-center justify-center shrink-0 shadow-sm">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </span>
+                            )}
+                          </div>
                         </button>
                       );
                     })}
