@@ -19,7 +19,7 @@ import {
   Sparkles,
   BarChart3,
 } from 'lucide-react';
-import { STORE_CONFIG } from '../data/config';
+import { STORE_CONFIG } from '../../data/config';
 import {
   fetchReviews,
   submitCustomerReview,
@@ -29,12 +29,12 @@ import {
   setCachedAdminPin,
   syncAdminPinFromRemote,
   updateAdminPinRemote,
-} from '../services/supabaseService';
-import { useNewOrdersNotifier } from '../hooks/useNewOrdersNotifier';
+} from '../../services/supabaseService';
+import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
 import {
   INITIAL_THREE_REVIEWS,
   type CustomerReview,
-} from '../data/initialReviews';
+} from '../../data/initialReviews';
 import { AddReviewModal } from './AddReviewModal';
 import {
   AdminNotificationToast,
@@ -43,12 +43,12 @@ import {
   DeleteReviewModal,
   AdminErrorBoundary,
   FinancePanel,
-} from './admin';
+} from '../admin';
 
 export type { CustomerReview };
 
 const AdminOrdersPanel = React.lazy(() =>
-  import('./admin/AdminOrdersPanel').then((module) => ({ default: module.AdminOrdersPanel }))
+  import('../admin/AdminOrdersPanel').then((module) => ({ default: module.AdminOrdersPanel }))
 );
 
 const INITIAL_VISIBLE_COUNT = 3;

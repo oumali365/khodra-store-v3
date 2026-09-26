@@ -27,7 +27,7 @@ interface CheckoutBankTransferProps {
   error?: string;
 }
 
-const CheckoutBankTransfer: React.FC<CheckoutBankTransferProps> = ({
+export const CheckoutBankTransfer: React.FC<CheckoutBankTransferProps> = ({
   selectedBankId,
   onSelectBankId,
   receiptFile,

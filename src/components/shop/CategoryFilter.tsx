@@ -4,8 +4,8 @@
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
-import { ProductCategory, Product } from '../types';
-import { CATEGORIES_CONFIG } from '../data/mockProducts';
+import { ProductCategory, Product } from '../../types';
+import { CATEGORIES_CONFIG } from '../../data/mockProducts';
 import { SortOption } from './SortFilterModal';
 
 const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = {

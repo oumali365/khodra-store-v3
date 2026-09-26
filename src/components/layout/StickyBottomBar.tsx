@@ -4,7 +4,7 @@
 // ============================================================
 import React from 'react';
 import { ShoppingBag, ArrowLeft, Truck } from 'lucide-react';
-import { STORE_CONFIG } from '../data/config';
+import { STORE_CONFIG } from '../../data/config';
 
 interface StickyBottomBarProps {
   cartCount: number;

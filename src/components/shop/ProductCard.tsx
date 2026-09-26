@@ -6,8 +6,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Minus, Plus, Check, ShoppingBag } from 'lucide-react';
 import gsap from 'gsap';
 import { motion } from 'motion/react';
-import { Product } from '../types';
-import { STORE_CONFIG } from '../data/config';
+import { Product } from '../../types';
+import { STORE_CONFIG } from '../../data/config';
 
 interface ProductCardProps {
   product: Product;

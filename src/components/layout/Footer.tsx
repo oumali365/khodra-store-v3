@@ -4,7 +4,7 @@
 // ============================================================
 import React from 'react';
 import { Heart, ShieldCheck, Truck, RefreshCw, MessageCircle, Lock } from 'lucide-react';
-import { STORE_CONFIG } from '../data/config';
+import { STORE_CONFIG } from '../../data/config';
 
 interface FooterProps {
   onOpenPage: (page: 'about' | 'policy' | 'privacy' | null) => void;

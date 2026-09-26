@@ -3,7 +3,7 @@
 // يمنع الروبوتات والطلبات المزيفة مع تجربة سلسة بدون كابتشا معقدة
 // ============================================================
 import React, { useEffect, useRef, useState } from 'react';
-import { STORE_CONFIG } from '../data/config';
+import { STORE_CONFIG } from '../../data/config';
 
 declare global {
   interface Window {

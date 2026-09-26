@@ -4,7 +4,7 @@
 // ============================================================
 import React, { useRef } from 'react';
 import { ShoppingBag, RefreshCw, Leaf, PhoneCall } from 'lucide-react';
-import { STORE_CONFIG } from '../data/config';
+import { STORE_CONFIG } from '../../data/config';
 
 interface ExitScreenProps {
   onReenter: () => void;

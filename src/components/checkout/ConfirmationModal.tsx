@@ -18,8 +18,8 @@ import {
   Sparkles,
   PartyPopper,
 } from 'lucide-react';
-import { OrderSubmission } from '../types';
-import { STORE_CONFIG, MOROCCAN_BANKS } from '../data/config';
+import { OrderSubmission } from '../../types';
+import { STORE_CONFIG, MOROCCAN_BANKS } from '../../data/config';
 
 interface ConfirmationModalProps {
   isOpen: boolean;

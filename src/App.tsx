@@ -1,54 +1,61 @@
 // ============================================================
-// App.tsx – الإصدار 4.0
-// يدمج CategoryHeader داخل CategoryFilter + onScrollToBundles
+// App.tsx – الإصدار 4.1
+// يدمج CategoryHeader داخل CategoryFilter + ScrollToTopButton + هيكلية مجلدات منظمة
 // ============================================================
-import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
-import { RotateCcw, ChevronDown, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import { RotateCcw, ChevronDown } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Header } from './components/Header';
-import { Hero } from './components/Hero';
-import { CategoryFilter } from './components/CategoryFilter';
-import { ProductCard } from './components/ProductCard';
-import { FamilyBoxesSection, FamilyBox } from './components/FamilyBoxesSection';
-import { StickyBottomBar } from './components/StickyBottomBar';
-import { TrustBadges } from './components/TrustBadges';
-import { CustomerReviews } from './components/CustomerReviews';
-import { Footer } from './components/Footer';
-import { SortOption } from './components/SortFilterModal';
-import { ExitScreen } from './components/ExitScreen';
-import { InstallAppBanner, checkIfAlreadyInstalledOrDownloaded } from './components/InstallAppBanner';
-import { FreeDeliveryBanner } from './components/FreeDeliveryBanner';
+import {
+  Header,
+  Footer,
+  StickyBottomBar,
+  ScrollToTopButton,
+  FreeDeliveryBanner,
+  InstallAppBanner,
+  checkIfAlreadyInstalledOrDownloaded,
+} from './components/layout';
+import {
+  Hero,
+  CategoryFilter,
+  ProductCard,
+  FamilyBoxesSection,
+  FamilyBox,
+  TrustBadges,
+  SortOption,
+} from './components/shop';
+import { CustomerReviews } from './components/reviews';
+import { ExitScreen } from './components/common';
+import { AdminErrorBoundary } from './components/admin';
 
 // ─── تحميل مؤجل للمودالات لتقليص الحجم الأولي وتسريع ظهور الصفحة الرئيسية ───
 const CartDrawer = React.lazy(() =>
-  import('./components/CartDrawer').then((m) => ({ default: m.CartDrawer }))
+  import('./components/cart/CartDrawer').then((m) => ({ default: m.CartDrawer }))
 );
 const CheckoutModal = React.lazy(() =>
-  import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal }))
+  import('./components/checkout/CheckoutModal').then((m) => ({ default: m.CheckoutModal }))
 );
 const ConfirmationModal = React.lazy(() =>
-  import('./components/ConfirmationModal').then((m) => ({ default: m.ConfirmationModal }))
+  import('./components/checkout/ConfirmationModal').then((m) => ({ default: m.ConfirmationModal }))
 );
 const ExitConfirmationModal = React.lazy(() =>
-  import('./components/ExitConfirmationModal').then((m) => ({ default: m.ExitConfirmationModal }))
+  import('./components/common/ExitConfirmationModal').then((m) => ({ default: m.ExitConfirmationModal }))
 );
 const SortFilterModal = React.lazy(() =>
-  import('./components/SortFilterModal').then((m) => ({ default: m.SortFilterModal }))
+  import('./components/shop/SortFilterModal').then((m) => ({ default: m.SortFilterModal }))
 );
 const AdminOrdersPanel = React.lazy(() =>
   import('./components/admin/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
 );
-import { AdminErrorBoundary } from './components/admin';
 
 // ─── تحميل مؤجل للصفحات الإضافية والخريطة ───
 const InfoPages = React.lazy(() =>
-  import('./components/InfoPages').then((module) => ({ default: module.InfoPages }))
+  import('./components/common/InfoPages').then((module) => ({ default: module.InfoPages }))
 );
 const StoreCoverageMap = React.lazy(() =>
-  import('./components/StoreCoverageMap')
+  import('./components/shop/StoreCoverageMap')
     .catch((err) => {
       console.warn('First attempt to load StoreCoverageMap failed, retrying...', err);
-      return import('./components/StoreCoverageMap');
+      return import('./components/shop/StoreCoverageMap');
     })
     .then((module) => ({ default: module.default || module.StoreCoverageMap }))
 );
@@ -435,14 +442,10 @@ export default function App() {
 
     if (!result.success) {
       console.error('❌ فشل حفظ الطلب:', result.message, result.errorCode);
-      const errorMessage = result.message || 'تعذّر حفظ الطلب في قاعدة البيانات';
-      alert(
-        '⚠️ تعذّر إرسال الطلب\n\n' +
-        errorMessage + '\n\n' +
-        '📱 يرجى التواصل معنا مباشرة عبر واتساب لإتمام طلبك:\n' +
-        STORE_CONFIG.whatsappNumber
-      );
-      return;
+      const errorMessage =
+        result.message ||
+        `تعذّر حفظ الطلب في قاعدة البيانات. يرجى المحاولة مجدداً أو التواصل عبر واتساب: ${STORE_CONFIG.whatsappNumber}`;
+      throw new Error(errorMessage);
     }
 
     setConfirmedOrder(order);
@@ -489,7 +492,9 @@ export default function App() {
     if (bundlesSectionRef.current) {
       bundlesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
-      const el = document.getElementById('family-boxes-section');
+      const el =
+        document.getElementById('family-bundles-section') ||
+        document.getElementById('family-boxes-section');
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
@@ -694,12 +699,14 @@ export default function App() {
                     className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 min-h-[320px]"
                   >
                     {displayedProducts.map((product, idx) => {
-                      const cartItem = cart.find((c) => c.id === product.id);
+                      const inCartQty = cart
+                        .filter((c) => c.id === product.id)
+                        .reduce((sum, c) => sum + c.qty, 0);
                       return (
                         <ProductCard
                           key={product.id}
                           product={product}
-                          inCartQty={cartItem ? cartItem.qty : 0}
+                          inCartQty={inCartQty}
                           onAddToCart={handleAddToCart}
                           index={idx}
                         />
@@ -803,6 +810,7 @@ export default function App() {
             onUpdateQty={handleUpdateCartQty}
             onRemoveItem={handleRemoveFromCart}
             onClearCart={handleClearCart}
+            onExploreBundles={scrollToBundles}
             onProceedToCheckout={() => {
               setIsCartOpen(false);
               setIsCheckoutOpen(true);
@@ -856,6 +864,21 @@ export default function App() {
           />
         )}
       </Suspense>
+
+      {/* ═══════ زر العودة للأعلى (دائري مع شريط تقدم ذهبي) ═══════ */}
+      <ScrollToTopButton
+        hasStickyBar={cartCount > 0}
+        hidden={
+          isCartOpen ||
+          isCheckoutOpen ||
+          isMenuOpen ||
+          isAdminOrdersOpen ||
+          isSortModalOpen ||
+          !!selectedFamilyBox ||
+          !!confirmedOrder ||
+          isExitConfirmOpen
+        }
+      />
 
       {/* ═══════ Floating Sticky Bottom Bar ═══════ */}
       <StickyBottomBar

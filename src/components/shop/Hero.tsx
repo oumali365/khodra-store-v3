@@ -9,8 +9,8 @@ import {
   Package,
   Leaf,
 } from 'lucide-react';
-import { STORE_CONFIG } from '../data/config';
-import { ProductCategory } from '../types';
+import { STORE_CONFIG } from '../../data/config';
+import { ProductCategory } from '../../types';
 
 export const HERO_PUBLIC_IMAGES: Record<string, { primary: string; fallback: string }> = {
   slide1: {

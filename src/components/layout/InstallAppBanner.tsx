@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X, Share, PlusSquare, ArrowDownCircle, ShieldCheck } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
-import { STORE_CONFIG } from '../data/config';
+import { STORE_CONFIG } from '../../data/config';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;

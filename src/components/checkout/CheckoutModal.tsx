@@ -5,9 +5,9 @@
 // ============================================================
 import React, { useState, useEffect, useRef } from 'react';
 import { X, ShoppingBag, Sparkles } from 'lucide-react';
-import { CartItem, PaymentMethod, OrderSubmission } from '../types';
-import { STORE_CONFIG, MOROCCAN_BANKS, DELIVERY_SLOTS } from '../data/config';
-import { detectAddressZone } from '../data/deliveryZones';
+import { CartItem, PaymentMethod, OrderSubmission } from '../../types';
+import { STORE_CONFIG, MOROCCAN_BANKS, DELIVERY_SLOTS } from '../../data/config';
+import { detectAddressZone } from '../../data/deliveryZones';
 import {
   getClientId,
   getDeviceFingerprint,
@@ -18,13 +18,11 @@ import {
   validateMoroccanPhone,
   validateCustomerName,
   sanitizeInput,
-} from '../services/securityService';
-import {
-  CheckoutCartSummary,
-  CheckoutAddressSection,
-  CheckoutPaymentSection,
-  CheckoutSecuritySubmit,
-} from './checkout';
+} from '../../services/securityService';
+import { CheckoutCartSummary } from './CheckoutCartSummary';
+import { CheckoutAddressSection } from './CheckoutAddressSection';
+import { CheckoutPaymentSection } from './CheckoutPaymentSection';
+import { CheckoutSecuritySubmit } from './CheckoutSecuritySubmit';
 
 interface CheckoutModalProps {
   isOpen: boolean;

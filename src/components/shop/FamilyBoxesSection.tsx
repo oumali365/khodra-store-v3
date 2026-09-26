@@ -10,8 +10,8 @@ import {
   Star, Leaf, Award, Clock,
 } from 'lucide-react';
 import { gsap } from 'gsap';
-import { Product } from '../types';
-import { STORE_CONFIG } from '../data/config';
+import { Product } from '../../types';
+import { STORE_CONFIG } from '../../data/config';
 
 // ─── مسارات صور صناديق العائلة ───
 export const FAMILY_BOX_PUBLIC_IMAGES: Record<string, string> = {

@@ -15,7 +15,7 @@ import {
   Award,
   Users,
 } from 'lucide-react';
-import { STORE_CONFIG } from '../data/config';
+import { STORE_CONFIG } from '../../data/config';
 
 interface InfoPagesProps {
   page: 'about' | 'policy' | 'privacy';

@@ -16,8 +16,8 @@ export const STORE_CONFIG = {
   weightMax: 10,
   cacheKey: 'khodra_cart_v2',
   adminPin: '090909',
-  supabaseUrl: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || 'https://nlrgayjptrkgdkpczlmb.supabase.co',
-  supabaseAnonKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scmdheWpwdHJrZ2RrcGN6bG1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNzQyMDIsImV4cCI6MjEwNTc1MDIwMn0.b3EDWM3gqNhjz8bAyz6F5SRC91uvn-S2IJZYONUz9M4',
+  supabaseUrl: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || '',
+  supabaseAnonKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || '',
   cloudflareTurnstileSiteKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY) || '',
 };
 

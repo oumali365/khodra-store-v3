@@ -4,7 +4,7 @@
 // ============================================================
 import React, { useEffect, useRef } from 'react';
 import { LogOut, ShoppingBag, ShieldCheck, Sparkles } from 'lucide-react';
-import { STORE_CONFIG } from '../data/config';
+import { STORE_CONFIG } from '../../data/config';
 
 interface ExitConfirmationModalProps {
   isOpen: boolean;

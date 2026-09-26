@@ -5,7 +5,7 @@
 // ============================================================
 import React, { useState, useRef } from 'react';
 import { Truck, X, CheckCircle2 } from 'lucide-react';
-import { STORE_CONFIG } from '../data/config';
+import { STORE_CONFIG } from '../../data/config';
 
 interface FreeDeliveryBannerProps {
   cartTotal?: number;

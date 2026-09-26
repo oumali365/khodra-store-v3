@@ -10,7 +10,7 @@ import {
   ShoppingBag,
   ShieldCheck,
 } from 'lucide-react';
-import { TurnstileWidget } from '../TurnstileWidget';
+import { TurnstileWidget } from '../common/TurnstileWidget';
 
 interface CheckoutSecuritySubmitProps {
   isSubmitting: boolean;

@@ -9,9 +9,9 @@ import {
   RefreshCw, Info, Package, Leaf, LogOut,
   ChevronDown, Layers, Check
 } from 'lucide-react';
-import { STORE_CONFIG } from '../data/config';
-import { ProductCategory } from '../types';
-import { CATEGORIES_CONFIG } from '../data/mockProducts';
+import { STORE_CONFIG } from '../../data/config';
+import { ProductCategory } from '../../types';
+import { CATEGORIES_CONFIG } from '../../data/mockProducts';
 
 interface HeaderProps {
   cartCount: number;

@@ -5,8 +5,8 @@
 import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'motion/react';
 import { Trash2, Plus, Minus, Package } from 'lucide-react';
-import { CartItem } from '../types';
-import { STORE_CONFIG } from '../data/config';
+import { CartItem } from '../../types';
+import { STORE_CONFIG } from '../../data/config';
 
 interface SwipeableCartItemProps {
   item: CartItem;

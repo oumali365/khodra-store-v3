@@ -7,8 +7,8 @@ import {
   X, Trash2, ArrowLeft, ShoppingBag, Truck, Package,
   ShieldCheck, Gift, Percent,
 } from 'lucide-react';
-import { CartItem } from '../types';
-import { STORE_CONFIG } from '../data/config';
+import { CartItem } from '../../types';
+import { STORE_CONFIG } from '../../data/config';
 import { SwipeableCartItem } from './SwipeableCartItem';
 
 interface CartDrawerProps {
@@ -19,6 +19,7 @@ interface CartDrawerProps {
   onRemoveItem: (key: string) => void;
   onClearCart: () => void;
   onProceedToCheckout: () => void;
+  onExploreBundles?: () => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -29,6 +30,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onRemoveItem,
   onClearCart,
   onProceedToCheckout,
+  onExploreBundles,
 }) => {
   if (!isOpen) return null;
 
@@ -49,8 +51,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const regularItemsCount = items.length - bundleItemsCount;
   const totalItemsCount = items.reduce((sum, i) => sum + i.qty, 0);
 
-  // ─── التوفير المتوقع (اختياري: يمكن حسابه من أسعار أصلية) ───
-  const estimatedSavings = isFreeDelivery ? deliveryFee : 0;
+  // ─── التوفير المتوقع من التوصيل المجاني ───
+  const estimatedSavings = isFreeDelivery ? STORE_CONFIG.standardDeliveryFee : 0;
 
   return (
     <div
@@ -202,7 +204,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => {
+                    onClose();
+                    if (onExploreBundles) {
+                      setTimeout(() => onExploreBundles(), 150);
+                    }
+                  }}
                   className="w-full py-2.5 px-4 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-black text-xs sm:text-sm shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Package className="w-4 h-4 text-[#C25E12]" />
@@ -259,7 +266,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <div className="pb-2 border-b border-[#F0E9DA]">
                   <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-900 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-300">
                     <Percent className="w-3 h-3" />
-                    وفّرت {deliveryFee.toFixed(2)} {STORE_CONFIG.currency}
+                    وفّرت {estimatedSavings.toFixed(2)} {STORE_CONFIG.currency} (توصيل مجاني)
                   </span>
                 </div>
               )}
