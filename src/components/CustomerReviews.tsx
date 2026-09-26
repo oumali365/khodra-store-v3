@@ -764,4 +764,92 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
         </div>
 
         {/* ════════ 3. بطاقة دعوة التقييم ════════ */}
-        <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_10px_rgba(45,106,63,0.
+        <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_10px_rgba(45,106,63,0.06)] p-6 sm:p-8 max-w-md sm:max-w-xl mx-auto overflow-hidden text-center sm:text-right">
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative flex flex-col sm:flex-row items-center justify-between gap-5">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 text-xs font-black text-[#1A3D24] justify-center sm:justify-start">
+                <MessageSquarePlus className="w-4 h-4 text-[#EA580C]" strokeWidth={2.5} />
+                <span>شاركنا تجربتك</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#EAB308]" />
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-[#1A3D24] leading-snug">
+                هل تسوقت من متجر خُضرة مؤخراً؟
+              </h3>
+              <p className="text-xs sm:text-[13px] text-[#5A6B5F] font-semibold leading-relaxed">
+                يسعدنا دائماً الاستماع إلى رأيك لمواصلة تقديم أفضل خدمة ومنتجات لك ولعائلتك.
+              </p>
+            </div>
+
+            <div className="shrink-0 w-full sm:w-auto">
+              <RippleButton
+                onClick={() => setIsModalOpen(true)}
+                rippleColor="rgba(255,255,255,0.30)"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 min-h-[48px] rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] text-white font-black text-xs sm:text-sm shadow-[0_4px_14px_rgba(45,106,63,0.30)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.42)] active:scale-95 transition-all cursor-pointer border border-[#EAB308]/25"
+              >
+                <MessageSquarePlus className="w-4 h-4 text-[#EAB308] relative z-10" strokeWidth={2.5} />
+                <span className="relative z-10">إضافة تقييم</span>
+                <Sparkles className="w-3.5 h-3.5 text-[#EAB308] relative z-10" strokeWidth={2.5} />
+              </RippleButton>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════ النوافذ المنبثقة (بدون تغيير) ════════ */}
+      <AddReviewModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleReviewSubmit}
+      />
+
+      <PinModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        onSubmit={handlePinLogin}
+      />
+
+      <ChangePinModal
+        isOpen={isChangePinModalOpen}
+        onClose={() => setIsChangePinModalOpen(false)}
+        onSubmit={handleChangePin}
+      />
+
+      <DeleteReviewModal
+        review={deleteConfirmReview}
+        isDeleting={isDeleting}
+        onClose={() => !isDeleting && setDeleteConfirmReview(null)}
+        onConfirm={handleExecuteDelete}
+      />
+
+      {!onOpenOrdersPanel && isOrdersPanelOpen && (
+        <AdminErrorBoundary onClose={handleCloseOrdersPanel}>
+          <React.Suspense fallback={null}>
+            <AdminOrdersPanel
+              isOpen={isOrdersPanelOpen}
+              onClose={handleCloseOrdersPanel}
+              onOrdersChange={refreshOrders}
+            />
+          </React.Suspense>
+        </AdminErrorBoundary>
+      )}
+
+      <FinancePanel
+        isOpen={isFinancePanelOpen}
+        onClose={handleCloseFinance}
+      />
+
+      {isAdmin && (
+        <AdminNotificationToast
+          newCount={newCount}
+          onOpenOrders={handleOpenOrders}
+          onDismiss={markAsSeen}
+          soundEnabled={soundEnabled}
+          onToggleSound={handleToggleSound}
+        />
+      )}
+    </>
+  );
+};
