@@ -1,6 +1,6 @@
 // ============================================================
 // الملف: SwipeableCartItem.tsx
-// الإصدار: 3.0 (تصميم متناسق مع المتجر + دعم كامل)
+// الإصدار: 3.1 (هوية خضرة الموحّدة)
 // ============================================================
 import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'motion/react';
@@ -78,15 +78,16 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
         },
       }}
       transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-      className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-[#C25E12] via-[#E74C3C] to-[#C25E12] shadow-sm select-none touch-pan-y"
+      // ✅ خلفية الحذف: تدرج أحمر/برتقالي
+      className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-[#C25E12] via-[#DC2626] to-[#C25E12] shadow-sm select-none touch-pan-y"
     >
       {/* ════════ الطبقة الخلفية (السحب لليسار) ════════ */}
       <motion.div
         style={{ opacity: rightOpacity, scale: rightScale }}
         className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 pl-3 gap-2 text-white font-black text-xs pointer-events-none"
       >
-        <span>حذف من السلة</span>
-        <Trash2 className="w-5 h-5 text-white stroke-[2.5]" />
+        <span className="drop-shadow-sm">حذف من السلة</span>
+        <Trash2 className="w-5 h-5 text-white stroke-[2.5] drop-shadow-sm" />
       </motion.div>
 
       {/* ════════ الطبقة الخلفية (السحب لليمين) ════════ */}
@@ -94,8 +95,8 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
         style={{ opacity: leftOpacity, scale: leftScale }}
         className="absolute inset-y-0 left-0 flex items-center justify-start pl-4 pr-3 gap-2 text-white font-black text-xs pointer-events-none"
       >
-        <Trash2 className="w-5 h-5 text-white stroke-[2.5]" />
-        <span>حذف من السلة</span>
+        <Trash2 className="w-5 h-5 text-white stroke-[2.5] drop-shadow-sm" />
+        <span className="drop-shadow-sm">حذف من السلة</span>
       </motion.div>
 
       {/* ════════ بطاقة المنتج القابلة للسحب ════════ */}
@@ -110,18 +111,19 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
         onDragEnd={handleDragEnd}
         whileDrag={{
           cursor: 'grabbing',
-          boxShadow: '0 8px 20px -4px rgba(0, 0, 0, 0.15)',
+          // ✅ ظل عضوي أخضر أثناء السحب
+          boxShadow: '0 8px 20px -4px rgba(45,106,63,0.20)',
         }}
-        className={`relative bg-white border-2 transition-colors rounded-xl p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 z-10 ${
+        className={`relative bg-white border-2 transition-all duration-200 rounded-xl p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 z-10 ${
           isPastThreshold
-            ? 'border-red-400 bg-red-50/30'
+            ? 'border-rose-400 bg-rose-50/40 shadow-[0_4px_14px_rgba(220,38,38,0.15)]'
             : isBundleItem
-            ? 'border-[#C25E12]/50 bg-amber-50/30'
-            : 'border-[#E8E1D3] hover:border-[#C25E12]/40'
+            ? 'border-[#EAB308]/50 bg-[#FEF3C7]/30'
+            : 'border-[#2D6A3F]/15 hover:border-[#2D6A3F]/40'
         }`}
       >
         {/* ─── أيقونة/صورة المنتج ─── */}
-        <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#F7F4EC] border border-[#E8E1D3] flex items-center justify-center shrink-0 overflow-visible shadow-xs pointer-events-none">
+        <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-center justify-center shrink-0 overflow-visible shadow-sm pointer-events-none">
           {/* الصورة أو الأيقونة */}
           <div className="w-full h-full rounded-xl overflow-hidden flex items-center justify-center">
             {item.image_url && !imgError ? (
@@ -137,33 +139,33 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
             )}
           </div>
 
-          {/* شارة الصندوق */}
+          {/* ✅ شارة الصندوق — ذهبية بهوية خضرة */}
           {isBundleItem && (
             <span
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#C25E12] text-white text-[10px] flex items-center justify-center border-2 border-white shadow-md z-10"
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gradient-to-br from-[#FACC15] to-[#EAB308] text-[#1A3D24] text-[10px] flex items-center justify-center border-2 border-white shadow-md z-10"
               title="من صندوق عائلة"
             >
-              <Package className="w-3 h-3" />
+              <Package className="w-3 h-3" strokeWidth={2.5} />
             </span>
           )}
         </div>
 
         {/* ─── معلومات المنتج ─── */}
         <div className="flex-1 min-w-0 pointer-events-none">
-          <h4 className="text-xs sm:text-sm font-black text-[#112616] truncate leading-tight">
+          <h4 className="text-xs sm:text-sm font-black text-[#1A3D24] truncate leading-tight">
             {item.name}
           </h4>
-          <p className="text-[10px] sm:text-[11px] text-[#787163] font-bold truncate mt-0.5">
+          <p className="text-[10px] sm:text-[11px] text-[#5A6B5F] font-bold truncate mt-0.5">
             {item.variantLabel}
           </p>
-          <div className="text-xs sm:text-sm font-black text-[#C25E12] mt-0.5 tabular-nums">
+          <div className="text-xs sm:text-sm font-black text-[#EA580C] mt-0.5 tabular-nums">
             {item.lineTotal.toFixed(2)} {STORE_CONFIG.currency}
           </div>
         </div>
 
         {/* ─── عداد الكمية ─── */}
         <div
-          className="flex items-center gap-1 bg-[#F7F4EC] border border-[#E8E1D3] rounded-lg p-0.5 shrink-0 select-none touch-manipulation"
+          className="flex items-center gap-1 bg-[#FAF8F3] border border-[#2D6A3F]/15 rounded-lg p-0.5 shrink-0 select-none touch-manipulation"
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
         >
@@ -173,13 +175,13 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
               e.stopPropagation();
               onUpdateQty(item.key, -1);
             }}
-            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#112616] hover:bg-[#163920] hover:text-white active:scale-90 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-xs border border-[#E8E1D3] hover:border-[#163920] touch-manipulation select-none"
+            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#1A3D24] hover:bg-[#2D6A3F] hover:text-[#EAB308] active:scale-90 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-sm border border-[#2D6A3F]/20 hover:border-[#2D6A3F] touch-manipulation select-none"
             aria-label="إنقاص الكمية"
           >
             <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
 
-          <span className="text-xs font-black text-[#112616] min-w-[24px] text-center select-none tabular-nums">
+          <span className="text-xs font-black text-[#1A3D24] min-w-[24px] text-center select-none tabular-nums">
             {item.qty}
           </span>
 
@@ -189,7 +191,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
               e.stopPropagation();
               onUpdateQty(item.key, 1);
             }}
-            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#112616] hover:bg-[#163920] hover:text-white active:scale-90 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-xs border border-[#E8E1D3] hover:border-[#163920] touch-manipulation select-none"
+            className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#1A3D24] hover:bg-[#2D6A3F] hover:text-[#EAB308] active:scale-90 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-sm border border-[#2D6A3F]/20 hover:border-[#2D6A3F] touch-manipulation select-none"
             aria-label="زيادة الكمية"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
