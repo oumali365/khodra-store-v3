@@ -1,12 +1,10 @@
 // ============================================================
-// الملف: ProductCard.tsx – الإصدار 4.0
-// تحسينات بطاقة المنتج:
-//   - 4.1 تكبير طفيف لصور المنتجات (5%-8%) مع حذف الخلفية والحدود لشكل نقي على الخلفية البيضاء
-//   - 4.2 تكبير طفيف لشارة المنتج مع حذف كلمة "طازج" لتصبح "متوفر"
-//   - 4.3 تكبير طفيف لعداد الكمية وزر "أضف للسلة"
-//   - 4.4 الحفاظ على حجم اسم المنتج ومصدره (origin) كما هو
+// الملف: ProductCard.tsx – الإصدار 4.1
+// بطاقة المنتج بهوية خضرة الموحّدة
+// تحسينات: Ripple + Focus Pulse + Fade + ظلال عضوية + ألوان موحّدة
+// مع الحفاظ الكامل على GSAP Flyer و Motion
 // ============================================================
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Minus, Plus, Check, ShoppingBag } from 'lucide-react';
 import gsap from 'gsap';
 import { motion } from 'motion/react';
@@ -20,6 +18,53 @@ interface ProductCardProps {
   index?: number;
 }
 
+// ═══════ زر Ripple (نفس نمط Hero/TrustBadges) ═══════
+const RippleButton: React.FC<{
+  onClick?: () => void;
+  className: string;
+  children: React.ReactNode;
+  rippleColor?: string;
+  disabled?: boolean;
+  ariaLabel?: string;
+}> = ({ onClick, className, children, rippleColor = 'rgba(255,255,255,0.30)', disabled, ariaLabel }) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    const btn = buttonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6;
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      const ripple = document.createElement('span');
+      ripple.className = 'product-ripple';
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      ripple.style.background = rippleColor;
+      btn.appendChild(ripple);
+
+      window.setTimeout(() => ripple.remove(), 650);
+    }
+    onClick?.();
+  };
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      disabled={disabled}
+      aria-label={ariaLabel}
+      onClick={handleClick}
+      className={`relative overflow-hidden ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   inCartQty,
@@ -30,10 +75,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [selectedQty, setSelectedQty] = useState<number>(initialQty);
   const [isJustAdded, setIsJustAdded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
   const imgContainerRef = useRef<HTMLDivElement>(null);
+  const pulseTimer = useRef<number | null>(null);
 
   const isSoldOut = product.stock <= 0;
   const isLimited = product.stock > 0 && product.stock <= 5;
+
+  // ✅ نبضة ذهبية قصيرة عند الإضافة
+  useEffect(() => {
+    if (isJustAdded) {
+      setIsPulsing(true);
+      if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
+      pulseTimer.current = window.setTimeout(() => setIsPulsing(false), 700);
+    }
+    return () => {
+      if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
+    };
+  }, [isJustAdded]);
 
   const handleDecrement = () => {
     if (isWeight) {
@@ -55,7 +114,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  // ─── تأثير GSAP البصري لتحريك المنتج نحو السلة ───
+  // ─── تأثير GSAP Flyer (بدون تغيير) ───
   const animateToCart = () => {
     if (!imgContainerRef.current) return;
 
@@ -76,8 +135,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
 
     const flyer = document.createElement('div');
+    // ✅ إطار ذهبي مطابق لهوية خضرة
     flyer.className =
-      'fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border-2 border-[#D9762B] bg-white flex items-center justify-center';
+      'fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border-2 border-[#EAB308] bg-white flex items-center justify-center';
     flyer.style.width = '64px';
     flyer.style.height = '64px';
     flyer.style.left = `${rect.left + rect.width / 2 - 32}px`;
@@ -140,40 +200,78 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     setTimeout(() => setIsJustAdded(false), 1200);
   };
 
-  // 4.2 شارة الحالة (حذف كلمة "طازج" وتكبير طفيف)
+  // ✅ شارة الحالة — بهوية خضرة
   const getStatusBadge = () => {
     if (isSoldOut) {
-      return { text: 'نفد المخزون', cls: 'bg-red-50 text-red-800 border-red-200 font-bold' };
+      return { text: 'نفد المخزون', cls: 'bg-rose-50 text-rose-800 border-rose-200 font-black' };
     }
     if (isLimited) {
-      return { text: 'كمية محدودة', cls: 'bg-amber-50 text-amber-900 border-amber-300 font-bold' };
+      return {
+        text: 'كمية محدودة',
+        cls: 'bg-[#FEF3C7] text-[#92400E] border-[#EAB308]/60 font-black',
+      };
     }
-    return { text: 'متوفر', cls: 'bg-emerald-50 text-[#0F2D16] border-emerald-300 font-black' };
+    return {
+      text: 'متوفر',
+      cls: 'bg-[#2D6A3F]/10 text-[#1A3D24] border-[#2D6A3F]/30 font-black',
+    };
   };
 
   const badge = getStatusBadge();
 
   return (
     <motion.article
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.22,
-        ease: 'easeOut',
+        duration: 0.28,
+        ease: [0.16, 1, 0.3, 1],
       }}
-      className={`group relative bg-white rounded-2xl p-2.5 sm:p-3.5 border transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-xl hover:border-[#C25E12] ${
-        isSoldOut ? 'opacity-70 border-stone-300' : 'border-[#D4C8B5]'
+      className={`product-fade-in group relative bg-white rounded-2xl p-2.5 sm:p-3.5 border-2 transition-all duration-300 flex flex-col justify-between shadow-sm hover:shadow-[0_8px_24px_rgba(45,106,63,0.18)] ${
+        isSoldOut
+          ? 'opacity-70 border-stone-300'
+          : 'border-[#2D6A3F]/15 hover:border-[#2D6A3F]/50'
       }`}
     >
-      {/* ─── 4.2 شارة الحالة (تكبير طفيف 5%-8%) ─── */}
-      <div className="flex items-center w-full mb-1 sm:mb-1.5">
-        <span className={`text-[11px] sm:text-[12px] font-extrabold px-3 py-1 rounded-full border shadow-2xs ${badge.cls}`}>
+      <style>{`
+        @keyframes productRippleExpand {
+          0%   { transform: scale(0); opacity: 0.55; }
+          100% { transform: scale(2.6); opacity: 0; }
+        }
+        .product-ripple {
+          position: absolute;
+          border-radius: 9999px;
+          pointer-events: none;
+          transform: scale(0);
+          animation: productRippleExpand 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform, opacity;
+        }
+
+        @keyframes productFocusPulse {
+          0%   { opacity: 0.55; }
+          100% { opacity: 0; }
+        }
+        .product-focus-pulse {
+          animation: productFocusPulse 700ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .product-ripple,
+          .product-focus-pulse { animation: none; }
+        }
+      `}</style>
+
+      {/* ─── شارة الحالة ─── */}
+      <div className="flex items-center w-full mb-1 sm:mb-1.5 relative z-10">
+        <span
+          className={`text-[11px] sm:text-[12px] font-extrabold px-3 py-1 rounded-full border shadow-sm ${badge.cls}`}
+        >
           {badge.text}
         </span>
       </div>
 
-      {/* ─── 4.1 الصورة بدون خلفية أو حدود + 4.4 الحفاظ على حجم الاسم والمصدر ─── */}
-      <div className="flex flex-col items-center text-center">
+      {/* ─── الصورة + الاسم + المصدر + السعر ─── */}
+      <div className="flex flex-col items-center text-center relative z-10">
         <div
           ref={imgContainerRef}
           className="w-[86px] h-[86px] sm:w-[104px] sm:h-[104px] bg-transparent flex items-center justify-center text-[42px] mb-1.5 transition-transform duration-300 group-hover:scale-105"
@@ -194,99 +292,108 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        {/* 4.4 حجم اسم المنتج والمصدر كما هو في الوضع الحالي بدون تكبير */}
-        <h3 className="font-extrabold text-sm sm:text-base text-[#112616] line-clamp-1 mb-0.5">
+        <h3 className="font-extrabold text-sm sm:text-base text-[#1A3D24] line-clamp-1 mb-0.5">
           {product.name}
         </h3>
 
         {product.origin && (
-          <span className="text-[10px] sm:text-xs text-[#3E3A33] font-semibold mb-0.5">
-            📍 {product.origin}
+          <span className="text-[10px] sm:text-xs text-[#5A6B5F] font-semibold mb-0.5 flex items-center justify-center gap-0.5">
+            <span className="text-[#EA580C]">📍</span>
+            {product.origin}
           </span>
         )}
 
         <div
           dir="ltr"
-          className="inline-flex items-baseline justify-center gap-1 text-xs text-[#1A1814] font-semibold mt-0.5"
+          className="inline-flex items-baseline justify-center gap-1 text-xs text-[#1A3D24] font-semibold mt-0.5"
         >
-          <span className="text-lg sm:text-xl font-black text-[#B85507]">
+          <span className="text-lg sm:text-xl font-black text-[#EA580C] drop-shadow-[0_1px_4px_rgba(234,88,12,0.15)]">
             {product.price.toFixed(2)}
           </span>
-          <span className="text-xs sm:text-sm font-extrabold text-[#B85507]">DH</span>
-          <span className="text-[11px] text-[#38332B] font-bold">
+          <span className="text-xs sm:text-sm font-extrabold text-[#EA580C]">DH</span>
+          <span className="text-[11px] text-[#5A6B5F] font-bold">
             / {isWeight ? 'kg' : product.unit_label || 'pièce'}
           </span>
         </div>
       </div>
 
-      {/* ─── 4.3 عداد الكمية وزر الإضافة (تكبير طفيف 5%-8%) ─── */}
-      <div className="mt-2.5 pt-2.5 border-t border-[#E8E1D3]">
+      {/* ─── عداد الكمية + زر الإضافة ─── */}
+      <div className="mt-2.5 pt-2.5 border-t border-[#2D6A3F]/10 relative z-10">
         {!isSoldOut && (
-          <div className="flex items-center justify-between bg-[#F7F4EC] rounded-xl p-1.5 border border-[#D4C8B5] mb-2">
-            <button
-              type="button"
+          <div className="flex items-center justify-between bg-[#FAF8F3] rounded-xl p-1.5 border border-[#2D6A3F]/15 mb-2">
+            <RippleButton
               onClick={handleIncrement}
-              className="w-[30px] h-[30px] sm:w-8 sm:h-8 min-w-[30px] min-h-[30px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-2xs touch-manipulation select-none"
-              aria-label="زيادة الكمية"
+              ariaLabel="زيادة الكمية"
+              rippleColor="rgba(45,106,63,0.22)"
+              className="w-[30px] h-[30px] sm:w-8 sm:h-8 min-w-[30px] min-h-[30px] rounded-lg bg-white border border-[#2D6A3F]/20 text-[#1A3D24] hover:bg-[#FAF8F3] hover:border-[#2D6A3F]/50 flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-sm touch-manipulation select-none"
             >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-            </button>
+              <Plus className="w-4 h-4 stroke-[2.5] relative z-10" />
+            </RippleButton>
 
             <div className="flex items-center justify-center leading-none select-none px-1.5">
-              <span dir="ltr" className="text-[13px] sm:text-[15px] font-black text-[#112616] tabular-nums">
+              <span dir="ltr" className="text-[13px] sm:text-[15px] font-black text-[#1A3D24] tabular-nums">
                 {selectedQty} {isWeight ? 'kg' : ''}
               </span>
             </div>
 
-            <button
-              type="button"
+            <RippleButton
               onClick={handleDecrement}
-              className="w-[30px] h-[30px] sm:w-8 sm:h-8 min-w-[30px] min-h-[30px] rounded-lg bg-white border border-[#D4C8B5] text-[#112616] hover:bg-[#EBE4D5] flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-2xs touch-manipulation select-none"
-              aria-label="إنقاص الكمية"
+              ariaLabel="إنقاص الكمية"
+              rippleColor="rgba(45,106,63,0.22)"
+              className="w-[30px] h-[30px] sm:w-8 sm:h-8 min-w-[30px] min-h-[30px] rounded-lg bg-white border border-[#2D6A3F]/20 text-[#1A3D24] hover:bg-[#FAF8F3] hover:border-[#2D6A3F]/50 flex items-center justify-center font-black transition-all active:scale-90 cursor-pointer shadow-sm touch-manipulation select-none"
             >
-              <Minus className="w-4 h-4 stroke-[2.5]" />
-            </button>
+              <Minus className="w-4 h-4 stroke-[2.5] relative z-10" />
+            </RippleButton>
           </div>
         )}
 
         {/* ─── زر الإضافة بحالات ثلاث ─── */}
-        <button
-          type="button"
+        <RippleButton
           disabled={isSoldOut}
           onClick={handleAdd}
-          className={`w-full h-[39px] sm:h-[43px] min-h-[39px] sm:min-h-[43px] px-3 rounded-xl font-black text-[13px] sm:text-[14px] flex items-center justify-center gap-1.5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
+          ariaLabel={isSoldOut ? 'غير متوفر' : 'أضف للسلة'}
+          rippleColor="rgba(255,255,255,0.30)"
+          className={`w-full h-[39px] sm:h-[43px] min-h-[39px] sm:min-h-[43px] px-3 rounded-xl font-black text-[13px] sm:text-[14px] flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer touch-manipulation select-none active:scale-95 ${
             isSoldOut
               ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed'
               : isJustAdded
-              ? 'bg-emerald-600 text-white scale-[1.02]'
+              ? 'bg-gradient-to-l from-emerald-600 to-emerald-700 text-white shadow-[0_4px_14px_rgba(5,150,105,0.30)] scale-[1.02]'
               : inCartQty > 0
-              ? 'bg-gradient-to-r from-[#EA580C] via-[#C25E12] to-[#9C4505] hover:from-[#F97316] hover:to-[#C25E12] text-white'
-              : 'bg-[#163920] hover:bg-[#0E2615] text-white'
+              ? 'bg-gradient-to-l from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] text-white shadow-[0_4px_14px_rgba(234,88,12,0.30)] hover:shadow-[0_6px_22px_rgba(234,88,12,0.42)] border border-[#EAB308]/25'
+              : 'bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] text-white shadow-[0_4px_14px_rgba(45,106,63,0.30)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.42)] border border-[#EAB308]/25'
           }`}
         >
           {isSoldOut ? (
-            <span>غير متوفر</span>
+            <span className="relative z-10">غير متوفر</span>
           ) : isJustAdded ? (
             <>
-              <Check className="w-4 h-4 text-[#F5D76E] animate-in zoom-in stroke-[2.5]" />
-              <span>تمت الإضافة</span>
+              <Check className="w-4 h-4 text-white animate-in zoom-in stroke-[2.5] relative z-10" />
+              <span className="relative z-10">تمت الإضافة</span>
             </>
           ) : inCartQty > 0 ? (
             <>
-              <ShoppingBag className="w-4 h-4 text-white" />
-              <span>أضف المزيد</span>
-              <span className="px-1.5 py-0.5 rounded bg-white/20 text-white text-[11px] font-black tabular-nums">
+              <ShoppingBag className="w-4 h-4 text-white relative z-10" strokeWidth={2.5} />
+              <span className="relative z-10">أضف المزيد</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/20 text-white text-[11px] font-black tabular-nums relative z-10">
                 {inCartQty}
               </span>
             </>
           ) : (
             <>
-              <ShoppingBag className="w-4 h-4 text-[#F5D76E]" />
-              <span>أضف للسلة</span>
+              <ShoppingBag className="w-4 h-4 text-[#EAB308] relative z-10" strokeWidth={2.5} />
+              <span className="relative z-10">أضف للسلة</span>
             </>
           )}
-        </button>
+        </RippleButton>
       </div>
+
+      {/* ✅ نبضة ذهبية عند الإضافة */}
+      {isPulsing && (
+        <div
+          className="product-focus-pulse absolute inset-0 rounded-2xl bg-[#EAB308]/12 pointer-events-none"
+          aria-hidden="true"
+        />
+      )}
     </motion.article>
   );
 };
