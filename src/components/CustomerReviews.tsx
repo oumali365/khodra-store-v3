@@ -1,6 +1,6 @@
 // ============================================================
-// CustomerReviews.tsx – الإصدار 4.3
-// هوية خضرة الموحّدة + الحفاظ الكامل على الوظائف الإدارية
+// CustomerReviews.tsx – الإصدار 4.4
+// مزامنة كاملة مع TrustBadges + الحفاظ على الوظائف الإدارية
 // ============================================================
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
@@ -54,14 +54,17 @@ const AdminOrdersPanel = React.lazy(() =>
 const INITIAL_VISIBLE_COUNT = 3;
 const FOCUS_PULSE_MS = 700;
 
-// ═══════ زر Ripple ═══════
+// ═══════════════════════════════════════════════════════════
+// ✅ RippleButton — نفس البنية المستخدمة في TrustBadges
+// ═══════════════════════════════════════════════════════════
 const RippleButton: React.FC<{
   onClick?: () => void;
   className: string;
   children: React.ReactNode;
   rippleColor?: string;
   ariaLabel?: string;
-}> = ({ onClick, className, children, rippleColor = 'rgba(255,255,255,0.30)', ariaLabel }) => {
+  animationDelay?: number;
+}> = ({ onClick, className, children, rippleColor = 'rgba(45,106,63,0.22)', ariaLabel, animationDelay }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -91,6 +94,7 @@ const RippleButton: React.FC<{
       type="button"
       aria-label={ariaLabel}
       onClick={handleClick}
+      style={animationDelay !== undefined ? { animationDelay: `${animationDelay}ms` } : undefined}
       className={`relative overflow-hidden ${className}`}
     >
       {children}
@@ -132,39 +136,45 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
   const reviewsScrollRef = useRef<HTMLDivElement>(null);
   const reviewsScrollRaf = useRef<number | null>(null);
   const pulseTimer = useRef<number | null>(null);
+  const prevActiveRef = useRef(0);
+
+  // ✅ نفس منطق TrustBadges: تحديث مباشر عبر RAF
+  const updateLayout = useCallback(() => {
+    if (!reviewsScrollRef.current) return;
+    const container = reviewsScrollRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const containerCenter = containerRect.left + containerRect.width / 2;
+    const cards = container.querySelectorAll('article');
+    let closestIdx = 0;
+    let minDiff = Infinity;
+
+    cards.forEach((card, idx) => {
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.left + cardRect.width / 2;
+      const diff = Math.abs(cardCenter - containerCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    });
+
+    setActiveReviewIndex((prev) => (prev !== closestIdx ? closestIdx : prev));
+  }, []);
 
   const handleReviewsScroll = () => {
     if (reviewsScrollRaf.current) cancelAnimationFrame(reviewsScrollRaf.current);
-    reviewsScrollRaf.current = requestAnimationFrame(() => {
-      if (!reviewsScrollRef.current) return;
-      const container = reviewsScrollRef.current;
-      const containerRect = container.getBoundingClientRect();
-      const containerCenter = containerRect.left + containerRect.width / 2;
-      const cards = container.querySelectorAll('article');
-      let closestIdx = 0;
-      let minDiff = Infinity;
-
-      cards.forEach((card, idx) => {
-        const cardRect = card.getBoundingClientRect();
-        const cardCenter = cardRect.left + cardRect.width / 2;
-        const diff = Math.abs(cardCenter - containerCenter);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = idx;
-        }
-      });
-
-      setActiveReviewIndex((prev) => {
-        if (prev !== closestIdx) {
-          setPulsingIndex(closestIdx);
-          if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
-          pulseTimer.current = window.setTimeout(() => setPulsingIndex(null), FOCUS_PULSE_MS);
-          return closestIdx;
-        }
-        return prev;
-      });
-    });
+    reviewsScrollRaf.current = requestAnimationFrame(updateLayout);
   };
+
+  // ✅ نفس منطق TrustBadges: نبضة التركيز عند تغيير البطاقة
+  useEffect(() => {
+    if (prevActiveRef.current === activeReviewIndex) return;
+    prevActiveRef.current = activeReviewIndex;
+    setPulsingIndex(activeReviewIndex);
+
+    if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
+    pulseTimer.current = window.setTimeout(() => setPulsingIndex(null), FOCUS_PULSE_MS);
+  }, [activeReviewIndex]);
 
   useEffect(() => {
     return () => {
@@ -173,15 +183,18 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     };
   }, []);
 
+  // ✅ نفس منطق TrustBadges: scrollBy بدل scrollIntoView
   const scrollToReview = (index: number) => {
     if (!reviewsScrollRef.current) return;
-    const cards = reviewsScrollRef.current.querySelectorAll('article');
+    const container = reviewsScrollRef.current;
+    const cards = container.querySelectorAll('article');
     if (cards[index]) {
-      cards[index].scrollIntoView({
-        behavior: 'smooth',
-        inline: 'center',
-        block: 'nearest',
-      });
+      const card = cards[index] as HTMLElement;
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const deltaX = (cardRect.left + cardRect.width / 2) - (containerRect.left + containerRect.width / 2);
+
+      container.scrollBy({ left: deltaX, behavior: 'smooth' });
       setActiveReviewIndex(index);
     }
   };
@@ -448,7 +461,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
         id="customer-reviews-section"
         aria-label="آراء وتقييمات زبناء متجر خضرة"
       >
-        {/* ═══════ الأنماط الحركية ═══════ */}
+        {/* ═══════ الأنماط الحركية — مطابقة تماماً لـ TrustBadges ═══════ */}
         <style>{`
           @keyframes revRippleExpand {
             0%   { transform: scale(0); opacity: 0.55; }
@@ -480,14 +493,14 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
             animation: revFocusPulse ${FOCUS_PULSE_MS}ms cubic-bezier(0.4, 0, 0.2, 1);
           }
 
-          /* ✅ Spacer ذكي للجوال */
+          /* ✅ نفس Spacer TrustBadges حرفياً */
           .rev-spacer {
             flex-shrink: 0;
             width: calc(50% - 33vw - 0.5rem);
           }
           @media (min-width: 640px) {
             .rev-spacer {
-              width: calc(50% - 122px - 0.75rem);
+              width: calc(50% - 115px - 0.75rem);
             }
           }
           @media (min-width: 768px) {
@@ -530,7 +543,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
               </span>
             </div>
             <div className="flex items-center gap-2 mr-auto flex-wrap">
-              {/* زر إدارة الطلبات */}
               <RippleButton
                 onClick={handleOpenOrders}
                 rippleColor="rgba(255,255,255,0.30)"
@@ -545,7 +557,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                 )}
               </RippleButton>
 
-              {/* زر اللوحة المالية */}
               <RippleButton
                 onClick={handleOpenFinance}
                 rippleColor="rgba(255,255,255,0.30)"
@@ -555,7 +566,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                 <span className="relative z-10">اللوحة المالية</span>
               </RippleButton>
 
-              {/* زر تغيير PIN */}
               <button
                 type="button"
                 onClick={() => setIsChangePinModalOpen(true)}
@@ -565,7 +575,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                 <span>الرمز السري</span>
               </button>
 
-              {/* زر الخروج */}
               <button
                 type="button"
                 onClick={handleLogoutAdmin}
@@ -577,14 +586,12 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           </div>
         )}
 
-        {/* ════════ 1. بطاقة العنوان ════════ */}
+        {/* ════════ 1. بطاقة العنوان — مطابقة لـ TrustBadges ════════ */}
         <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_10px_rgba(45,106,63,0.06)] p-6 sm:p-8 text-center max-w-md sm:max-w-xl mx-auto mb-8 sm:mb-10 overflow-hidden">
-          {/* دوائر ضوئية */}
           <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-[#2D6A3F]/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative">
-            {/* شارة ذهبية */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] border border-[#EAB308]/50 text-[#1A3D24] font-black text-xs sm:text-sm mb-4 shadow-[0_3px_12px_rgba(234,179,8,0.30)]">
               <Sparkles className="w-4 h-4" strokeWidth={2.5} />
               <span>آراء وتجارب حقيقية</span>
@@ -600,7 +607,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
               تجارب حية لعائلات تثق بخدمة وجودة متجر خُضرة يومياً
             </p>
 
-            {/* ملخص التقييم */}
             <div className="inline-flex items-center gap-3 bg-white/70 backdrop-blur-sm px-4 py-2.5 rounded-full border border-[#2D6A3F]/20 shadow-sm text-xs font-black text-[#1A3D24] select-none">
               <span className="font-black text-[#EA580C] text-lg tabular-nums">4.9</span>
               <div className="flex text-amber-400 text-sm gap-0.5">
@@ -620,32 +626,37 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           </div>
         </div>
 
-        {/* ════════ 2. بطاقات التقييمات ════════ */}
+        {/* ════════ 2. بطاقات التقييمات — مزامنة كاملة مع TrustBadges ════════ */}
         <div className="relative max-w-5xl mx-auto py-2 mb-8 sm:mb-10">
           <div
             ref={reviewsScrollRef}
             onScroll={handleReviewsScroll}
-            className="flex md:grid md:grid-cols-3 gap-4 sm:gap-6 text-center overflow-x-auto md:overflow-x-visible py-5 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
+            // ✅ نفس كلاسات TrustBadges: snap-x snap-mandatory + gap-4 sm:gap-6
+            className="flex flex-row gap-4 sm:gap-6 overflow-x-auto py-5 snap-x snap-mandatory overscroll-x-contain no-scrollbar"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
           >
-            {/* Spacer أيسر (جوال) */}
-            <div className="rev-spacer md:hidden" aria-hidden="true" />
+            {/* Spacer أيسر */}
+            <div className="rev-spacer" aria-hidden="true" />
 
             {displayedReviews.map((rev, idx) => {
               const isActive = idx === activeReviewIndex;
               const isPulsing = pulsingIndex === idx;
 
               return (
-                <article
+                <RippleButton
                   key={rev.id}
                   onClick={() => scrollToReview(idx)}
-                  style={{ animationDelay: `${idx * 90}ms` }}
-                  className={`rev-fade-in-right group relative w-[66vw] min-w-[210px] max-w-[245px] md:w-full md:max-w-none shrink-0 snap-center bg-white rounded-3xl border-2 transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-between min-h-[310px] sm:min-h-[330px] cursor-pointer select-none ${
+                  ariaLabel={`تقييم من ${rev.author}`}
+                  rippleColor="rgba(45,106,63,0.22)"
+                  animationDelay={idx * 90}
+                  // ✅ نفس أبعاد TrustBadges حرفياً: w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px]
+                  // + min-h-[300px] sm:min-h-[320px]
+                  className={`rev-fade-in-right group w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[300px] sm:min-h-[320px] cursor-pointer select-none ${
                     isAdmin
                       ? 'border-[#EAB308]/50 ring-2 ring-[#EAB308]/15 shadow-[0_4px_14px_rgba(234,179,8,0.20)]'
                       : isActive
-                      ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.20)] scale-[1.02]'
-                      : 'border-[#2D6A3F]/20 shadow-sm opacity-90 hover:opacity-100 hover:border-[#2D6A3F]/45'
+                      ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.18)] scale-[1.02]'
+                      : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45 shadow-sm'
                   }`}
                 >
                   <div className="w-full flex flex-col items-center text-center relative z-10">
@@ -706,30 +717,30 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                     </div>
                   )}
 
-                  {/* نبضة التركيز */}
+                  {/* ✅ نبضة التركيز — مطابقة لـ TrustBadges */}
                   {isPulsing && (
                     <div
                       className="rev-focus-pulse absolute inset-0 rounded-3xl bg-[#EAB308]/12 pointer-events-none"
                       aria-hidden="true"
                     />
                   )}
-                </article>
+                </RippleButton>
               );
             })}
 
-            {/* Spacer أيمن (جوال) */}
-            <div className="rev-spacer md:hidden" aria-hidden="true" />
+            {/* Spacer أيمن */}
+            <div className="rev-spacer" aria-hidden="true" />
           </div>
 
-          {/* نقاط التنقل */}
+          {/* نقاط التنقل — مطابقة لـ TrustBadges */}
           {displayedReviews.length > 1 && (
-            <div className="flex md:hidden items-center justify-center gap-2 mt-4">
+            <div className="flex items-center justify-center gap-2 mt-4 sm:mt-6">
               {displayedReviews.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => scrollToReview(i)}
-                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                  className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
                     activeReviewIndex === i
                       ? 'w-7 bg-[#2D6A3F] shadow-xs'
                       : 'w-2.5 bg-[#2D6A3F]/30 hover:bg-[#2D6A3F]/55'
@@ -763,7 +774,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           )}
         </div>
 
-        {/* ════════ 3. بطاقة دعوة التقييم ════════ */}
+        {/* ════════ 3. بطاقة دعوة التقييم — مطابقة لـ TrustBadges ════════ */}
         <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_10px_rgba(45,106,63,0.06)] p-6 sm:p-8 max-w-md sm:max-w-xl mx-auto overflow-hidden text-center sm:text-right">
           <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
