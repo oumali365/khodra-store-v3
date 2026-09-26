@@ -1,12 +1,13 @@
 // ============================================================
-// FamilyBoxesSection.tsx – الإصدار 4.0
-// تأثيرات بصرية خفيفة لتحسين الاستجابة
+// FamilyBoxesSection.tsx – الإصدار 4.1
+// قسم صناديق العائلة بهوية خضرة الموحّدة
+// تحسينات: Ripple + Focus Pulse + Fade + ظلال عضوية + Chips
 // ============================================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Package, Check, Plus, Minus, X, Sparkles, ShieldCheck,
   Truck, ShoppingBag, Eye, HeartHandshake, Users, Scale,
-  Star, Leaf, Award, Percent, Clock,
+  Star, Leaf, Award, Clock,
 } from 'lucide-react';
 import { gsap } from 'gsap';
 import { Product } from '../types';
@@ -17,6 +18,52 @@ export const FAMILY_BOX_PUBLIC_IMAGES: Record<string, string> = {
   small: '/images/family-boxes/family-small.webp',
   medium: '/images/family-boxes/family-medium.webp',
   large: '/images/family-boxes/family-large.webp',
+};
+
+// ═══════ زر Ripple ═══════
+const RippleButton: React.FC<{
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  className: string;
+  children: React.ReactNode;
+  rippleColor?: string;
+  id?: string;
+  ariaLabel?: string;
+}> = ({ onClick, className, children, rippleColor = 'rgba(255,255,255,0.30)', id, ariaLabel }) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const btn = buttonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6;
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      const ripple = document.createElement('span');
+      ripple.className = 'box-ripple';
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      ripple.style.background = rippleColor;
+      btn.appendChild(ripple);
+
+      window.setTimeout(() => ripple.remove(), 650);
+    }
+    onClick?.(e);
+  };
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      id={id}
+      aria-label={ariaLabel}
+      onClick={handleClick}
+      className={`relative overflow-hidden ${className}`}
+    >
+      {children}
+    </button>
+  );
 };
 
 // ─── مكون عرض صورة صندوق العائلة ───
@@ -194,6 +241,8 @@ export const FAMILY_BOXES: FamilyBox[] = [
   },
 ];
 
+const FOCUS_PULSE_MS = 700;
+
 interface FamilyBoxesSectionProps {
   onAddToCart: (product: Product, quantity: number) => void;
   selectedBox?: FamilyBox | null;
@@ -275,7 +324,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
     const flyer = document.createElement('div');
     flyer.className =
-      'fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border-2 border-[#D9762B] bg-white flex items-center justify-center';
+      'fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border-2 border-[#EAB308] bg-white flex items-center justify-center';
     flyer.style.width = '68px';
     flyer.style.height = '68px';
     flyer.style.left = `${rect.left + rect.width / 2 - 34}px`;
@@ -348,37 +397,52 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
   };
 
   const [activeBoxIndex, setActiveBoxIndex] = useState(0);
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-  const scrollRaf = React.useRef<number | null>(null);
+  const [pulsingIndex, setPulsingIndex] = useState<number | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollRaf = useRef<number | null>(null);
+  const pulseTimer = useRef<number | null>(null);
 
-  const handleScroll = () => {
-    if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
-    scrollRaf.current = requestAnimationFrame(() => {
-      if (!scrollContainerRef.current) return;
-      const container = scrollContainerRef.current;
-      const cards = container.querySelectorAll('article');
-      const containerCenter = container.getBoundingClientRect().left + container.offsetWidth / 2;
+  const updateLayout = useCallback(() => {
+    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const cards = container.querySelectorAll('article');
+    const containerRect = container.getBoundingClientRect();
+    const containerCenter = containerRect.left + containerRect.width / 2;
 
-      let closestIdx = 0;
-      let minDiff = Infinity;
+    let closestIdx = 0;
+    let minDiff = Infinity;
 
-      cards.forEach((card, idx) => {
-        const cardRect = card.getBoundingClientRect();
-        const cardCenter = cardRect.left + cardRect.width / 2;
-        const diff = Math.abs(cardCenter - containerCenter);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = idx;
-        }
-      });
-
-      setActiveBoxIndex((prev) => (prev !== closestIdx ? closestIdx : prev));
+    cards.forEach((card, idx) => {
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.left + cardRect.width / 2;
+      const diff = Math.abs(cardCenter - containerCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
     });
-  };
+
+    setActiveBoxIndex((prev) => {
+      if (prev !== closestIdx) {
+        // ✅ نبضة تركيز عند تغيير البطاقة النشطة
+        setPulsingIndex(closestIdx);
+        if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
+        pulseTimer.current = window.setTimeout(() => setPulsingIndex(null), FOCUS_PULSE_MS);
+        return closestIdx;
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+    scrollRaf.current = requestAnimationFrame(updateLayout);
+  }, [updateLayout]);
 
   useEffect(() => {
     return () => {
       if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+      if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
     };
   }, []);
 
@@ -407,23 +471,72 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
       className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-16"
       aria-label="قسم صناديق العائلة التوفيرية"
     >
-      {/* ─── عنوان القسم ─── */}
-      <div className="bg-white rounded-3xl border border-stone-200/90 shadow-sm p-6 sm:p-8 text-center max-w-xl mx-auto mb-8 sm:mb-12">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1E4327]/10 text-[#1E4327] font-black text-xs sm:text-sm mb-3.5">
-          <Package className="w-4 h-4 text-[#C25E12]" />
-          <span>باقات التوفير الأسبوعية</span>
-          <Sparkles className="w-3.5 h-3.5 text-[#C25E12]" />
-        </div>
-        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#112616] tracking-tight mb-2.5">
-          صناديق العائلة الطازجة
-        </h2>
-        <p className="text-xs sm:text-sm text-[#524A3E] font-medium leading-relaxed max-w-md mx-auto">
-          خضار وفواكه منتقاة بعناية تكفي أسرتك طيلة الأسبوع، مع توفير مؤكد في السعر وراحة تامة مباشرة لباب بيتك.
-        </p>
+      {/* ═══════ الأنماط الحركية ═══════ */}
+      <style>{`
+        @keyframes boxRippleExpand {
+          0%   { transform: scale(0); opacity: 0.55; }
+          100% { transform: scale(2.6); opacity: 0; }
+        }
+        .box-ripple {
+          position: absolute;
+          border-radius: 9999px;
+          pointer-events: none;
+          transform: scale(0);
+          animation: boxRippleExpand 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform, opacity;
+        }
 
-        <div className="flex sm:hidden items-center justify-center gap-1.5 mt-4 pt-3 border-t border-stone-100">
-          <span className="text-[11px] font-bold text-stone-500">مرر لاكتشاف جميع الباقات</span>
-          <span className="text-xs text-[#008A4B]">←</span>
+        @keyframes boxFadeInRight {
+          0%   { opacity: 0; transform: translateX(40px); }
+          100% { opacity: 1; transform: translateX(0); }
+        }
+        .box-fade-in-right {
+          animation: boxFadeInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+          will-change: opacity, transform;
+        }
+
+        @keyframes boxFocusPulse {
+          0%   { opacity: 0.5; }
+          100% { opacity: 0; }
+        }
+        .box-focus-pulse {
+          animation: boxFocusPulse ${FOCUS_PULSE_MS}ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .box-ripple,
+          .box-fade-in-right,
+          .box-focus-pulse { animation: none; }
+        }
+      `}</style>
+
+      {/* ─── عنوان القسم ─── */}
+      <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_10px_rgba(45,106,63,0.06)] p-6 sm:p-8 text-center max-w-xl mx-auto mb-8 sm:mb-12 overflow-hidden">
+        {/* دوائر ضوئية */}
+        <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-[#2D6A3F]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative">
+          {/* شارة ذهبية */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] border border-[#EAB308]/50 text-[#1A3D24] font-black text-xs sm:text-sm mb-4 shadow-[0_3px_12px_rgba(234,179,8,0.30)]">
+            <Package className="w-4 h-4" strokeWidth={2.5} />
+            <span>باقات التوفير الأسبوعية</span>
+            <Sparkles className="w-3.5 h-3.5" strokeWidth={2.5} />
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight mb-3 flex items-center justify-center gap-2">
+            صناديق العائلة الطازجة
+            <span className="inline-block w-2 h-2 rounded-full bg-[#EAB308]" />
+          </h2>
+
+          <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold leading-relaxed max-w-md mx-auto">
+            خضار وفواكه منتقاة بعناية تكفي أسرتك طيلة الأسبوع، مع توفير مؤكد في السعر وراحة تامة مباشرة لباب بيتك.
+          </p>
+
+          <div className="flex sm:hidden items-center justify-center gap-2 mt-5 pt-4 border-t border-[#2D6A3F]/10">
+            <span className="text-[11px] font-black text-[#1A3D24]">اسحب لاكتشاف جميع الباقات</span>
+            <span className="text-xs text-[#2D6A3F]">←</span>
+          </div>
         </div>
       </div>
 
@@ -432,63 +545,70 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex flex-row md:grid md:grid-cols-3 gap-5 sm:gap-6 lg:gap-7 overflow-x-auto md:overflow-x-visible pb-6 md:pb-0 pt-2 px-2 sm:px-0 snap-x snap-proximity overscroll-x-contain no-scrollbar"
+          className="flex flex-row md:grid md:grid-cols-3 gap-5 sm:gap-6 lg:gap-7 overflow-x-auto md:overflow-x-visible pb-6 md:pb-0 pt-2 px-2 sm:px-0 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
           {FAMILY_BOXES.map((box, idx) => {
             const isAdded = addedBoxId === box.id;
             const isActive = activeBoxIndex === idx;
+            const isPulsing = pulsingIndex === idx;
 
             return (
               <article
                 key={box.id}
-                className={`w-[82vw] max-w-[325px] sm:w-[340px] md:w-auto md:max-w-none shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-colors duration-200 p-4 sm:p-5 text-right flex flex-col justify-between ${
-                  isActive ? 'border-[#008A4B]' : 'border-stone-200/90'
+                style={{ animationDelay: `${idx * 120}ms` }}
+                className={`box-fade-in-right w-[88vw] max-w-[340px] sm:w-[360px] md:w-auto md:max-w-none shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-all duration-300 p-4 sm:p-5 text-right flex flex-col justify-between ${
+                  isActive
+                    ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.18)]'
+                    : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45'
                 }`}
               >
                 <div>
+                  {/* ═══ صورة الصندوق ═══ */}
                   <div
                     onClick={() => openBoxModal(box)}
-                    className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-stone-100 cursor-pointer"
+                    className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-stone-100 cursor-pointer group"
                   >
                     <BoxImageDisplay
                       src={box.image}
                       alt={box.name}
-                      className="w-full h-full object-cover object-center"
+                      className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-black/0 pointer-events-none" />
 
+                    {/* شارة علوية ذهبية */}
                     <div className="absolute top-3 right-3 z-10">
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-[#008A4B] text-white text-[11px] sm:text-xs font-black shadow-md tracking-wide">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-[#1A3D24] text-[11px] sm:text-xs font-black shadow-md tracking-wide border border-white/40">
                         {box.badge}
                       </span>
                     </div>
 
+                    {/* شارة سفلية خضراء */}
                     <div className="absolute bottom-3 left-3 z-10">
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-[#008A4B] text-white text-[11px] sm:text-xs font-black shadow-md tracking-wide">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2D6A3F] to-[#1A3D24] text-white text-[11px] sm:text-xs font-black shadow-md tracking-wide border border-[#EAB308]/30">
                         {box.savingsBadge}
                       </span>
                     </div>
                   </div>
 
+                  {/* ═══ الاسم والسعر ═══ */}
                   <div className="mt-4 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h3
                         onClick={() => openBoxModal(box)}
-                        className="text-lg sm:text-xl font-black text-[#112616] cursor-pointer hover:text-[#1E4327] transition-colors leading-snug truncate"
+                        className="text-lg sm:text-xl font-black text-[#1A3D24] cursor-pointer hover:text-[#2D6A3F] transition-colors leading-snug truncate"
                         title={box.name}
                       >
                         {box.name}
                       </h3>
-                      <p className="text-stone-500 text-xs sm:text-sm font-semibold mt-1">
+                      <p className="text-[#5A6B5F] text-xs sm:text-sm font-semibold mt-1">
                         {box.subtitle}
                       </p>
                     </div>
 
                     <div className="text-left shrink-0" dir="ltr">
-                      <div className="text-2xl sm:text-3xl font-black text-[#C25E12] leading-none tracking-tight">
+                      <div className="text-2xl sm:text-3xl font-black text-[#EA580C] leading-none tracking-tight drop-shadow-[0_2px_6px_rgba(234,88,12,0.15)]">
                         <span>{box.price.toFixed(2)}</span>{' '}
-                        <span className="text-sm sm:text-base font-black text-[#C25E12]">DH</span>
+                        <span className="text-sm sm:text-base font-black text-[#EA580C]">DH</span>
                       </div>
                       <div className="text-xs text-stone-400 line-through font-bold mt-1 tracking-tight">
                         <span>{box.originalPrice.toFixed(2)}</span> <span>DH</span>
@@ -496,75 +616,91 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </div>
                   </div>
 
+                  {/* ═══ Chips المواصفات ═══ */}
                   <div className="mt-3.5 flex items-center gap-1.5 flex-wrap">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#FAF8F5] border border-stone-200/90 text-stone-700 text-[11px] sm:text-xs font-bold">
-                      <Users className="w-3.5 h-3.5 text-stone-600 shrink-0" />
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#2D6A3F]/8 border border-[#2D6A3F]/15 text-[#1A3D24] text-[11px] sm:text-xs font-bold">
+                      <Users className="w-3.5 h-3.5 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
                       <span>{box.servings}</span>
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#FAF8F5] border border-stone-200/90 text-stone-700 text-[11px] sm:text-xs font-bold">
-                      <Scale className="w-3.5 h-3.5 text-stone-600 shrink-0" />
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#2D6A3F]/8 border border-[#2D6A3F]/15 text-[#1A3D24] text-[11px] sm:text-xs font-bold">
+                      <Scale className="w-3.5 h-3.5 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
                       <span>{box.weight}</span>
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#FAF8F5] border border-stone-200/90 text-stone-700 text-[11px] sm:text-xs font-bold">
-                      <Package className="w-3.5 h-3.5 text-stone-600 shrink-0" />
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#2D6A3F]/8 border border-[#2D6A3F]/15 text-[#1A3D24] text-[11px] sm:text-xs font-bold">
+                      <Package className="w-3.5 h-3.5 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
                       <span>{box.itemsCountLabel}</span>
                     </span>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-stone-100">
-                    <p className="text-xs sm:text-[13px] text-[#3E382F] font-semibold leading-relaxed line-clamp-2">
+                  {/* ═══ الوصف ═══ */}
+                  <div className="mt-3 pt-2.5 border-t border-[#2D6A3F]/10">
+                    <p className="text-xs sm:text-[13px] text-[#5A6B5F] font-semibold leading-relaxed line-clamp-2">
                       {box.description}
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-3.5 pt-3 border-t border-stone-100">
+                {/* ═══ الأزرار ═══ */}
+                <div className="mt-3.5 pt-3 border-t border-[#2D6A3F]/10">
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
+                    {/* زر التفاصيل */}
+                    <RippleButton
                       onClick={() => openBoxModal(box)}
-                      className="py-2.5 sm:py-3 px-3 rounded-2xl border border-stone-300/90 bg-white hover:bg-stone-100 text-stone-800 text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-95 shadow-xs"
+                      rippleColor="rgba(45,106,63,0.20)"
+                      className="py-2.5 sm:py-3 px-3 rounded-2xl border-2 border-[#2D6A3F]/20 bg-white hover:bg-[#FAF8F3] hover:border-[#2D6A3F]/45 text-[#1A3D24] text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
                     >
-                      <Eye className="w-4 h-4 text-stone-700" />
-                      <span>التفاصيل</span>
-                    </button>
+                      <Eye className="w-4 h-4 text-[#2D6A3F] relative z-10" strokeWidth={2.5} />
+                      <span className="relative z-10">التفاصيل</span>
+                    </RippleButton>
 
-                    <button
-                      type="button"
+                    {/* زر أضف للسلة */}
+                    <RippleButton
                       onClick={(e) => handleQuickAdd(e, box)}
-                      className={`flex-1 py-2.5 sm:py-3 px-3 rounded-2xl text-white text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 shadow-sm transition-colors duration-200 cursor-pointer active:scale-95 ${
+                      rippleColor="rgba(255,255,255,0.30)"
+                      className={`flex-1 py-2.5 sm:py-3 px-3 rounded-2xl text-white text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 shadow-[0_4px_14px_rgba(45,106,63,0.25)] transition-all duration-200 cursor-pointer active:scale-95 border border-[#EAB308]/25 ${
                         isAdded
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-[#163920] hover:bg-[#0E2615]'
+                          ? 'bg-gradient-to-l from-emerald-600 to-emerald-700'
+                          : 'bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F]'
                       }`}
                     >
                       {isAdded ? (
                         <>
-                          <Check className="w-4 h-4 text-[#F5D76E]" />
-                          <span>تمت الإضافة</span>
+                          <Check className="w-4 h-4 text-white relative z-10" strokeWidth={2.5} />
+                          <span className="relative z-10">تمت الإضافة</span>
                         </>
                       ) : (
                         <>
-                          <ShoppingBag className="w-4 h-4 text-[#F5D76E]" />
-                          <span>أضف للسلة</span>
+                          <ShoppingBag className="w-4 h-4 text-[#EAB308] relative z-10" strokeWidth={2.5} />
+                          <span className="relative z-10">أضف للسلة</span>
                         </>
                       )}
-                    </button>
+                    </RippleButton>
                   </div>
                 </div>
+
+                {/* ✅ نبضة التركيز */}
+                {isPulsing && (
+                  <div
+                    className="box-focus-pulse absolute inset-0 rounded-3xl bg-[#EAB308]/12 pointer-events-none"
+                    aria-hidden="true"
+                  />
+                )}
               </article>
             );
           })}
         </div>
 
+        {/* ─── نقاط التنقل ─── */}
         <div className="flex md:hidden items-center justify-center gap-2 mt-4">
           {FAMILY_BOXES.map((_, i) => (
             <button
               key={i}
               type="button"
               onClick={() => scrollToBox(i)}
-              className={`h-2 rounded-full transition-all duration-200 ${
-                activeBoxIndex === i ? 'w-6 bg-[#008A4B]' : 'w-2 bg-stone-300'
+              className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
+                activeBoxIndex === i
+                  ? 'w-7 bg-[#2D6A3F] shadow-xs'
+                  : 'w-2.5 bg-[#2D6A3F]/30 hover:bg-[#2D6A3F]/55'
               }`}
               aria-label={`الانتقال إلى الصندوق ${i + 1}`}
             />
@@ -581,11 +717,11 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
           aria-labelledby="box-modal-title"
         >
           <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
             onClick={() => setSelectedBox(null)}
           />
 
-          <div className="relative bg-[#FBF9F5] w-full max-w-xl rounded-[28px] shadow-2xl z-10 overflow-hidden flex flex-col max-h-[92vh] text-right border border-[#DFD1AC] animate-in zoom-in-95 duration-200 overscroll-contain">
+          <div className="relative bg-[#FBF9F5] w-full max-w-xl rounded-[28px] shadow-2xl z-10 overflow-hidden flex flex-col max-h-[92vh] text-right border border-[#2D6A3F]/20 animate-in zoom-in-95 duration-200 overscroll-contain">
 
             {/* الرأس */}
             <div className="relative h-48 sm:h-56 shrink-0 overflow-hidden bg-stone-900">
@@ -597,25 +733,28 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
               <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10] via-[#0B1C10]/50 to-[#0B1C10]/10 pointer-events-none" />
 
+              {/* زر الإغلاق */}
               <button
                 type="button"
                 onClick={() => setSelectedBox(null)}
                 className="absolute top-3.5 left-3.5 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-sm text-white flex items-center justify-center transition-colors cursor-pointer z-20 border border-white/20 active:scale-90"
                 aria-label="إغلاق النافذة"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" strokeWidth={2.5} />
               </button>
 
+              {/* شارات علوية */}
               <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-1.5 flex-wrap justify-end">
-                <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-[#F5D76E] text-[#112616] text-xs font-black shadow-md">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-[#1A3D24] text-xs font-black shadow-md border border-white/40">
                   {selectedBox.badge}
                 </span>
                 <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-black/50 backdrop-blur-md text-white text-xs font-black border border-white/20 shadow-md">
-                  <Clock className="w-3.5 h-3.5 text-[#F5D76E]" />
+                  <Clock className="w-3.5 h-3.5 text-[#EAB308]" strokeWidth={2.5} />
                   <span>متوفر اليوم</span>
                 </span>
               </div>
 
+              {/* عنوان داخل الصورة */}
               <div className="absolute bottom-0 right-0 left-0 p-4 sm:p-5 flex items-end justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h3 id="box-modal-title" className="text-xl sm:text-2xl font-black text-white leading-tight drop-shadow-lg mb-0.5">
@@ -631,18 +770,19 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
             {/* التفاصيل */}
             <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 overscroll-contain">
 
-              <div className="relative p-4 sm:p-4.5 rounded-2xl bg-gradient-to-l from-amber-50/90 to-orange-50/90 border border-amber-200/90 shadow-xs overflow-hidden">
+              {/* السعر */}
+              <div className="relative p-4 sm:p-4.5 rounded-2xl bg-gradient-to-l from-[#FEF3C7]/80 to-[#FED7AA]/80 border border-[#EAB308]/40 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <span className="text-xs text-amber-900 font-black uppercase tracking-wider flex items-center gap-1.5 mb-1">
-                      <Award className="w-3.5 h-3.5 text-[#C25E12]" />
+                    <span className="text-xs text-[#92400E] font-black uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                      <Award className="w-3.5 h-3.5 text-[#EA580C]" strokeWidth={2.5} />
                       <span>السعر الحصري</span>
                     </span>
                     <div className="flex items-baseline gap-2.5" dir="ltr">
-                      <span className="text-3xl sm:text-4xl font-black text-[#C25E12] leading-none">
+                      <span className="text-3xl sm:text-4xl font-black text-[#EA580C] leading-none">
                         {selectedBox.price.toFixed(2)}
                       </span>
-                      <span className="text-base sm:text-lg font-black text-[#C25E12]">DH</span>
+                      <span className="text-base sm:text-lg font-black text-[#EA580C]">DH</span>
                       <span className="text-sm text-stone-400 line-through font-bold">
                         {selectedBox.originalPrice.toFixed(2)} DH
                       </span>
@@ -650,49 +790,52 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                   </div>
 
                   <div className="text-left shrink-0">
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-amber-200 text-stone-700 text-xs font-bold shadow-2xs">
-                      <Package className="w-3.5 h-3.5 text-[#C25E12]" />
+                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#EAB308]/40 text-[#1A3D24] text-xs font-bold shadow-sm">
+                      <Package className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
                       <span>{selectedBox.itemsCountLabel}</span>
                     </span>
                   </div>
                 </div>
               </div>
 
+              {/* Chips المعلومات */}
               <div className="grid grid-cols-3 gap-2.5">
-                <div className="p-3 rounded-xl bg-white border border-stone-200 text-center">
-                  <Users className="w-5 h-5 text-[#1E4327] mx-auto mb-1.5" />
-                  <div className="text-[10px] text-stone-500 font-black uppercase mb-0.5">يناسب</div>
-                  <div className="text-xs font-black text-[#112616]">{selectedBox.servings}</div>
+                <div className="p-3 rounded-xl bg-white border border-[#2D6A3F]/15 text-center">
+                  <Users className="w-5 h-5 text-[#2D6A3F] mx-auto mb-1.5" strokeWidth={2.5} />
+                  <div className="text-[10px] text-[#5A6B5F] font-black uppercase mb-0.5">يناسب</div>
+                  <div className="text-xs font-black text-[#1A3D24]">{selectedBox.servings}</div>
                 </div>
-                <div className="p-3 rounded-xl bg-white border border-stone-200 text-center">
-                  <Scale className="w-5 h-5 text-[#1E4327] mx-auto mb-1.5" />
-                  <div className="text-[10px] text-stone-500 font-black uppercase mb-0.5">الوزن</div>
-                  <div className="text-xs font-black text-[#112616]">{selectedBox.weight}</div>
+                <div className="p-3 rounded-xl bg-white border border-[#2D6A3F]/15 text-center">
+                  <Scale className="w-5 h-5 text-[#2D6A3F] mx-auto mb-1.5" strokeWidth={2.5} />
+                  <div className="text-[10px] text-[#5A6B5F] font-black uppercase mb-0.5">الوزن</div>
+                  <div className="text-xs font-black text-[#1A3D24]">{selectedBox.weight}</div>
                 </div>
-                <div className="p-3 rounded-xl bg-white border border-stone-200 text-center">
-                  <Package className="w-5 h-5 text-[#1E4327] mx-auto mb-1.5" />
-                  <div className="text-[10px] text-stone-500 font-black uppercase mb-0.5">الأصناف</div>
-                  <div className="text-xs font-black text-[#112616]">{selectedBox.itemsCountLabel}</div>
+                <div className="p-3 rounded-xl bg-white border border-[#2D6A3F]/15 text-center">
+                  <Package className="w-5 h-5 text-[#2D6A3F] mx-auto mb-1.5" strokeWidth={2.5} />
+                  <div className="text-[10px] text-[#5A6B5F] font-black uppercase mb-0.5">الأصناف</div>
+                  <div className="text-xs font-black text-[#1A3D24]">{selectedBox.itemsCountLabel}</div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-white border border-stone-200">
+              {/* الوصف */}
+              <div className="p-4 rounded-2xl bg-white border border-[#2D6A3F]/15">
                 <div className="flex items-center gap-2 mb-2">
-                  <Leaf className="w-4 h-4 text-[#008A4B]" />
-                  <h4 className="text-sm font-black text-[#112616]">عن هذا الصندوق</h4>
+                  <Leaf className="w-4 h-4 text-[#2D6A3F]" strokeWidth={2.5} />
+                  <h4 className="text-sm font-black text-[#1A3D24]">عن هذا الصندوق</h4>
                 </div>
-                <p className="text-xs sm:text-sm text-[#38332B] leading-relaxed font-medium">
+                <p className="text-xs sm:text-sm text-[#3E382F] leading-relaxed font-medium">
                   {selectedBox.description}
                 </p>
               </div>
 
+              {/* المحتويات */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-black text-[#112616] flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-[#C25E12]" />
+                  <h4 className="text-sm font-black text-[#1A3D24] flex items-center gap-1.5">
+                    <Package className="w-4 h-4 text-[#EA580C]" strokeWidth={2.5} />
                     <span>محتويات الصندوق</span>
                   </h4>
-                  <span className="text-[11px] font-black text-stone-500 bg-stone-100 px-2.5 py-1 rounded-full">
+                  <span className="text-[11px] font-black text-[#2D6A3F] bg-[#2D6A3F]/10 px-2.5 py-1 rounded-full border border-[#2D6A3F]/20">
                     {selectedBox.items.length} صنف
                   </span>
                 </div>
@@ -701,15 +844,15 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                   {selectedBox.items.map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-3 rounded-xl bg-white border border-stone-200/90 flex items-center justify-between gap-2 hover:border-[#008A4B]/40 transition-colors"
+                      className="p-3 rounded-xl bg-white border border-[#2D6A3F]/12 flex items-center justify-between gap-2 hover:border-[#2D6A3F]/35 transition-colors"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-8 h-8 rounded-lg bg-[#FAF6EE] border border-[#E8E1D3] flex items-center justify-center text-base shrink-0">
+                        <span className="w-8 h-8 rounded-lg bg-[#FAF8F3] border border-[#2D6A3F]/15 flex items-center justify-center text-base shrink-0">
                           {item.icon}
                         </span>
-                        <span className="font-bold text-[#112616] text-xs truncate">{item.name}</span>
+                        <span className="font-bold text-[#1A3D24] text-xs truncate">{item.name}</span>
                       </div>
-                      <span className="shrink-0 px-2.5 py-1 rounded-lg bg-[#EBFBF3] text-[#008A4B] font-black text-[11px] border border-[#86EFAC]">
+                      <span className="shrink-0 px-2.5 py-1 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] font-black text-[11px] border border-[#2D6A3F]/25">
                         {item.amount}
                       </span>
                     </div>
@@ -717,18 +860,19 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gradient-to-l from-emerald-50 to-teal-50 border-2 border-emerald-200">
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-emerald-200">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4 text-white" />
+              {/* الضمانات */}
+              <div className="p-4 rounded-2xl bg-gradient-to-l from-[#ECFDF5] to-[#F0FDF4] border-2 border-[#2D6A3F]/25">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#2D6A3F]/20">
+                  <div className="w-7 h-7 rounded-lg bg-[#2D6A3F] flex items-center justify-center shadow-sm">
+                    <ShieldCheck className="w-4 h-4 text-[#EAB308]" strokeWidth={2.5} />
                   </div>
-                  <span className="font-black text-emerald-950 text-sm">ضمانات خُضرة</span>
+                  <span className="font-black text-[#1A3D24] text-sm">ضمانات خُضرة</span>
                 </div>
 
                 <div className="space-y-2.5">
-                  <div className="flex items-start gap-2.5 text-emerald-900">
-                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-emerald-200 mt-0.5">
-                      <HeartHandshake className="w-3.5 h-3.5 text-emerald-700" />
+                  <div className="flex items-start gap-2.5 text-[#1A3D24]">
+                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-[#2D6A3F]/25 mt-0.5">
+                      <HeartHandshake className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
                     </div>
                     <div>
                       <div className="text-xs font-black mb-0.5">ضمان الرضا 100%</div>
@@ -736,9 +880,9 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2.5 text-emerald-900">
-                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-emerald-200 mt-0.5">
-                      <Truck className="w-3.5 h-3.5 text-emerald-700" />
+                  <div className="flex items-start gap-2.5 text-[#1A3D24]">
+                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-[#2D6A3F]/25 mt-0.5">
+                      <Truck className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
                     </div>
                     <div>
                       <div className="text-xs font-black mb-0.5">توصيل مبرد وآمن</div>
@@ -746,9 +890,9 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2.5 text-emerald-900">
-                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-emerald-200 mt-0.5">
-                      <Star className="w-3.5 h-3.5 text-emerald-700" />
+                  <div className="flex items-start gap-2.5 text-[#1A3D24]">
+                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-[#2D6A3F]/25 mt-0.5">
+                      <Star className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
                     </div>
                     <div>
                       <div className="text-xs font-black mb-0.5">قطف طازج يومياً</div>
@@ -760,43 +904,45 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
             </div>
 
             {/* التذييل */}
-            <div className="p-4 sm:p-5 bg-white border-t-2 border-stone-200 flex items-center gap-3 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-              <div className="flex items-center gap-1 bg-[#FAF8F4] border-2 border-[#D4C8B5] p-1 rounded-2xl shrink-0">
+            <div className="p-4 sm:p-5 bg-white border-t-2 border-[#2D6A3F]/15 flex items-center gap-3 shrink-0 shadow-[0_-4px_20px_rgba(45,106,63,0.06)]">
+              {/* العدّاد */}
+              <div className="flex items-center gap-1 bg-[#FAF8F3] border-2 border-[#2D6A3F]/20 p-1 rounded-2xl shrink-0">
                 <button
                   type="button"
                   onClick={() => setModalQty((q) => Math.max(1, q - 1))}
                   disabled={modalQty <= 1}
-                  className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-700 hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors active:scale-90"
+                  className="w-9 h-9 rounded-xl bg-white border border-[#2D6A3F]/15 flex items-center justify-center text-[#1A3D24] hover:bg-[#FAF8F3] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors active:scale-90"
                   aria-label="إنقاص الكمية"
                 >
-                  <Minus className="w-4 h-4" />
+                  <Minus className="w-4 h-4" strokeWidth={2.5} />
                 </button>
-                <span className="w-10 text-center font-black text-base text-[#112616] tabular-nums">
+                <span className="w-10 text-center font-black text-base text-[#1A3D24] tabular-nums">
                   {modalQty}
                 </span>
                 <button
                   type="button"
                   onClick={() => setModalQty((q) => Math.min(10, q + 1))}
                   disabled={modalQty >= 10}
-                  className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-700 hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors active:scale-90"
+                  className="w-9 h-9 rounded-xl bg-white border border-[#2D6A3F]/15 flex items-center justify-center text-[#1A3D24] hover:bg-[#FAF8F3] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors active:scale-90"
                   aria-label="زيادة الكمية"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-4 h-4" strokeWidth={2.5} />
                 </button>
               </div>
 
-              <button
+              {/* زر الإضافة */}
+              <RippleButton
                 id="modal-add-box-btn"
-                type="button"
                 onClick={() => handleModalAdd(selectedBox)}
-                className="flex-1 py-3.5 px-5 rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg active:scale-98 transition-colors cursor-pointer border-2 border-[#0E2615]"
+                rippleColor="rgba(255,255,255,0.30)"
+                className="flex-1 py-3.5 px-5 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-[0_4px_14px_rgba(45,106,63,0.35)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.45)] active:scale-[0.98] transition-all cursor-pointer border border-[#EAB308]/25"
               >
-                <ShoppingBag className="w-5 h-5 text-[#F5D76E]" />
-                <span>أضف للسلة</span>
-                <span className="px-3 py-1 rounded-xl bg-white/15 text-[#F5D76E] text-sm font-black tabular-nums" dir="ltr">
+                <ShoppingBag className="w-5 h-5 text-[#EAB308] relative z-10" strokeWidth={2.5} />
+                <span className="relative z-10">أضف للسلة</span>
+                <span className="px-3 py-1 rounded-xl bg-white/15 text-[#EAB308] text-sm font-black tabular-nums relative z-10" dir="ltr">
                   {(selectedBox.price * modalQty).toFixed(2)} DH
                 </span>
-              </button>
+              </RippleButton>
             </div>
           </div>
         </div>
