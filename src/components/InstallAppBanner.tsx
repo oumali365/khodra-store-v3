@@ -393,7 +393,7 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
         className="w-full bg-[#F5D76E] text-[#112616] border-b border-[#E5C352] shadow-xs z-40 select-none transition-all duration-300 relative"
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-6">
-          
+
           {/* ─── اليمين: زر الإغلاق (✕) + شعار خُضرة + الوصف الفرعي ─── */}
           <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
             {/* زر الإغلاق ✕ */}
