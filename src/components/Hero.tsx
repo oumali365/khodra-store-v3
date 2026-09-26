@@ -1,7 +1,7 @@
 // ============================================================
-// الملف: Hero.tsx – الإصدار 4.8
-// تحسينات: هوامش رأسية أوسع + ذهبي نقي في الشارة 
-//          + برتقالي نقي في العنوان + إبراز العنوان والوصف
+// الملف: Hero.tsx – الإصدار 4.9
+// بطاقات الهيرو مع تمرير يدوي أفقي
+// تحسينات: هامش علوي مضغوط + بطاقات ومحتوى أكبر بقليل
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -275,11 +275,10 @@ export const Hero: React.FC<HeroProps> = ({
 
   return (
     <section
-      // ✅ هوامش رأسية أوسع (تنفّس بصري)
-      className="relative overflow-hidden pt-8 pb-10 sm:pt-12 sm:pb-14 lg:pt-16 lg:pb-16 px-3 sm:px-6 lg:px-8"
+      // ✅ هامش علوي مضغوط (كان pt-8/12/16)
+      className="relative overflow-hidden pt-2 sm:pt-3 lg:pt-4 pb-10 sm:pb-14 lg:pb-16 px-3 sm:px-6 lg:px-8"
       aria-label="الواجهة الرئيسية للمتجر"
     >
-      {/* ════════ الأنماط الحركية ════════ */}
       <style>{`
         @keyframes heroFadeInRight {
           0%   { opacity: 0; transform: translateX(60px) scale(0.97); }
@@ -314,11 +313,11 @@ export const Hero: React.FC<HeroProps> = ({
 
         .hero-spacer {
           flex-shrink: 0;
-          width: calc(50% - 44vw - 1rem);
+          width: calc(50% - 46vw - 1rem);
         }
         @media (min-width: 640px) {
           .hero-spacer {
-            width: calc(50% - 190px - 1.5rem);
+            width: calc(50% - 200px - 1.5rem);
           }
         }
         @media (min-width: 768px) {
@@ -337,7 +336,6 @@ export const Hero: React.FC<HeroProps> = ({
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          // ✅ حشو داخلي رأسي أوسع داخل منطقة التمرير
           className="flex flex-row md:grid md:grid-cols-2 gap-4 sm:gap-6 overflow-x-auto md:overflow-x-visible py-4 md:py-0 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
@@ -351,7 +349,8 @@ export const Hero: React.FC<HeroProps> = ({
               <article
                 key={slide.id}
                 style={{ animationDelay: `${index * 180}ms` }}
-                className={`hero-fade-in-right group relative w-[88vw] max-w-[360px] sm:w-[380px] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl min-h-[440px] sm:min-h-[500px] lg:min-h-[520px] p-5 sm:p-6 lg:p-7 border-2 text-center overflow-hidden flex flex-col justify-between select-none transition-all duration-300 ${
+                // ✅ بطاقات أكبر: عرض 92vw + ارتفاع 460/520/540 + حشو أكبر
+                className={`hero-fade-in-right group relative w-[92vw] max-w-[380px] sm:w-[400px] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl min-h-[460px] sm:min-h-[520px] lg:min-h-[540px] p-5 sm:p-6 lg:p-7 border-2 text-center overflow-hidden flex flex-col justify-between select-none transition-all duration-300 ${
                   isActive
                     ? 'border-[#2D6A3F] shadow-[0_12px_38px_rgba(45,106,63,0.42)]'
                     : 'border-[#2D6A3F]/45 shadow-lg'
@@ -368,17 +367,16 @@ export const Hero: React.FC<HeroProps> = ({
                   />
                 </div>
 
-                {/* تدرج داكن أقوى لضمان وضوح النصوص */}
+                {/* تدرج داكن */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10]/98 via-[#0B1C10]/80 to-[#0B1C10]/50 pointer-events-none" />
 
-                {/* 🟡 دائرة ذهبية علوية (بدون برتقالي) */}
+                {/* دوائر ضوئية */}
                 <div className="absolute -top-20 -right-20 w-60 h-60 bg-[#EAB308]/18 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-[#2D6A3F]/45 rounded-full blur-3xl pointer-events-none" />
 
-                {/* ════════ الشارة العلوية: ذهبي نقي ════════ */}
+                {/* ════════ الشارة الذهبية ════════ */}
                 <div className="relative z-10 flex items-center justify-center">
                   <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] backdrop-blur-md border border-[#EAB308]/60 text-[#1A3D24] text-[11px] sm:text-xs font-black tracking-wide shadow-lg shadow-[#EAB308]/40">
-                    {/* ✅ نقطة بيضاء نابضة (محايدة) */}
                     <span className="w-1.5 h-1.5 rounded-full bg-white/90 animate-pulse" />
                     <span>{slide.badge}</span>
                   </span>
@@ -386,18 +384,17 @@ export const Hero: React.FC<HeroProps> = ({
 
                 {/* ════════ المحتوى ════════ */}
                 <div className="relative z-10 flex flex-col items-center justify-center flex-1 mx-auto py-5 text-center">
-                  {/* ✅ العنوان: أكبر وأوضح + برتقالي نقي في الـ highlight */}
-                  <h1 className="text-[26px] sm:text-[30px] lg:text-[34px] font-black text-white leading-[1.3] tracking-tight mb-5 drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
+                  {/* ✅ عنوان أكبر: 28/32/36 بدل 26/30/34 */}
+                  <h1 className="text-[28px] sm:text-[32px] lg:text-[36px] font-black text-white leading-[1.3] tracking-tight mb-5 drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
                     {slide.title}{' '}
                     <span className="relative inline-block text-[#FB923C] drop-shadow-[0_2px_8px_rgba(234,88,12,0.45)]">
                       {slide.highlight}
-                      {/* 🟠 تسطير برتقالي نقي */}
                       <span className="absolute -bottom-1.5 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#EA580C] to-transparent rounded-full" />
                     </span>
                   </h1>
 
-                  {/* ✅ الوصف: أكبر + تباين أعلى + خلفية خفيفة */}
-                  <p className="text-[14px] sm:text-[15px] text-white leading-[1.9] mb-6 font-bold drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)] max-w-[94%] bg-black/15 backdrop-blur-[2px] px-3 py-2 rounded-xl border border-white/10">
+                  {/* ✅ وصف أكبر: 15/16 بدل 14/15 */}
+                  <p className="text-[15px] sm:text-base text-white leading-[1.9] mb-6 font-bold drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)] max-w-[94%] bg-black/15 backdrop-blur-[2px] px-3.5 py-2.5 rounded-xl border border-white/10">
                     {slide.description}
                   </p>
 
@@ -407,22 +404,23 @@ export const Hero: React.FC<HeroProps> = ({
                         id="hero-shop-now-btn"
                         onClick={onScrollToCatalog}
                         rippleColor="rgba(45,106,63,0.30)"
-                        className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 rounded-2xl bg-white/95 backdrop-blur-sm text-[#2D6A3F] font-black text-sm sm:text-[15px] shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.32)] hover:bg-white hover:scale-[1.015] active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/40"
+                        // ✅ زر أكبر: py-4 + text-base
+                        className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-4 rounded-2xl bg-white/95 backdrop-blur-sm text-[#2D6A3F] font-black text-base shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.32)] hover:bg-white hover:scale-[1.015] active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/40"
                       >
-                        <Leaf className="w-4 h-4 text-[#2D6A3F] relative z-10" />
+                        <Leaf className="w-5 h-5 text-[#2D6A3F] relative z-10" />
                         <span className="relative z-10">تسوق الآن</span>
-                        <ArrowDown className="w-4 h-4 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5] relative z-10" />
+                        <ArrowDown className="w-5 h-5 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5] relative z-10" />
                       </RippleButton>
                     ) : (
                       onScrollToBundles && (
                         <RippleButton
                           onClick={onScrollToBundles}
                           rippleColor="rgba(45,106,63,0.30)"
-                          className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 rounded-2xl bg-white/95 backdrop-blur-sm text-[#2D6A3F] font-black text-sm sm:text-[15px] shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.32)] hover:bg-white hover:scale-[1.015] active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/40"
+                          className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-4 rounded-2xl bg-white/95 backdrop-blur-sm text-[#2D6A3F] font-black text-base shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.32)] hover:bg-white hover:scale-[1.015] active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/40"
                         >
-                          <Package className="w-4 h-4 text-[#2D6A3F] relative z-10" />
+                          <Package className="w-5 h-5 text-[#2D6A3F] relative z-10" />
                           <span className="relative z-10">اكتشف الآن</span>
-                          <ArrowDown className="w-4 h-4 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5] relative z-10" />
+                          <ArrowDown className="w-5 h-5 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5] relative z-10" />
                         </RippleButton>
                       )
                     )}
@@ -431,7 +429,7 @@ export const Hero: React.FC<HeroProps> = ({
 
                 {/* ════════ الأسفل: حالة التوصيل ════════ */}
                 <div className="relative z-10 pt-3 border-t border-white/15 flex items-center justify-center">
-                  <div className="flex items-center gap-2 text-[11px] font-extrabold text-[#FAFAF7] bg-white/5 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10">
+                  <div className="flex items-center gap-2 text-[11px] font-extrabold text-[#FAFAF7] bg-white/5 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-white/10">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm" />
                     <span>
                       خدمة التوصيل نشطة اليوم في {STORE_CONFIG.city}
@@ -450,7 +448,7 @@ export const Hero: React.FC<HeroProps> = ({
         </div>
 
         {/* ─── نقاط التنقل ─── */}
-        <div className="flex md:hidden items-center justify-center gap-2 mt-5">
+        <div className="flex md:hidden items-center justify-center gap-2 mt-4">
           {HERO_SLIDES.map((_, i) => (
             <button
               key={i}
