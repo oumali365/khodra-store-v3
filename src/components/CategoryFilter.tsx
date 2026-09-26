@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 5.4
-// إضافة: مؤشر تمرير أفقي (جوال) + هامش سفلي أوسع
+// الملف: CategoryFilter.tsx – الإصدار 5.5
+// تحسين مؤشر التمرير: هوامش + إبراز العبارة والأسهم
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -329,11 +329,9 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
   };
 
-  // ✅ هل يجب إظهار مؤشر التمرير؟
   const showScrollHint = canScrollLeft || canScrollRight;
 
   return (
-    // 📏 هامش سفلي أوسع: mb-10 / mb-12 / mb-14 (بدل mb-6 / mb-8)
     <div className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-2 sm:mt-3 lg:mt-4 mb-10 sm:mb-12 lg:mb-14 ${className}`}>
       <style>{`
         @keyframes categoryFadeInRight {
@@ -366,14 +364,14 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
           will-change: transform, opacity;
         }
 
-        /* ✅ سهام مؤشر التمرير (تتحرك للخارج ثم ترجع) */
+        /* ✅ سهام مؤشر التمرير — إبراز أقوى */
         @keyframes categoryScrollHintLeft {
-          0%, 100% { transform: translateX(0);    opacity: 0.45; }
-          50%      { transform: translateX(-4px); opacity: 1; }
+          0%, 100% { transform: translateX(0)    scale(1);    opacity: 0.65; }
+          50%      { transform: translateX(-5px) scale(1.08); opacity: 1; }
         }
         @keyframes categoryScrollHintRight {
-          0%, 100% { transform: translateX(0);   opacity: 0.45; }
-          50%      { transform: translateX(4px); opacity: 1; }
+          0%, 100% { transform: translateX(0)   scale(1);    opacity: 0.65; }
+          50%      { transform: translateX(5px) scale(1.08); opacity: 1; }
         }
         .category-scroll-hint-left {
           animation: categoryScrollHintLeft 1.8s ease-in-out infinite;
@@ -501,33 +499,43 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             </div>
           </div>
 
-          {/* ═══════ 3. مؤشر التمرير الأفقي (جوال فقط) ═══════ */}
+          {/* ═══════ 3. مؤشر التمرير (جوال) — مع هوامش وإبراز ═══════ */}
           {showScrollHint && (
             <div
-              className="md:hidden flex items-center justify-center gap-2 mt-2 select-none pointer-events-none"
+              className="md:hidden flex flex-col items-center select-none pointer-events-none mt-4 mb-2"
               aria-hidden="true"
             >
-              {/* سهم أيسر (يظهر فقط إذا كان بإمكانك التمرير لليسار) */}
-              <span
-                className={`inline-flex transition-opacity duration-300 ${
-                  canScrollLeft ? 'category-scroll-hint-left opacity-100' : 'opacity-0'
-                }`}
-              >
-                <ChevronLeft className="w-3.5 h-3.5 text-[#2D6A3F]/60" strokeWidth={3} />
-              </span>
+              {/* ✨ خط علوي خفيف */}
+              <span className="block w-16 h-px bg-gradient-to-r from-transparent via-[#2D6A3F]/25 to-transparent mb-3" />
 
-              <span className="text-[10px] font-black text-[#5A6B5F]/75 tracking-wide">
-                اسحب للتصفح
-              </span>
+              {/* 🎯 شريط المؤشر — خلفية خفيفة + إطار + ظل */}
+              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm border border-[#2D6A3F]/20 shadow-[0_2px_10px_rgba(45,106,63,0.08)]">
+                {/* سهم أيسر */}
+                <span
+                  className={`inline-flex transition-opacity duration-300 ${
+                    canScrollLeft ? 'category-scroll-hint-left opacity-100' : 'opacity-25'
+                  }`}
+                >
+                  <ChevronLeft className="w-4 h-4 text-[#2D6A3F]" strokeWidth={3} />
+                </span>
 
-              {/* سهم أيمن (يظهر فقط إذا كان بإمكانك التمرير لليمين) */}
-              <span
-                className={`inline-flex transition-opacity duration-300 ${
-                  canScrollRight ? 'category-scroll-hint-right opacity-100' : 'opacity-0'
-                }`}
-              >
-                <ChevronRight className="w-3.5 h-3.5 text-[#2D6A3F]/60" strokeWidth={3} />
-              </span>
+                {/* العبارة — أوضح وأكبر */}
+                <span className="text-[12px] font-black text-[#1A3D24] tracking-wide whitespace-nowrap">
+                  اسحب للتصفح
+                </span>
+
+                {/* سهم أيمن */}
+                <span
+                  className={`inline-flex transition-opacity duration-300 ${
+                    canScrollRight ? 'category-scroll-hint-right opacity-100' : 'opacity-25'
+                  }`}
+                >
+                  <ChevronRight className="w-4 h-4 text-[#2D6A3F]" strokeWidth={3} />
+                </span>
+              </div>
+
+              {/* ✨ خط سفلي خفيف */}
+              <span className="block w-16 h-px bg-gradient-to-r from-transparent via-[#2D6A3F]/25 to-transparent mt-3" />
             </div>
           )}
 
