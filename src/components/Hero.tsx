@@ -1,9 +1,9 @@
 // ============================================================
-// الملف: Hero.tsx – الإصدار 4.5
+// الملف: Hero.tsx – الإصدار 4.6
 // بطاقات الهيرو مع تمرير يدوي أفقي
-// تحسينات: Parallax خفيف + Fade at Focus + أداء محسّن
+// تحسينات: Ripple effect + حفظ/استعادة البطاقة الأخيرة
 // ============================================================
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   ArrowDown,
   Package,
@@ -23,12 +23,15 @@ export const HERO_PUBLIC_IMAGES: Record<string, { primary: string; fallback: str
   },
 };
 
+// ✅ مفتاح التخزين المحلي
+const STORAGE_KEY = 'hero:lastActiveSlideIndex';
+
 const HeroImageDisplay: React.FC<{
   primarySrc: string;
   fallbackSrc: string;
   alt: string;
   eager?: boolean;
-  parallaxOffset?: number; // ✅ إزاحة Parallax (px)
+  parallaxOffset?: number;
 }> = ({ primarySrc, fallbackSrc, alt, eager = false, parallaxOffset = 0 }) => {
   const [src, setSrc] = useState(primarySrc);
   const [hasError, setHasError] = useState(false);
@@ -66,6 +69,52 @@ const HeroImageDisplay: React.FC<{
   );
 };
 
+// ✅ زر بموجة Ripple (يُعاد استخدامه لكلا الزرين)
+const RippleButton: React.FC<{
+  onClick?: () => void;
+  className: string;
+  id?: string;
+  children: React.ReactNode;
+  rippleColor?: string;
+}> = ({ onClick, className, id, children, rippleColor = 'rgba(45,106,63,0.28)' }) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const btn = buttonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6;
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      const ripple = document.createElement('span');
+      ripple.className = 'hero-ripple';
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      ripple.style.background = rippleColor;
+      btn.appendChild(ripple);
+
+      window.setTimeout(() => {
+        ripple.remove();
+      }, 650);
+    }
+    onClick?.();
+  };
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      id={id}
+      onClick={handleClick}
+      className={`relative overflow-hidden ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
 interface HeroProps {
   onSelectCategory: (cat: ProductCategory) => void;
   onScrollToCatalog: () => void;
@@ -97,26 +146,39 @@ const HERO_SLIDES = [
   },
 ];
 
-// ✅ أقصى إزاحة Parallax (px) — قيمة صغيرة تعطي عمقاً دون إزعاج
 const PARALLAX_MAX = 22;
-// ✅ مدة نبضة التركيز (ms) — متطابقة مع CSS
 const FOCUS_PULSE_MS = 700;
+
+// ✅ قراءة القيمة المحفوظة بأمان
+const readStoredIndex = (): number => {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return 0;
+    const idx = parseInt(raw, 10);
+    return Number.isInteger(idx) && idx >= 0 && idx < HERO_SLIDES.length ? idx : 0;
+  } catch {
+    return 0;
+  }
+};
 
 export const Hero: React.FC<HeroProps> = ({
   onSelectCategory: _onSelectCategory,
   onScrollToCatalog,
   onScrollToBundles,
 }) => {
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  // ✅ نبدأ من البطاقة المحفوظة
+  const initialIndex = readStoredIndex();
+  const [activeSlideIndex, setActiveSlideIndex] = useState(initialIndex);
   const [offsets, setOffsets] = useState<number[]>(() => HERO_SLIDES.map(() => 0));
   const [pulsingIndex, setPulsingIndex] = useState<number | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollRaf = useRef<number | null>(null);
   const pulseTimer = useRef<number | null>(null);
-  const prevActiveRef = useRef(0);
+  const prevActiveRef = useRef(initialIndex);
+  const didInitialRestoreRef = useRef(false);
 
-  // ✅ حساب موضع كل بطاقة + إزاحة Parallax المقابلة
   const updateLayout = () => {
     if (!scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
@@ -133,7 +195,6 @@ export const Hero: React.FC<HeroProps> = ({
       const cardCenter = cardRect.left + cardRect.width / 2;
       const diff = cardCenter - containerCenter;
 
-      // Parallax: كلما ابتعدت البطاقة عن المركز، تحركت الصورة عكسياً
       const ratio = Math.max(-1, Math.min(1, diff / containerRect.width));
       newOffsets[idx] = -ratio * PARALLAX_MAX;
 
@@ -153,21 +214,47 @@ export const Hero: React.FC<HeroProps> = ({
     scrollRaf.current = requestAnimationFrame(updateLayout);
   };
 
-  // ✅ تشغيل نبضة التركيز عند تغيير البطاقة النشطة
+  // ✅ حفظ البطاقة النشطة + تشغيل نبضة التركيز
   useEffect(() => {
     if (prevActiveRef.current === activeSlideIndex) return;
     prevActiveRef.current = activeSlideIndex;
-    setPulsingIndex(activeSlideIndex);
 
+    // حفظ في localStorage
+    try {
+      window.localStorage.setItem(STORAGE_KEY, String(activeSlideIndex));
+    } catch {
+      /* تجاهل */
+    }
+
+    setPulsingIndex(activeSlideIndex);
     if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
     pulseTimer.current = window.setTimeout(() => {
       setPulsingIndex(null);
     }, FOCUS_PULSE_MS);
   }, [activeSlideIndex]);
 
-  // ✅ حساب أولي بعد التركيب (لضبط الإزاحات)
+  // ✅ عند التركيب: استعادة البطاقة المحفوظة ثم حساب الإزاحات
   useEffect(() => {
-    updateLayout();
+    if (!didInitialRestoreRef.current && scrollContainerRef.current) {
+      didInitialRestoreRef.current = true;
+      const idx = readStoredIndex();
+      if (idx > 0) {
+        // تمرير فوري (بدون smooth) للبطاقة المحفوظة
+        const container = scrollContainerRef.current;
+        const cards = container.querySelectorAll('article');
+        const card = cards[idx] as HTMLElement | undefined;
+        if (card) {
+          const containerRect = container.getBoundingClientRect();
+          const cardRect = card.getBoundingClientRect();
+          const deltaX = (cardRect.left + cardRect.width / 2) - (containerRect.left + containerRect.width / 2);
+          container.scrollLeft += deltaX;
+        }
+      }
+    }
+
+    // حساب أولي بعد الاستعادة
+    requestAnimationFrame(updateLayout);
+
     return () => {
       if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
       if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
@@ -175,7 +262,7 @@ export const Hero: React.FC<HeroProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const scrollToSlide = (index: number) => {
+  const scrollToSlide = useCallback((index: number) => {
     if (!scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
     const cards = container.querySelectorAll('article');
@@ -191,7 +278,7 @@ export const Hero: React.FC<HeroProps> = ({
       });
       setActiveSlideIndex(index);
     }
-  };
+  }, []);
 
   return (
     <section
@@ -200,7 +287,6 @@ export const Hero: React.FC<HeroProps> = ({
     >
       {/* ════════ الأنماط الحركية ════════ */}
       <style>{`
-        /* دخول البطاقات من اليمين عند التحميل */
         @keyframes heroFadeInRight {
           0%   { opacity: 0; transform: translateX(60px) scale(0.97); }
           100% { opacity: 1; transform: translateX(0) scale(1); }
@@ -210,7 +296,6 @@ export const Hero: React.FC<HeroProps> = ({
           will-change: opacity, transform;
         }
 
-        /* ✅ نبضة التركيز عند تنشيط بطاقة أثناء التمرير */
         @keyframes heroFocusPulse {
           0%   { opacity: 1; }
           35%  { opacity: 0.88; }
@@ -220,15 +305,28 @@ export const Hero: React.FC<HeroProps> = ({
           animation: heroFocusPulse ${FOCUS_PULSE_MS}ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ✅ احترام تفضيل الحركة المُقلّلة */
+        /* ✅ موجة Ripple */
+        @keyframes heroRippleExpand {
+          0%   { transform: scale(0); opacity: 0.55; }
+          100% { transform: scale(2.6); opacity: 0; }
+        }
+        .hero-ripple {
+          position: absolute;
+          border-radius: 9999px;
+          pointer-events: none;
+          transform: scale(0);
+          animation: heroRippleExpand 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform, opacity;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .hero-fade-in-right,
-          .hero-focus-pulse { animation: none; }
+          .hero-focus-pulse,
+          .hero-ripple { animation: none; }
         }
       `}</style>
 
       <div className="relative max-w-3xl mx-auto">
-        {/* ─── حاوية البطاقات مع التمرير اليدوي الأفقي ─── */}
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
@@ -249,7 +347,7 @@ export const Hero: React.FC<HeroProps> = ({
                     : 'border-[#2D6A3F]/45 shadow-lg'
                 }`}
               >
-                {/* ════════ صورة الخلفية (مع Parallax) ════════ */}
+                {/* ════════ صورة الخلفية (Parallax) ════════ */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden">
                   <HeroImageDisplay
                     primarySrc={slide.image}
@@ -260,10 +358,8 @@ export const Hero: React.FC<HeroProps> = ({
                   />
                 </div>
 
-                {/* ════════ طبقة تدرج ════════ */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10]/95 via-[#0B1C10]/70 to-[#0B1C10]/45 pointer-events-none" />
 
-                {/* ════════ دوائر ضوئية ════════ */}
                 <div className="absolute -top-20 -right-20 w-60 h-60 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-[#2D6A3F]/45 rounded-full blur-3xl pointer-events-none" />
 
@@ -291,27 +387,29 @@ export const Hero: React.FC<HeroProps> = ({
 
                   <div className="flex items-center justify-center w-full">
                     {slide.primaryCTA === 'catalog' ? (
-                      <button
-                        type="button"
+                      // ✅ زر Ripple - تسوق الآن
+                      <RippleButton
                         id="hero-shop-now-btn"
                         onClick={onScrollToCatalog}
+                        rippleColor="rgba(45,106,63,0.30)"
                         className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 rounded-2xl bg-white/95 backdrop-blur-sm text-[#2D6A3F] font-black text-sm sm:text-[15px] shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.32)] hover:bg-white hover:scale-[1.015] active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/40"
                       >
-                        <Leaf className="w-4 h-4 text-[#2D6A3F]" />
-                        <span>تسوق الآن</span>
-                        <ArrowDown className="w-4 h-4 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
-                      </button>
+                        <Leaf className="w-4 h-4 text-[#2D6A3F] relative z-10" />
+                        <span className="relative z-10">تسوق الآن</span>
+                        <ArrowDown className="w-4 h-4 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5] relative z-10" />
+                      </RippleButton>
                     ) : (
                       onScrollToBundles && (
-                        <button
-                          type="button"
+                        // ✅ زر Ripple - اكتشف الآن
+                        <RippleButton
                           onClick={onScrollToBundles}
+                          rippleColor="rgba(45,106,63,0.30)"
                           className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 rounded-2xl bg-white/95 backdrop-blur-sm text-[#2D6A3F] font-black text-sm sm:text-[15px] shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.32)] hover:bg-white hover:scale-[1.015] active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/40"
                         >
-                          <Package className="w-4 h-4 text-[#2D6A3F]" />
-                          <span>اكتشف الآن</span>
-                          <ArrowDown className="w-4 h-4 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5]" />
-                        </button>
+                          <Package className="w-4 h-4 text-[#2D6A3F] relative z-10" />
+                          <span className="relative z-10">اكتشف الآن</span>
+                          <ArrowDown className="w-4 h-4 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5] relative z-10" />
+                        </RippleButton>
                       )
                     )}
                   </div>
@@ -327,7 +425,7 @@ export const Hero: React.FC<HeroProps> = ({
                   </div>
                 </div>
 
-                {/* ✅ طبقة نبضة التركيز (فوق كل شيء، لا تعترض اللمس) */}
+                {/* ✅ نبضة التركيز */}
                 {isPulsing && (
                   <div className="hero-focus-pulse absolute inset-0 rounded-3xl bg-white/8 pointer-events-none" />
                 )}
