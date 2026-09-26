@@ -1,8 +1,9 @@
 // ============================================================
-// الملف: TrustBadges.tsx – الإصدار 5.0
-// شارات الثقة – تأثيرات بصرية خفيفة + لون برتقالي
+// الملف: TrustBadges.tsx – الإصدار 5.1
+// شارات الثقة بهوية خضرة الموحّدة
+// تحسينات: Ripple + Focus Pulse + Fade + Spacer + ظلال عضوية
 // ============================================================
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   Sprout,
   Truck,
@@ -12,72 +13,135 @@ import {
   Award,
 } from 'lucide-react';
 
+const FOCUS_PULSE_MS = 700;
+
+// ═══════ زر Ripple ═══════
+const RippleButton: React.FC<{
+  onClick?: () => void;
+  className: string;
+  children: React.ReactNode;
+  rippleColor?: string;
+  ariaLabel?: string;
+}> = ({ onClick, className, children, rippleColor = 'rgba(45,106,63,0.22)', ariaLabel }) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const btn = buttonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6;
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      const ripple = document.createElement('span');
+      ripple.className = 'trust-ripple';
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      ripple.style.background = rippleColor;
+      btn.appendChild(ripple);
+
+      window.setTimeout(() => ripple.remove(), 650);
+    }
+    onClick?.();
+  };
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      aria-label={ariaLabel}
+      onClick={handleClick}
+      className={`relative overflow-hidden ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
 export const TrustBadges: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
+  const [pulsingIndex, setPulsingIndex] = useState<number | null>(null);
+  const scrollRaf = useRef<number | null>(null);
+  const pulseTimer = useRef<number | null>(null);
+  const prevActiveRef = useRef(0);
 
   // ─── البطاقات الأربعة ───
+  // 🎨 تناوب لوني: أخضر → برتقالي → أخضر → برتقالي
   const features = [
     {
       id: 0,
-      icon: <Sprout className="w-8 h-8 sm:w-9 sm:h-9 text-[#163920]" />,
-      iconBg: 'bg-emerald-50 border-emerald-200/80',
+      icon: <Sprout className="w-8 h-8 sm:w-9 sm:h-9 text-[#2D6A3F]" strokeWidth={2.5} />,
+      iconBg: 'bg-[#2D6A3F]/10 border-[#2D6A3F]/25',
       title: 'طراوة الحقول مباشرة',
       desc: 'كنجيبو الخضر والفواكه يومياً من فلاحين مغاربة، بلا وسطاء، لضمان الطراوة والجودة الطبيعية.',
     },
     {
       id: 1,
-      icon: <Truck className="w-8 h-8 sm:w-9 sm:h-9 text-[#C25E12]" />,
-      iconBg: 'bg-amber-50 border-amber-200/80',
+      icon: <Truck className="w-8 h-8 sm:w-9 sm:h-9 text-[#EA580C]" strokeWidth={2.5} />,
+      iconBg: 'bg-[#EA580C]/10 border-[#EA580C]/25',
       title: 'توصيل سريع وفي الموعد',
       desc: 'طلبك كيوصلك نفس النهار، وفي الوقت اللي يناسبك، بدقة واحترافية عالية حتال باب دارك.',
     },
     {
       id: 2,
-      icon: <ShieldCheck className="w-8 h-8 sm:w-9 sm:h-9 text-[#163920]" />,
-      iconBg: 'bg-emerald-50 border-emerald-200/80',
+      icon: <ShieldCheck className="w-8 h-8 sm:w-9 sm:h-9 text-[#2D6A3F]" strokeWidth={2.5} />,
+      iconBg: 'bg-[#2D6A3F]/10 border-[#2D6A3F]/25',
       title: 'دفع براحة واطمئنان',
       desc: 'ما كتخلص حتى كتوصلك السلعة وتشوفها بعينيك وترتاح — عاد كتخلص نقداً أو بالتحويل البنكي.',
     },
     {
       id: 3,
-      icon: <HeartHandshake className="w-8 h-8 sm:w-9 sm:h-9 text-[#C25E12]" />,
-      iconBg: 'bg-amber-50 border-amber-200/80',
+      icon: <HeartHandshake className="w-8 h-8 sm:w-9 sm:h-9 text-[#EA580C]" strokeWidth={2.5} />,
+      iconBg: 'bg-[#EA580C]/10 border-[#EA580C]/25',
       title: 'ضمان الرضا 100%',
       desc: 'شي حاجة ما عجبتكش؟ كنبدلوها ليك أو كنرجعو ليك فلوسك فوراً — رضاك وراحة بالك هو رأس مالنا.',
     },
   ];
 
-  const scrollRaf = React.useRef<number | null>(null);
+  const updateLayout = useCallback(() => {
+    if (!scrollRef.current) return;
+    const container = scrollRef.current;
+    const cards = container.querySelectorAll('article');
+    const containerRect = container.getBoundingClientRect();
+    const containerCenter = containerRect.left + containerRect.width / 2;
+
+    let closestIdx = 0;
+    let minDiff = Infinity;
+
+    cards.forEach((card, idx) => {
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.left + cardRect.width / 2;
+      const diff = Math.abs(cardCenter - containerCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    });
+
+    setActiveCardIndex((prev) => (prev !== closestIdx ? closestIdx : prev));
+  }, []);
 
   const handleScroll = () => {
     if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
-    scrollRaf.current = requestAnimationFrame(() => {
-      if (!scrollRef.current) return;
-      const container = scrollRef.current;
-      const cards = container.querySelectorAll('article');
-      const containerCenter = container.getBoundingClientRect().left + container.offsetWidth / 2;
-
-      let closestIdx = 0;
-      let minDiff = Infinity;
-
-      cards.forEach((card, idx) => {
-        const cardRect = card.getBoundingClientRect();
-        const cardCenter = cardRect.left + cardRect.width / 2;
-        const diff = Math.abs(cardCenter - containerCenter);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = idx;
-        }
-      });
-
-      setActiveCardIndex((prev) => (prev !== closestIdx ? closestIdx : prev));
-    });
+    scrollRaf.current = requestAnimationFrame(updateLayout);
   };
+
+  // ✅ نبضة التركيز عند تغيير البطاقة
+  useEffect(() => {
+    if (prevActiveRef.current === activeCardIndex) return;
+    prevActiveRef.current = activeCardIndex;
+    setPulsingIndex(activeCardIndex);
+
+    if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
+    pulseTimer.current = window.setTimeout(() => setPulsingIndex(null), FOCUS_PULSE_MS);
+  }, [activeCardIndex]);
 
   useEffect(() => {
     return () => {
       if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+      if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
     };
   }, []);
 
@@ -87,86 +151,162 @@ export const TrustBadges: React.FC = () => {
     const cards = container.querySelectorAll('article');
     if (cards[index]) {
       const card = cards[index] as HTMLElement;
-      const cardLeft = card.offsetLeft;
-      const cardWidth = card.offsetWidth;
-      const containerWidth = container.offsetWidth;
-      const scrollPosition = cardLeft - (containerWidth - cardWidth) / 2;
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const deltaX = (cardRect.left + cardRect.width / 2) - (containerRect.left + containerRect.width / 2);
 
-      container.scrollTo({
-        left: scrollPosition,
-        behavior: 'smooth',
-      });
+      container.scrollBy({ left: deltaX, behavior: 'smooth' });
       setActiveCardIndex(index);
     }
   };
 
   return (
     <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-16" aria-label="مميزات وثقة متجر خضرة">
+      {/* ═══════ الأنماط الحركية ═══════ */}
+      <style>{`
+        @keyframes trustRippleExpand {
+          0%   { transform: scale(0); opacity: 0.55; }
+          100% { transform: scale(2.6); opacity: 0; }
+        }
+        .trust-ripple {
+          position: absolute;
+          border-radius: 9999px;
+          pointer-events: none;
+          transform: scale(0);
+          animation: trustRippleExpand 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform, opacity;
+        }
+
+        @keyframes trustFadeInRight {
+          0%   { opacity: 0; transform: translateX(40px); }
+          100% { opacity: 1; transform: translateX(0); }
+        }
+        .trust-fade-in-right {
+          animation: trustFadeInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+          will-change: opacity, transform;
+        }
+
+        @keyframes trustFocusPulse {
+          0%   { opacity: 0.5; }
+          100% { opacity: 0; }
+        }
+        .trust-focus-pulse {
+          animation: trustFocusPulse ${FOCUS_PULSE_MS}ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ✅ Spacer ذكي للجوال لتوسيط أول/آخر بطاقة */
+        .trust-spacer {
+          flex-shrink: 0;
+          width: calc(50% - 33vw - 0.5rem);
+        }
+        @media (min-width: 640px) {
+          .trust-spacer {
+            width: calc(50% - 115px - 0.75rem);
+          }
+        }
+        @media (min-width: 768px) {
+          .trust-spacer { display: none; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .trust-ripple,
+          .trust-fade-in-right,
+          .trust-focus-pulse { animation: none; }
+        }
+      `}</style>
+
       {/* ─── العنوان والوصف ─── */}
-      <div className="bg-white rounded-3xl border border-stone-200/90 shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-6 sm:p-8 text-center max-w-md sm:max-w-xl mx-auto mb-8 sm:mb-10">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#163920]/10 text-[#163920] font-black text-xs sm:text-sm mb-3">
-          <Sparkles className="w-4 h-4 text-[#C25E12]" />
-          <span>ضمانات وخدمة متجر خُضرة</span>
-          <Award className="w-3.5 h-3.5 text-[#163920]" />
-        </div>
+      <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_10px_rgba(45,106,63,0.06)] p-6 sm:p-8 text-center max-w-xl mx-auto mb-8 sm:mb-10 overflow-hidden">
+        {/* دوائر ضوئية */}
+        <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-[#2D6A3F]/10 rounded-full blur-3xl pointer-events-none" />
 
-        <h2 className="text-2xl sm:text-3xl font-black text-[#112616] tracking-tight mb-2.5">
-          علاش متجر خُضرة هو الخيار الأول للعائلات؟
-        </h2>
+        <div className="relative">
+          {/* شارة ذهبية */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] border border-[#EAB308]/50 text-[#1A3D24] font-black text-xs sm:text-sm mb-4 shadow-[0_3px_12px_rgba(234,179,8,0.30)]">
+            <Sparkles className="w-4 h-4" strokeWidth={2.5} />
+            <span>ضمانات وخدمة متجر خُضرة</span>
+            <Award className="w-3.5 h-3.5" strokeWidth={2.5} />
+          </div>
 
-        <p className="text-xs sm:text-sm text-[#524B3E] font-medium leading-relaxed">
-          مئات العائلات في فاس كيثقوا فينا كل نهار لتوفير طعام صحي وطازج لموائدهم
-        </p>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight mb-3 flex items-center justify-center gap-2 flex-wrap">
+            علاش متجر خُضرة هو الخيار الأول للعائلات؟
+            <span className="inline-block w-2 h-2 rounded-full bg-[#EAB308]" />
+          </h2>
 
-        <div className="flex sm:hidden items-center justify-center gap-1.5 mt-4 pt-3 border-t border-stone-100">
-          <span className="text-[11px] font-bold text-stone-500">مرر لاكتشاف جميع الميزات</span>
-          <span className="text-xs text-[#C25E12] font-black">←</span>
+          <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold leading-relaxed max-w-md mx-auto">
+            مئات العائلات في فاس كيثقوا فينا كل نهار لتوفير طعام صحي وطازج لموائدهم
+          </p>
+
+          <div className="flex sm:hidden items-center justify-center gap-2 mt-5 pt-4 border-t border-[#2D6A3F]/10">
+            <span className="text-[11px] font-black text-[#1A3D24]">اسحب لاكتشاف جميع الميزات</span>
+            <span className="text-xs text-[#2D6A3F]">←</span>
+          </div>
         </div>
       </div>
 
-      {/* ─── عرض أفقي بسيط ─── */}
+      {/* ─── عرض أفقي ─── */}
       <div className="relative max-w-5xl mx-auto py-2">
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex flex-row gap-4 sm:gap-6 overflow-x-auto py-5 px-[14vw] sm:px-12 md:px-6 snap-x snap-proximity overscroll-x-contain no-scrollbar"
+          className="flex flex-row gap-4 sm:gap-6 overflow-x-auto py-5 snap-x snap-mandatory overscroll-x-contain no-scrollbar"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
+          {/* Spacer أيسر (جوال) */}
+          <div className="trust-spacer" aria-hidden="true" />
+
           {features.map((f, idx) => {
             const isActive = activeCardIndex === idx;
+            const isPulsing = pulsingIndex === idx;
 
             return (
-              <article
+              <RippleButton
                 key={f.id}
                 onClick={() => scrollToIndex(idx)}
-                className={`w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-colors duration-200 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[300px] sm:min-h-[320px] cursor-pointer group select-none ${
+                ariaLabel={`الميزة: ${f.title}`}
+                rippleColor={idx % 2 === 0 ? 'rgba(45,106,63,0.22)' : 'rgba(234,88,12,0.22)'}
+                className={`trust-fade-in-right group w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[300px] sm:min-h-[320px] cursor-pointer select-none ${
                   isActive
-                    ? 'border-[#C25E12]'
-                    : 'border-stone-200/90'
+                    ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.18)] scale-[1.02]'
+                    : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45 shadow-sm'
                 }`}
+                // @ts-ignore
+                style={{ animationDelay: `${idx * 90}ms` }}
               >
                 {/* الأيقونة */}
                 <div
-                  className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl ${f.iconBg} border flex items-center justify-center shadow-xs mb-5`}
+                  className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl ${f.iconBg} border-2 flex items-center justify-center shadow-sm mb-5 relative z-10 transition-transform duration-300 group-hover:scale-110`}
                 >
                   {f.icon}
                 </div>
 
                 {/* العنوان */}
-                <h3 className="text-base sm:text-lg font-black text-[#112616] leading-snug mb-3 text-center">
+                <h3 className="text-base sm:text-lg font-black text-[#1A3D24] leading-snug mb-3 text-center relative z-10">
                   {f.title}
                 </h3>
 
                 {/* النص */}
-                <p className="text-xs sm:text-[13px] text-[#524B3E] font-medium leading-relaxed text-center">
+                <p className="text-xs sm:text-[13px] text-[#5A6B5F] font-semibold leading-relaxed text-center relative z-10">
                   {f.desc}
                 </p>
-              </article>
+
+                {/* ✅ نبضة التركيز */}
+                {isPulsing && (
+                  <div
+                    className="trust-focus-pulse absolute inset-0 rounded-3xl bg-[#EAB308]/12 pointer-events-none"
+                    aria-hidden="true"
+                  />
+                )}
+              </RippleButton>
             );
           })}
+
+          {/* Spacer أيمن (جوال) */}
+          <div className="trust-spacer" aria-hidden="true" />
         </div>
 
-        {/* ─── مؤشرات النقاط (Dots) باللون البرتقالي ─── */}
+        {/* ─── نقاط التنقل ─── */}
         <div className="flex items-center justify-center gap-2 mt-4 sm:mt-6">
           {features.map((_, idx) => (
             <button
@@ -175,8 +315,8 @@ export const TrustBadges: React.FC = () => {
               onClick={() => scrollToIndex(idx)}
               className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
                 activeCardIndex === idx
-                  ? 'w-7 bg-[#C25E12]'
-                  : 'w-2 bg-stone-300 hover:bg-stone-400'
+                  ? 'w-7 bg-[#2D6A3F] shadow-xs'
+                  : 'w-2.5 bg-[#2D6A3F]/30 hover:bg-[#2D6A3F]/55'
               }`}
               aria-label={`الانتقال إلى الميزة ${idx + 1}`}
             />
