@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 5.3
-// ارتفاع متجاوب لجميع الشاشات (من 320px إلى 4K)
+// الملف: CategoryFilter.tsx – الإصدار 5.4
+// إضافة: مؤشر تمرير أفقي (جوال) + هامش سفلي أوسع
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -116,10 +116,6 @@ const CategoryCardButton: React.FC<{
       ariaSelected={isSelected}
       onClick={onSelect}
       rippleColor={hasBackgroundImage ? 'rgba(234,179,8,0.40)' : 'rgba(45,106,63,0.28)'}
-      // ✅ ارتفاع متجاوب على 8 نقاط توقف
-      // 📱 جوال: 200px  |  📱 جوال كبير: 216px  |  💊 تابلت صغير: 232px
-      // 💻 تابلت: 248px | 💻 لابتوب: 280px | 🖥️ ديسكتوب: 310px
-      // 🖥️ ديسكتوب كبير: 340px | 🖥️ 4K: 380px
       className={`category-fade-in-right group relative flex flex-col justify-end p-4 rounded-3xl border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.98] shrink-0 min-w-[158px] sm:min-w-[174px] md:min-w-0
         min-h-[200px]
         xs:min-h-[216px]
@@ -143,7 +139,6 @@ const CategoryCardButton: React.FC<{
       // @ts-ignore
       style={{ animationDelay: `${animationDelay}ms` }}
     >
-      {/* ═══ خلفية الصورة ═══ */}
       {currentSrc && !hasError && (
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-[22px]">
           <img
@@ -173,7 +168,6 @@ const CategoryCardButton: React.FC<{
         </div>
       )}
 
-      {/* ═══ لا توجد صورة: عرض الأيقونة ═══ */}
       {!hasBackgroundImage && (
         <div className="relative z-10 flex-1 flex items-center justify-center py-2">
           <span
@@ -186,7 +180,6 @@ const CategoryCardButton: React.FC<{
         </div>
       )}
 
-      {/* ═══ العنوان + المؤشر ═══ */}
       <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-2">
         <span
           className={`text-[15px] sm:text-[17px] font-black leading-tight transition-colors duration-300 ${
@@ -215,7 +208,6 @@ const CategoryCardButton: React.FC<{
         )}
       </div>
 
-      {/* ✨ نبضة التركيز */}
       {isPulsing && (
         <div
           className="category-focus-pulse absolute inset-0 rounded-[22px] bg-[#EAB308]/20 pointer-events-none"
@@ -337,8 +329,12 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
   };
 
+  // ✅ هل يجب إظهار مؤشر التمرير؟
+  const showScrollHint = canScrollLeft || canScrollRight;
+
   return (
-    <div className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-2 sm:mt-3 lg:mt-4 mb-6 sm:mb-8 ${className}`}>
+    // 📏 هامش سفلي أوسع: mb-10 / mb-12 / mb-14 (بدل mb-6 / mb-8)
+    <div className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-2 sm:mt-3 lg:mt-4 mb-10 sm:mb-12 lg:mb-14 ${className}`}>
       <style>{`
         @keyframes categoryFadeInRight {
           0%   { opacity: 0; transform: translateX(40px); }
@@ -370,10 +366,30 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
           will-change: transform, opacity;
         }
 
+        /* ✅ سهام مؤشر التمرير (تتحرك للخارج ثم ترجع) */
+        @keyframes categoryScrollHintLeft {
+          0%, 100% { transform: translateX(0);    opacity: 0.45; }
+          50%      { transform: translateX(-4px); opacity: 1; }
+        }
+        @keyframes categoryScrollHintRight {
+          0%, 100% { transform: translateX(0);   opacity: 0.45; }
+          50%      { transform: translateX(4px); opacity: 1; }
+        }
+        .category-scroll-hint-left {
+          animation: categoryScrollHintLeft 1.8s ease-in-out infinite;
+          will-change: transform, opacity;
+        }
+        .category-scroll-hint-right {
+          animation: categoryScrollHintRight 1.8s ease-in-out infinite;
+          will-change: transform, opacity;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .category-fade-in-right,
           .category-focus-pulse,
-          .category-ripple { animation: none; }
+          .category-ripple,
+          .category-scroll-hint-left,
+          .category-scroll-hint-right { animation: none; }
         }
       `}</style>
 
@@ -484,6 +500,36 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               ))}
             </div>
           </div>
+
+          {/* ═══════ 3. مؤشر التمرير الأفقي (جوال فقط) ═══════ */}
+          {showScrollHint && (
+            <div
+              className="md:hidden flex items-center justify-center gap-2 mt-2 select-none pointer-events-none"
+              aria-hidden="true"
+            >
+              {/* سهم أيسر (يظهر فقط إذا كان بإمكانك التمرير لليسار) */}
+              <span
+                className={`inline-flex transition-opacity duration-300 ${
+                  canScrollLeft ? 'category-scroll-hint-left opacity-100' : 'opacity-0'
+                }`}
+              >
+                <ChevronLeft className="w-3.5 h-3.5 text-[#2D6A3F]/60" strokeWidth={3} />
+              </span>
+
+              <span className="text-[10px] font-black text-[#5A6B5F]/75 tracking-wide">
+                اسحب للتصفح
+              </span>
+
+              {/* سهم أيمن (يظهر فقط إذا كان بإمكانك التمرير لليمين) */}
+              <span
+                className={`inline-flex transition-opacity duration-300 ${
+                  canScrollRight ? 'category-scroll-hint-right opacity-100' : 'opacity-0'
+                }`}
+              >
+                <ChevronRight className="w-3.5 h-3.5 text-[#2D6A3F]/60" strokeWidth={3} />
+              </span>
+            </div>
+          )}
 
         </div>
       </div>
