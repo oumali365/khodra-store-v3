@@ -1,7 +1,6 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 5.1
-// تصميم مطابق لهوية خضرة (أخضر + ذهبي + برتقالي)
-// إبراز الفئة النشطة + Ripple + Focus Pulse + Fade من اليمين
+// الملف: CategoryFilter.tsx – الإصدار 5.3
+// ارتفاع متجاوب لجميع الشاشات (من 320px إلى 4K)
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -21,7 +20,6 @@ const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = 
 
 const FOCUS_PULSE_MS = 700;
 
-// ═══════ زر Ripple (نفس نمط Hero) ═══════
 const RippleButton: React.FC<{
   onClick?: () => void;
   className: string;
@@ -80,7 +78,6 @@ const RippleButton: React.FC<{
   );
 };
 
-// ═══════ بطاقة الفئة ═══════
 const CategoryCardButton: React.FC<{
   category: { id: ProductCategory; name: string; icon: string };
   isSelected: boolean;
@@ -103,7 +100,6 @@ const CategoryCardButton: React.FC<{
 
   const hasBackgroundImage = Boolean(currentSrc && !hasError);
 
-  // ✨ نبضة عند التنشيط
   useEffect(() => {
     if (isSelected) {
       setIsPulsing(true);
@@ -120,18 +116,31 @@ const CategoryCardButton: React.FC<{
       ariaSelected={isSelected}
       onClick={onSelect}
       rippleColor={hasBackgroundImage ? 'rgba(234,179,8,0.40)' : 'rgba(45,106,63,0.28)'}
-      className={`category-fade-in-right group relative flex flex-col justify-end p-4 rounded-3xl border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.98] shrink-0 min-w-[158px] sm:min-w-[174px] md:min-w-0 min-h-[206px] sm:min-h-[226px] md:min-h-[224px] lg:min-h-[244px] ${
-        isSelected
-          ? 'border-[#2D6A3F] scale-[1.03] shadow-[0_12px_32px_rgba(45,106,63,0.38),0_0_0_4px_rgba(45,106,63,0.22)]'
-          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 shadow-sm hover:shadow-xl hover:-translate-y-0.5'
-      } ${
+      // ✅ ارتفاع متجاوب على 8 نقاط توقف
+      // 📱 جوال: 200px  |  📱 جوال كبير: 216px  |  💊 تابلت صغير: 232px
+      // 💻 تابلت: 248px | 💻 لابتوب: 280px | 🖥️ ديسكتوب: 310px
+      // 🖥️ ديسكتوب كبير: 340px | 🖥️ 4K: 380px
+      className={`category-fade-in-right group relative flex flex-col justify-end p-4 rounded-3xl border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.98] shrink-0 min-w-[158px] sm:min-w-[174px] md:min-w-0
+        min-h-[200px]
+        xs:min-h-[216px]
+        sm:min-h-[232px]
+        md:min-h-[248px]
+        lg:min-h-[280px]
+        xl:min-h-[310px]
+        2xl:min-h-[340px]
+        [@media(min-width:1920px)]:min-h-[380px]
+        md:max-h-[420px]
+        ${isSelected
+          ? 'border-[#2D6A3F] scale-[1.02] shadow-[0_4px_14px_rgba(45,106,63,0.20)]'
+          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 shadow-sm'
+        } ${
         !hasBackgroundImage
           ? isSelected
             ? 'bg-gradient-to-b from-[#163920] to-[#0E2615] text-white'
             : 'bg-[#FAF8F3] hover:bg-white text-[#112616]'
           : 'bg-[#163920]'
       }`}
-      // @ts-ignore – style prop passthrough
+      // @ts-ignore
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       {/* ═══ خلفية الصورة ═══ */}
@@ -150,18 +159,16 @@ const CategoryCardButton: React.FC<{
             onError={handleImgError}
           />
 
-          {/* تدرج داكن (مطابق لـ Hero) */}
           <div
             className={`absolute inset-0 transition-opacity duration-300 ${
               isSelected
-                ? 'bg-gradient-to-t from-[#0B1C10]/98 via-[#0B1C10]/80 to-[#0B1C10]/50'
-                : 'bg-gradient-to-t from-[#0B1C10]/92 via-[#0B1C10]/55 to-[#0B1C10]/25 group-hover:from-[#0B1C10]/95 group-hover:via-[#0B1C10]/65'
+                ? 'bg-gradient-to-t from-[#0B1C10]/80 via-[#0B1C10]/20 to-transparent'
+                : 'bg-gradient-to-t from-[#0B1C10]/75 via-[#0B1C10]/15 to-transparent group-hover:from-[#0B1C10]/80 group-hover:via-[#0B1C10]/25'
             }`}
           />
 
-          {/* 🟡 توهّج ذهبي خفيف عند الاختيار */}
           {isSelected && (
-            <div className="absolute inset-0 bg-[#EAB308]/12 pointer-events-none" />
+            <div className="absolute inset-0 bg-[#EAB308]/8 pointer-events-none" />
           )}
         </div>
       )}
@@ -170,10 +177,8 @@ const CategoryCardButton: React.FC<{
       {!hasBackgroundImage && (
         <div className="relative z-10 flex-1 flex items-center justify-center py-2">
           <span
-            className={`text-5xl sm:text-6xl transition-all duration-300 drop-shadow-sm ${
-              isSelected
-                ? 'scale-110'
-                : 'group-hover:scale-110'
+            className={`text-5xl sm:text-6xl transition-all duration-300 ${
+              isSelected ? 'scale-110' : 'group-hover:scale-110'
             }`}
           >
             {category.icon}
@@ -187,8 +192,8 @@ const CategoryCardButton: React.FC<{
           className={`text-[15px] sm:text-[17px] font-black leading-tight transition-colors duration-300 ${
             hasBackgroundImage
               ? isSelected
-                ? 'text-[#EAB308] drop-shadow-[0_2px_6px_rgba(234,179,8,0.55)]'
-                : 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]'
+                ? 'text-[#EAB308] drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]'
+                : 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.75)]'
               : isSelected
               ? 'text-[#EAB308]'
               : 'text-[#112616]'
@@ -198,10 +203,8 @@ const CategoryCardButton: React.FC<{
         </span>
 
         {isSelected ? (
-          // 🟡 شارة ذهبية (نفس نمط Hero)
-          <span className="w-12 h-1.5 rounded-full bg-[#EAB308] mt-2 shadow-[0_0_12px_rgba(234,179,8,0.6)]" />
+          <span className="w-12 h-1.5 rounded-full bg-[#EAB308] mt-2" />
         ) : (
-          // 🟠 تسطير برتقالي ينمو عند التمرير
           <span
             className={`h-0.5 rounded-full mt-2 transition-all duration-300 ${
               hasBackgroundImage
@@ -215,7 +218,7 @@ const CategoryCardButton: React.FC<{
       {/* ✨ نبضة التركيز */}
       {isPulsing && (
         <div
-          className="category-focus-pulse absolute inset-0 rounded-[22px] bg-[#EAB308]/25 pointer-events-none"
+          className="category-focus-pulse absolute inset-0 rounded-[22px] bg-[#EAB308]/20 pointer-events-none"
           aria-hidden="true"
         />
       )}
@@ -303,7 +306,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     };
   }, [categories.length, updateScrollState]);
 
-  // ─── تمرير أوتوماتيكي للفئة المحددة ───
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
@@ -336,8 +338,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   };
 
   return (
-    <div className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-8 sm:my-12 lg:my-16 ${className}`}>
-      {/* ═══════ الأنماط الحركية ═══════ */}
+    <div className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-2 sm:mt-3 lg:mt-4 mb-6 sm:mb-8 ${className}`}>
       <style>{`
         @keyframes categoryFadeInRight {
           0%   { opacity: 0; transform: translateX(40px); }
@@ -349,7 +350,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
 
         @keyframes categoryFocusPulse {
-          0%   { opacity: 0.55; }
+          0%   { opacity: 0.5; }
           100% { opacity: 0; }
         }
         .category-focus-pulse {
@@ -376,24 +377,20 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
       `}</style>
 
-      {/* ═══════ الحاوية الرئيسية ═══════ */}
-      <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border-2 border-[#2D6A3F]/15 rounded-[24px] sm:rounded-[36px] p-5 sm:p-7 md:p-8 shadow-[0_8px_32px_rgba(45,106,63,0.10)] overflow-hidden">
-        {/* 🟡 دائرة ذهبية */}
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
-        {/* 🟢 دائرة خضراء */}
-        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#2D6A3F]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-[36px] p-5 sm:p-7 md:p-8 shadow-[0_2px_10px_rgba(45,106,63,0.05)] overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
 
           {/* ═══════ 1. الرأس ═══════ */}
-          <div className="flex items-center justify-between gap-3 mb-6 pb-5 border-b border-[#2D6A3F]/12">
+          <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-[#2D6A3F]/10">
             <div className="flex items-center gap-3 min-w-0">
-              {/* 🎛️ زر الفرز (بنمط Hero) */}
               <button
                 type="button"
                 id="category-filter-sort-btn"
                 onClick={onOpenSort}
-                className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] active:scale-95 transition-all flex items-center justify-center shrink-0 shadow-[0_4px_14px_rgba(45,106,63,0.30)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.42)] cursor-pointer border border-[#EAB308]/30 group focus:outline-none focus:ring-2 focus:ring-[#2D6A3F]/40"
+                className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] active:scale-95 transition-all flex items-center justify-center shrink-0 shadow-sm hover:shadow-md cursor-pointer border border-[#EAB308]/25 group focus:outline-none focus:ring-2 focus:ring-[#2D6A3F]/30"
                 title="فرز وتصفية المنتجات"
                 aria-label="فرز وتصفية المنتجات"
               >
@@ -409,7 +406,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               <div className="min-w-0">
                 <h2 className="text-lg sm:text-2xl font-black text-[#112616] leading-tight truncate flex items-center gap-2">
                   تسوق حسب الفئات
-                  {/* 🟡 نقطة ذهبية صغيرة */}
                   <span className="inline-block w-2 h-2 rounded-full bg-[#EAB308] shrink-0" />
                 </h2>
                 <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold mt-0.5 truncate">
@@ -423,7 +419,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 <button
                   type="button"
                   onClick={onClearSearch}
-                  className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3 py-1.5 rounded-full transition-all cursor-pointer shadow-[0_3px_10px_rgba(234,88,12,0.30)] active:scale-95"
+                  className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3 py-1.5 rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
                 >
                   <span className="max-w-[110px] sm:max-w-none truncate">
                     إلغاء البحث "{searchQuery}"
@@ -433,11 +429,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               )}
 
               {hasActiveFilters && (
-                // 🟡 شارة ذهبية (نفس نمط Hero)
                 <button
                   type="button"
                   onClick={onOpenSort}
-                  className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FACC15] to-[#EAB308] hover:from-[#EAB308] hover:to-[#CA8A04] text-[#1A3D24] border border-[#EAB308]/60 px-3.5 py-2 rounded-full text-xs font-black cursor-pointer transition-all active:scale-95 shadow-[0_3px_12px_rgba(234,179,8,0.35)] shrink-0"
+                  className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FACC15] to-[#EAB308] hover:from-[#EAB308] hover:to-[#CA8A04] text-[#1A3D24] border border-[#EAB308]/50 px-3.5 py-2 rounded-full text-xs font-black cursor-pointer transition-all active:scale-95 shadow-sm shrink-0"
                   title="تعديل خيارات التصفية"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -454,7 +449,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 type="button"
                 onClick={() => scrollByAmount('right')}
                 aria-label="تمرير لليمين"
-                className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-[0_4px_14px_rgba(45,106,63,0.18)] text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] hover:border-[#2D6A3F] transition-all active:scale-90 cursor-pointer"
+                className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 shadow-sm text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -465,7 +460,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 type="button"
                 onClick={() => scrollByAmount('left')}
                 aria-label="تمرير لليسار"
-                className="hidden md:flex absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-[0_4px_14px_rgba(45,106,63,0.18)] text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] hover:border-[#2D6A3F] transition-all active:scale-90 cursor-pointer"
+                className="hidden md:flex absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 shadow-sm text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -473,7 +468,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-4 px-3 sm:px-4 md:px-1 overscroll-x-contain no-scrollbar"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-3 px-3 sm:px-4 md:px-1 overscroll-x-contain no-scrollbar items-stretch"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
