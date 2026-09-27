@@ -31,16 +31,6 @@ export const OrderBordereauModal: React.FC<OrderBordereauModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  // ─── قفل التمرير ───
-  useEffect(() => {
-    if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isOpen]);
-
   // ─── إغلاق بـ Escape ───
   useEffect(() => {
     if (!isOpen) return;

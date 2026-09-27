@@ -9,31 +9,45 @@ interface Props {
 interface State {
   hasError: boolean;
   error: any;
+  retryCount: number;
+}
+
+function restoreMainPageInteractivity() {
+  try {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    document.body.style.pointerEvents = '';
+  } catch {}
 }
 
 export class AdminErrorBoundary extends React.Component<Props, State> {
-  state: State = { hasError: false, error: null };
+  state: State = { hasError: false, error: null, retryCount: 0 };
 
-  static getDerivedStateFromError(error: any): State {
+  static getDerivedStateFromError(error: any): Partial<State> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: any, errorInfo: any) {
     console.error('Admin Panel error caught by AdminErrorBoundary:', error, errorInfo);
-    // تأكيد استعادة تمرير الصفحة الرئيسية فوراً لمنع أي تجمد
-    try {
-      document.body.style.overflow = '';
-    } catch {}
+    // تأكيد استعادة تمرير وتفاعل الصفحة الرئيسية فوراً لمنع أي تجمد
+    restoreMainPageInteractivity();
+  }
+
+  componentWillUnmount() {
+    restoreMainPageInteractivity();
   }
 
   handleRecover = () => {
-    try {
-      document.body.style.overflow = '';
-    } catch {}
-    this.setState({ hasError: false, error: null });
+    restoreMainPageInteractivity();
+    this.setState((prev) => ({ hasError: false, error: null, retryCount: prev.retryCount + 1 }));
     if (this.props.onClose) {
       this.props.onClose();
     }
+  };
+
+  handleRetry = () => {
+    restoreMainPageInteractivity();
+    this.setState((prev) => ({ hasError: false, error: null, retryCount: prev.retryCount + 1 }));
   };
 
   render() {
@@ -69,7 +83,7 @@ export class AdminErrorBoundary extends React.Component<Props, State> {
               </button>
               <button
                 type="button"
-                onClick={() => this.setState({ hasError: false, error: null })}
+                onClick={this.handleRetry}
                 className="py-3 px-4 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#524B3E] font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -81,6 +95,10 @@ export class AdminErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return (
+      <React.Suspense fallback={null} key={this.state.retryCount}>
+        {this.props.children}
+      </React.Suspense>
+    );
   }
 }

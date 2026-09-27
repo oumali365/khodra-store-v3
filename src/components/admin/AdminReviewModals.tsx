@@ -115,7 +115,7 @@ export const PinModal: React.FC<PinModalProps> = ({
 interface ChangePinModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (newPin: string) => Promise<boolean> | boolean;
+  onSubmit: (newPin: string) => Promise<boolean | { success: boolean; message?: string }> | boolean;
 }
 
 export const ChangePinModal: React.FC<ChangePinModalProps> = ({
@@ -125,26 +125,45 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
 }) => {
   const [newPinInput, setNewPinInput] = useState('');
   const [changeSuccess, setChangeSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPinInput.length < 4) return;
-    const ok = await onSubmit(newPinInput);
-    if (ok) {
-      setChangeSuccess(true);
-      setTimeout(() => {
-        setChangeSuccess(false);
-        setNewPinInput('');
-        onClose();
-      }, 1500);
+    const trimmed = newPinInput.trim();
+    if (trimmed.length < 4) {
+      setErrorMsg('يجب أن يتكون الرمز السري من 4 خانات على الأقل.');
+      return;
+    }
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    try {
+      const result = await onSubmit(trimmed);
+      const ok = typeof result === 'boolean' ? result : result?.success;
+      const customMessage = typeof result === 'object' ? result?.message : undefined;
+      if (ok) {
+        setChangeSuccess(true);
+        setTimeout(() => {
+          setChangeSuccess(false);
+          setNewPinInput('');
+          setErrorMsg(null);
+          onClose();
+        }, 1200);
+      } else {
+        setErrorMsg(customMessage || 'تعذر حفظ الرمز السري الجديد. يرجى المحاولة مرة أخرى.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'حدث خطأ أثناء حفظ الرمز الجديد.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => !isSubmitting && onClose()} />
 
       <div className="relative bg-white border border-[#E8E1D3] rounded-[24px] w-full max-w-sm shadow-2xl z-50 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200 my-auto">
         <div className="flex items-center justify-between pb-3 border-b border-[#F0E9DA] mb-4">
@@ -158,8 +177,9 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
           </div>
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] flex items-center justify-center cursor-pointer"
+            className="w-8 h-8 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] flex items-center justify-center cursor-pointer disabled:opacity-50"
           >
             <X className="w-4 h-4" />
           </button>
@@ -181,24 +201,43 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
                 autoFocus
                 required
                 minLength={4}
+                disabled={isSubmitting}
                 value={newPinInput}
-                onChange={(e) => setNewPinInput(e.target.value)}
+                onChange={(e) => {
+                  setNewPinInput(e.target.value);
+                  if (errorMsg) setErrorMsg(null);
+                }}
                 placeholder="مثال: 5678"
-                className="w-full text-center text-xl font-black tracking-widest px-4 py-3 rounded-xl border border-[#E8E1D3] bg-[#F7F4EC] focus:bg-white focus:outline-none focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/20 transition-all"
+                className="w-full text-center text-xl font-black tracking-widest px-4 py-3 rounded-xl border border-[#E8E1D3] bg-[#F7F4EC] focus:bg-white focus:outline-none focus:border-[#C25E12] focus:ring-2 focus:ring-[#C25E12]/20 transition-all disabled:opacity-60"
               />
+              {errorMsg && (
+                <p className="text-red-600 text-xs font-black mt-2 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{errorMsg}</span>
+                </p>
+              )}
             </div>
 
             <div className="pt-1 flex items-center gap-2.5">
               <button
                 type="submit"
-                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-l from-[#C25E12] to-[#9C4505] hover:from-[#B85507] hover:to-[#8A3D04] text-white font-black text-sm shadow-md active:scale-95 transition-all cursor-pointer"
+                disabled={isSubmitting || newPinInput.trim().length < 4}
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-l from-[#C25E12] to-[#9C4505] hover:from-[#B85507] hover:to-[#8A3D04] text-white font-black text-sm shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                حفظ الرمز الجديد
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري الحفظ...</span>
+                  </>
+                ) : (
+                  <span>حفظ الرمز الجديد</span>
+                )}
               </button>
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={onClose}
-                className="py-3 px-4 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] font-black text-sm cursor-pointer"
+                className="py-3 px-4 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#2D271E] font-black text-sm cursor-pointer disabled:opacity-50"
               >
                 إلغاء
               </button>

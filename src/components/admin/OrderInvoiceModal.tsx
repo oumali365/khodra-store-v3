@@ -44,17 +44,6 @@ export const OrderInvoiceModal: React.FC<OrderInvoiceModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  // منع التمرير عند الفتح
-  useEffect(() => {
-    if (isOpen) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }
-  }, [isOpen]);
-
   // إغلاق بزر Escape
   useEffect(() => {
     if (!isOpen) return;

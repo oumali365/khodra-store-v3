@@ -26,7 +26,7 @@ import {
   deleteCustomerReview,
   clearCachedAdminPin,
   verifyAdminPinRemote,
-  updateAdminPinRemote,
+  updateAdminPassword,
 } from '../../services/supabaseService';
 import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
 import {
@@ -40,14 +40,11 @@ import {
   ChangePinModal,
   DeleteReviewModal,
   AdminErrorBoundary,
+  AdminOrdersPanel,
   FinancePanel,
 } from '../admin';
 
 export type { CustomerReview };
-
-const AdminOrdersPanel = React.lazy(() =>
-  import('../admin/AdminOrdersPanel').then((module) => ({ default: module.AdminOrdersPanel }))
-);
 
 const INITIAL_VISIBLE_COUNT = 3;
 const FOCUS_PULSE_MS = 700;
@@ -241,6 +238,11 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
   const handleCloseOrdersPanel = useCallback(() => {
     setIsOrdersPanelOpen(false);
     try {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.pointerEvents = '';
+    } catch {}
+    try {
       refreshOrders();
     } catch {}
   }, [refreshOrders]);
@@ -407,23 +409,24 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     setTimeout(() => setAdminNotification(null), 3000);
   };
 
-  const handleChangePin = async (newPin: string): Promise<boolean> => {
+  const handleChangePin = async (newPin: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const res = await updateAdminPinRemote(newPin);
+      const res = await updateAdminPassword(newPin);
       if (res.success) {
-        setAdminNotification('✅ تم تحديث الرمز السري ومزامنته بنجاح.');
+        setAdminNotification(`✅ ${res.message || 'تم تحديث الرمز السري ومزامنته بنجاح.'}`);
         setTimeout(() => setAdminNotification(null), 4000);
-        return true;
+        return { success: true, message: res.message };
       } else {
         setAdminNotification(`❌ فشل التحديث: ${res.message || 'خطأ غير معروف'}`);
         setTimeout(() => setAdminNotification(null), 4000);
-        return false;
+        return { success: false, message: res.message };
       }
     } catch (err: any) {
       console.error('❌ خطأ في تحديث PIN:', err);
-      setAdminNotification(`❌ خطأ: ${err?.message || 'غير معروف'}`);
+      const msg = err?.message || 'حدث خطأ غير معروف';
+      setAdminNotification(`❌ خطأ: ${msg}`);
       setTimeout(() => setAdminNotification(null), 4000);
-      return false;
+      return { success: false, message: msg };
     }
   };
 
@@ -833,13 +836,11 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
 
       {!onOpenOrdersPanel && isOrdersPanelOpen && (
         <AdminErrorBoundary onClose={handleCloseOrdersPanel}>
-          <React.Suspense fallback={null}>
-            <AdminOrdersPanel
-              isOpen={isOrdersPanelOpen}
-              onClose={handleCloseOrdersPanel}
-              onOrdersChange={refreshOrders}
-            />
-          </React.Suspense>
+          <AdminOrdersPanel
+            isOpen={isOrdersPanelOpen}
+            onClose={handleCloseOrdersPanel}
+            onOrdersChange={refreshOrders}
+          />
         </AdminErrorBoundary>
       )}
 

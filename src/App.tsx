@@ -25,7 +25,7 @@ import {
 } from './components/shop';
 import { CustomerReviews } from './components/reviews';
 import { ExitScreen } from './components/common';
-import { AdminErrorBoundary } from './components/admin';
+import { AdminErrorBoundary, AdminOrdersPanel } from './components/admin';
 
 // ─── تحميل مؤجل للمودالات لتقليص الحجم الأولي وتسريع ظهور الصفحة الرئيسية ───
 const CartDrawer = React.lazy(() =>
@@ -42,9 +42,6 @@ const ExitConfirmationModal = React.lazy(() =>
 );
 const SortFilterModal = React.lazy(() =>
   import('./components/shop/SortFilterModal').then((m) => ({ default: m.SortFilterModal }))
-);
-const AdminOrdersPanel = React.lazy(() =>
-  import('./components/admin/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
 );
 
 // ─── تحميل مؤجل للصفحات الإضافية والخريطة ───
@@ -787,20 +784,35 @@ export default function App() {
         )}
       </main>
 
+      {/* ─── لوحة إدارة طلبات المتجر للمدير (معزولة بالكامل عن الصفحة الرئيسية) ─── */}
+      {isAdminOrdersOpen && (
+        <AdminErrorBoundary
+          onClose={() => {
+            setIsAdminOrdersOpen(false);
+            try {
+              document.body.style.overflow = '';
+              document.documentElement.style.overflow = '';
+              document.body.style.pointerEvents = '';
+            } catch {}
+          }}
+        >
+          <AdminOrdersPanel
+            isOpen={isAdminOrdersOpen}
+            onClose={() => {
+              setIsAdminOrdersOpen(false);
+              try {
+                document.body.style.overflow = '';
+                document.documentElement.style.overflow = '';
+                document.body.style.pointerEvents = '';
+              } catch {}
+              window.dispatchEvent(new CustomEvent('khodra_orders_updated'));
+            }}
+          />
+        </AdminErrorBoundary>
+      )}
+
       {/* ═══════ Lazy Loaded Modals ═══════ */}
       <Suspense fallback={null}>
-        {/* ─── لوحة إدارة طلبات المتجر للمدير ─── */}
-        {isAdminOrdersOpen && (
-          <AdminErrorBoundary onClose={() => setIsAdminOrdersOpen(false)}>
-            <AdminOrdersPanel
-              isOpen={isAdminOrdersOpen}
-              onClose={() => {
-                setIsAdminOrdersOpen(false);
-                window.dispatchEvent(new CustomEvent('khodra_orders_updated'));
-              }}
-            />
-          </AdminErrorBoundary>
-        )}
 
         {isCartOpen && (
           <CartDrawer

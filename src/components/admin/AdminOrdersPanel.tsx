@@ -335,10 +335,22 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.pointerEvents = '';
+      setDeleteConfirmOrder(null);
+      setInvoiceOrder(null);
+      setBordereauOrder(null);
+      setExpandedDispatchId(null);
     }
+    return () => {
+      try {
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        document.body.style.pointerEvents = '';
+      } catch {}
+    };
   }, [isOpen]);
 
   // إغلاق النوافذ الفرعية أو اللوحة عند الضغط على Escape
@@ -511,20 +523,27 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
 
   const stats = useMemo(() => {
     const counts = { pending: 0, prepared: 0, delivered: 0, cancelled: 0 };
-    orders.forEach((o) => { counts[o.status]++; });
+    if (!Array.isArray(orders)) return counts;
+    orders.forEach((o) => {
+      const s = o?.status && STATUS_CONFIG[o.status] ? o.status : 'pending';
+      counts[s]++;
+    });
     return counts;
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
+    if (!Array.isArray(orders)) return [];
     const q = searchQuery.trim().toLowerCase();
     return orders.filter((o) => {
-      if (filterStatus !== 'all' && o.status !== filterStatus) return false;
+      if (!o) return false;
+      const orderStatus = o.status && STATUS_CONFIG[o.status] ? o.status : 'pending';
+      if (filterStatus !== 'all' && orderStatus !== filterStatus) return false;
       if (!q) return true;
       return (
-        o.order_code.toLowerCase().includes(q) ||
-        o.customer_name.toLowerCase().includes(q) ||
-        o.phone.includes(q) ||
-        o.address.toLowerCase().includes(q)
+        String(o.order_code || '').toLowerCase().includes(q) ||
+        String(o.customer_name || '').toLowerCase().includes(q) ||
+        String(o.phone || '').includes(q) ||
+        String(o.address || '').toLowerCase().includes(q)
       );
     });
   }, [orders, filterStatus, searchQuery]);
@@ -694,14 +713,17 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                   </div>
                 ) : (
                   filteredOrders.map((order) => {
-                    const cfg = STATUS_CONFIG[order.status];
+                    const safeStatus: OrderStatus =
+                      order.status && STATUS_CONFIG[order.status] ? order.status : 'pending';
+                    const cfg = STATUS_CONFIG[safeStatus];
                     const PillIcon = cfg.Icon;
                     const isUpdating = updatingId === order.id;
                     const isBeingDeleted = deletingId === order.id;
-                    const wa = toWhatsApp(order.phone);
+                    const wa = toWhatsApp(order.phone || '');
                     const isCopied = copiedId === order.id;
-                    const isFreeDelivery = order.delivery_fee === 0;
+                    const isFreeDelivery = Number(order.delivery_fee ?? 0) === 0;
                     const cleanN = cleanNote(order.note || '');
+                    const safeTotal = Number(order.total ?? 0);
 
                     return (
                       <article key={order.id}
@@ -763,7 +785,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                                 <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                                 <span>الإجمالي:</span>
                               </span>
-                              <span className="text-lg font-black text-[#C25E12] tabular-nums">{order.total.toFixed(2)} DH</span>
+                              <span className="text-lg font-black text-[#C25E12] tabular-nums">{safeTotal.toFixed(2)} DH</span>
                             </div>
                           </div>
                         </div>
@@ -967,7 +989,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                             {STATUS_ORDER_CHANGEABLE.map((s) => {
                               const sCfg = STATUS_CONFIG[s];
                               const SIcon = sCfg.Icon;
-                              const isActive = order.status === s;
+                              const isActive = safeStatus === s;
                               return (
                                 <button key={s} type="button"
                                   disabled={isActive || isUpdating || isBeingDeleted}
@@ -1027,7 +1049,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                 </div>
                 <div className="flex justify-between">
                   <span className="font-black">الإجمالي:</span>
-                  <span className="font-black text-[#C25E12] tabular-nums">{deleteConfirmOrder.total.toFixed(2)} DH</span>
+                  <span className="font-black text-[#C25E12] tabular-nums">{Number(deleteConfirmOrder.total ?? 0).toFixed(2)} DH</span>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
