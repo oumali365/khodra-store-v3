@@ -71,13 +71,14 @@ export const OrderBordereauModal: React.FC<OrderBordereauModalProps> = ({
 
     const content =
       document.getElementById('bordereau-printable')?.outerHTML || '';
+    const safeOrderCode = String(order.order_code || '').replace(/[<>&"']/g, '');
 
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
       <head>
         <meta charset="UTF-8">
-        <title>ملصق شحن ${order.order_code}</title>
+        <title>ملصق شحن ${safeOrderCode}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {

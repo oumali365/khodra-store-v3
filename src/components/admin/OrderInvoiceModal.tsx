@@ -78,13 +78,14 @@ export const OrderInvoiceModal: React.FC<OrderInvoiceModalProps> = ({
     }
 
     const invoiceHTML = document.getElementById('invoice-printable')?.outerHTML || '';
+    const safeOrderCode = String(order.order_code || '').replace(/[<>&"']/g, '');
 
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
       <head>
         <meta charset="UTF-8">
-        <title>فاتورة ${order.order_code}</title>
+        <title>فاتورة ${safeOrderCode}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {

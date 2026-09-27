@@ -2,13 +2,12 @@
 -- 🔒 04_rls_policies.sql – سياسات الأمان على مستوى الصفوف (Row Level Security)
 -- متجر خُضرة - فاس (Khodra Store)
 --
--- القواعد:
--- 1. جدول الطلبات orders: مسموح للعملاء (anon) الإدراج فقط (INSERT)، والقراءة
---    محصورة على المدير عبر دالة get_orders_secure برمز الـ PIN.
--- 2. جدول المنتجات products: متاح للجميع قراءة المنتجات المفعلة فقط (active=true).
--- 3. جدول التقييمات reviews: متاح للجميع قراءة التقييمات غير المحذوفة وإضافة تقييم جديد.
--- 4. جدول الإعدادات store_settings: متاح للقراءة، والتعديل للمدير فقط.
--- 5. جدول سجلات الأمان order_security_logs: محمي وخاص بالنظام.
+-- السياسات المؤمنة:
+-- 1. جدول الطلبات orders: إدراج مقيد بشروط صحة الأسعار والحقول، والتحكم الكامل للمدير الموثق.
+-- 2. جدول المنتجات products: قراءة المنتجات المفعلة فقط (active=true).
+-- 3. جدول التقييمات reviews: قراءة غير المحذوفة وإدراج مقيد بشروط الطول والتصنيف.
+-- 4. جدول الإعدادات store_settings: حجب تام لصف admin_pin عن القراءة العامة.
+-- 5. جدول سجلات الأمان order_security_logs: محمي وخاص بالنظام والمدير.
 -- ==============================================================================
 
 -- 1️⃣ تفعيل نظام RLS على كافة الجداول
@@ -21,15 +20,40 @@ ALTER TABLE public.order_security_logs ENABLE ROW LEVEL SECURITY;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2️⃣ سياسات جدول الطلبات (orders)
 -- ─────────────────────────────────────────────────────────────────────────────
--- السماح للزبائن بإرسال طلبات جديدة
 DROP POLICY IF EXISTS "orders_public_insert" ON public.orders;
 CREATE POLICY "orders_public_insert"
   ON public.orders
   FOR INSERT
   TO anon, authenticated
-  WITH CHECK (true);
+  WITH CHECK (
+    status = 'pending'
+    AND (is_deleted IS NULL OR is_deleted = FALSE)
+    AND deleted_at IS NULL
+    AND subtotal > 0
+    AND delivery_fee >= 0
+    AND total >= subtotal
+    AND total = (subtotal + delivery_fee)
+    AND LENGTH(TRIM(customer_name)) BETWEEN 2 AND 100
+    AND LENGTH(TRIM(address)) BETWEEN 3 AND 500
+    AND LENGTH(REGEXP_REPLACE(phone, '[^\d]', '', 'g')) BETWEEN 9 AND 15
+    AND jsonb_typeof(items) = 'array'
+    AND jsonb_array_length(items) BETWEEN 1 AND 100
+  );
 
--- السماح بالتحكم الكامل عبر مفتاح الخدمة الداخلي أو المستخدم الموثق
+DROP POLICY IF EXISTS "orders_authenticated_admin_all" ON public.orders;
+CREATE POLICY "orders_authenticated_admin_all"
+  ON public.orders
+  FOR ALL
+  TO authenticated
+  USING (
+    auth.uid() IS NOT NULL
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  )
+  WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  );
+
 DROP POLICY IF EXISTS "orders_admin_all" ON public.orders;
 CREATE POLICY "orders_admin_all"
   ON public.orders
@@ -41,7 +65,6 @@ CREATE POLICY "orders_admin_all"
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3️⃣ سياسات جدول المنتجات (products)
 -- ─────────────────────────────────────────────────────────────────────────────
--- السماح للجميع بقراءة المنتجات النشطة
 DROP POLICY IF EXISTS "products_public_select" ON public.products;
 CREATE POLICY "products_public_select"
   ON public.products
@@ -49,7 +72,20 @@ CREATE POLICY "products_public_select"
   TO anon, authenticated
   USING (active = TRUE);
 
--- إدارة المنتجات للمدير
+DROP POLICY IF EXISTS "products_authenticated_admin_all" ON public.products;
+CREATE POLICY "products_authenticated_admin_all"
+  ON public.products
+  FOR ALL
+  TO authenticated
+  USING (
+    auth.uid() IS NOT NULL
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  )
+  WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  );
+
 DROP POLICY IF EXISTS "products_admin_all" ON public.products;
 CREATE POLICY "products_admin_all"
   ON public.products
@@ -61,7 +97,8 @@ CREATE POLICY "products_admin_all"
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4️⃣ سياسات جدول التقييمات (reviews)
 -- ─────────────────────────────────────────────────────────────────────────────
--- السماح بقراءة التقييمات المعتمدة وغير المحذوفة
+ALTER TABLE public.reviews ALTER COLUMN verified SET DEFAULT FALSE;
+
 DROP POLICY IF EXISTS "reviews_public_select" ON public.reviews;
 CREATE POLICY "reviews_public_select"
   ON public.reviews
@@ -69,13 +106,34 @@ CREATE POLICY "reviews_public_select"
   TO anon, authenticated
   USING (is_deleted IS NULL OR is_deleted = FALSE);
 
--- السماح للزبائن بإضافة تقييم جديد
 DROP POLICY IF EXISTS "reviews_public_insert" ON public.reviews;
 CREATE POLICY "reviews_public_insert"
   ON public.reviews
   FOR INSERT
   TO anon, authenticated
-  WITH CHECK (true);
+  WITH CHECK (
+    (is_deleted IS NULL OR is_deleted = FALSE)
+    AND deleted_at IS NULL
+    AND rating BETWEEN 1 AND 5
+    AND category IN ('all', 'quality', 'delivery', 'service')
+    AND LENGTH(TRIM(author)) BETWEEN 2 AND 80
+    AND LENGTH(TRIM(neighborhood)) BETWEEN 2 AND 100
+    AND LENGTH(TRIM(comment)) BETWEEN 3 AND 1000
+  );
+
+DROP POLICY IF EXISTS "reviews_authenticated_admin_all" ON public.reviews;
+CREATE POLICY "reviews_authenticated_admin_all"
+  ON public.reviews
+  FOR ALL
+  TO authenticated
+  USING (
+    auth.uid() IS NOT NULL
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  )
+  WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  );
 
 DROP POLICY IF EXISTS "reviews_admin_all" ON public.reviews;
 CREATE POLICY "reviews_admin_all"
@@ -86,14 +144,32 @@ CREATE POLICY "reviews_admin_all"
   WITH CHECK (true);
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 5️⃣ سياسات جدول إعدادات المتجر (store_settings)
+-- 5️⃣ سياسات جدول إعدادات المتجر (store_settings) – حجب تام لـ admin_pin
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "store_settings_public_select" ON public.store_settings;
 CREATE POLICY "store_settings_public_select"
   ON public.store_settings
   FOR SELECT
   TO anon, authenticated
-  USING (true);
+  USING (
+    key NOT IN ('admin_pin', 'secret_key', 'webhook_secret')
+    AND key NOT LIKE '%_pin%'
+    AND key NOT LIKE '%_secret%'
+  );
+
+DROP POLICY IF EXISTS "store_settings_authenticated_admin_all" ON public.store_settings;
+CREATE POLICY "store_settings_authenticated_admin_all"
+  ON public.store_settings
+  FOR ALL
+  TO authenticated
+  USING (
+    auth.uid() IS NOT NULL
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  )
+  WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  );
 
 DROP POLICY IF EXISTS "store_settings_admin_all" ON public.store_settings;
 CREATE POLICY "store_settings_admin_all"
@@ -106,6 +182,16 @@ CREATE POLICY "store_settings_admin_all"
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 6️⃣ سياسات سجلات الحماية (order_security_logs)
 -- ─────────────────────────────────────────────────────────────────────────────
+DROP POLICY IF EXISTS "logs_authenticated_admin_select" ON public.order_security_logs;
+CREATE POLICY "logs_authenticated_admin_select"
+  ON public.order_security_logs
+  FOR SELECT
+  TO authenticated
+  USING (
+    auth.uid() IS NOT NULL
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+  );
+
 DROP POLICY IF EXISTS "logs_admin_all" ON public.order_security_logs;
 CREATE POLICY "logs_admin_all"
   ON public.order_security_logs
@@ -116,7 +202,6 @@ CREATE POLICY "logs_admin_all"
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 7️⃣ منح الصلاحيات الصريحة (Explicit Table Grants)
--- متوافق مع تحديث Supabase الجديد (30 أكتوبر) لضمان عمل Data API
 -- ─────────────────────────────────────────────────────────────────────────────
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 
@@ -124,12 +209,16 @@ GRANT SELECT ON public.products TO anon, authenticated;
 GRANT ALL ON public.products TO service_role;
 
 GRANT INSERT ON public.orders TO anon, authenticated;
+GRANT SELECT, UPDATE, DELETE ON public.orders TO authenticated;
 GRANT ALL ON public.orders TO service_role;
 
 GRANT SELECT, INSERT ON public.reviews TO anon, authenticated;
+GRANT UPDATE, DELETE ON public.reviews TO authenticated;
 GRANT ALL ON public.reviews TO service_role;
 
 GRANT SELECT ON public.store_settings TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.store_settings TO authenticated;
 GRANT ALL ON public.store_settings TO service_role;
 
+GRANT SELECT ON public.order_security_logs TO authenticated;
 GRANT ALL ON public.order_security_logs TO service_role;

@@ -6,10 +6,9 @@
 -- 1. تنظيف وإزالة الدوال والسياسات القديمة المتضاربة الـ 19
 -- 2. بناء وتحديث الجداول (products, orders, reviews, store_settings, order_security_logs)
 -- 3. تفعيل نظام الحماية المتقدم ومكافحة السبام وفترة التهدئة (Cooldown) والـ Idempotency
--- 4. الدوال والعمليات المحمية برمز PIN المدير (get_orders_secure, delete_order_secure)
---    مع الحل الجذري لمشكلة عودة الطلبات المحذوفة للظهور
--- 5. تفعيل سياسات الأمان RLS
--- 6. تعبئة البيانات الأولية (المنتجات الـ 47، التقييمات، إعدادات PIN=090909)
+-- 4. الدوال والعمليات المحمية (get_orders_secure, delete_order_secure) عبر Supabase Auth JWT أو PIN الخادم
+-- 5. تفعيل سياسات الأمان RLS المحصنة
+-- 6. تعبئة البيانات الأولية (المنتجات، التقييمات، الإعدادات العامة بدون كشف PIN)
 -- 7. تفعيل التزامن اللحظي (Supabase Realtime)
 --
 -- كيفية الاستخدام:
@@ -191,42 +190,68 @@ CREATE OR REPLACE FUNCTION public.check_order_security_rate_limit()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_recent_order_count INT;
   v_seconds_since_last INT;
   v_clean_phone TEXT;
+  v_real_ip TEXT;
 BEGIN
+  NEW.created_at := NOW();
+  NEW.updated_at := NOW();
+  NEW.status := 'pending';
+  NEW.is_deleted := FALSE;
+  NEW.deleted_at := NULL;
+
+  BEGIN
+    v_real_ip := SPLIT_PART(
+      COALESCE(
+        current_setting('request.headers', true)::json->>'cf-connecting-ip',
+        current_setting('request.headers', true)::json->>'x-forwarded-for',
+        NEW.ip_address
+      ),
+      ',', 1
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_real_ip := NEW.ip_address;
+  END;
+  NEW.ip_address := NULLIF(TRIM(v_real_ip), '');
+
   v_clean_phone := REGEXP_REPLACE(COALESCE(NEW.phone, ''), '[^\d]', '', 'g');
 
-  IF LENGTH(v_clean_phone) < 9 THEN
+  IF LENGTH(v_clean_phone) < 9 OR LENGTH(v_clean_phone) > 15 THEN
     RAISE EXCEPTION 'INVALID_PHONE: رقم الهاتف غير صالح. يرجى إدخال رقم مغربي صحيح.';
   END IF;
 
+  IF COALESCE(NEW.subtotal, 0) <= 0 OR COALESCE(NEW.delivery_fee, -1) < 0 OR COALESCE(NEW.total, 0) < NEW.subtotal THEN
+    RAISE EXCEPTION 'INVALID_TOTAL: القيم المالية للطلب غير صالحة.';
+  END IF;
+
   -- فحص فترة التهدئة Cooldown (3 دقائق = 180 ثانية)
-  IF v_clean_phone <> '' THEN
-    SELECT EXTRACT(EPOCH FROM (NOW() - created_at))::INT
-    INTO v_seconds_since_last
-    FROM public.orders
-    WHERE REGEXP_REPLACE(phone, '[^\d]', '', 'g') = v_clean_phone
-      AND (is_deleted IS NULL OR is_deleted = FALSE)
-      AND (deleted_at IS NULL)
-    ORDER BY created_at DESC
-    LIMIT 1;
+  SELECT EXTRACT(EPOCH FROM (NOW() - created_at))::INT
+  INTO v_seconds_since_last
+  FROM public.orders
+  WHERE (
+    REGEXP_REPLACE(phone, '[^\d]', '', 'g') = v_clean_phone
+    OR (NEW.client_id IS NOT NULL AND TRIM(NEW.client_id) <> '' AND client_id = NEW.client_id)
+    OR (NEW.ip_address IS NOT NULL AND ip_address = NEW.ip_address)
+  )
+  ORDER BY created_at DESC
+  LIMIT 1;
 
-    IF v_seconds_since_last IS NOT NULL AND v_seconds_since_last < 180 THEN
-      INSERT INTO public.order_security_logs (attempt_type, phone, client_id, ip_address, reason, payload)
-      VALUES (
-        'cooldown_blocked',
-        NEW.phone,
-        NEW.client_id,
-        NEW.ip_address,
-        format('الطلب بعد %s ثانية فقط من آخر طلب (الحد الأدنى 180 ثانية)', v_seconds_since_last),
-        jsonb_build_object('order_code', NEW.order_code, 'subtotal', NEW.subtotal)
-      );
+  IF v_seconds_since_last IS NOT NULL AND v_seconds_since_last < 180 THEN
+    INSERT INTO public.order_security_logs (attempt_type, phone, client_id, ip_address, reason, payload)
+    VALUES (
+      'cooldown_blocked',
+      NEW.phone,
+      NEW.client_id,
+      NEW.ip_address,
+      format('الطلب بعد %s ثانية فقط من آخر طلب (الحد الأدنى 180 ثانية)', v_seconds_since_last),
+      jsonb_build_object('order_code', NEW.order_code, 'subtotal', NEW.subtotal)
+    );
 
-      RAISE EXCEPTION 'COOLDOWN_ACTIVE: يرجى الانتظار قليلاً قبل إرسال طلب جديد لنفس الرقم (متبقي %s ثانية).', (180 - v_seconds_since_last);
-    END IF;
+    RAISE EXCEPTION 'COOLDOWN_ACTIVE: يرجى الانتظار قليلاً قبل إرسال طلب جديد (متبقي %s ثانية).', (180 - v_seconds_since_last);
   END IF;
 
   -- فحص سقف الطلبات (Rate Limit: 3 طلبات/ساعة)
@@ -234,11 +259,10 @@ BEGIN
   INTO v_recent_order_count
   FROM public.orders
   WHERE (
-    (v_clean_phone <> '' AND REGEXP_REPLACE(phone, '[^\d]', '', 'g') = v_clean_phone)
-    OR (NEW.client_id IS NOT NULL AND client_id = NEW.client_id)
+    REGEXP_REPLACE(phone, '[^\d]', '', 'g') = v_clean_phone
+    OR (NEW.client_id IS NOT NULL AND TRIM(NEW.client_id) <> '' AND client_id = NEW.client_id)
+    OR (NEW.ip_address IS NOT NULL AND ip_address = NEW.ip_address)
   )
-  AND (is_deleted IS NULL OR is_deleted = FALSE)
-  AND (deleted_at IS NULL)
   AND created_at > (NOW() - INTERVAL '60 minutes');
 
   IF v_recent_order_count >= 3 THEN
@@ -265,10 +289,48 @@ CREATE TRIGGER trg_check_order_security_rate_limit
   FOR EACH ROW
   EXECUTE FUNCTION public.check_order_security_rate_limit();
 
+CREATE OR REPLACE FUNCTION public.check_review_insert_security()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_recent_reviews INT;
+BEGIN
+  NEW.created_at := NOW();
+  NEW.is_deleted := FALSE;
+  NEW.deleted_at := NULL;
+  NEW.verified := FALSE;
+
+  IF NEW.category NOT IN ('all', 'quality', 'delivery', 'service') THEN
+    NEW.category := 'quality';
+  END IF;
+
+  SELECT COUNT(*)
+  INTO v_recent_reviews
+  FROM public.reviews
+  WHERE created_at > (NOW() - INTERVAL '10 minutes');
+
+  IF v_recent_reviews >= 10 THEN
+    RAISE EXCEPTION 'REVIEW_RATE_LIMIT: يرجى المحاولة لاحقاً.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_check_review_insert_security ON public.reviews;
+CREATE TRIGGER trg_check_review_insert_security
+  BEFORE INSERT ON public.reviews
+  FOR EACH ROW
+  EXECUTE FUNCTION public.check_review_insert_security();
+
 -- تريغر تحديث updated_at
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -295,41 +357,122 @@ CREATE TRIGGER trg_store_settings_updated_at
   EXECUTE FUNCTION public.set_updated_at();
 
 -- ═════════════════════════════════════════════════════════════════════════════
--- 4️⃣ الدوال والعمليات المحمية برمز PIN (RPCs)
+-- 4️⃣ الدوال والعمليات المحمية (RPCs)
 -- ═════════════════════════════════════════════════════════════════════════════
 
--- دالة التحقق من رمز المدير
-CREATE OR REPLACE FUNCTION public.verify_admin_pin(p_pin TEXT)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR auth.role() <> 'authenticated' THEN
+    RETURN FALSE;
+  END IF;
+
+  RETURN COALESCE(
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin',
+    FALSE
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.verify_admin_pin(p_pin TEXT DEFAULT NULL)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_stored_pin TEXT;
+  v_failed_attempts INT;
+  v_real_ip TEXT;
 BEGIN
+  IF public.is_admin() THEN
+    RETURN TRUE;
+  END IF;
+
+  IF p_pin IS NULL OR LENGTH(TRIM(p_pin)) < 4 THEN
+    RETURN FALSE;
+  END IF;
+
+  BEGIN
+    v_real_ip := SPLIT_PART(
+      COALESCE(
+        current_setting('request.headers', true)::json->>'cf-connecting-ip',
+        current_setting('request.headers', true)::json->>'x-forwarded-for',
+        'unknown'
+      ),
+      ',', 1
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_real_ip := 'unknown';
+  END;
+
+  SELECT COUNT(*)
+  INTO v_failed_attempts
+  FROM public.order_security_logs
+  WHERE attempt_type = 'admin_pin_failed'
+    AND ip_address = v_real_ip
+    AND created_at > (NOW() - INTERVAL '15 minutes');
+
+  IF v_failed_attempts >= 5 THEN
+    RAISE EXCEPTION 'ADMIN_LOCKED: تم قفل التحقق مؤقتاً بسبب كثرة المحاولات الخاطئة. يرجى الانتظار 15 دقيقة.';
+  END IF;
+
   SELECT value INTO v_stored_pin
   FROM public.store_settings
   WHERE key = 'admin_pin'
   LIMIT 1;
 
   IF v_stored_pin IS NULL OR TRIM(v_stored_pin) = '' THEN
-    v_stored_pin := '090909';
+    RETURN FALSE;
   END IF;
 
-  RETURN TRIM(COALESCE(p_pin, '')) = TRIM(v_stored_pin);
+  IF TRIM(p_pin) = TRIM(v_stored_pin) THEN
+    RETURN TRUE;
+  ELSE
+    INSERT INTO public.order_security_logs (attempt_type, ip_address, reason, payload)
+    VALUES (
+      'admin_pin_failed',
+      v_real_ip,
+      'محاولة إدخال رمز مدير غير صحيح',
+      jsonb_build_object('timestamp', NOW())
+    );
+    RETURN FALSE;
+  END IF;
 END;
 $$;
 
--- دالة قراءة الطلبات للمدير مع استبعاد الطلبات المحذوفة 100%
-CREATE OR REPLACE FUNCTION public.get_orders_secure(p_admin_pin TEXT)
+CREATE OR REPLACE FUNCTION public.assert_is_admin(p_admin_pin TEXT DEFAULT NULL)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF public.is_admin() THEN
+    RETURN;
+  END IF;
+
+  IF p_admin_pin IS NOT NULL AND public.verify_admin_pin(p_admin_pin) THEN
+    RETURN;
+  END IF;
+
+  RAISE EXCEPTION 'INVALID_ADMIN_PIN: غير مصرح لك بتنفيذ هذه العملية الإدارية';
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_orders_secure(p_admin_pin TEXT DEFAULT NULL)
 RETURNS SETOF public.orders
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   RETURN QUERY
   SELECT *
@@ -340,22 +483,20 @@ BEGIN
 END;
 $$;
 
--- دالة تحديث حالة الطلب
 CREATE OR REPLACE FUNCTION public.update_order_status_secure(
   p_order_id TEXT,
   p_new_status TEXT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_updated_rows INT;
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   IF p_new_status NOT IN ('pending', 'prepared', 'delivered', 'cancelled') THEN
     RAISE EXCEPTION 'INVALID_STATUS: حالة الطلب غير معتمدة';
@@ -380,33 +521,63 @@ $$;
 CREATE OR REPLACE FUNCTION public.update_order_status_secure(
   p_order_id BIGINT,
   p_new_status TEXT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.update_order_status_secure(p_order_id::TEXT, p_new_status, p_admin_pin);
 END;
 $$;
 
--- دالة حذف الطلب الآمنة (Soft Delete & Hard Delete)
+CREATE OR REPLACE FUNCTION public.update_order_dispatch_secure(
+  p_order_id TEXT,
+  p_dispatch JSONB,
+  p_admin_pin TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_updated_rows INT;
+BEGIN
+  PERFORM public.assert_is_admin(p_admin_pin);
+
+  UPDATE public.orders
+  SET security_flags = COALESCE(security_flags, '{}'::jsonb) || jsonb_build_object('delivery_dispatch', p_dispatch),
+      updated_at = NOW()
+  WHERE (id::TEXT = p_order_id OR order_code = p_order_id)
+    AND (is_deleted IS NULL OR is_deleted = FALSE);
+
+  GET DIAGNOSTICS v_updated_rows = ROW_COUNT;
+
+  IF v_updated_rows = 0 THEN
+    RETURN jsonb_build_object('success', false, 'message', 'الطلب غير موجود');
+  END IF;
+
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.delete_order_secure(
   p_order_id TEXT,
-  p_admin_pin TEXT,
+  p_admin_pin TEXT DEFAULT NULL,
   p_hard_delete BOOLEAN DEFAULT FALSE
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_affected_rows INT;
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   IF p_hard_delete = TRUE THEN
     DELETE FROM public.orders
@@ -440,6 +611,7 @@ CREATE OR REPLACE FUNCTION public.delete_order_secure(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.delete_order_secure(p_order_id, p_admin_pin, FALSE);
@@ -448,29 +620,28 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.delete_order_secure(
   p_order_id BIGINT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.delete_order_secure(p_order_id::TEXT, p_admin_pin, FALSE);
 END;
 $$;
 
--- دالة إفراغ سلة الطلبات المحذوفة
-CREATE OR REPLACE FUNCTION public.purge_deleted_orders_secure(p_admin_pin TEXT)
+CREATE OR REPLACE FUNCTION public.purge_deleted_orders_secure(p_admin_pin TEXT DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_deleted_count INT;
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   DELETE FROM public.orders
   WHERE is_deleted = TRUE OR deleted_at IS NOT NULL;
@@ -481,22 +652,20 @@ BEGIN
 END;
 $$;
 
--- دالة حذف التقييم
 CREATE OR REPLACE FUNCTION public.delete_review_secure(
   p_review_id TEXT,
-  p_admin_pin TEXT,
+  p_admin_pin TEXT DEFAULT NULL,
   p_hard_delete BOOLEAN DEFAULT FALSE
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_affected INT;
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   IF p_hard_delete THEN
     DELETE FROM public.reviews WHERE id::TEXT = p_review_id;
@@ -520,6 +689,7 @@ CREATE OR REPLACE FUNCTION public.delete_review_secure(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.delete_review_secure(p_review_id, p_admin_pin, FALSE);
@@ -528,26 +698,34 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.delete_review_secure(
   p_review_id BIGINT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.delete_review_secure(p_review_id::TEXT, p_admin_pin, FALSE);
 END;
 $$;
 
--- دالة جلب وتحديث الإعدادات
 CREATE OR REPLACE FUNCTION public.get_store_setting(p_key TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_val TEXT;
 BEGIN
+  IF p_key IS NULL
+     OR LOWER(TRIM(p_key)) IN ('admin_pin', 'secret_key', 'webhook_secret')
+     OR LOWER(TRIM(p_key)) LIKE '%_pin%'
+     OR LOWER(TRIM(p_key)) LIKE '%_secret%' THEN
+    RAISE EXCEPTION 'ACCESS_DENIED: غير مصرح بقراءة هذا الإعداد الحساس';
+  END IF;
+
   SELECT value INTO v_val FROM public.store_settings WHERE key = p_key LIMIT 1;
   RETURN v_val;
 END;
@@ -556,24 +734,27 @@ $$;
 CREATE OR REPLACE FUNCTION public.update_store_setting_secure(
   p_key TEXT,
   p_value TEXT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
+  PERFORM public.assert_is_admin(p_admin_pin);
+
+  IF p_key = 'admin_pin' AND (p_value IS NULL OR LENGTH(TRIM(p_value)) < 4) THEN
+    RAISE EXCEPTION 'INVALID_PIN_LENGTH: الرمز السري الجديد يجب ألا يقل عن 4 خانات';
   END IF;
 
   INSERT INTO public.store_settings (key, value, updated_at)
-  VALUES (p_key, p_value, NOW())
+  VALUES (p_key, TRIM(p_value), NOW())
   ON CONFLICT (key) DO UPDATE
   SET value = EXCLUDED.value,
       updated_at = NOW();
 
-  RETURN jsonb_build_object('success', true, 'key', p_key, 'value', p_value);
+  RETURN jsonb_build_object('success', true, 'key', p_key);
 END;
 $$;
 
@@ -588,7 +769,32 @@ ALTER TABLE public.store_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_security_logs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "orders_public_insert" ON public.orders;
-CREATE POLICY "orders_public_insert" ON public.orders FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "orders_public_insert"
+  ON public.orders
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    status = 'pending'
+    AND (is_deleted IS NULL OR is_deleted = FALSE)
+    AND deleted_at IS NULL
+    AND subtotal > 0
+    AND delivery_fee >= 0
+    AND total >= subtotal
+    AND total = (subtotal + delivery_fee)
+    AND LENGTH(TRIM(customer_name)) BETWEEN 2 AND 100
+    AND LENGTH(TRIM(address)) BETWEEN 3 AND 500
+    AND LENGTH(REGEXP_REPLACE(phone, '[^\d]', '', 'g')) BETWEEN 9 AND 15
+    AND jsonb_typeof(items) = 'array'
+    AND jsonb_array_length(items) BETWEEN 1 AND 100
+  );
+
+DROP POLICY IF EXISTS "orders_authenticated_admin_all" ON public.orders;
+CREATE POLICY "orders_authenticated_admin_all"
+  ON public.orders
+  FOR ALL
+  TO authenticated
+  USING (auth.uid() IS NOT NULL AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid() IS NOT NULL AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 DROP POLICY IF EXISTS "orders_admin_all" ON public.orders;
 CREATE POLICY "orders_admin_all" ON public.orders FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -596,46 +802,102 @@ CREATE POLICY "orders_admin_all" ON public.orders FOR ALL TO service_role USING 
 DROP POLICY IF EXISTS "products_public_select" ON public.products;
 CREATE POLICY "products_public_select" ON public.products FOR SELECT TO anon, authenticated USING (active = TRUE);
 
+DROP POLICY IF EXISTS "products_authenticated_admin_all" ON public.products;
+CREATE POLICY "products_authenticated_admin_all"
+  ON public.products
+  FOR ALL
+  TO authenticated
+  USING (auth.uid() IS NOT NULL AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid() IS NOT NULL AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
 DROP POLICY IF EXISTS "products_admin_all" ON public.products;
 CREATE POLICY "products_admin_all" ON public.products FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+ALTER TABLE public.reviews ALTER COLUMN verified SET DEFAULT FALSE;
 
 DROP POLICY IF EXISTS "reviews_public_select" ON public.reviews;
 CREATE POLICY "reviews_public_select" ON public.reviews FOR SELECT TO anon, authenticated USING (is_deleted IS NULL OR is_deleted = FALSE);
 
 DROP POLICY IF EXISTS "reviews_public_insert" ON public.reviews;
-CREATE POLICY "reviews_public_insert" ON public.reviews FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "reviews_public_insert"
+  ON public.reviews
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    (is_deleted IS NULL OR is_deleted = FALSE)
+    AND deleted_at IS NULL
+    AND rating BETWEEN 1 AND 5
+    AND category IN ('all', 'quality', 'delivery', 'service')
+    AND LENGTH(TRIM(author)) BETWEEN 2 AND 80
+    AND LENGTH(TRIM(neighborhood)) BETWEEN 2 AND 100
+    AND LENGTH(TRIM(comment)) BETWEEN 3 AND 1000
+  );
+
+DROP POLICY IF EXISTS "reviews_authenticated_admin_all" ON public.reviews;
+CREATE POLICY "reviews_authenticated_admin_all"
+  ON public.reviews
+  FOR ALL
+  TO authenticated
+  USING (auth.uid() IS NOT NULL AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid() IS NOT NULL AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 DROP POLICY IF EXISTS "reviews_admin_all" ON public.reviews;
 CREATE POLICY "reviews_admin_all" ON public.reviews FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "store_settings_public_select" ON public.store_settings;
-CREATE POLICY "store_settings_public_select" ON public.store_settings FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "store_settings_public_select"
+  ON public.store_settings
+  FOR SELECT
+  TO anon, authenticated
+  USING (
+    key NOT IN ('admin_pin', 'secret_key', 'webhook_secret')
+    AND key NOT LIKE '%_pin%'
+    AND key NOT LIKE '%_secret%'
+  );
+
+DROP POLICY IF EXISTS "store_settings_authenticated_admin_all" ON public.store_settings;
+CREATE POLICY "store_settings_authenticated_admin_all"
+  ON public.store_settings
+  FOR ALL
+  TO authenticated
+  USING (auth.uid() IS NOT NULL AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK (auth.uid() IS NOT NULL AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 DROP POLICY IF EXISTS "store_settings_admin_all" ON public.store_settings;
 CREATE POLICY "store_settings_admin_all" ON public.store_settings FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "logs_authenticated_admin_select" ON public.order_security_logs;
+CREATE POLICY "logs_authenticated_admin_select"
+  ON public.order_security_logs
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() IS NOT NULL AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
 DROP POLICY IF EXISTS "logs_admin_all" ON public.order_security_logs;
 CREATE POLICY "logs_admin_all" ON public.order_security_logs FOR ALL TO service_role USING (true) WITH CHECK (true);
 
--- ─── منح الصلاحيات الصريحة (Explicit Table Grants) لـ Data API (تحديث Supabase 30 أكتوبر) ───
+-- ─── منح الصلاحيات الصريحة (Explicit Table Grants) ───
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT SELECT ON public.products TO anon, authenticated;
 GRANT ALL ON public.products TO service_role;
 GRANT INSERT ON public.orders TO anon, authenticated;
+GRANT SELECT, UPDATE, DELETE ON public.orders TO authenticated;
 GRANT ALL ON public.orders TO service_role;
 GRANT SELECT, INSERT ON public.reviews TO anon, authenticated;
+GRANT UPDATE, DELETE ON public.reviews TO authenticated;
 GRANT ALL ON public.reviews TO service_role;
 GRANT SELECT ON public.store_settings TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.store_settings TO authenticated;
 GRANT ALL ON public.store_settings TO service_role;
+GRANT SELECT ON public.order_security_logs TO authenticated;
 GRANT ALL ON public.order_security_logs TO service_role;
 
 -- ═════════════════════════════════════════════════════════════════════════════
--- 6️⃣ تعبئة البيانات الأولية (الإعدادات والمنتجات)
+-- 6️⃣ تعبئة البيانات الأولية (الإعدادات العامة والمنتجات)
 -- ═════════════════════════════════════════════════════════════════════════════
 
 INSERT INTO public.store_settings (key, value, description)
 VALUES
-  ('admin_pin', '090909', 'رمز الدخول إلى لوحة إدارة الطلبات وحذفها'),
   ('store_name', 'خُضرة', 'اسم المتجر الرسمي'),
   ('store_city', 'فاس والنواحي', 'نطاق التغطية والعمليات'),
   ('whatsapp_number', '+212704274830', 'رقم الواتساب للتواصل والطلبات'),
@@ -645,6 +907,10 @@ ON CONFLICT (key) DO UPDATE
 SET value = EXCLUDED.value,
     description = EXCLUDED.description,
     updated_at = NOW();
+
+INSERT INTO public.store_settings (key, value, description)
+VALUES ('admin_pin', '090909', 'الرمز السري للوحة الإدارة (محجوب عن القراءة العامة عبر RLS)')
+ON CONFLICT (key) DO NOTHING;
 
 INSERT INTO public.reviews (author, neighborhood, rating, comment, category, verified, is_deleted)
 VALUES
@@ -776,7 +1042,6 @@ SET name = EXCLUDED.name,
 ALTER TABLE public.orders REPLICA IDENTITY FULL;
 ALTER TABLE public.reviews REPLICA IDENTITY FULL;
 ALTER TABLE public.products REPLICA IDENTITY FULL;
-ALTER TABLE public.store_settings REPLICA IDENTITY FULL;
 
 DO $$
 BEGIN
@@ -805,11 +1070,11 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
   END IF;
 
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1 FROM pg_publication_tables 
     WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'store_settings'
   ) THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.store_settings;
+    ALTER PUBLICATION supabase_realtime DROP TABLE public.store_settings;
   END IF;
 END $$;
 

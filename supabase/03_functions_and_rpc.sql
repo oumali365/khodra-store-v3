@@ -2,55 +2,141 @@
 -- ⚡ 03_functions_and_rpc.sql – الدوال المحمية والعمليات الآمنة (RPC)
 -- متجر خُضرة - فاس (Khodra Store)
 --
--- الدوال المتوفرة:
--- 1. verify_admin_pin: التحقق من رمز المدير من جدول store_settings
--- 2. get_orders_secure: قراءة الطلبات للمدير مع استبعاد تام للطلبات المحذوفة
--- 3. update_order_status_secure: تحديث حالة الطلب
--- 4. delete_order_secure: حذف الطلب مع دعم Soft Delete أو Hard Delete
--- 5. purge_deleted_orders_secure: تنظيف وإفراغ الطلبات المحذوفة نهائياً
--- 6. delete_review_secure: حذف التقييمات بأمان
--- 7. update_store_setting_secure: تحديث إعدادات المتجر برمز PIN
+-- التحصينات الأمنية المطبقة:
+-- 1. دعم المصادقة عبر Supabase Auth (auth.uid() + auth.jwt() -> app_metadata.role = 'admin')
+-- 2. حماية verify_admin_pin ضد التخمين (Brute-Force Lockout: 5 محاولات / 15 دقيقة)
+-- 3. إزالة أي رمز PIN افتراضي مكشوف من الكود المصدري
+-- 4. تثبيت SET search_path = public في جميع دوال SECURITY DEFINER
+-- 5. حظر قراءة admin_pin أو أي مفتاح سري عبر get_store_setting
 -- ==============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 1️⃣ دالة التحقق من رمز PIN للمدير
+-- 1️⃣ التحقق من جلسة المدير عبر Supabase Auth (auth.uid() + auth.jwt())
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.verify_admin_pin(p_pin TEXT)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR auth.role() <> 'authenticated' THEN
+    RETURN FALSE;
+  END IF;
+
+  RETURN COALESCE(
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin',
+    FALSE
+  );
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 2️⃣ دالة التحقق من رمز PIN للمدير على الخادم (مع حماية Brute-Force)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.verify_admin_pin(p_pin TEXT DEFAULT NULL)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_stored_pin TEXT;
+  v_failed_attempts INT;
+  v_real_ip TEXT;
 BEGIN
-  -- جلب رمز الـ PIN من جدول الإعدادات
+  -- إذا كان المدير مسجلاً دخوله عبر Supabase Auth JWT، نعتمد جلسته فوراً
+  IF public.is_admin() THEN
+    RETURN TRUE;
+  END IF;
+
+  IF p_pin IS NULL OR LENGTH(TRIM(p_pin)) < 4 THEN
+    RETURN FALSE;
+  END IF;
+
+  -- استخراج الـ IP الحقيقي لتسجيل وحظر محاولات التخمين (Brute-Force Protection)
+  BEGIN
+    v_real_ip := SPLIT_PART(
+      COALESCE(
+        current_setting('request.headers', true)::json->>'cf-connecting-ip',
+        current_setting('request.headers', true)::json->>'x-forwarded-for',
+        'unknown'
+      ),
+      ',', 1
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_real_ip := 'unknown';
+  END;
+
+  -- فحص عدد المحاولات الفاشلة خلال آخر 15 دقيقة لنفس عنوان الـ IP (لمنع حجب المدير الشرعي من جهاز آخر)
+  SELECT COUNT(*)
+  INTO v_failed_attempts
+  FROM public.order_security_logs
+  WHERE attempt_type = 'admin_pin_failed'
+    AND ip_address = v_real_ip
+    AND created_at > (NOW() - INTERVAL '15 minutes');
+
+  IF v_failed_attempts >= 5 THEN
+    RAISE EXCEPTION 'ADMIN_LOCKED: تم قفل التحقق مؤقتاً بسبب كثرة المحاولات الخاطئة. يرجى الانتظار 15 دقيقة.';
+  END IF;
+
+  -- جلب الرمز المخزن في قاعدة البيانات (بدون أي قيمة افتراضية مكشوفة في الكود)
   SELECT value INTO v_stored_pin
   FROM public.store_settings
   WHERE key = 'admin_pin'
   LIMIT 1;
 
-  -- إذا لم يوجد في الجدول نعتمد الرمز الافتراضي 090909
   IF v_stored_pin IS NULL OR TRIM(v_stored_pin) = '' THEN
-    v_stored_pin := '090909';
+    RETURN FALSE;
   END IF;
 
-  RETURN TRIM(COALESCE(p_pin, '')) = TRIM(v_stored_pin);
+  IF TRIM(p_pin) = TRIM(v_stored_pin) THEN
+    RETURN TRUE;
+  ELSE
+    INSERT INTO public.order_security_logs (attempt_type, ip_address, reason, payload)
+    VALUES (
+      'admin_pin_failed',
+      v_real_ip,
+      'محاولة إدخال رمز مدير غير صحيح',
+      jsonb_build_object('timestamp', NOW())
+    );
+    RETURN FALSE;
+  END IF;
+END;
+$$;
+
+-- دالة حارسة داخلية تتحقق من صلاحية المدير (عبر JWT أو PIN الخادم المحمي)
+CREATE OR REPLACE FUNCTION public.assert_is_admin(p_admin_pin TEXT DEFAULT NULL)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF public.is_admin() THEN
+    RETURN;
+  END IF;
+
+  IF p_admin_pin IS NOT NULL AND public.verify_admin_pin(p_admin_pin) THEN
+    RETURN;
+  END IF;
+
+  RAISE EXCEPTION 'INVALID_ADMIN_PIN: غير مصرح لك بتنفيذ هذه العملية الإدارية';
 END;
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 2️⃣ دالة جلب الطلبات المحمية (get_orders_secure)
--- ⚠️ تم تصحيح الفلترة لمنع ظهور الطلبات المحذوفة نهائياً بعد إزالتها
+-- 3️⃣ دالة جلب الطلبات المحمية (get_orders_secure)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.get_orders_secure(p_admin_pin TEXT)
+CREATE OR REPLACE FUNCTION public.get_orders_secure(p_admin_pin TEXT DEFAULT NULL)
 RETURNS SETOF public.orders
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   RETURN QUERY
   SELECT *
@@ -62,24 +148,22 @@ END;
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 3️⃣ دالة تحديث حالة الطلب (update_order_status_secure)
--- تدعم كل من ID النصي والرقمي
+-- 4️⃣ دالة تحديث حالة الطلب (update_order_status_secure)
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.update_order_status_secure(
   p_order_id TEXT,
   p_new_status TEXT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_updated_rows INT;
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   IF p_new_status NOT IN ('pending', 'prepared', 'delivered', 'cancelled') THEN
     RAISE EXCEPTION 'INVALID_STATUS: حالة الطلب غير معتمدة';
@@ -101,15 +185,15 @@ BEGIN
 END;
 $$;
 
--- نسخة إضافية لنوع BIGINT لضمان التوافق مع أي استدعاء قديم
 CREATE OR REPLACE FUNCTION public.update_order_status_secure(
   p_order_id BIGINT,
   p_new_status TEXT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.update_order_status_secure(p_order_id::TEXT, p_new_status, p_admin_pin);
@@ -117,33 +201,62 @@ END;
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4️⃣ دالة حذف الطلب الآمنة (delete_order_secure)
--- ⚠️ تحل مشكلة "الطلبات تختفي ثم تعود للظهور" عبر تطبيق Soft Delete متزامن
--- مع خيار الحذف الكلي (Hard Delete)
+-- 5️⃣ دالة تحديث بيانات السائق والتوصيل بأمان (update_order_dispatch_secure)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.update_order_dispatch_secure(
+  p_order_id TEXT,
+  p_dispatch JSONB,
+  p_admin_pin TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_updated_rows INT;
+BEGIN
+  PERFORM public.assert_is_admin(p_admin_pin);
+
+  UPDATE public.orders
+  SET security_flags = COALESCE(security_flags, '{}'::jsonb) || jsonb_build_object('delivery_dispatch', p_dispatch),
+      updated_at = NOW()
+  WHERE (id::TEXT = p_order_id OR order_code = p_order_id)
+    AND (is_deleted IS NULL OR is_deleted = FALSE);
+
+  GET DIAGNOSTICS v_updated_rows = ROW_COUNT;
+
+  IF v_updated_rows = 0 THEN
+    RETURN jsonb_build_object('success', false, 'message', 'الطلب غير موجود');
+  END IF;
+
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 6️⃣ دالة حذف الطلب الآمنة (delete_order_secure)
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.delete_order_secure(
   p_order_id TEXT,
-  p_admin_pin TEXT,
+  p_admin_pin TEXT DEFAULT NULL,
   p_hard_delete BOOLEAN DEFAULT FALSE
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_affected_rows INT;
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   IF p_hard_delete = TRUE THEN
-    -- حذف نهائي قطعي من الجدول
     DELETE FROM public.orders
     WHERE (id::TEXT = p_order_id OR order_code = p_order_id);
     GET DIAGNOSTICS v_affected_rows = ROW_COUNT;
   ELSE
-    -- حذف مرن (Soft Delete) مضمون الفلترة في جميع الاستعلامات
     UPDATE public.orders
     SET is_deleted = TRUE,
         deleted_at = NOW(),
@@ -157,14 +270,13 @@ BEGIN
   END IF;
 
   RETURN jsonb_build_object(
-    'success', true, 
+    'success', true,
     'message', CASE WHEN p_hard_delete THEN 'تم الحذف النهائي' ELSE 'تم وضع علامة الحذف بنجاح' END,
     'affected_rows', v_affected_rows
   );
 END;
 $$;
 
--- توفير Overloads متوافقة مع الاستدعاء الثنائي (معلمتين فقط) أو نوع BIGINT
 CREATE OR REPLACE FUNCTION public.delete_order_secure(
   p_order_id TEXT,
   p_admin_pin TEXT
@@ -172,6 +284,7 @@ CREATE OR REPLACE FUNCTION public.delete_order_secure(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.delete_order_secure(p_order_id, p_admin_pin, FALSE);
@@ -180,11 +293,12 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.delete_order_secure(
   p_order_id BIGINT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.delete_order_secure(p_order_id::TEXT, p_admin_pin, FALSE);
@@ -192,19 +306,18 @@ END;
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 5️⃣ دالة إفراغ سلة المحذوفات نهائياً (purge_deleted_orders_secure)
+-- 7️⃣ دالة إفراغ سلة المحذوفات نهائياً (purge_deleted_orders_secure)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.purge_deleted_orders_secure(p_admin_pin TEXT)
+CREATE OR REPLACE FUNCTION public.purge_deleted_orders_secure(p_admin_pin TEXT DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_deleted_count INT;
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   DELETE FROM public.orders
   WHERE is_deleted = TRUE OR deleted_at IS NOT NULL;
@@ -216,23 +329,22 @@ END;
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 6️⃣ دالة حذف التقييم الآمنة (delete_review_secure)
+-- 8️⃣ دالة حذف التقييم الآمنة (delete_review_secure)
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.delete_review_secure(
   p_review_id TEXT,
-  p_admin_pin TEXT,
+  p_admin_pin TEXT DEFAULT NULL,
   p_hard_delete BOOLEAN DEFAULT FALSE
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_affected INT;
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
-  END IF;
+  PERFORM public.assert_is_admin(p_admin_pin);
 
   IF p_hard_delete THEN
     DELETE FROM public.reviews WHERE id::TEXT = p_review_id;
@@ -256,6 +368,7 @@ CREATE OR REPLACE FUNCTION public.delete_review_secure(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.delete_review_secure(p_review_id, p_admin_pin, FALSE);
@@ -264,11 +377,12 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.delete_review_secure(
   p_review_id BIGINT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN public.delete_review_secure(p_review_id::TEXT, p_admin_pin, FALSE);
@@ -276,17 +390,30 @@ END;
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 7️⃣ دالة جلب وتحديث إعدادات المتجر
+-- 9️⃣ دالة جلب وتحديث إعدادات المتجر (مع حظر صارم لاسترجاع admin_pin)
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.get_store_setting(p_key TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_val TEXT;
 BEGIN
-  SELECT value INTO v_val FROM public.store_settings WHERE key = p_key LIMIT 1;
+  -- 🔒 حظر قراءة أي مفتاح سري أو رمز PIN عبر هذه الدالة العامة
+  IF p_key IS NULL
+     OR LOWER(TRIM(p_key)) IN ('admin_pin', 'secret_key', 'webhook_secret')
+     OR LOWER(TRIM(p_key)) LIKE '%_pin%'
+     OR LOWER(TRIM(p_key)) LIKE '%_secret%' THEN
+    RAISE EXCEPTION 'ACCESS_DENIED: غير مصرح بقراءة هذا الإعداد الحساس';
+  END IF;
+
+  SELECT value INTO v_val
+  FROM public.store_settings
+  WHERE key = p_key
+  LIMIT 1;
+
   RETURN v_val;
 END;
 $$;
@@ -294,23 +421,26 @@ $$;
 CREATE OR REPLACE FUNCTION public.update_store_setting_secure(
   p_key TEXT,
   p_value TEXT,
-  p_admin_pin TEXT
+  p_admin_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.verify_admin_pin(p_admin_pin) THEN
-    RAISE EXCEPTION 'INVALID_ADMIN_PIN: رمز المدير غير صحيح';
+  PERFORM public.assert_is_admin(p_admin_pin);
+
+  IF p_key = 'admin_pin' AND (p_value IS NULL OR LENGTH(TRIM(p_value)) < 4) THEN
+    RAISE EXCEPTION 'INVALID_PIN_LENGTH: الرمز السري الجديد يجب ألا يقل عن 4 خانات';
   END IF;
 
   INSERT INTO public.store_settings (key, value, updated_at)
-  VALUES (p_key, p_value, NOW())
+  VALUES (p_key, TRIM(p_value), NOW())
   ON CONFLICT (key) DO UPDATE
   SET value = EXCLUDED.value,
       updated_at = NOW();
 
-  RETURN jsonb_build_object('success', true, 'key', p_key, 'value', p_value);
+  RETURN jsonb_build_object('success', true, 'key', p_key);
 END;
 $$;

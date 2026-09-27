@@ -3,18 +3,16 @@
 -- متجر خُضرة - فاس (Khodra Store)
 --
 -- يفعل الاستماع الفوري للأحداث:
--- 1. جدول الطلبات (orders): إشعار فوري عند وصول طلب جديد أو تعديل الحالة أو الحذف
+-- 1. جدول الطلبات (orders): إشعار فوري للمدير عند وصول طلب جديد أو تعديل الحالة
 -- 2. جدول التقييمات (reviews): ظهور التقييمات المضافة فورياً
 -- 3. جدول المنتجات (products): تحديث المخزون والأسعار مباشرة
+-- 🔒 ملاحظة أمنية: تم استبعاد جدول store_settings من البث اللحظي لمنع تسريب الإعدادات الحساسة
 -- ==============================================================================
 
--- تفعيل إرسال كافة بيانات الصف عند التحديث أو الحذف (Full Replica Identity)
 ALTER TABLE public.orders REPLICA IDENTITY FULL;
 ALTER TABLE public.reviews REPLICA IDENTITY FULL;
 ALTER TABLE public.products REPLICA IDENTITY FULL;
-ALTER TABLE public.store_settings REPLICA IDENTITY FULL;
 
--- إضافة الجداول لمنشور البث اللحظي supabase_realtime
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -47,11 +45,11 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
   END IF;
 
-  -- إضافة جدول store_settings لتزامن الـ PIN والإعدادات لحظياً عبر الأجهزة
-  IF NOT EXISTS (
+  -- 🔒 إزالة جدول store_settings من البث اللحظي العام إن كان مضافاً سابقاً
+  IF EXISTS (
     SELECT 1 FROM pg_publication_tables 
     WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'store_settings'
   ) THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.store_settings;
+    ALTER PUBLICATION supabase_realtime DROP TABLE public.store_settings;
   END IF;
 END $$;

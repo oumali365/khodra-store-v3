@@ -24,10 +24,8 @@ import {
   fetchReviews,
   submitCustomerReview,
   deleteCustomerReview,
-  getSupabase,
-  getAdminPin,
-  setCachedAdminPin,
-  syncAdminPinFromRemote,
+  clearCachedAdminPin,
+  verifyAdminPinRemote,
   updateAdminPinRemote,
 } from '../../services/supabaseService';
 import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
@@ -334,8 +332,8 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
   }) => {
     const result = await submitCustomerReview({
       ...newRev,
-      category: 'general',
-      verified: true,
+      category: 'quality',
+      verified: false,
     });
 
     if (!result.success || !result.data) {
@@ -351,7 +349,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
       rating: result.data.rating,
       date: 'الآن',
       comment: result.data.comment,
-      verified: true,
+      verified: Boolean(result.data.verified),
     };
 
     setReviews((prev) => [newReviewItem, ...prev]);
@@ -374,18 +372,10 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
   }, [isAdmin]);
 
   const handlePinLogin = async (pin: string): Promise<boolean> => {
-    let correctPin = getAdminPin();
     const inputPin = pin.trim();
+    const res = await verifyAdminPinRemote(inputPin);
 
-    if (inputPin !== correctPin.trim()) {
-      const remotePin = await syncAdminPinFromRemote();
-      if (remotePin) {
-        correctPin = remotePin;
-      }
-    }
-
-    if (inputPin === correctPin.trim()) {
-      setCachedAdminPin(inputPin);
+    if (res.valid) {
       setIsAdmin(true);
       try {
         sessionStorage.setItem('khodra_admin_auth', 'true');
@@ -399,11 +389,17 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
       }, 200);
       return true;
     }
+
+    if (res.message) {
+      setAdminNotification(`❌ ${res.message}`);
+      setTimeout(() => setAdminNotification(null), 4000);
+    }
     return false;
   };
 
   const handleLogoutAdmin = () => {
     setIsAdmin(false);
+    clearCachedAdminPin();
     try {
       sessionStorage.removeItem('khodra_admin_auth');
     } catch {}

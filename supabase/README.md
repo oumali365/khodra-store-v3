@@ -1,53 +1,33 @@
 # 🗄️ دليل إدارة وتحديث قاعدة بيانات Supabase – متجر خُضرة فاس 🌿
 
-تمت إعادة هيكلة وبرمجة جميع ملفات استعلامات SQL في مجلد `/supabase` بالكامل لتكون موحدة، متزامنة 100% مع تطبيق المتجر، وتستبدل الـ 19 استعلاماً القديمة المتفرقة في لوحة تحكم Supabase.
+تمت هيكلة وتأمين جميع ملفات استعلامات SQL في مجلد `/supabase` بالكامل لتكون موحدة، متوافقة مع المزامنة التلقائية عبر GitHub (`supabase/migrations/`)، ومحمية بسياسات RLS ودوال RPC المؤمنة.
 
 ---
 
-## 🎯 حل مشكلة "عند حذف الطلبات تختفي ولكنها تعود للظهور"
+## 🛡️ التحصينات الأمنية المطبقة
 
-### سبب المشكلة سابقاً:
-1. عند الضغط على حذف الطلب في لوحة الإدارة، كان الاستعلام ينفذ حذفاً مرناً (`soft delete`) بتعيين `is_deleted = true` أو `deleted_at = NOW()`.
-2. في المقابل، كانت دالة جلب الطلبات `get_orders_secure` تستعلم الجدول بدون فلترة شرطية صارمة `WHERE (is_deleted IS NULL OR is_deleted = FALSE) AND (deleted_at IS NULL)`.
-3. عند تحديث الصفحة أو استقبال إشعار Realtime، كانت الدالة تعيد قراءة كافة السجلات بما فيها المحذوفة، فتعود للظهور مجدداً في واجهة الإدارة.
-4. كذلك لم تكن الطلبات تُمسح من الذاكرة التخزينية الاحتياطية للمتصفح (`localStorage`).
-
-### الحل المطبق الآن:
-- **في قاعدة البيانات:** دالة `get_orders_secure` تستثني كلياً وبشكل حازم أي صف يحمل `is_deleted = TRUE` أو `deleted_at IS NOT NULL`.
-- **دعم الحذف القطعي (Hard Delete) والحذف المرن (Soft Delete):** دالة `delete_order_secure` توفر خيار الحذف النهائي أو الحذف المرن بدون أي ارتداد، بالإضافة لدالة `purge_deleted_orders_secure` لتفريغ سلة المهملات.
-- **في كود التطبيق (`supabaseService.ts`):** تنظيف فوري متزامن للطلب من `localStorage` وفلترة أحداث Realtime اللحظية لمنع إعادة إدراج الطلب المحذوف.
-
----
-
-## 📁 هيكلية ملفات SQL الجديدة وتطابقها مع الاستعلامات الـ 19 القديمة
-
-| اسم الملف الجديد | الاستعلامات القديمة الـ 19 التي يدمجها ويعوضها | الوظيفة والمحتوى |
-| :--- | :--- | :--- |
-| **`00_master_setup.sql`** | **يعوض كافة الاستعلامات الـ 19 دفعة واحدة** | **الملف الشامل الموحد (All-in-One)**: ينفذ التنظيف وإنشاء الجداول، الحماية، دوال RPC، السياسات، بيانات المنتجات، والتزامن اللحظي في خطوة واحدة. |
-| `01_schema_tables.sql` | `orders table`, `products table`, `customer reviews`, `creat table orders`, `add column if not exists`, `allow table order note`, `product category`, `origin products`, `store settings key` | إنشاء وتحديث جداول `products`, `orders`, `reviews`, `store_settings`, `order_security_logs` مع كافة الأعمدة والمؤشرات والفهارس المتقدمة. |
-| `02_security_and_triggers.sql` | `store security`, `Untitled query` | فحص صحة الهاتف المغربي، فترة التهدئة Cooldown (3 دقائق)، سقف الطلبات Rate Limit (3 طلبات/ساعة)، وفهرس Idempotency الفريد لمنع تكرار الطلبات. |
-| `03_functions_and_rpc.sql` | `Functions`, `orders admin pin`, `read orders`, `orders status`, `soft delete` | دوال الخادم الآمنة برمز PIN: `get_orders_secure`, `update_order_status_secure`, `delete_order_secure`, `purge_deleted_orders_secure`, `delete_review_secure`. |
-| `04_rls_policies.sql` | `RLS policies`, `allow public insert` | سياسات أمان الصفوف: إتاحة إرسال الطلبات للزبائن دون كشف بيانات الزبائن الآخرين، وحصر القراءة للمدير. |
-| `05_seed_data.sql` | `products values`, `store settings key` | البيانات الأولية: إعدادات المتجر (PIN = `090909`), تقييمات الزبائن لمدينة فاس، وكافة المنتجات الـ 100 بتسعيرتها وأصولها وتصنيفاتها الـ 6 الكاملة. |
-| `06_realtime_setup.sql` | التزامن اللحظي | تفعيل `supabase_realtime` و `REPLICA IDENTITY FULL` للبث الفوري عند إضافة طلب أو حذفه. |
-| `07_cleanup_and_reset.sql` | تنظيف التضاربات | حذف الدوال والتريغرات والسياسات القديمة المتضاربة لتهيئة بيئة نظيفة. |
+1. **حماية الإعدادات السرية (`store_settings`):**
+   - حجب قراءة `admin_pin` وأي مفاتيح سرية من جدول `store_settings` عبر سياسة RLS ودالة `get_store_setting`.
+   - إزالة جدول `store_settings` من البث اللحظي (`supabase_realtime`) لمنع تسريب التغييرات عبر WebSockets.
+2. **مصادقة المدير (`Supabase Auth JWT` + `Brute-Force Lockout`):**
+   - دعم التحقق من هوية المدير عبر `auth.uid()` و `auth.jwt() -> 'app_metadata' ->> 'role' = 'admin'`.
+   - حماية التحقق من الرمز السري على الخادم بحد أقصى 5 محاولات خاطئة كل 15 دقيقة مع تسجيل المحاولات في `order_security_logs`.
+   - إزالة جميع الرموز الافتراضية الثابتة من الكود المصدري.
+3. **حماية الطلبات والتقييمات (`orders` & `reviews`):**
+   - فرض قيم الخادم الحقيقية (`created_at := NOW()`, `status := 'pending'`, `is_deleted := FALSE`) داخل تريغر `BEFORE INSERT`.
+   - استخراج عنوان الـ IP الفعلي من رؤوس الشبكة (`cf-connecting-ip` / `x-forwarded-for`) لفرض فترة التهدئة (`Cooldown` 180 ثانية) وسقف الطلبات (`Rate Limit` 3 طلبات/ساعة).
 
 ---
 
-## 🚀 طريقة التثبيت في لوحة Supabase (خطوة واحدة فقط)
+## 📁 هيكلية ملفات SQL
 
-1. سجل الدخول إلى [لوحة تحكم Supabase](https://supabase.com/dashboard).
-2. ادخل إلى مشروع متجرك (Project).
-3. اضغط من القائمة الجانبية على **SQL Editor** 📝.
-4. يمكنك **حذف كافة الاستعلامات القديمة الـ 19** لتنظيف اللوحة نهائياً.
-5. أنشئ استعلاماً جديداً (`+ New Query`).
-6. انسخ كامل محتوى الملف:  
-   👉 **`/supabase/00_master_setup.sql`**
-7. الصقه في محرر SQL واضغط **Run** (أو `Ctrl + Enter`).
-8. ستظهر لك رسالة نجاح `Success. No rows returned` أو `COMMIT`.
-
----
-
-## 🔑 بيانات الاعتماد الافتراضية
-- **رمز المدير (Admin PIN):** `090909` (يمكن تغييره في أي وقت من جدول `store_settings` بقيمة المفتاح `admin_pin`).
-- **المسارات الذكية الأربعة بفاس:** `north` (الشمالية), `central` (الوسطى), `south` (الجنوبية), `east` (الشرقية).
+| اسم الملف | الوظيفة والمحتوى |
+| :--- | :--- |
+| **`00_master_setup.sql`** | **الملف الشامل الموحد (All-in-One)**: ينشئ الجداول، التريغرات الأمنية، دوال RPC، سياسات RLS، بيانات المنتجات، والتزامن اللحظي في خطوة واحدة. |
+| `01_schema_tables.sql` | إنشاء وتحديث جداول `products`, `orders`, `reviews`, `store_settings`, `order_security_logs` مع الفهارس. |
+| `02_security_and_triggers.sql` | تريغرات الحماية وفحص الهاتف المغربي وفترة التهدئة (Cooldown) وسقف الطلبات (Rate Limit). |
+| `03_functions_and_rpc.sql` | دوال الخادم المحمية (`is_admin`, `assert_is_admin`, `get_orders_secure`, `update_order_status_secure`, `delete_order_secure`, `update_order_dispatch_secure`). |
+| `04_rls_policies.sql` | سياسات أمان الصفوف (RLS) المقيدة للإدراج والقراءة. |
+| `05_seed_data.sql` | البيانات الأولية للمنتجات الـ 100 وتقييمات الزبائن وإعدادات المتجر العامة. |
+| `06_realtime_setup.sql` | تفعيل `supabase_realtime` لجداول `orders`, `reviews`, `products`. |
+| `migrations/` | ملفات الترحيل القياسية للمزامنة التلقائية مع GitHub Integration في Supabase. |

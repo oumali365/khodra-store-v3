@@ -6,7 +6,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Product, OrderSubmission, DeliveryDispatchInfo, FezZoneId } from '../types';
 import { STORE_CONFIG } from '../data/config';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
-import { recordOrderSuccess } from './securityService';
+import { recordOrderSuccess, sanitizeInput } from './securityService';
 import { detectAddressZone } from '../data/deliveryZones';
 
 let supabaseClient: SupabaseClient | null = null;
@@ -147,17 +147,17 @@ export async function submitOrder(
     // ─── تنظيف items ───
     const cleanItems = (order.items || []).map((item) => {
       const clean: Record<string, any> = {
-        name: String(item?.name || 'منتج'),
-        variantLabel: String(item?.variantLabel || ''),
-        qty: Number(item?.qty) || 1,
-        lineTotal: Number(item?.lineTotal) || 0,
-        icon: String(item?.icon || '🛒'),
+        name: sanitizeInput(String(item?.name || 'منتج')),
+        variantLabel: sanitizeInput(String(item?.variantLabel || '')),
+        qty: Math.max(1, Number(item?.qty) || 1),
+        lineTotal: Math.max(0, Number(item?.lineTotal) || 0),
+        icon: String(item?.icon || '🛒').slice(0, 10),
       };
       if (item?.image_url && typeof item.image_url === 'string') {
         clean.image_url = item.image_url;
       }
       if (item?.bundleId && typeof item.bundleId === 'string') {
-        clean.bundleId = item.bundleId;
+        clean.bundleId = sanitizeInput(item.bundleId);
       }
       return clean;
     });
@@ -167,18 +167,18 @@ export async function submitOrder(
 
     // ─── بيانات الطلب مع الحماية ومكافحة الطلبات المزيفة ───
     const orderData: Record<string, any> = {
-      order_code: String(order.orderCode || `#${Date.now()}`),
-      customer_name: String(order.customerName || 'عميل'),
-      phone: String(order.phone || ''),
-      address: String(order.address || ''),
+      order_code: sanitizeInput(String(order.orderCode || `#${Date.now()}`)),
+      customer_name: sanitizeInput(String(order.customerName || 'عميل')),
+      phone: sanitizeInput(String(order.phone || '')),
+      address: sanitizeInput(String(order.address || '')),
       delivery_zone: detectedZone,
       items: cleanItems,
       subtotal: Number(order.subtotal) || 0,
       delivery_fee: Number(order.deliveryFee) || 0,
       total: Number(order.total) || 0,
       status: 'pending',
-      note: noteParts.join(' | ') || null,
-      maps_link: order.mapsLink ? String(order.mapsLink) : null,
+      note: noteParts.length > 0 ? sanitizeInput(noteParts.join(' | ')) : null,
+      maps_link: order.mapsLink ? sanitizeInput(String(order.mapsLink)) : null,
       created_at: new Date().toISOString(),
       // ─── حقول الأمان والتتبع ───
       idempotency_key: order.idempotencyKey || null,
@@ -316,17 +316,25 @@ export async function submitCustomerReview(review: {
   verified?: boolean;
 }): Promise<{ success: boolean; data?: DbReview; message?: string }> {
   const client = getSupabase();
+  const validCategories = ['all', 'quality', 'delivery', 'service'] as const;
+  const normalizedCategory: DbReview['category'] = validCategories.includes(review.category as any)
+    ? (review.category as DbReview['category'])
+    : 'quality';
+  const cleanAuthor = sanitizeInput(String(review.author || 'زبون')).slice(0, 80);
+  const cleanNeighborhood = sanitizeInput(String(review.neighborhood || 'فاس')).slice(0, 100);
+  const cleanComment = sanitizeInput(String(review.comment || '')).slice(0, 1000);
+  const safeRating = Math.min(5, Math.max(1, Math.round(Number(review.rating) || 5)));
 
   if (!client) {
     const fallbackReview: DbReview = {
       id: `rev-${Date.now()}`,
-      author: String(review.author || 'زبون'),
-      neighborhood: String(review.neighborhood || 'فاس'),
-      rating: Number(review.rating) || 5,
+      author: cleanAuthor,
+      neighborhood: cleanNeighborhood,
+      rating: safeRating,
       date: 'الآن',
-      comment: String(review.comment || ''),
-      verified: review.verified !== undefined ? Boolean(review.verified) : true,
-      category: (review.category as any) || 'quality',
+      comment: cleanComment,
+      verified: false,
+      category: normalizedCategory,
       created_at: new Date().toISOString(),
     };
     return { success: true, data: fallbackReview };
@@ -334,13 +342,12 @@ export async function submitCustomerReview(review: {
 
   try {
     const newRecord = {
-      author: String(review.author || 'زبون'),
-      neighborhood: String(review.neighborhood || 'فاس'),
-      rating: Number(review.rating) || 5,
-      comment: String(review.comment || ''),
-      category: String(review.category || 'quality'),
-      verified: review.verified !== undefined ? Boolean(review.verified) : true,
-      created_at: new Date().toISOString(),
+      author: cleanAuthor,
+      neighborhood: cleanNeighborhood,
+      rating: safeRating,
+      comment: cleanComment,
+      category: normalizedCategory,
+      verified: false,
     };
 
     const { data, error } = await client
@@ -356,13 +363,13 @@ export async function submitCustomerReview(review: {
 
     const inserted: DbReview = {
       id: String(data?.id || `rev-${Date.now()}`),
-      author: data?.author || review.author,
-      neighborhood: data?.neighborhood || review.neighborhood,
-      rating: data?.rating || review.rating,
+      author: data?.author || cleanAuthor,
+      neighborhood: data?.neighborhood || cleanNeighborhood,
+      rating: data?.rating || safeRating,
       date: 'الآن',
-      comment: data?.comment || review.comment,
-      verified: data?.verified !== undefined ? Boolean(data?.verified) : true,
-      category: data?.category || (review.category as any),
+      comment: data?.comment || cleanComment,
+      verified: Boolean(data?.verified),
+      category: data?.category || normalizedCategory,
       created_at: data?.created_at,
     };
 
@@ -382,37 +389,19 @@ export async function deleteCustomerReview(
     return { success: true, message: 'تم حذف التعليق محلياً' };
   }
 
-  let pin = getAdminPin();
+  const pin = getAdminPin();
 
   try {
     let { error } = await client.rpc('delete_review_secure', {
       p_review_id: reviewId,
-      p_pin: pin,
+      p_admin_pin: pin,
     });
     if (error && error.message?.includes('schema cache')) {
       const retry = await client.rpc('delete_review_secure', {
         p_review_id: reviewId,
-        p_admin_pin: pin,
+        p_pin: pin,
       });
       error = retry.error;
-    }
-
-    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
-      const remotePin = await syncAdminPinFromRemote();
-      if (remotePin && remotePin !== pin) {
-        pin = remotePin;
-        let retry = await client.rpc('delete_review_secure', {
-          p_review_id: reviewId,
-          p_pin: pin,
-        });
-        if (retry.error && retry.error.message?.includes('schema cache')) {
-          retry = await client.rpc('delete_review_secure', {
-            p_review_id: reviewId,
-            p_admin_pin: pin,
-          });
-        }
-        error = retry.error;
-      }
     }
 
     if (error) {
@@ -507,54 +496,91 @@ function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
 }
 
 let cachedAdminPin: string | null = null;
+const ADMIN_PIN_SESSION_KEY = 'khodra_admin_pin_session';
 
 export function getAdminPin(): string {
   if (cachedAdminPin) return cachedAdminPin;
   try {
-    const val = localStorage.getItem('khodra_admin_pin');
-    if (val && val.trim()) return val.trim();
+    const val = sessionStorage.getItem(ADMIN_PIN_SESSION_KEY);
+    if (val && val.trim()) {
+      cachedAdminPin = val.trim();
+      return cachedAdminPin;
+    }
   } catch {
     // ignore
   }
-  return STORE_CONFIG.adminPin || '090909';
+  return STORE_CONFIG.adminPin || '';
 }
 
 export function setCachedAdminPin(newPin: string): void {
   cachedAdminPin = newPin.trim();
   try {
-    localStorage.setItem('khodra_admin_pin', cachedAdminPin);
+    sessionStorage.setItem(ADMIN_PIN_SESSION_KEY, cachedAdminPin);
+    localStorage.removeItem('khodra_admin_pin'); // تنظيف أي أثر قديم في localStorage الدائم
+  } catch {
+    // ignore
+  }
+}
+
+export function clearCachedAdminPin(): void {
+  cachedAdminPin = null;
+  try {
+    sessionStorage.removeItem(ADMIN_PIN_SESSION_KEY);
+    localStorage.removeItem('khodra_admin_pin');
   } catch {
     // ignore
   }
 }
 
 /**
- * مزامنة تلقائية لرمز المدير (PIN) من جدول store_settings في Supabase
+ * التحقق الآمن من رمز المدير (PIN) على الخادم عبر RPC محمي ضد التخمين (Brute-Force)
  */
-export async function syncAdminPinFromRemote(): Promise<string> {
-  const client = getSupabase();
-  if (client) {
-    try {
-      const { data, error } = await client
-        .from('store_settings')
-        .select('value')
-        .eq('key', 'admin_pin')
-        .maybeSingle();
-
-      if (!error && data?.value && typeof data.value === 'string' && data.value.trim()) {
-        const pin = data.value.trim();
-        setCachedAdminPin(pin);
-        return pin;
-      }
-    } catch {
-      // ignore
-    }
+export async function verifyAdminPinRemote(
+  pinInput: string
+): Promise<{ valid: boolean; message?: string }> {
+  const trimmed = (pinInput || '').trim();
+  if (!trimmed || trimmed.length < 4) {
+    return { valid: false, message: 'يرجى إدخال رمز سري مكون من 4 أرقام على الأقل' };
   }
-  return getAdminPin();
+
+  const client = getSupabase();
+  if (!client) {
+    const fallbackPin = getAdminPin() || '090909';
+    const isValid = trimmed === fallbackPin;
+    if (isValid) setCachedAdminPin(trimmed);
+    return { valid: isValid, message: isValid ? undefined : 'الرمز السري غير صحيح' };
+  }
+
+  try {
+    const { data, error } = await client.rpc('verify_admin_pin', {
+      p_pin: trimmed,
+    });
+
+    if (error) {
+      if (error.message?.includes('ADMIN_LOCKED')) {
+        return {
+          valid: false,
+          message: 'تم قفل التحقق مؤقتاً بسبب كثرة المحاولات الخاطئة. يرجى الانتظار 15 دقيقة.',
+        };
+      }
+      console.warn('verify_admin_pin RPC error:', error.message);
+      return { valid: false, message: 'فشل التحقق من الرمز السري' };
+    }
+
+    if (data === true) {
+      setCachedAdminPin(trimmed);
+      return { valid: true };
+    }
+
+    return { valid: false, message: 'الرمز السري غير صحيح' };
+  } catch (err) {
+    console.warn('Network error during verifyAdminPinRemote:', err);
+    return { valid: false, message: 'تعذّر الاتصال بالخادم للتحقق من الرمز' };
+  }
 }
 
 /**
- * تحديث الرمز السري (PIN) في Supabase ومزامنته مع قاعدة البيانات والأجهزة الأخرى
+ * تحديث الرمز السري (PIN) في Supabase عبر الدالة المحمية update_store_setting_secure
  */
 export async function updateAdminPinRemote(
   newPin: string
@@ -567,55 +593,38 @@ export async function updateAdminPinRemote(
   const client = getSupabase();
   const currentPin = getAdminPin();
 
-  // تحديث الكاش المحلي فورياً
-  setCachedAdminPin(trimmed);
-
   if (!client) {
+    setCachedAdminPin(trimmed);
     return { success: true, message: 'تم حفظ الرمز السري محلياً (لا يوجد اتصال)' };
   }
 
   try {
-    // 1. محاولة استدعاء الدالة الآمنة update_store_setting_secure
     let rpcRes = await client.rpc('update_store_setting_secure', {
       p_key: 'admin_pin',
       p_value: trimmed,
-      p_pin: currentPin,
+      p_admin_pin: currentPin,
     });
     if (rpcRes.error && rpcRes.error.message?.includes('schema cache')) {
       rpcRes = await client.rpc('update_store_setting_secure', {
         p_key: 'admin_pin',
         p_value: trimmed,
-        p_admin_pin: currentPin,
+        p_pin: currentPin,
       });
     }
 
     if (!rpcRes.error) {
+      setCachedAdminPin(trimmed);
       return { success: true, message: 'تم تحديث الرمز السري ومزامنته مع السيرفر بنجاح' };
     }
 
-    // 2. محاولة بديلة عبر upsert مباشر
-    const { error: upsertError } = await client
-      .from('store_settings')
-      .upsert(
-        { key: 'admin_pin', value: trimmed, updated_at: new Date().toISOString() },
-        { onConflict: 'key' }
-      );
-
-    if (upsertError) {
-      console.warn('upsert store_settings error:', upsertError.message);
-      return { success: true, message: 'تم التحديث محلياً، وتعذر حفظه بالسيرفر: ' + upsertError.message };
-    }
-
-    return { success: true, message: 'تم تحديث الرمز السري ومزامنته مع السيرفر بنجاح' };
+    return {
+      success: false,
+      message: 'تعذر تحديث الرمز السري في الخادم: ' + (rpcRes.error.message || 'غير مصرح'),
+    };
   } catch (err: any) {
     console.warn('updateAdminPinRemote network error:', err);
-    return { success: true, message: 'تم التحديث محلياً' };
+    return { success: false, message: 'تعذّر الاتصال بالخادم لتحديث الرمز السري' };
   }
-}
-
-// مزامنة فورية في الخلفية عند تحميل الصفحة
-if (typeof window !== 'undefined') {
-  syncAdminPinFromRemote().catch(() => {});
 }
 
 function mapRowToOrder(row: any): DbOrder {
@@ -745,40 +754,18 @@ export async function fetchOrders(): Promise<DbOrder[]> {
   const client = getSupabase();
   if (!client) return readLocalOrders();
 
-  let pin = getAdminPin();
+  const pin = getAdminPin();
 
   try {
     let { data, error } = await client.rpc('get_orders_secure', {
-      p_pin: pin,
+      p_admin_pin: pin,
     });
     if (error && error.message?.includes('schema cache')) {
       const retry = await client.rpc('get_orders_secure', {
-        p_admin_pin: pin,
+        p_pin: pin,
       });
       data = retry.data;
       error = retry.error;
-    }
-
-    // إذا فشل بسبب رمز PIN غير صحيح، نستعلم الرمز من store_settings ونعيد المحاولة تلقائياً
-    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
-      const remotePin = await syncAdminPinFromRemote();
-      if (remotePin && remotePin !== pin) {
-        pin = remotePin;
-        let retryResult = await client.rpc('get_orders_secure', {
-          p_pin: pin,
-        });
-        if (retryResult.error && retryResult.error.message?.includes('schema cache')) {
-          retryResult = await client.rpc('get_orders_secure', {
-            p_admin_pin: pin,
-          });
-        }
-        if (!retryResult.error) {
-          data = retryResult.data;
-          error = null;
-        } else {
-          error = retryResult.error;
-        }
-      }
     }
 
     if (error) {
@@ -815,41 +802,21 @@ export async function updateOrderStatus(
   const client = getSupabase();
   if (!client) return { success: false, message: 'لا يوجد اتصال' };
 
-  let pin = getAdminPin();
+  const pin = getAdminPin();
 
   try {
     let { error } = await client.rpc('update_order_status_secure', {
       p_order_id: String(orderId),
       p_new_status: status,
-      p_pin: pin,
+      p_admin_pin: pin,
     });
     if (error && error.message?.includes('schema cache')) {
       const retry = await client.rpc('update_order_status_secure', {
         p_order_id: String(orderId),
         p_new_status: status,
-        p_admin_pin: pin,
+        p_pin: pin,
       });
       error = retry.error;
-    }
-
-    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
-      const remotePin = await syncAdminPinFromRemote();
-      if (remotePin && remotePin !== pin) {
-        pin = remotePin;
-        let retry = await client.rpc('update_order_status_secure', {
-          p_order_id: String(orderId),
-          p_new_status: status,
-          p_pin: pin,
-        });
-        if (retry.error && retry.error.message?.includes('schema cache')) {
-          retry = await client.rpc('update_order_status_secure', {
-            p_order_id: String(orderId),
-            p_new_status: status,
-            p_admin_pin: pin,
-          });
-        }
-        error = retry.error;
-      }
     }
 
     if (error) {
@@ -876,37 +843,19 @@ export async function deleteOrder(
   const client = getSupabase();
   if (!client) return { success: true, message: 'تم حذف الطلب محلياً' };
 
-  let pin = getAdminPin();
+  const pin = getAdminPin();
 
   try {
     let { error } = await client.rpc('delete_order_secure', {
       p_order_id: String(orderId),
-      p_pin: pin,
+      p_admin_pin: pin,
     });
     if (error && error.message?.includes('schema cache')) {
       const retry = await client.rpc('delete_order_secure', {
         p_order_id: String(orderId),
-        p_admin_pin: pin,
+        p_pin: pin,
       });
       error = retry.error;
-    }
-
-    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
-      const remotePin = await syncAdminPinFromRemote();
-      if (remotePin && remotePin !== pin) {
-        pin = remotePin;
-        let retry = await client.rpc('delete_order_secure', {
-          p_order_id: String(orderId),
-          p_pin: pin,
-        });
-        if (retry.error && retry.error.message?.includes('schema cache')) {
-          retry = await client.rpc('delete_order_secure', {
-            p_order_id: String(orderId),
-            p_admin_pin: pin,
-          });
-        }
-        error = retry.error;
-      }
     }
 
     if (error) {
@@ -952,18 +901,19 @@ export async function updateOrderDispatch(
     // ignore
   }
 
-  // تحديث Supabase إن كان متوفراً
+  // تحديث Supabase عبر الدالة المحمية update_order_dispatch_secure
   const client = getSupabase();
   if (client && !String(orderId).startsWith('local-')) {
     try {
-      await client
-        .from('orders')
-        .update({
-          security_flags: {
-            delivery_dispatch: dispatch,
-          },
-        })
-        .eq('id', orderId);
+      const pin = getAdminPin();
+      const { error } = await client.rpc('update_order_dispatch_secure', {
+        p_order_id: String(orderId),
+        p_dispatch: dispatch,
+        p_admin_pin: pin,
+      });
+      if (error) {
+        console.warn('update_order_dispatch_secure RPC warning:', error.message);
+      }
     } catch (err) {
       console.warn('Error saving dispatch to Supabase:', err);
     }
@@ -979,26 +929,13 @@ export async function fetchPendingOrdersCount(): Promise<number> {
     return readLocalOrders().filter((o) => o.status === 'pending').length;
   }
 
-  let pin = getAdminPin();
+  const pin = getAdminPin();
+  if (!pin) return 0;
 
   try {
-    let { data, error } = await client.rpc('get_orders_secure', {
+    const { data, error } = await client.rpc('get_orders_secure', {
       p_admin_pin: pin,
     });
-
-    if (error && (error.message?.toLowerCase().includes('pin') || error.code === 'P0001')) {
-      const remotePin = await syncAdminPinFromRemote();
-      if (remotePin && remotePin !== pin) {
-        pin = remotePin;
-        const retry = await client.rpc('get_orders_secure', {
-          p_admin_pin: pin,
-        });
-        if (!retry.error) {
-          data = retry.data;
-          error = null;
-        }
-      }
-    }
 
     if (error) {
       console.warn('fetchPendingOrdersCount error:', error.message);
