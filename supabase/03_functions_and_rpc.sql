@@ -35,6 +35,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2️⃣ دالة التحقق من رمز PIN للمدير على الخادم (مع حماية Brute-Force)
 -- ─────────────────────────────────────────────────────────────────────────────
+DROP FUNCTION IF EXISTS public.verify_admin_pin(TEXT);
 CREATE OR REPLACE FUNCTION public.verify_admin_pin(p_pin TEXT DEFAULT NULL)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
