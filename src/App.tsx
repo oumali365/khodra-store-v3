@@ -173,10 +173,89 @@ export default function App() {
     }
   });
 
-  // ─── Navigation & filter states ───
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeInfoPage, setActiveInfoPage] = useState<'about' | 'policy' | 'privacy' | null>(null);
+  // ─── Navigation & filter states (مع دعم الروابط المخصصة لـ SEO) ───
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const catParam = params.get('category') as ProductCategory | null;
+      const validCats: ProductCategory[] = ['all', 'veg', 'fruit', 'dairy', 'grocery', 'drinks', 'cleaning'];
+      if (catParam && validCats.includes(catParam)) return catParam;
+
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      const pathMap: Record<string, ProductCategory> = {
+        veg: 'veg',
+        vegetables: 'veg',
+        fruit: 'fruit',
+        fruits: 'fruit',
+        dairy: 'dairy',
+        grocery: 'grocery',
+        drinks: 'drinks',
+        cleaning: 'cleaning',
+      };
+      if (pathMap[path]) return pathMap[path];
+    } catch {}
+    return 'all';
+  });
+
+  const [searchQuery, setSearchQuery] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('s') || params.get('q') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [activeInfoPage, setActiveInfoPage] = useState<'about' | 'policy' | 'privacy' | null>(() => {
+    try {
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      if (path === 'about' || path === 'policy' || path === 'privacy') return path;
+    } catch {}
+    return null;
+  });
+
+  // ─── تحديث عنوان الصفحة والوصف والروابط تلقائياً لتحسين SEO ───
+  useEffect(() => {
+    try {
+      let pageTitle = 'خُضرة - متجر الخضار والفواكه الطازجة بفاس';
+      let pageDesc =
+        'متجر خُضرة الإلكتروني لتسوق الخضروات والفواكه الطازجة ومنتجات البقالة والألبان مع التوصيل السريع والدفع عند الاستلام في مدينة فاس ونواحيها.';
+      let canonicalPath = '/';
+
+      if (activeInfoPage === 'about') {
+        pageTitle = 'من نحن | متجر خُضرة بفاس';
+        pageDesc = 'تعرف على متجر خُضرة لبيع وتوصيل الخضار والفواكه الطازجة يومياً من سوق بنسودة إلى باب منزلك بمدينة فاس.';
+        canonicalPath = '/about';
+      } else if (activeInfoPage === 'policy') {
+        pageTitle = 'سياسة التوصيل والاسترجاع | متجر خُضرة بفاس';
+        pageDesc = 'تعرف على مواعيد ومسارات التوصيل الفوري في مدينة فاس وضمان الجودة والاستبدال من متجر خُضرة.';
+        canonicalPath = '/policy';
+      } else if (activeInfoPage === 'privacy') {
+        pageTitle = 'سياسة الخصوصية | متجر خُضرة بفاس';
+        pageDesc = 'حماية بيانات العملاء والخصوصية في متجر خُضرة للتسوق الإلكتروني بمدينة فاس.';
+        canonicalPath = '/privacy';
+      } else if (selectedCategory !== 'all') {
+        const catObj = CATEGORIES_CONFIG.find((c) => c.id === selectedCategory);
+        if (catObj) {
+          pageTitle = `${catObj.name} طازجة بتوصيل سريع في فاس | متجر خُضرة`;
+          pageDesc = `${catObj.description} اطلب الآن من متجر خُضرة مع توصيل فوري لباب منزلك في فاس والدفع عند الاستلام.`;
+          canonicalPath = `/?category=${selectedCategory}`;
+        }
+      }
+
+      document.title = pageTitle;
+      const descMeta = document.querySelector('meta[name="description"]');
+      if (descMeta) descMeta.setAttribute('content', pageDesc);
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) ogTitle.setAttribute('content', pageTitle);
+      const ogDesc = document.querySelector('meta[property="og:description"]');
+      if (ogDesc) ogDesc.setAttribute('content', pageDesc);
+      const canonicalLink = document.querySelector('link[rel="canonical"]');
+      if (canonicalLink) {
+        canonicalLink.setAttribute('href', `https://khodrafresh.vercel.app${canonicalPath}`);
+      }
+    } catch {}
+  }, [selectedCategory, activeInfoPage]);
 
   // ─── Sorting and in-stock filter ───
   const [sortBy, setSortBy] = useState<SortOption>('default');

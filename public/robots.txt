@@ -5,9 +5,10 @@
 User-agent: *
 Allow: /
 
-# ─── منع الزحف إلى الصفحات غير المرغوب فيها ───
+# ─── منع الزحف إلى الصفحات الإدارية والداخلية فقط ───
 Disallow: /admin/
 Disallow: /dashboard/
+Disallow: /docs/
 Disallow: /api/
 Disallow: /private/
 Disallow: /temp/
@@ -15,9 +16,12 @@ Disallow: /tmp/
 Disallow: /backup/
 Disallow: /logs/
 
-# ─── منع الزحف إلى الملفات غير المرغوب فيها ───
+# ─── السماح بخريطة الموقع وفئات المتجر ───
+Allow: /sitemap.xml
+Allow: /*?category=
+
+# ─── منع الزحف إلى الملفات الحساسة فقط ───
 Disallow: /*.json$
-Disallow: /*.xml$
 Disallow: /*.csv$
 Disallow: /*.log$
 Disallow: /*.sql$
@@ -25,16 +29,9 @@ Disallow: /*.env$
 Disallow: /*.lock$
 Disallow: /*.map$
 
-# ─── منع الزحف إلى صفحات النتائج والفلترة ───
-Disallow: /*?*
-Disallow: /*&*
-Disallow: /*?s=
-Disallow: /*?page=
+# ─── منع الزحف إلى فلاتر الفرز المؤقتة فقط ───
 Disallow: /*?sort=
 Disallow: /*?filter=
-Disallow: /*?category=
-Disallow: /*?search=
-Disallow: /*?query=
 
 # ─── منع الزحف إلى صفحات المستخدم والطلبات ───
 Disallow: /cart/
