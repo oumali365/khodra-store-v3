@@ -103,7 +103,7 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
                 {/* Ripple effect */}
                 <span className="relative z-10 flex items-center gap-2">
                   <span className="hidden sm:inline">فتح السلة</span>
-                  <span className="sm:hidden">السلة</span>
+                  <span className="sm:hidden">فتح السلة</span>
                   <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1 stroke-[2.5]" />
                 </span>
               </button>
