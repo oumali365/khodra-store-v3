@@ -85,12 +85,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     order.receiptFileName ? `📎 *وصل التحويل:* ${order.receiptFileName}` : '',
     ``,
     `*قائمة المنتجات:*`,
-    ...order.items.map(
-      (i) =>
-        `• ${i.icon} ${i.name} (${i.variantLabel}${
-          i.qty > 1 ? ` × ${i.qty}` : ''
-        }) — ${i.lineTotal.toFixed(2)} DH`
-    ),
+    ...order.items.map((i) => {
+      const isWeight = /^kg$/i.test(i.variantLabel || '');
+      const qtyText = isWeight
+        ? `${i.qty} kg`
+        : `${i.qty} × ${i.variantLabel || 'وحدة'}`;
+      return `• ${i.icon} ${i.name} (${qtyText}) — ${i.lineTotal.toFixed(2)} DH`;
+    }),
     ``,
     `💰 *المجموع الفرعي:* ${order.subtotal.toFixed(2)} DH`,
     `🚚 *رسوم التوصيل:* ${order.deliveryFee.toFixed(2)} DH`,
@@ -277,11 +278,12 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         <span className="text-xs font-black text-[#112616] truncate">
                           {i.name}
                         </span>
-                        {i.qty > 1 && (
-                          <span className="text-[10px] text-[#C25E12] font-black bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 shrink-0">
-                            ×{i.qty}
-                          </span>
-                        )}
+                        <span
+                          dir="ltr"
+                          className="text-[10px] text-[#C25E12] font-black bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 shrink-0"
+                        >
+                          {/^kg$/i.test(i.variantLabel || '') ? `${i.qty} kg` : `×${i.qty}`}
+                        </span>
                       </span>
                       <span className="text-xs font-black text-[#C25E12] tabular-nums shrink-0">
                         {i.lineTotal.toFixed(2)} DH

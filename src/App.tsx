@@ -106,14 +106,14 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ─── Cart state ───
+  // ─── Cart state (مع ترحيل تلقائي لأي عناصر قديمة لتوحيد الوزن في العداد) ───
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORE_CONFIG.cacheKey);
       if (!saved) return [];
       const parsed = JSON.parse(saved);
       if (!Array.isArray(parsed)) return [];
-      return parsed.filter(
+      const valid = parsed.filter(
         (item: any) =>
           item &&
           typeof item === 'object' &&
@@ -123,6 +123,51 @@ export default function App() {
           typeof item.lineTotal === 'number' &&
           !isNaN(item.lineTotal)
       );
+
+      // توحيد العناصر القديمة التي كانت تخزن "4 kg" في variantLabel و qty=1
+      const mergedMap = new Map<string, CartItem>();
+      for (const raw of valid) {
+        let unitLabel = String(raw.variantLabel || '');
+        let qty = Number(raw.qty) || 1;
+        let unitTotal = Number(raw.unitTotal) || +(raw.lineTotal / qty).toFixed(2);
+
+        const weightMatch = unitLabel.match(/^(\d+(?:\.\d+)?)\s*kg$/i);
+        const unitMatch = unitLabel.match(/^(\d+)\s*×\s*(.+)$/);
+
+        if (weightMatch) {
+          const baseWeight = parseFloat(weightMatch[1]) || 1;
+          unitTotal = baseWeight > 0 ? +(unitTotal / baseWeight).toFixed(2) : unitTotal;
+          qty = baseWeight * qty;
+          unitLabel = 'kg';
+        } else if (unitMatch) {
+          const baseCount = parseInt(unitMatch[1], 10) || 1;
+          unitTotal = baseCount > 0 ? +(unitTotal / baseCount).toFixed(2) : unitTotal;
+          qty = baseCount * qty;
+          unitLabel = unitMatch[2].trim() || 'وحدة';
+        }
+
+        const cleanKey = raw.bundleId ? `bundle|${raw.bundleId}` : String(raw.id);
+        const existing = mergedMap.get(cleanKey);
+        if (existing) {
+          const totalQty = existing.qty + qty;
+          mergedMap.set(cleanKey, {
+            ...existing,
+            qty: totalQty,
+            lineTotal: +(existing.unitTotal * totalQty).toFixed(2),
+          });
+        } else {
+          mergedMap.set(cleanKey, {
+            ...raw,
+            key: cleanKey,
+            variantLabel: unitLabel,
+            unitTotal,
+            qty,
+            lineTotal: +(unitTotal * qty).toFixed(2),
+          });
+        }
+      }
+
+      return Array.from(mergedMap.values());
     } catch {
       return [];
     }
@@ -376,20 +421,23 @@ export default function App() {
 
   const handleAddToCart = (product: Product, quantity: number) => {
     const isWeight = product.type === 'weight';
-    const variantLabel = isWeight ? `${quantity} kg` : `${quantity} × ${product.unit_label || 'unit'}`;
-    const key = `${product.id}|${variantLabel}`;
-    const total = quantity * product.price;
+    const variantLabel = isWeight ? 'kg' : (product.unit_label || 'وحدة');
+    const key = String(product.id);
+    const unitPrice = +product.price.toFixed(2);
 
     setCart((prev) => {
-      const index = prev.findIndex((i) => i.key === key);
+      const index = prev.findIndex((i) => i.key === key || i.id === product.id);
       if (index >= 0) {
         const next = [...prev];
         const existing = next[index];
-        const newQty = existing.qty + 1;
+        const newQty = existing.qty + quantity;
         next[index] = {
           ...existing,
+          key,
+          variantLabel,
+          unitTotal: unitPrice,
           qty: newQty,
-          lineTotal: +(total * newQty).toFixed(2),
+          lineTotal: +(unitPrice * newQty).toFixed(2),
         };
         return next;
       }
@@ -401,9 +449,9 @@ export default function App() {
         icon: product.icon,
         image_url: product.image_url,
         variantLabel,
-        unitTotal: +total.toFixed(2),
-        qty: 1,
-        lineTotal: +total.toFixed(2),
+        unitTotal: unitPrice,
+        qty: quantity,
+        lineTotal: +(unitPrice * quantity).toFixed(2),
       };
       return [...prev, newItem];
     });

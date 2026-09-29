@@ -78,10 +78,13 @@ export const OrderBordereauModal: React.FC<OrderBordereauModalProps> = ({
     const itemsLines =
       order.items.length > 0
         ? order.items
-            .map(
-              (it, i) =>
-                `  ${i + 1}. ${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ''} × ${it.qty} = ${Number(it.lineTotal).toFixed(2)} DH`
-            )
+            .map((it, i) => {
+              const isWeight = /^kg$/i.test(it.variantLabel || '');
+              const qtyLabel = isWeight
+                ? `${it.qty} kg`
+                : `${it.qty}${it.variantLabel ? ` (${it.variantLabel})` : ''}`;
+              return `  ${i + 1}. ${it.name} × ${qtyLabel} = ${Number(it.lineTotal).toFixed(2)} DH`;
+            })
             .join('\n')
         : '  (صندوق خضار وفواكه طازجة)';
 
@@ -148,15 +151,18 @@ export const OrderBordereauModal: React.FC<OrderBordereauModalProps> = ({
   const handlePrint = () => {
     const safeOrderCode = String(order.order_code || '').replace(/[<>&"']/g, '');
     const itemsRowsHtml = order.items
-      .map(
-        (item, idx) => `
+      .map((item, idx) => {
+        const isWeight = /^kg$/i.test(item.variantLabel || '');
+        const qtyDisplay = isWeight ? `${item.qty} kg` : item.qty;
+        const extraLabel = item.variantLabel && !isWeight ? `<span style="color:#57534e">(${item.variantLabel})</span>` : '';
+        return `
         <tr>
           <td>${idx + 1}</td>
-          <td><strong>${item.name}</strong> ${item.variantLabel ? `<span style="color:#57534e">(${item.variantLabel})</span>` : ''}</td>
-          <td style="text-align:center;font-weight:700">${item.qty}</td>
+          <td><strong>${item.name}</strong> ${extraLabel}</td>
+          <td style="text-align:center;font-weight:700" dir="ltr">${qtyDisplay}</td>
           <td style="text-align:left;font-family:monospace;font-weight:700" dir="ltr">${Number(item.lineTotal).toFixed(2)} DH</td>
-        </tr>`
-      )
+        </tr>`;
+      })
       .join('');
 
     const htmlDocument = `
@@ -602,18 +608,27 @@ export const OrderBordereauModal: React.FC<OrderBordereauModalProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {order.items.map((item, idx) => (
-                    <tr key={idx} className="border-b border-stone-200">
-                      <td className="p-1.5 font-bold text-stone-800">
-                        {item.name}{' '}
-                        {item.variantLabel ? <span className="text-stone-500 font-normal">({item.variantLabel})</span> : ''}
-                      </td>
-                      <td className="p-1.5 text-center font-black tabular-nums">{item.qty}</td>
-                      <td className="p-1.5 text-left font-mono font-bold tabular-nums" dir="ltr">
-                        {Number(item.lineTotal).toFixed(2)} DH
-                      </td>
-                    </tr>
-                  ))}
+                  {order.items.map((item, idx) => {
+                    const isWeight = /^kg$/i.test(item.variantLabel || '');
+                    return (
+                      <tr key={idx} className="border-b border-stone-200">
+                        <td className="p-1.5 font-bold text-stone-800">
+                          {item.name}{' '}
+                          {item.variantLabel && !isWeight ? (
+                            <span className="text-stone-500 font-normal">({item.variantLabel})</span>
+                          ) : (
+                            ''
+                          )}
+                        </td>
+                        <td className="p-1.5 text-center font-black tabular-nums" dir="ltr">
+                          {isWeight ? `${item.qty} kg` : item.qty}
+                        </td>
+                        <td className="p-1.5 text-left font-mono font-bold tabular-nums" dir="ltr">
+                          {Number(item.lineTotal).toFixed(2)} DH
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

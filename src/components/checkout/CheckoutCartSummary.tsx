@@ -105,8 +105,10 @@ export const CheckoutCartSummary: React.FC<CheckoutCartSummaryProps> = ({
                   <p className="text-xs font-black text-[#1A3D24] truncate">
                     {i.name}
                   </p>
-                  <p className="text-[10px] text-[#5A6B5F] font-bold truncate">
-                    {i.variantLabel} {i.qty > 1 && `× ${i.qty}`}
+                  <p className="text-[10px] text-[#5A6B5F] font-bold truncate" dir="ltr">
+                    {/^kg$/i.test(i.variantLabel || '')
+                      ? `${i.qty} kg`
+                      : `${i.qty} × ${i.variantLabel || 'وحدة'}`}
                   </p>
                 </div>
               </div>

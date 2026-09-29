@@ -57,6 +57,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
   };
 
   const isBundleItem = !!item.bundleId;
+  const isWeightItem = /^kg$|كغ|كيلو|\bkg\b/i.test(item.variantLabel || '');
 
   return (
     <motion.div
@@ -150,20 +151,17 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
           )}
         </div>
 
-        {/* ─── معلومات المنتج ─── */}
+        {/* ─── معلومات المنتج (بدون الوزن الصغير تحت العنوان) ─── */}
         <div className="flex-1 min-w-0 pointer-events-none">
           <h4 className="text-xs sm:text-sm font-black text-[#1A3D24] truncate leading-tight">
             {item.name}
           </h4>
-          <p className="text-[10px] sm:text-[11px] text-[#5A6B5F] font-bold truncate mt-0.5">
-            {item.variantLabel}
-          </p>
-          <div className="text-xs sm:text-sm font-black text-[#EA580C] mt-0.5 tabular-nums">
+          <div className="text-xs sm:text-sm font-black text-[#EA580C] mt-1 tabular-nums">
             {item.lineTotal.toFixed(2)} {STORE_CONFIG.currency}
           </div>
         </div>
 
-        {/* ─── عداد الكمية ─── */}
+        {/* ─── عداد الكمية / الوزن ─── */}
         <div
           className="flex items-center gap-1 bg-[#FAF8F3] border border-[#2D6A3F]/15 rounded-lg p-0.5 shrink-0 select-none touch-manipulation"
           onPointerDown={(e) => e.stopPropagation()}
@@ -181,8 +179,11 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
             <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
 
-          <span className="text-xs font-black text-[#1A3D24] min-w-[24px] text-center select-none tabular-nums">
-            {item.qty}
+          <span
+            dir="ltr"
+            className="text-xs font-black text-[#1A3D24] min-w-[38px] sm:min-w-[44px] px-1 text-center select-none tabular-nums whitespace-nowrap"
+          >
+            {isWeightItem ? `${item.qty} kg` : item.qty}
           </span>
 
           <button

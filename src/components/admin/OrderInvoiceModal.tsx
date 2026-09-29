@@ -249,8 +249,11 @@ export const OrderInvoiceModal: React.FC<OrderInvoiceModalProps> = ({
   const handleWhatsAppInvoice = () => {
     const items = order.items
       .map((it) => {
-        const variant = it.variantLabel ? ` (${it.variantLabel})` : '';
-        return `  • ${it.name}${variant} × ${it.qty} = ${formatMoney(Number(it.lineTotal))}`;
+        const isWeight = /^kg$/i.test(it.variantLabel || '');
+        const qtyLabel = isWeight
+          ? `${it.qty} kg`
+          : `${it.qty}${it.variantLabel ? ` (${it.variantLabel})` : ''}`;
+        return `  • ${it.name} × ${qtyLabel} = ${formatMoney(Number(it.lineTotal))}`;
       })
       .join('\n');
 
@@ -400,14 +403,14 @@ ${items}
                           <td className="px-2 py-2.5 text-right text-[#1A1814] font-black">
                             {item.icon && <span className="ml-1">{item.icon}</span>}
                             {item.name}
-                            {item.variantLabel && (
+                            {item.variantLabel && !/^kg$/i.test(item.variantLabel) && (
                               <span className="text-[10px] text-[#8C8474] font-medium block">
                                 {item.variantLabel}
                               </span>
                             )}
                           </td>
-                          <td className="px-2 py-2.5 text-center text-[#1A1814] font-bold">
-                            {item.qty}
+                          <td className="px-2 py-2.5 text-center text-[#1A1814] font-bold" dir="ltr">
+                            {/^kg$/i.test(item.variantLabel || '') ? `${item.qty} kg` : item.qty}
                           </td>
                           <td className="px-2 py-2.5 text-center text-[#C25E12] font-black whitespace-nowrap">
                             {formatMoney(Number(item.lineTotal))}

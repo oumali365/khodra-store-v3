@@ -155,8 +155,11 @@ function buildOrderText(order: DbOrder): string {
     lines.push('  (لا توجد تفاصيل)');
   } else {
     order.items.forEach((it) => {
-      const variant = it.variantLabel ? ` (${it.variantLabel})` : '';
-      lines.push(`  - ${it.name}${variant} × ${it.qty} = ${Number(it.lineTotal).toFixed(2)} DH`);
+      const isWeight = /^kg$/i.test(it.variantLabel || '');
+      const qtyLabel = isWeight
+        ? `${it.qty} kg`
+        : `${it.qty}${it.variantLabel ? ` (${it.variantLabel})` : ''}`;
+      lines.push(`  - ${it.name} × ${qtyLabel} = ${Number(it.lineTotal).toFixed(2)} DH`);
     });
   }
   lines.push('');
@@ -217,7 +220,13 @@ function buildDriverDispatchMessage(order: DbOrder, draft?: DeliveryDispatchInfo
     order.items.length > 0
       ? order.items
           .slice(0, 6)
-          .map((it) => `• ${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ''} × ${it.qty}`)
+          .map((it) => {
+            const isWeight = /^kg$/i.test(it.variantLabel || '');
+            const qtyLabel = isWeight
+              ? `${it.qty} kg`
+              : `${it.qty}${it.variantLabel ? ` (${it.variantLabel})` : ''}`;
+            return `• ${it.name} × ${qtyLabel}`;
+          })
           .join('\n') + (order.items.length > 6 ? `\n• +${order.items.length - 6} أصناف أخرى` : '')
       : '• صندوق خضار وفواكه طازجة';
 
