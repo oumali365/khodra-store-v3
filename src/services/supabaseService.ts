@@ -38,6 +38,9 @@ export function resolveProductImageUrl(url?: string | null): string | undefined 
 
   // التأكد من وجود الشرطة المائلة في البداية
   const clean = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  if (clean === '/images/products/vegetables/parsley.webp') {
+    return '/images/products/vegetables/parcley.webp';
+  }
   return clean;
 }
 

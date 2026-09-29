@@ -1549,7 +1549,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     unit_label: "باقة",
     stock: 60,
     icon: "🌿",
-    image_url: "/images/products/vegetables/parsley.webp",
+    image_url: "/images/products/vegetables/parcley.webp",
     active: true,
     description: "معدنوس أخضر طازج مقطوف صبيحة اليوم للسلطات والطبخ.",
     origin: "مزارع فاس",

@@ -28,6 +28,7 @@ import {
   DELIVERY_PROVIDERS,
   FEZ_DELIVERY_ZONES,
   STORE_PICKUP_HUB,
+  STORE_CONFIG,
 } from '../../data/config';
 import {
   DeliveryProvider,
@@ -194,42 +195,78 @@ function playOrderChime() {
   } catch { /* تجاهل */ }
 }
 
-function buildDriverDispatchMessage(order: DbOrder): string {
+function buildDriverDispatchMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
   const hub = STORE_PICKUP_HUB;
-  const dispatch = order.delivery_dispatch;
+  const dispatch = draft || order.delivery_dispatch;
   const providerObj = DELIVERY_PROVIDERS.find((p) => p.id === dispatch?.provider) || DELIVERY_PROVIDERS[0];
-  return `السلام عليكم 🚴
-طلب توصيل عبر (${providerObj.name}) لمتجر خُضرة 🌿
-رقم الطلب: ${order.order_code}
+  const zoneKey = (dispatch?.zone || order.delivery_zone || detectFezZone(order.address || '') || 'north') as keyof typeof FEZ_DELIVERY_ZONES;
+  const zoneInfo = FEZ_DELIVERY_ZONES[zoneKey] || FEZ_DELIVERY_ZONES.north;
+  const driverGreeting = dispatch?.driverName
+    ? `السلام عليكم كابتن *${dispatch.driverName}* 🛵`
+    : 'السلام عليكم كابتن التوصيل 🛵';
+  const mapUrl =
+    order.maps_link ||
+    (order.address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address + ' فاس')}`
+      : '');
+  const cleanN = cleanNote(order.note || '');
+  const deliveryCost = dispatch?.deliveryCost ?? 25;
+  const safeTotal = Number(order.total ?? 0);
 
-📍 نقطة الاستلام:
-${hub.name}
-${hub.address}
+  const itemsPreview =
+    order.items.length > 0
+      ? order.items
+          .slice(0, 6)
+          .map((it) => `• ${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ''} × ${it.qty}`)
+          .join('\n') + (order.items.length > 6 ? `\n• +${order.items.length - 6} أصناف أخرى` : '')
+      : '• صندوق خضار وفواكه طازجة';
 
-📍 نقطة التسليم:
-👤 الزبون: ${order.customer_name}
-📞 الهاتف: ${order.phone}
-🏠 العنوان: ${order.address}
-${order.maps_link ? `🗺️ الخريطة: ${order.maps_link}` : ''}
-
-💵 مبلغ التحصيل (COD): ${order.total.toFixed(2)} درهم
-📦 الطرد: صندوق عازل خضار وفواكه (${order.items.length} أصناف).`;
+  return [
+    `${driverGreeting}`,
+    `🌿 *طلب توصيل فوري - متجر خُضرة*`,
+    `🔖 *رقم الطلب:* ${order.order_code}`,
+    `🚴 *الخدمة:* ${providerObj.name}`,
+    `🧭 *المسار:* ${zoneInfo.name} (${zoneInfo.targetTime})`,
+    `────────────────────`,
+    `1️⃣ *نقطة الاستلام (التموين):*`,
+    `🏪 ${hub.name}`,
+    `📍 ${hub.address}`,
+    `🗺️ موقع الاستلام: ${hub.mapsLink}`,
+    `📞 هاتف الإدارة: ${STORE_CONFIG.whatsappNumber}`,
+    `────────────────────`,
+    `2️⃣ *وجهة التسليم (الزبون):*`,
+    `👤 *الاسم:* ${order.customer_name}`,
+    `📞 *الهاتف:* ${order.phone}`,
+    `🏠 *العنوان:* ${order.address}`,
+    mapUrl ? `🗺️ *رابط الموقع (GPS):* ${mapUrl}` : '',
+    cleanN ? `📝 *ملاحظة الزبون:* ${cleanN}` : '',
+    `────────────────────`,
+    `3️⃣ *تفاصيل الطرد والتحصيل (COD):*`,
+    `📦 *الشحنة:* صندوق عازل (${order.items.length} أصناف)`,
+    itemsPreview,
+    `🚚 *أجرة التوصيل المتفق عليها:* ${deliveryCost} درهم`,
+    `💵 *المبلغ المطلوب تحصيله من الزبون (COD): ${safeTotal.toFixed(2)} درهم* (نقداً عند التسليم)`,
+    `────────────────────`,
+    `⚠️ يرجى الاتصال بالزبون فور الوصول والمحافظة على استقامة الصندوق. طريق السلامة! 🌟`,
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
-function buildCustomerNotifyMessage(order: DbOrder): string {
-  const dispatch = order.delivery_dispatch;
+function buildCustomerNotifyMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
+  const dispatch = draft || order.delivery_dispatch;
   const provider = DELIVERY_PROVIDERS.find((p) => p.id === dispatch?.provider)?.name || 'inDrive Delivery';
-  const driverName = dispatch?.driverName || 'السائق';
+  const driverName = dispatch?.driverName || 'مندوب التوصيل';
   const driverPhone = dispatch?.driverPhone || '';
   return `مرحباً ${order.customer_name} 👋
 
-طلبك #${order.order_code} في الطريق إليك! 🚴
+طلبك #${order.order_code} من *متجر خُضرة* في الطريق إليك! 🚴🌿
 
-📍 شركة التوصيل: ${provider}
+📍 خدمة التوصيل: ${provider}
 👤 السائق: ${driverName}
 ${driverPhone ? `📞 رقم السائق: ${driverPhone}\n` : ''}⏰ الوصول المتوقع: خلال 25-45 دقيقة
 
-💵 المبلغ المطلوب: ${order.total.toFixed(2)} درهم (نقداً عند التسليم)
+💵 المبلغ المطلوب عند الاستلام: *${Number(order.total ?? 0).toFixed(2)} درهم*
 
 شكراً لثقتك في خُضرة 🌿`;
 }
@@ -482,19 +519,23 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
   const handleSendDriverDispatch = (order: DbOrder) => {
     const draft = dispatchDrafts[String(order.id)] || order.delivery_dispatch;
     const driverPhone = draft?.driverPhone;
-    const msg = buildDriverDispatchMessage(order);
+    const msg = buildDriverDispatchMessage(order, draft);
+    try {
+      navigator.clipboard.writeText(msg).catch(() => {});
+    } catch {}
     if (driverPhone) {
       const wa = toWhatsApp(driverPhone);
       window.open(`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, '_blank');
-      showToast('success', 'تم فتح واتساب لإرسال بيانات الشحنة للسائق');
+      showToast('success', 'تم نسخ الرسالة وفتح واتساب لإرسال بيانات الشحنة للسائق');
     } else {
-      navigator.clipboard.writeText(msg);
-      showToast('success', 'تم نسخ تفاصيل الرحلة لسائق التوصيل');
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+      showToast('success', 'تم نسخ رسالة استدعاء السائق وفتح واتساب لاختيار السائق');
     }
   };
 
   const handleSendCustomerDispatchNotify = (order: DbOrder) => {
-    const msg = buildCustomerNotifyMessage(order);
+    const draft = dispatchDrafts[String(order.id)] || order.delivery_dispatch;
+    const msg = buildCustomerNotifyMessage(order, draft);
     const wa = toWhatsApp(order.phone);
     if (wa) {
       window.open(`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -899,7 +940,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                               <div className="p-2 grid grid-cols-1 sm:grid-cols-3 gap-1.5 bg-emerald-50/70">
                                 <button type="button" onClick={() => handleSendDriverDispatch(order)}
                                   className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-100/70 text-emerald-900 border border-emerald-300 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                                  title="إرسال بيانات الشحنة للسائق">
+                                  title="إرسال بيانات الشحنة للسائق عبر واتساب ونسخها">
                                   <Send className="w-3.5 h-3.5 text-emerald-700" />
                                   <span>استدعاء السائق</span>
                                 </button>
@@ -909,9 +950,11 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                                   <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
                                   <span>إشعار الزبون</span>
                                 </button>
-                                <button type="button" onClick={() => setBordereauOrder(order)}
+                                <button
+                                  type="button"
+                                  onClick={() => setBordereauOrder({ ...order, delivery_dispatch: draft })}
                                   className="py-1.5 px-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                                  title="طباعة ملصق الشحن">
+                                  title="معاينة وطباعة ملصق الشحن">
                                   <Printer className="w-3.5 h-3.5 text-[#F5D76E]" />
                                   <span>ملصق الشحن</span>
                                 </button>
@@ -920,63 +963,84 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
                           );
                         })()}
 
-                        {/* ─── أزرار الإجراءات (بدون واتساب، والخريطة بعرض كامل) ─── */}
-                        <div className="mb-3 space-y-2">
-                          {/* الخريطة فقط بعرض كامل */}
-                          {order.maps_link && (
-                            <a href={order.maps_link} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-gradient-to-l from-[#2563EB] to-[#1E40AF] hover:from-[#1E40AF] hover:to-[#1E3A8A] text-white font-black text-xs shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 border-2 border-[#1E40AF]">
-                              <ExternalLink className="w-4 h-4 shrink-0" />
-                              <span>فتح الخريطة</span>
-                            </a>
-                          )}
+                        {/* ─── أزرار الإجراءات بتصميم شبكة 2×2 متناسقة ومصغرة ─── */}
+                        <div className="mb-3 grid grid-cols-2 gap-2">
+                          {/* 1. زر الخريطة (مصغر ضمن شبكة 2×2) */}
+                          {(() => {
+                            const mapHref =
+                              order.maps_link ||
+                              (order.address
+                                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address + ' فاس')}`
+                                : '#');
+                            return (
+                              <a
+                                href={mapHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-gradient-to-l from-[#2563EB] to-[#1E40AF] hover:from-[#1E40AF] hover:to-[#1E3A8A] text-white font-black text-xs shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 border-2 border-[#1E40AF]"
+                                title={order.maps_link ? 'فتح موقع الزبون الدقيق على الخريطة' : 'البحث عن عنوان الزبون في خرائط جوجل'}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">فتح الخريطة</span>
+                              </a>
+                            );
+                          })()}
 
-                          {/* الصف: الفاتورة + الحذف (مكان النسخ) + النسخ (مكان الواتساب) */}
-                          <div className="grid grid-cols-3 gap-2">
-                            <button type="button" onClick={() => setInvoiceOrder(order)}
-                              className="inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-xs shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 border-2 border-[#0E2615]"
-                              title="معاينة وطباعة الفاتورة">
-                              <Printer className="w-4 h-4 text-[#F5D76E] shrink-0" />
-                              <span className="truncate">الفاتورة</span>
-                            </button>
+                          {/* 2. زر الفاتورة */}
+                          <button
+                            type="button"
+                            onClick={() => setInvoiceOrder(order)}
+                            className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-xs shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 border-2 border-[#0E2615]"
+                            title="معاينة وطباعة الفاتورة"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-[#F5D76E] shrink-0" />
+                            <span className="truncate">الفاتورة</span>
+                          </button>
 
-                            <button type="button" onClick={() => setDeleteConfirmOrder(order)}
-                              disabled={isBeingDeleted}
-                              className="inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-black text-xs border-2 shadow-sm transition-all cursor-pointer active:scale-95 bg-red-50 hover:bg-red-100 text-red-700 border-red-300 hover:border-red-400 disabled:opacity-60"
-                              title="حذف الطلب">
-                              {isBeingDeleted ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
-                                  <span className="truncate">جاري...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Trash2 className="w-4 h-4 shrink-0" />
-                                  <span className="truncate">حذف</span>
-                                </>
-                              )}
-                            </button>
+                          {/* 3. زر النسخ */}
+                          <button
+                            type="button"
+                            onClick={() => handleCopyOrder(order)}
+                            className={`inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-black text-xs border-2 shadow-xs transition-all cursor-pointer active:scale-95 ${
+                              isCopied
+                                ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
+                                : 'bg-white hover:bg-[#F7F4EC] text-[#524B3E] hover:text-[#112616] border-[#E8E1D3] hover:border-[#C25E12]/40'
+                            }`}
+                            title="نسخ تفاصيل الطلب"
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span className="truncate">تم النسخ</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">نسخ الطلب</span>
+                              </>
+                            )}
+                          </button>
 
-                            <button type="button" onClick={() => handleCopyOrder(order)}
-                              className={`inline-flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-black text-xs border-2 shadow-sm transition-all cursor-pointer active:scale-95 ${
-                                isCopied
-                                  ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
-                                  : 'bg-white hover:bg-[#F7F4EC] text-[#524B3E] hover:text-[#112616] border-[#E8E1D3] hover:border-[#C25E12]/40'
-                              }`}
-                              title="نسخ تفاصيل الطلب">
-                              {isCopied ? (
-                                <>
-                                  <Check className="w-4 h-4 text-emerald-700 shrink-0" />
-                                  <span className="truncate">تم</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-4 h-4 shrink-0" />
-                                  <span className="truncate">نسخ</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
+                          {/* 4. زر الحذف */}
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmOrder(order)}
+                            disabled={isBeingDeleted}
+                            className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-black text-xs border-2 shadow-xs transition-all cursor-pointer active:scale-95 bg-red-50 hover:bg-red-100 text-red-700 border-red-300 hover:border-red-400 disabled:opacity-60"
+                            title="حذف الطلب"
+                          >
+                            {isBeingDeleted ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />
+                                <span className="truncate">جاري...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">حذف الطلب</span>
+                              </>
+                            )}
+                          </button>
                         </div>
 
                         {/* ─── صف الحالة ─── */}
