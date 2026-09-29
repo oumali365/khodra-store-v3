@@ -22,14 +22,12 @@ export const checkIfStandalone = (): boolean => {
 
 export const checkIfAlreadyInstalledOrDownloaded = (): boolean => {
   try {
+    // يختفي البانر فقط إذا كان التطبيق يعمل فعلياً كـ Standalone PWA / APK داخل الهاتف
     if (checkIfStandalone()) return true;
-    if (localStorage.getItem('khodra_app_installed') === 'true') return true;
-    if (localStorage.getItem('khodra_app_downloaded') === 'true') return true;
-    const dismissedAt = localStorage.getItem('khodra_banner_dismissed_time');
-    if (dismissedAt) {
-      const days = (Date.now() - parseInt(dismissedAt, 10)) / (1000 * 60 * 60 * 24);
-      if (days < 3) return true;
-    }
+    // تنظيف أي مفاتيح قديمة كانت تمنع ظهور البانر عند فتح التطبيق مرة أخرى
+    localStorage.removeItem('khodra_banner_dismissed_time');
+    localStorage.removeItem('khodra_app_installed');
+    localStorage.removeItem('khodra_app_downloaded');
   } catch {
     // ignore
   }
@@ -41,7 +39,7 @@ interface InstallAppBannerProps {
 }
 
 export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) => {
-  // يختفي البانر تلقائياً إذا كان التطبيق مثبتاً أو قيد التشغيل في الهاتف
+  // يظهر البانر أولاً دائماً عند فتح التطبيق مرة أخرى (إلا إذا كان مشغلاً كتطبيق مستقل)
   const [isVisible, setIsVisible] = useState<boolean>(() => {
     return !checkIfAlreadyInstalledOrDownloaded();
   });
@@ -52,12 +50,6 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
   const [modalInstallState, setModalInstallState] = useState<'idle' | 'downloading' | 'done'>('idle');
 
   const markAsInstalled = () => {
-    try {
-      localStorage.setItem('khodra_app_installed', 'true');
-      localStorage.setItem('khodra_app_downloaded', 'true');
-    } catch {
-      // ignore
-    }
     setIsVisible(false);
     onHide?.();
   };
@@ -73,8 +65,8 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
   };
 
   useEffect(() => {
-    // إذا كان التطبيق يعمل كـ PWA أو مثبت، نضمن إخفاء البانر تماماً
-    if (checkIfAlreadyInstalledOrDownloaded()) {
+    // إذا كان التطبيق يعمل كـ PWA مستقل، نضمن إخفاء البانر
+    if (checkIfStandalone()) {
       setIsVisible(false);
       onHide?.();
       return;
@@ -92,8 +84,7 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
-      // إذا كان مثبتاً مسبقاً لا داعي للبانر
-      if (checkIfAlreadyInstalledOrDownloaded()) return;
+      if (checkIfStandalone()) return;
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
@@ -127,11 +118,6 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
 
   const handleDismiss = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    try {
-      localStorage.setItem('khodra_banner_dismissed_time', Date.now().toString());
-    } catch {
-      // ignore
-    }
     setIsVisible(false);
     onHide?.();
   };
@@ -390,29 +376,32 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
         id="pwa-install-banner-khodra-theme"
         dir="rtl"
         aria-label="بانر تثبيت تطبيق خُضرة"
-        className="w-full bg-[#F5D76E] text-[#112616] border-b border-[#E5C352] shadow-xs z-40 select-none transition-all duration-300 relative"
+        className="w-full bg-gradient-to-l from-[#FACC15] via-[#FDE68A] to-[#EAB308] text-[#112616] border-b border-[#EAB308]/60 shadow-xs z-40 select-none transition-all duration-300 relative overflow-hidden"
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-6">
+        {/* خط تزييني سفلي رفيع بهوية خضرة */}
+        <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-l from-[#2D6A3F] via-[#3A8152] to-[#2D6A3F] opacity-85 pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between gap-3 sm:gap-6">
 
           {/* ─── اليمين: زر الإغلاق (✕) + شعار خُضرة + الوصف الفرعي ─── */}
-          <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
             {/* زر الإغلاق ✕ */}
             <button
               type="button"
               id="pwa-banner-dismiss-btn"
               onClick={handleDismiss}
-              className="w-7 h-7 sm:w-8 sm:h-8 min-w-[28px] min-h-[28px] flex items-center justify-center text-[#163920]/80 hover:text-[#112616] rounded-full hover:bg-black/10 active:scale-90 transition-all cursor-pointer touch-manipulation shrink-0"
+              className="group w-7 h-7 sm:w-8 sm:h-8 min-w-[28px] min-h-[28px] flex items-center justify-center text-[#163920]/75 hover:text-[#112616] rounded-full hover:bg-[#2D6A3F]/15 active:scale-90 transition-all cursor-pointer touch-manipulation shrink-0 border border-[#2D6A3F]/15"
               aria-label="إغلاق البانر"
             >
-              <X className="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-[2.4]" />
+              <X className="w-4 h-4 stroke-[2.5] group-hover:rotate-90 transition-transform duration-200" />
             </button>
 
             {/* أيقونة / شعار المتجر بحجم أوضح ومظهر جذاب */}
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white flex items-center justify-center shadow-xs shrink-0 border border-[#E5C352] overflow-hidden p-0.5">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white flex items-center justify-center shadow-xs shrink-0 border-2 border-[#2D6A3F]/20 overflow-hidden p-0.5">
               <img
                 src="/images/icons/web-app-manifest-192x192.png"
                 alt={STORE_CONFIG.storeName}
-                className="w-full h-full object-cover rounded-[13px]"
+                className="w-full h-full object-cover rounded-[12px]"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = '/images/icons/apple-touch-icon.png';
                 }}
@@ -420,7 +409,7 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
             </div>
 
             {/* الوصف الفرعي فقط بخط أوضح وأبرز */}
-            <p className="text-[#112616] font-black text-sm sm:text-base lg:text-[17px] leading-snug font-['Tajawal'] tracking-tight truncate">
+            <p className="text-[#1A3D24] font-black text-sm sm:text-base lg:text-[17px] leading-snug font-['Tajawal'] tracking-tight truncate">
               خضار وفواكه طازجة لباب دارك بفاس
             </p>
           </div>
@@ -432,9 +421,9 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
               id="pwa-banner-install-btn"
               onClick={handleInstallClick}
               disabled={installStatus === 'installing'}
-              className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-[#FFFDF8] active:bg-[#F7F4EC] text-[#163920] border border-white/80 shadow-sm hover:shadow-md active:scale-95 transition-all text-xs sm:text-sm font-black font-['Almarai'] whitespace-nowrap cursor-pointer touch-manipulation group"
+              className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-[#FFFDF8] active:bg-[#F7F4EC] text-[#1A3D24] border border-[#2D6A3F]/20 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 text-xs sm:text-sm font-black font-['Almarai'] whitespace-nowrap cursor-pointer touch-manipulation group"
             >
-              <Download className="w-4 h-4 text-[#163920] group-hover:translate-y-0.5 transition-transform shrink-0 stroke-[2.5]" />
+              <Download className="w-4 h-4 text-[#2D6A3F] group-hover:translate-y-0.5 transition-transform duration-200 shrink-0 stroke-[2.5]" />
               <span>حمل التطبيق</span>
             </button>
           </div>

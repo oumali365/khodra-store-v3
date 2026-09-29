@@ -16,8 +16,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
   };
 
   return (
-    <footer className="bg-[#112616] text-white pt-8 pb-20 sm:pb-16 border-t-4 border-[#C25E12]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="relative overflow-hidden bg-gradient-to-b from-[#112616] to-[#0B1C10] text-white pt-8 pb-20 sm:pb-16 border-t-4 border-[#C25E12]">
+      {/* إضاءة محيطية ناعمة في خلفية التذييل */}
+      <div className="absolute -top-24 right-1/4 w-72 h-72 bg-[#2D6A3F]/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 left-1/4 w-72 h-72 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* ════════ الشبكة الرئيسية ════════ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 text-right items-start">

@@ -647,20 +647,18 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                   onClick={() => scrollToReview(idx)}
                   ariaLabel={`تقييم من ${rev.author}`}
                   rippleColor="rgba(45,106,63,0.22)"
-                  animationDelay={idx * 90}
-                  // ✅ نفس أبعاد TrustBadges حرفياً: w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px]
-                  // + min-h-[300px] sm:min-h-[320px]
-                  className={`rev-fade-in-right group w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[300px] sm:min-h-[320px] cursor-pointer select-none ${
+                  animationDelay={idx * 80}
+                  className={`rev-fade-in-right group w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center bg-white rounded-3xl border-2 transition-all duration-300 md:hover:-translate-y-1 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[290px] sm:min-h-[310px] cursor-pointer select-none ${
                     isAdmin
-                      ? 'border-[#EAB308]/50 ring-2 ring-[#EAB308]/15 shadow-[0_4px_14px_rgba(234,179,8,0.20)]'
+                      ? 'border-[#EAB308]/50 ring-2 ring-[#EAB308]/15 shadow-[0_4px_14px_rgba(234,179,8,0.18)]'
                       : isActive
-                      ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.18)] scale-[1.02]'
-                      : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45 shadow-sm'
+                      ? 'border-[#2D6A3F] shadow-[0_6px_20px_rgba(45,106,63,0.14)] scale-[1.01]'
+                      : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45 shadow-xs hover:shadow-[0_10px_24px_rgba(45,106,63,0.12)]'
                   }`}
                 >
                   <div className="w-full flex flex-col items-center text-center relative z-10">
                     {/* الأفاتار */}
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#2D6A3F]/10 to-[#EAB308]/10 border-2 border-[#2D6A3F]/15 flex items-center justify-center shadow-sm mb-3.5 transition-transform duration-300 group-hover:scale-105">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#2D6A3F]/10 to-[#EAB308]/10 border-2 border-[#2D6A3F]/15 flex items-center justify-center shadow-2xs mb-3.5 transition-transform duration-300 ease-out group-hover:scale-108 group-hover:-rotate-2">
                       <span className="text-xl sm:text-2xl font-black text-[#2D6A3F]">
                         {rev.author.trim().charAt(0) || 'خ'}
                       </span>

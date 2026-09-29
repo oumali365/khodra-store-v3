@@ -336,7 +336,7 @@ export const Hero: React.FC<HeroProps> = ({
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex flex-row md:grid md:grid-cols-2 gap-4 sm:gap-6 overflow-x-auto md:overflow-x-visible py-4 md:py-0 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
+          className="flex flex-row md:grid md:grid-cols-2 gap-4 sm:gap-6 overflow-x-auto md:overflow-x-visible py-1.5 md:py-0 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
           <div className="hero-spacer" aria-hidden="true" />
@@ -348,12 +348,12 @@ export const Hero: React.FC<HeroProps> = ({
             return (
               <article
                 key={slide.id}
-                style={{ animationDelay: `${index * 180}ms` }}
-                // ✅ بطاقات أكبر: عرض 92vw + ارتفاع 460/520/540 + حشو أكبر
-                className={`hero-fade-in-right group relative w-[92vw] max-w-[380px] sm:w-[400px] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl min-h-[460px] sm:min-h-[520px] lg:min-h-[540px] p-5 sm:p-6 lg:p-7 border-2 text-center overflow-hidden flex flex-col justify-between select-none transition-all duration-300 ${
+                style={{ animationDelay: `${index * 150}ms` }}
+                // ✅ إزالة الظل الزائد + تفتيح طبقة التعتيم لإبراز الصور الطبيعية
+                className={`hero-fade-in-right group relative w-[92vw] max-w-[380px] sm:w-[400px] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl min-h-[450px] sm:min-h-[500px] lg:min-h-[520px] p-5 sm:p-6 lg:p-7 border-2 text-center overflow-hidden flex flex-col justify-between select-none transition-all duration-300 ${
                   isActive
-                    ? 'border-[#2D6A3F] shadow-[0_12px_38px_rgba(45,106,63,0.42)]'
-                    : 'border-[#2D6A3F]/45 shadow-lg'
+                    ? 'border-[#2D6A3F] shadow-none'
+                    : 'border-[#2D6A3F]/35 hover:border-[#2D6A3F]/65 shadow-none'
                 }`}
               >
                 {/* ════════ صورة الخلفية (Parallax) ════════ */}
@@ -367,34 +367,32 @@ export const Hero: React.FC<HeroProps> = ({
                   />
                 </div>
 
-                {/* تدرج داكن */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10]/98 via-[#0B1C10]/80 to-[#0B1C10]/50 pointer-events-none" />
+                {/* تدرج التعتيم (مُفتّح قليلاً لإبراز جمال الصور مع الحفاظ على وضوح النص) */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10]/82 via-[#0B1C10]/48 to-[#0B1C10]/18 pointer-events-none transition-opacity duration-300 group-hover:from-[#0B1C10]/80 group-hover:via-[#0B1C10]/44" />
 
-                {/* دوائر ضوئية */}
-                <div className="absolute -top-20 -right-20 w-60 h-60 bg-[#EAB308]/18 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-[#2D6A3F]/45 rounded-full blur-3xl pointer-events-none" />
+                {/* إضاءة محيطية ناعمة */}
+                <div className="absolute -top-20 -right-20 w-56 h-56 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-20 -left-20 w-56 h-56 bg-[#2D6A3F]/25 rounded-full blur-3xl pointer-events-none" />
 
                 {/* ════════ الشارة الذهبية ════════ */}
                 <div className="relative z-10 flex items-center justify-center">
-                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] backdrop-blur-md border border-[#EAB308]/60 text-[#1A3D24] text-[11px] sm:text-xs font-black tracking-wide shadow-lg shadow-[#EAB308]/40">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/90 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] border border-[#EAB308]/60 text-[#1A3D24] text-[11px] sm:text-xs font-black tracking-wide shadow-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#1A3D24]/80 animate-pulse" />
                     <span>{slide.badge}</span>
                   </span>
                 </div>
 
                 {/* ════════ المحتوى ════════ */}
                 <div className="relative z-10 flex flex-col items-center justify-center flex-1 mx-auto py-5 text-center">
-                  {/* ✅ عنوان أكبر: 28/32/36 بدل 26/30/34 */}
-                  <h1 className="text-[28px] sm:text-[32px] lg:text-[36px] font-black text-white leading-[1.3] tracking-tight mb-5 drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
+                  <h1 className="text-[28px] sm:text-[32px] lg:text-[36px] font-black text-white leading-[1.3] tracking-tight mb-5 drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]">
                     {slide.title}{' '}
-                    <span className="relative inline-block text-[#FB923C] drop-shadow-[0_2px_8px_rgba(234,88,12,0.45)]">
+                    <span className="relative inline-block text-[#FB923C] drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
                       {slide.highlight}
                       <span className="absolute -bottom-1.5 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#EA580C] to-transparent rounded-full" />
                     </span>
                   </h1>
 
-                  {/* ✅ وصف أكبر: 15/16 بدل 14/15 */}
-                  <p className="text-[15px] sm:text-base text-white leading-[1.9] mb-6 font-bold drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)] max-w-[94%] bg-black/15 backdrop-blur-[2px] px-3.5 py-2.5 rounded-xl border border-white/10">
+                  <p className="text-[15px] sm:text-base text-white leading-[1.85] mb-6 font-bold drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)] max-w-[94%] bg-black/15 backdrop-blur-[2px] px-3.5 py-2.5 rounded-xl border border-white/15">
                     {slide.description}
                   </p>
 
@@ -404,10 +402,9 @@ export const Hero: React.FC<HeroProps> = ({
                         id="hero-shop-now-btn"
                         onClick={onScrollToCatalog}
                         rippleColor="rgba(45,106,63,0.30)"
-                        // ✅ زر أكبر: py-4 + text-base
-                        className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-4 rounded-2xl bg-white/95 backdrop-blur-sm text-[#2D6A3F] font-black text-base shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.32)] hover:bg-white hover:scale-[1.015] active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/40"
+                        className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl bg-white/95 backdrop-blur-sm text-[#1A3D24] font-black text-base shadow-sm hover:shadow-md hover:bg-white hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/60"
                       >
-                        <Leaf className="w-5 h-5 text-[#2D6A3F] relative z-10" />
+                        <Leaf className="w-5 h-5 text-[#2D6A3F] relative z-10 transition-transform duration-200 group-hover/btn:scale-110" />
                         <span className="relative z-10">تسوق الآن</span>
                         <ArrowDown className="w-5 h-5 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5] relative z-10" />
                       </RippleButton>
@@ -416,9 +413,9 @@ export const Hero: React.FC<HeroProps> = ({
                         <RippleButton
                           onClick={onScrollToBundles}
                           rippleColor="rgba(45,106,63,0.30)"
-                          className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-4 rounded-2xl bg-white/95 backdrop-blur-sm text-[#2D6A3F] font-black text-base shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.32)] hover:bg-white hover:scale-[1.015] active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/40"
+                          className="w-full inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl bg-white/95 backdrop-blur-sm text-[#1A3D24] font-black text-base shadow-sm hover:shadow-md hover:bg-white hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.985] transition-all duration-200 cursor-pointer group/btn border border-white/60"
                         >
-                          <Package className="w-5 h-5 text-[#2D6A3F] relative z-10" />
+                          <Package className="w-5 h-5 text-[#2D6A3F] relative z-10 transition-transform duration-200 group-hover/btn:scale-110" />
                           <span className="relative z-10">اكتشف الآن</span>
                           <ArrowDown className="w-5 h-5 text-[#2D6A3F] group-hover/btn:translate-y-1 transition-transform duration-200 animate-bounce stroke-[2.5] relative z-10" />
                         </RippleButton>
@@ -429,8 +426,8 @@ export const Hero: React.FC<HeroProps> = ({
 
                 {/* ════════ الأسفل: حالة التوصيل ════════ */}
                 <div className="relative z-10 pt-3 border-t border-white/15 flex items-center justify-center">
-                  <div className="flex items-center gap-2 text-[11px] font-extrabold text-[#FAFAF7] bg-white/5 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-white/10">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm" />
+                  <div className="flex items-center gap-2 text-[11px] font-extrabold text-[#FAFAF7] bg-black/20 backdrop-blur-xs px-3.5 py-1.5 rounded-full border border-white/15">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span>
                       خدمة التوصيل نشطة اليوم في {STORE_CONFIG.city}
                     </span>

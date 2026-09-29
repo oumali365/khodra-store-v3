@@ -266,17 +266,17 @@ export const TrustBadges: React.FC = () => {
                 onClick={() => scrollToIndex(idx)}
                 ariaLabel={`الميزة: ${f.title}`}
                 rippleColor={idx % 2 === 0 ? 'rgba(45,106,63,0.22)' : 'rgba(234,88,12,0.22)'}
-                className={`trust-fade-in-right group w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-all duration-300 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[300px] sm:min-h-[320px] cursor-pointer select-none ${
+                className={`trust-fade-in-right group w-[66vw] min-w-[210px] max-w-[245px] sm:w-[230px] md:w-[245px] shrink-0 snap-center bg-white rounded-3xl border-2 transition-all duration-300 md:hover:-translate-y-1 px-5 py-7 text-center flex flex-col items-center justify-center min-h-[290px] sm:min-h-[310px] cursor-pointer select-none ${
                   isActive
-                    ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.18)] scale-[1.02]'
-                    : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45 shadow-sm'
+                    ? 'border-[#2D6A3F] shadow-[0_6px_20px_rgba(45,106,63,0.14)] scale-[1.01]'
+                    : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45 shadow-xs hover:shadow-[0_10px_24px_rgba(45,106,63,0.12)]'
                 }`}
                 // @ts-ignore
-                style={{ animationDelay: `${idx * 90}ms` }}
+                style={{ animationDelay: `${idx * 80}ms` }}
               >
                 {/* الأيقونة */}
                 <div
-                  className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl ${f.iconBg} border-2 flex items-center justify-center shadow-sm mb-5 relative z-10 transition-transform duration-300 group-hover:scale-110`}
+                  className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl ${f.iconBg} border-2 flex items-center justify-center shadow-2xs mb-5 relative z-10 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:-rotate-3`}
                 >
                   {f.icon}
                 </div>

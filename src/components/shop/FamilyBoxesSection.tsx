@@ -72,8 +72,9 @@ const BoxImageDisplay: React.FC<{
   alt: string;
   className?: string;
   badge?: string;
-}> = ({ src, alt, className = '', badge }) => {
+}> = ({ src, alt, className = '' }) => {
   const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   if (hasError || !src) {
     return (
@@ -95,7 +96,8 @@ const BoxImageDisplay: React.FC<{
       alt={alt}
       loading="lazy"
       decoding="async"
-      className={className}
+      onLoad={() => setIsLoaded(true)}
+      className={`${className} transition-all duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
       onError={() => setHasError(true)}
     />
   );
@@ -556,35 +558,38 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
             return (
               <article
                 key={box.id}
-                style={{ animationDelay: `${idx * 120}ms` }}
-                className={`box-fade-in-right w-[88vw] max-w-[340px] sm:w-[360px] md:w-auto md:max-w-none shrink-0 snap-center bg-white rounded-3xl border-2 shadow-sm transition-all duration-300 p-4 sm:p-5 text-right flex flex-col justify-between ${
+                style={{ animationDelay: `${idx * 100}ms` }}
+                className={`box-fade-in-right group/card relative w-[88vw] max-w-[340px] sm:w-[360px] md:w-auto md:max-w-none shrink-0 snap-center bg-white rounded-3xl border-2 transition-all duration-300 md:hover:-translate-y-1 p-4 sm:p-5 text-right flex flex-col justify-between ${
                   isActive
-                    ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.18)]'
-                    : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45'
+                    ? 'border-[#2D6A3F] shadow-[0_6px_20px_rgba(45,106,63,0.14)] md:hover:shadow-[0_12px_28px_rgba(45,106,63,0.18)]'
+                    : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45 shadow-xs md:hover:shadow-[0_10px_24px_rgba(45,106,63,0.14)]'
                 }`}
               >
                 <div>
                   {/* ═══ صورة الصندوق ═══ */}
                   <div
                     onClick={() => openBoxModal(box)}
-                    className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-stone-100 cursor-pointer group"
+                    className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-[#FAF8F3] cursor-pointer group"
                   >
                     <BoxImageDisplay
                       src={box.image}
                       alt={box.name}
-                      className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                      className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-106"
                     />
+
+                    {/* تدرج خفيف أسفل الصورة لإبراز الشارات */}
+                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
 
                     {/* شارة علوية ذهبية */}
                     <div className="absolute top-3 right-3 z-10">
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-[#1A3D24] text-[11px] sm:text-xs font-black shadow-md tracking-wide border border-white/40">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-[#1A3D24] text-[11px] sm:text-xs font-black shadow-xs tracking-wide border border-white/50">
                         {box.badge}
                       </span>
                     </div>
 
                     {/* شارة سفلية خضراء */}
                     <div className="absolute bottom-3 left-3 z-10">
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2D6A3F] to-[#1A3D24] text-white text-[11px] sm:text-xs font-black shadow-md tracking-wide border border-[#EAB308]/30">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2D6A3F] to-[#1A3D24] text-white text-[11px] sm:text-xs font-black shadow-xs tracking-wide border border-[#EAB308]/35">
                         {box.savingsBadge}
                       </span>
                     </div>

@@ -116,19 +116,20 @@ const CategoryCardButton: React.FC<{
       ariaSelected={isSelected}
       onClick={onSelect}
       rippleColor={hasBackgroundImage ? 'rgba(234,179,8,0.40)' : 'rgba(45,106,63,0.28)'}
-      className={`category-fade-in-right group relative flex flex-col justify-end p-4 rounded-3xl border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.98] shrink-0 min-w-[158px] sm:min-w-[174px] md:min-w-0
-        min-h-[200px]
-        xs:min-h-[216px]
-        sm:min-h-[232px]
-        md:min-h-[248px]
-        lg:min-h-[280px]
-        xl:min-h-[310px]
-        2xl:min-h-[340px]
-        [@media(min-width:1920px)]:min-h-[380px]
-        md:max-h-[420px]
+      className={`category-fade-in-right group relative flex flex-col justify-end p-2.5 sm:p-3 rounded-2xl sm:rounded-[20px] border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.97] shrink-0
+        w-[116px] min-w-[116px]
+        xs:w-[124px] xs:min-w-[124px]
+        sm:w-[136px] sm:min-w-[136px]
+        md:w-auto md:min-w-0
+        min-h-[134px]
+        xs:min-h-[142px]
+        sm:min-h-[152px]
+        md:min-h-[160px]
+        lg:min-h-[170px]
+        xl:min-h-[180px]
         ${isSelected
-          ? 'border-[#2D6A3F] scale-[1.02] shadow-[0_4px_14px_rgba(45,106,63,0.20)]'
-          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 shadow-sm'
+          ? 'border-[#2D6A3F] -translate-y-0.5 shadow-[0_6px_16px_rgba(45,106,63,0.18)] ring-2 ring-[#EAB308]/35'
+          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:-translate-y-0.5 shadow-xs hover:shadow-md'
         } ${
         !hasBackgroundImage
           ? isSelected
@@ -140,11 +141,11 @@ const CategoryCardButton: React.FC<{
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       {currentSrc && !hasError && (
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-[22px]">
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-[14px] sm:rounded-[18px]">
           <img
             src={currentSrc}
             alt={category.name}
-            className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 ${
+            className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-108 ${
               isLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             loading="lazy"
@@ -157,8 +158,8 @@ const CategoryCardButton: React.FC<{
           <div
             className={`absolute inset-0 transition-opacity duration-300 ${
               isSelected
-                ? 'bg-gradient-to-t from-[#0B1C10]/80 via-[#0B1C10]/20 to-transparent'
-                : 'bg-gradient-to-t from-[#0B1C10]/75 via-[#0B1C10]/15 to-transparent group-hover:from-[#0B1C10]/80 group-hover:via-[#0B1C10]/25'
+                ? 'bg-gradient-to-t from-[#0B1C10]/78 via-[#0B1C10]/20 to-transparent'
+                : 'bg-gradient-to-t from-[#0B1C10]/70 via-[#0B1C10]/12 to-transparent group-hover:from-[#0B1C10]/75 group-hover:via-[#0B1C10]/20'
             }`}
           />
 
@@ -169,9 +170,9 @@ const CategoryCardButton: React.FC<{
       )}
 
       {!hasBackgroundImage && (
-        <div className="relative z-10 flex-1 flex items-center justify-center py-2">
+        <div className="relative z-10 flex-1 flex items-center justify-center py-1.5">
           <span
-            className={`text-5xl sm:text-6xl transition-all duration-300 ${
+            className={`text-4xl sm:text-5xl transition-all duration-300 ${
               isSelected ? 'scale-110' : 'group-hover:scale-110'
             }`}
           >
@@ -180,13 +181,13 @@ const CategoryCardButton: React.FC<{
         </div>
       )}
 
-      <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-2">
+      <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-1.5">
         <span
-          className={`text-[15px] sm:text-[17px] font-black leading-tight transition-colors duration-300 ${
+          className={`text-[13px] sm:text-[14px] lg:text-[15px] font-black leading-tight transition-colors duration-300 ${
             hasBackgroundImage
               ? isSelected
-                ? 'text-[#EAB308] drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]'
-                : 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.75)]'
+                ? 'text-[#FACC15] drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]'
+                : 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]'
               : isSelected
               ? 'text-[#EAB308]'
               : 'text-[#112616]'
@@ -196,13 +197,13 @@ const CategoryCardButton: React.FC<{
         </span>
 
         {isSelected ? (
-          <span className="w-12 h-1.5 rounded-full bg-[#EAB308] mt-2" />
+          <span className="w-8 sm:w-9 h-1 rounded-full bg-[#EAB308] mt-1.5" />
         ) : (
           <span
-            className={`h-0.5 rounded-full mt-2 transition-all duration-300 ${
+            className={`h-0.5 rounded-full mt-1.5 transition-all duration-300 ${
               hasBackgroundImage
-                ? 'w-7 bg-white/35 group-hover:w-11 group-hover:bg-[#FB923C]'
-                : 'w-7 bg-[#2D6A3F]/25 group-hover:w-11 group-hover:bg-[#FB923C]'
+                ? 'w-5 bg-white/40 group-hover:w-8 group-hover:bg-[#FB923C]'
+                : 'w-5 bg-[#2D6A3F]/25 group-hover:w-8 group-hover:bg-[#FB923C]'
             }`}
           />
         )}
@@ -210,7 +211,7 @@ const CategoryCardButton: React.FC<{
 
       {isPulsing && (
         <div
-          className="category-focus-pulse absolute inset-0 rounded-[22px] bg-[#EAB308]/20 pointer-events-none"
+          className="category-focus-pulse absolute inset-0 rounded-[14px] sm:rounded-[18px] bg-[#EAB308]/20 pointer-events-none"
           aria-hidden="true"
         />
       )}
@@ -391,24 +392,24 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
       `}</style>
 
-      <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-[36px] p-5 sm:p-7 md:p-8 shadow-[0_2px_10px_rgba(45,106,63,0.05)] overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[22px] sm:rounded-[28px] p-4 sm:p-5 md:p-6 shadow-[0_2px_10px_rgba(45,106,63,0.05)] overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-56 h-56 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-56 h-56 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
 
           {/* ═══════ 1. الرأس ═══════ */}
-          <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-[#2D6A3F]/10">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-between gap-3 mb-3.5 sm:mb-4 pb-3 border-b border-[#2D6A3F]/10">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <button
                 type="button"
                 id="category-filter-sort-btn"
                 onClick={onOpenSort}
-                className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] active:scale-95 transition-all flex items-center justify-center shrink-0 shadow-sm hover:shadow-md cursor-pointer border border-[#EAB308]/25 group focus:outline-none focus:ring-2 focus:ring-[#2D6A3F]/30"
+                className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] active:scale-95 transition-all flex items-center justify-center shrink-0 shadow-xs hover:shadow-md cursor-pointer border border-[#EAB308]/25 group focus:outline-none focus:ring-2 focus:ring-[#2D6A3F]/30"
                 title="فرز وتصفية المنتجات"
                 aria-label="فرز وتصفية المنتجات"
               >
-                <SlidersHorizontal className="w-5 h-5 text-[#EAB308] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90" />
+                <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5 text-[#EAB308] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90" />
                 {hasActiveFilters && (
                   <span className="absolute -top-1 -right-1 flex h-3 w-3">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FB923C] opacity-75" />
@@ -418,11 +419,11 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
 
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-2xl font-black text-[#112616] leading-tight truncate flex items-center gap-2">
+                <h2 className="text-base sm:text-xl font-black text-[#112616] leading-tight truncate flex items-center gap-1.5">
                   تسوق حسب الفئات
-                  <span className="inline-block w-2 h-2 rounded-full bg-[#EAB308] shrink-0" />
+                  <span className="inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#EAB308] shrink-0" />
                 </h2>
-                <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold mt-0.5 truncate">
+                <p className="text-[11px] sm:text-xs text-[#5A6B5F] font-bold mt-0.5 truncate">
                   اختر الفئة المناسبة لتصفح المنتجات
                 </p>
               </div>
@@ -433,7 +434,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 <button
                   type="button"
                   onClick={onClearSearch}
-                  className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3 py-1.5 rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
+                  className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3 py-1.5 rounded-full transition-all cursor-pointer shadow-xs active:scale-95"
                 >
                   <span className="max-w-[110px] sm:max-w-none truncate">
                     إلغاء البحث "{searchQuery}"
@@ -446,7 +447,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 <button
                   type="button"
                   onClick={onOpenSort}
-                  className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FACC15] to-[#EAB308] hover:from-[#EAB308] hover:to-[#CA8A04] text-[#1A3D24] border border-[#EAB308]/50 px-3.5 py-2 rounded-full text-xs font-black cursor-pointer transition-all active:scale-95 shadow-sm shrink-0"
+                  className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FACC15] to-[#EAB308] hover:from-[#EAB308] hover:to-[#CA8A04] text-[#1A3D24] border border-[#EAB308]/50 px-3 py-1.5 rounded-full text-xs font-black cursor-pointer transition-all active:scale-95 shadow-xs shrink-0"
                   title="تعديل خيارات التصفية"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -463,9 +464,9 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 type="button"
                 onClick={() => scrollByAmount('right')}
                 aria-label="تمرير لليمين"
-                className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 shadow-sm text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
+                className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 shadow-xs text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             )}
 
@@ -474,15 +475,15 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 type="button"
                 onClick={() => scrollByAmount('left')}
                 aria-label="تمرير لليسار"
-                className="hidden md:flex absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 shadow-sm text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
+                className="hidden md:flex absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 shadow-xs text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
             )}
 
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-5 overflow-x-auto md:overflow-visible py-3 px-3 sm:px-4 md:px-1 overscroll-x-contain no-scrollbar items-stretch"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5 lg:gap-4 overflow-x-auto md:overflow-visible py-2 px-1.5 sm:px-2 md:px-0.5 overscroll-x-contain no-scrollbar items-stretch"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
@@ -493,49 +494,39 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                   category={cat}
                   isSelected={selectedCategory === cat.id}
                   onSelect={() => onSelectCategory(cat.id)}
-                  animationDelay={index * 70}
+                  animationDelay={index * 60}
                 />
               ))}
             </div>
           </div>
 
-          {/* ═══════ 3. مؤشر التمرير (جوال) — مع هوامش وإبراز ═══════ */}
+          {/* ═══════ 3. مؤشر التمرير (جوال) — متناسق وخفيف ═══════ */}
           {showScrollHint && (
             <div
-              className="md:hidden flex flex-col items-center select-none pointer-events-none mt-4 mb-2"
+              className="md:hidden flex flex-col items-center select-none pointer-events-none mt-2.5 mb-0.5"
               aria-hidden="true"
             >
-              {/* ✨ خط علوي خفيف */}
-              <span className="block w-16 h-px bg-gradient-to-r from-transparent via-[#2D6A3F]/25 to-transparent mb-3" />
-
-              {/* 🎯 شريط المؤشر — خلفية خفيفة + إطار + ظل */}
-              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm border border-[#2D6A3F]/20 shadow-[0_2px_10px_rgba(45,106,63,0.08)]">
-                {/* سهم أيسر */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/75 backdrop-blur-xs border border-[#2D6A3F]/15 shadow-2xs">
                 <span
                   className={`inline-flex transition-opacity duration-300 ${
                     canScrollLeft ? 'category-scroll-hint-left opacity-100' : 'opacity-25'
                   }`}
                 >
-                  <ChevronLeft className="w-4 h-4 text-[#2D6A3F]" strokeWidth={3} />
+                  <ChevronLeft className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={3} />
                 </span>
 
-                {/* العبارة — أوضح وأكبر */}
-                <span className="text-[12px] font-black text-[#1A3D24] tracking-wide whitespace-nowrap">
+                <span className="text-[11px] font-black text-[#1A3D24] tracking-wide whitespace-nowrap">
                   اسحب للتصفح
                 </span>
 
-                {/* سهم أيمن */}
                 <span
                   className={`inline-flex transition-opacity duration-300 ${
                     canScrollRight ? 'category-scroll-hint-right opacity-100' : 'opacity-25'
                   }`}
                 >
-                  <ChevronRight className="w-4 h-4 text-[#2D6A3F]" strokeWidth={3} />
+                  <ChevronRight className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={3} />
                 </span>
               </div>
-
-              {/* ✨ خط سفلي خفيف */}
-              <span className="block w-16 h-px bg-gradient-to-r from-transparent via-[#2D6A3F]/25 to-transparent mt-3" />
             </div>
           )}
 

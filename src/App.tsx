@@ -570,6 +570,7 @@ export default function App() {
         onReenter={() => {
           setIsAppExited(false);
           setIsExitConfirmOpen(false);
+          setIsInstallBannerVisible(!checkIfAlreadyInstalledOrDownloaded());
           window.history.pushState({ page: 'main' }, '');
         }}
         cartCount={cartCount}

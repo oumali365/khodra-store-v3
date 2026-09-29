@@ -184,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
       `}</style>
 
       {/* ════════ الهيدر الرئيسي ════════ */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#2D6A3F]/12 shadow-[0_2px_12px_rgba(45,106,63,0.06)] transition-all">
+      <header className="sticky top-0 z-50 bg-white/92 backdrop-blur-md border-b border-[#2D6A3F]/12 shadow-[0_2px_10px_rgba(45,106,63,0.05)] transition-all duration-200">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-6">
 
@@ -197,10 +197,10 @@ export const Header: React.FC<HeaderProps> = ({
                 ariaLabel={isMenuOpen ? 'إغلاق القائمة' : 'فتح القائمة الرئيسية'}
                 ariaExpanded={isMenuOpen}
                 rippleColor="rgba(255,255,255,0.30)"
-                className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl flex items-center justify-center text-white transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#2D6A3F]/35 touch-manipulation select-none cursor-pointer shrink-0 ${
+                className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl flex items-center justify-center text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#2D6A3F]/35 touch-manipulation select-none cursor-pointer shrink-0 ${
                   isMenuOpen
-                    ? 'bg-gradient-to-br from-[#EA580C] to-[#C25E12] shadow-[0_4px_14px_rgba(234,88,12,0.35)]'
-                    : 'bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] shadow-[0_4px_14px_rgba(45,106,63,0.30)] hover:from-[#3A8152] hover:to-[#2D6A3F]'
+                    ? 'bg-gradient-to-br from-[#EA580C] to-[#C25E12] shadow-[0_4px_12px_rgba(234,88,12,0.30)]'
+                    : 'bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] shadow-[0_4px_12px_rgba(45,106,63,0.24)] hover:from-[#3A8152] hover:to-[#2D6A3F]'
                 }`}
               >
                 {isMenuOpen ? (
@@ -220,7 +220,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="flex flex-col justify-center">
                   <span className="text-2xl sm:text-3xl font-black text-[#1A3D24] group-hover:text-[#2D6A3F] font-['Almarai'] tracking-tight leading-none transition-colors flex items-center gap-1.5">
                     {STORE_CONFIG.storeName}
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#EAB308] mb-4 sm:mb-5" />
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#EAB308] mb-4 sm:mb-5 transition-transform duration-300 group-hover:scale-125" />
                   </span>
                   <span className="text-[11px] sm:text-xs text-[#5A6B5F] font-bold mt-1 tracking-normal hidden xs:block sm:block truncate">
                     خضر وفواكه طازجة لباب دارك
@@ -232,13 +232,13 @@ export const Header: React.FC<HeaderProps> = ({
             {/* ── وسط: حقل البحث (سطح المكتب) ── */}
             <form onSubmit={onSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-4">
               <div className="relative w-full group">
-                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A6B5F] group-focus-within:text-[#2D6A3F] transition-colors pointer-events-none" strokeWidth={2.5} />
+                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A6B5F] group-focus-within:text-[#2D6A3F] group-focus-within:scale-110 transition-all duration-200 pointer-events-none" strokeWidth={2.5} />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder="ابحث عن خضار، فواكه، ألبان..."
-                  className="w-full pr-10 pl-9 py-2.5 bg-[#FAF8F3] border border-[#2D6A3F]/15 rounded-2xl text-sm text-[#112616] placeholder-[#8A8170] focus:outline-none focus:bg-white focus:border-[#2D6A3F]/50 focus:ring-2 focus:ring-[#2D6A3F]/12 transition-all font-['Tajawal'] font-medium shadow-sm hover:bg-white hover:border-[#2D6A3F]/30"
+                  className="w-full pr-10 pl-9 py-2.5 bg-[#FAF8F3] border border-[#2D6A3F]/15 rounded-2xl text-sm text-[#112616] placeholder-[#8A8170] focus:outline-none focus:bg-white focus:border-[#2D6A3F]/50 focus:ring-2 focus:ring-[#2D6A3F]/12 focus:shadow-[0_4px_14px_rgba(45,106,63,0.08)] transition-all duration-200 font-['Tajawal'] font-medium shadow-2xs hover:bg-white hover:border-[#2D6A3F]/30"
                 />
                 {searchQuery && (
                   <button
@@ -262,7 +262,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setShowMobileSearch(!showMobileSearch)}
                 className={`md:hidden w-10 h-10 min-w-[40px] min-h-[40px] rounded-2xl flex items-center justify-center transition-all duration-150 active:scale-90 touch-manipulation select-none cursor-pointer shrink-0 border-2 ${
                   showMobileSearch
-                    ? 'bg-[#EA580C] border-[#EA580C] text-white shadow-[0_4px_12px_rgba(234,88,12,0.30)]'
+                    ? 'bg-[#EA580C] border-[#EA580C] text-white shadow-[0_4px_12px_rgba(234,88,12,0.28)]'
                     : 'bg-white border-[#2D6A3F]/25 text-[#2D6A3F] hover:bg-[#FAF8F3] hover:border-[#2D6A3F]/50'
                 }`}
                 aria-label="بحث عن منتج"
@@ -279,7 +279,7 @@ export const Header: React.FC<HeaderProps> = ({
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366]/12 text-[#145A25] border border-[#25D366]/35 hover:bg-[#25D366]/20 active:scale-95 transition-all text-xs font-black font-['Almarai'] shadow-sm touch-manipulation select-none"
+                className="hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366]/12 text-[#145A25] border border-[#25D366]/35 hover:bg-[#25D366]/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 text-xs font-black font-['Almarai'] shadow-2xs touch-manipulation select-none"
               >
                 <Phone className="w-3.5 h-3.5 fill-current" />
                 <span>واتساب</span>
@@ -291,7 +291,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={onOpenCart}
                 ariaLabel={`سلة المشتريات (${cartCount} منتجات)`}
                 rippleColor="rgba(255,255,255,0.30)"
-                className="flex items-center gap-2 px-3 sm:px-5 py-2.5 min-h-[44px] rounded-2xl bg-gradient-to-l from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] text-white shadow-[0_4px_14px_rgba(234,88,12,0.30)] hover:shadow-[0_6px_22px_rgba(234,88,12,0.42)] active:scale-95 transition-all duration-150 font-extrabold font-['Almarai'] touch-manipulation select-none cursor-pointer shrink-0 border border-[#FACC15]/25"
+                className="flex items-center gap-2 px-3 sm:px-5 py-2.5 min-h-[44px] rounded-2xl bg-gradient-to-l from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] text-white shadow-[0_4px_12px_rgba(234,88,12,0.26)] hover:shadow-[0_6px_18px_rgba(234,88,12,0.36)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 font-extrabold font-['Almarai'] touch-manipulation select-none cursor-pointer shrink-0 border border-[#FACC15]/25"
               >
                 <div className="relative z-10">
                   <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
