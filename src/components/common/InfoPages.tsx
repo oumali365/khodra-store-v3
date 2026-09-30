@@ -171,75 +171,82 @@ export const InfoPages: React.FC<InfoPagesProps> = ({ page, onBackToShop }) => {
                 </ul>
               </div>
 
-              {/* مزايا تجربة المستخدم */}
-              <div className="bg-gradient-to-br from-white to-[#FAF8F3] p-5 rounded-2xl border-2 border-[#2D6A3F]/15 space-y-3.5 shadow-sm mt-5">
-                <h3 className="font-black text-base text-[#1A3D24] flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#EAB308] fill-[#EAB308]" strokeWidth={2.5} />
-                  <span>تجربة تسوق مصممة لراحتك</span>
-                </h3>
+ {/* مزايا تجربة المستخدم */}
+<div className="bg-gradient-to-br from-white to-[#FAF8F3] p-5 rounded-2xl border-2 border-[#2D6A3F]/15 space-y-4 shadow-sm mt-5">
+  {/* العنوان */}
+  <h3 className="font-black text-base text-[#1A3D24] flex items-center gap-2">
+    <Sparkles className="w-4 h-4 text-[#EAB308] fill-[#EAB308]" strokeWidth={2.5} />
+    <span>تجربة تسوق مصممة لراحتك</span>
+  </h3>
+  <div className="relative p-4 rounded-xl bg-gradient-to-l from-[#2D6A3F]/8 via-[#EAB308]/6 to-[#2D6A3F]/8 border-r-4 border-[#EAB308] shadow-sm">
+    <p className="text-xs sm:text-sm text-[#1A3D24] font-black leading-relaxed">
+      طوّرنا متجر خُضرة بأحدث التقنيات الرقمية لنمنحك تجربة اقتناء مريحة وواضحة من أول نقرة حتى استلام طلبك.
+    </p>
+  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] flex items-center justify-center shrink-0 mt-0.5 border border-[#2D6A3F]/20">
-                      <Smartphone className="w-4 h-4 stroke-[2.5]" />
-                    </span>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">تطبيق فوري خفيف</h4>
-                      <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
-                        ثبّت التطبيق على شاشتك الرئيسية بضغطة واحدة، بدون استهلاك ذاكرة.
-                      </p>
-                    </div>
-                  </div>
+  {/* شبكة المزايا */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+    <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
+      <span className="w-8 h-8 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] flex items-center justify-center shrink-0 mt-0.5 border border-[#2D6A3F]/20">
+        <Smartphone className="w-4 h-4 stroke-[2.5]" />
+      </span>
+      <div>
+        <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">تطبيق فوري خفيف</h4>
+        <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
+          ثبّت التطبيق على شاشتك الرئيسية بضغطة واحدة، بدون استهلاك ذاكرة.
+        </p>
+      </div>
+    </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-[#EA580C]/10 text-[#EA580C] flex items-center justify-center shrink-0 mt-0.5 border border-[#EA580C]/20">
-                      <Scale className="w-4 h-4 stroke-[2.5]" />
-                    </span>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">عداد أوزان ذكي</h4>
-                      <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
-                        اختر الوزن بالكيلوغرام بدقة مع حساب لحظي للسعر.
-                      </p>
-                    </div>
-                  </div>
+    <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
+      <span className="w-8 h-8 rounded-lg bg-[#EA580C]/10 text-[#EA580C] flex items-center justify-center shrink-0 mt-0.5 border border-[#EA580C]/20">
+        <Scale className="w-4 h-4 stroke-[2.5]" />
+      </span>
+      <div>
+        <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">عداد أوزان ذكي</h4>
+        <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
+          اختر الوزن بالكيلوغرام بدقة مع حساب لحظي للسعر.
+        </p>
+      </div>
+    </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] flex items-center justify-center shrink-0 mt-0.5 border border-[#2D6A3F]/20">
-                      <PackageCheck className="w-4 h-4 stroke-[2.5]" />
-                    </span>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">صناديق وفلاتر ذكية</h4>
-                      <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
-                        صناديق أسبوعية جاهزة وفلاتر بحث سريعة حسب السعر.
-                      </p>
-                    </div>
-                  </div>
+    <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
+      <span className="w-8 h-8 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] flex items-center justify-center shrink-0 mt-0.5 border border-[#2D6A3F]/20">
+        <PackageCheck className="w-4 h-4 stroke-[2.5]" />
+      </span>
+      <div>
+        <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">صناديق وفلاتر ذكية</h4>
+        <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
+          صناديق أسبوعية جاهزة وفلاتر بحث سريعة حسب السعر.
+        </p>
+      </div>
+    </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-[#EA580C]/10 text-[#EA580C] flex items-center justify-center shrink-0 mt-0.5 border border-[#EA580C]/20">
-                      <MapPin className="w-4 h-4 stroke-[2.5]" />
-                    </span>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">تحديد الموقع GPS</h4>
-                      <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
-                        دقة في تحديد موقع التوصيل بضغطة زر.
-                      </p>
-                    </div>
-                  </div>
+    <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
+      <span className="w-8 h-8 rounded-lg bg-[#EA580C]/10 text-[#EA580C] flex items-center justify-center shrink-0 mt-0.5 border border-[#EA580C]/20">
+        <MapPin className="w-4 h-4 stroke-[2.5]" />
+      </span>
+      <div>
+        <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">تحديد الموقع GPS</h4>
+        <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
+          دقة في تحديد موقع التوصيل بضغطة زر.
+        </p>
+      </div>
+    </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3 sm:col-span-2">
-                    <span className="w-8 h-8 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] flex items-center justify-center shrink-0 mt-0.5 border border-[#2D6A3F]/20">
-                      <CreditCard className="w-4 h-4 stroke-[2.5]" />
-                    </span>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">دفع مرن وآمن</h4>
-                      <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
-                        نقداً عند الاستلام أو تحويل بنكي مع إرفاق الوصل.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+    <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3 sm:col-span-2">
+      <span className="w-8 h-8 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] flex items-center justify-center shrink-0 mt-0.5 border border-[#2D6A3F]/20">
+        <CreditCard className="w-4 h-4 stroke-[2.5]" />
+      </span>
+      <div>
+        <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">دفع مرن وآمن</h4>
+        <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5 font-semibold">
+          نقداً عند الاستلام أو تحويل بنكي مع إرفاق الوصل.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
 
               {/* الخاتمة */}
               <p className="text-xs sm:text-sm text-[#5A6B5F] leading-relaxed mt-5 p-4 bg-[#FEF3C7]/60 border border-[#EAB308]/40 rounded-xl font-semibold">
