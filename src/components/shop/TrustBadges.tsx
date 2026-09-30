@@ -216,7 +216,7 @@ export const TrustBadges: React.FC = () => {
       `}</style>
 
       {/* ─── العنوان والوصف ─── */}
-      <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_10px_rgba(45,106,63,0.06)] p-6 sm:p-8 text-center max-w-xl mx-auto mb-8 sm:mb-10 overflow-hidden">
+      <div className="relative bg-gradient-to-b from-white via-[#FEFEFC] to-[#FAF8F3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_12px_rgba(45,106,63,0.06)] p-6 sm:p-8 text-center max-w-xl mx-auto mb-8 sm:mb-10 overflow-hidden">
         {/* دوائر ضوئية */}
         <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-[#2D6A3F]/10 rounded-full blur-3xl pointer-events-none" />

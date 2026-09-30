@@ -280,7 +280,7 @@ export const StoreCoverageMap: React.FC = () => {
       `}</style>
 
       {/* ═══════ الحاوية الرئيسية ═══════ */}
-      <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-[36px] p-4 sm:p-8 shadow-[0_2px_10px_rgba(45,106,63,0.06)] text-center overflow-hidden">
+      <div className="relative bg-gradient-to-b from-white via-[#FEFEFC] to-[#FAF8F3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-[36px] p-4 sm:p-8 shadow-[0_2px_12px_rgba(45,106,63,0.06)] text-center overflow-hidden">
 
         {/* دوائر ضوئية */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />

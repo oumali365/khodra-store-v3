@@ -14,6 +14,12 @@ import {
   CheckCircle2,
   Award,
   Users,
+  Sparkles,
+  Smartphone,
+  Scale,
+  MapPin,
+  CreditCard,
+  PackageCheck,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
 
@@ -54,21 +60,21 @@ export const InfoPages: React.FC<InfoPagesProps> = ({ page, onBackToShop }) => {
                   من نحن — قصة متجر خُضرة
                 </h1>
                 <span className="text-[11px] sm:text-xs text-[#787163] font-bold block mt-1">
-                  مشروع مغربي 100% يربط الحقل ببيتك
+                  مشروع مغربي 100% يربط الحقل ببيتك بأحدث تجربة تسوق رقمية
                 </span>
               </div>
             </div>
 
             {/* القصة */}
             <p className="text-sm sm:text-base text-[#443F35] leading-relaxed mt-5">
-              <strong className="text-[#112616]">خُضرة</strong> هو مشروع مغربي أصيل نشأ من فكرة بسيطة: كيف نمكّن العائلة المغربية من الحصول على خضر وفواكه طازجة تماماً كما لو كانت قُطفت صبيحة اليوم، دون الحاجة لتحمّل عناء الازدحام، حرارة السوق، والبحث الشاق عن الجودة.
+              <strong className="text-[#112616]">خُضرة</strong> هو مشروع مغربي أصيل بمدينة فاس نشأ من فكرة بسيطة: كيف نمكّن العائلة المغربية من الحصول على خضر وفواكه طازجة ومنتجات بقالة يومية تماماً كما لو كانت قُطفت صبيحة اليوم، دون الحاجة لتحمّل عناء الازدحام، حرارة السوق، والبحث الشاق عن الجودة، مع توفير تجربة تسوق إلكترونية سريعة وسلسة للغاية.
             </p>
 
             {/* ما يجعلنا مختلفين */}
             <div className="bg-gradient-to-br from-[#F7F4EC] to-white p-5 rounded-2xl border border-[#E8E1D3] space-y-3 shadow-sm mt-5">
               <h3 className="font-black text-base text-[#112616] flex items-center gap-2">
                 <Award className="w-4 h-4 text-[#C25E12]" />
-                <span>ما الذي يجعلنا مختلفين؟</span>
+                <span>ما الذي يجعلنا مختلفين في الجودة والخدمة؟</span>
               </h3>
 
               <ul className="space-y-3 text-xs sm:text-sm text-[#524B3E]">
@@ -77,7 +83,7 @@ export const InfoPages: React.FC<InfoPagesProps> = ({ page, onBackToShop }) => {
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 stroke-[2.5]" />
                   </span>
                   <span>
-                    <strong className="text-[#112616]">علاقة مباشرة بالفلاحين:</strong> نشتري المنتجات من المزارع والتعاونيات الفلاحية في سوس، دكالة، الغرب، وبركان.
+                    <strong className="text-[#112616]">علاقة مباشرة بالفلاحين:</strong> ننتقي المنتجات يومياً من أفضل المزارع والتعاونيات الفلاحية في سوس، دكالة، الغرب، سايس، وبركان.
                   </span>
                 </li>
 
@@ -86,7 +92,7 @@ export const InfoPages: React.FC<InfoPagesProps> = ({ page, onBackToShop }) => {
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 stroke-[2.5]" />
                   </span>
                   <span>
-                    <strong className="text-[#112616]">معايير الفرز الدقيقة:</strong> لا نضع في صندوقك سوى الثمار السليمة والناضجة والمختارة بعناية.
+                    <strong className="text-[#112616]">معايير الفرز والتعبئة الصحية:</strong> لا نضع في صندوقك سوى الثمار السليمة والناضجة والمختارة بعناية، وتصل إليك في صناديق حفظ مخصصة تحافظ على برودتها وطراوتها.
                   </span>
                 </li>
 
@@ -95,10 +101,83 @@ export const InfoPages: React.FC<InfoPagesProps> = ({ page, onBackToShop }) => {
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 stroke-[2.5]" />
                   </span>
                   <span>
-                    <strong className="text-[#112616]">احترام وقت الزبون:</strong> نلتزم بالمواعيد المحددة ونوفر إمكانية الدفع عند الباب بعد الفحص.
+                    <strong className="text-[#112616]">احترام وقت الزبون:</strong> نلتزم بالمواعيد المحددة عبر مسارات توصيل تغطي كافة أحياء فاس ونوفر إمكانية المعاينة والدفع عند الباب.
                   </span>
                 </li>
               </ul>
+            </div>
+
+            {/* ─── قسم جديد: مزايا تجربة المستخدم وسهولة اقتناء المنتجات ─── */}
+            <div className="bg-gradient-to-br from-white via-[#FEFEFC] to-[#FAF8F3] p-5 rounded-2xl border-2 border-[#2D6A3F]/15 space-y-3.5 shadow-sm mt-5">
+              <h3 className="font-black text-base text-[#1A3D24] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#EAB308] fill-[#EAB308]" />
+                <span>مزايا جديدة لتجربة تسوق أسهل وأسرع</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-[#5A6B5F] font-semibold leading-relaxed">
+                طوّرنا متجر خُضرة بأحدث التقنيات الرقمية لنمنحك تجربة اقتناء مريحة وواضحة من أول نقرة حتى استلام طلبك:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
+                  <span className="w-8 h-8 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] flex items-center justify-center shrink-0 mt-0.5">
+                    <Smartphone className="w-4 h-4 stroke-[2.5]" />
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">تثبيت التطبيق الفوري الخفيف</h4>
+                    <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5">
+                      ثبّت تطبيق خُضرة الفوري على شاشتك الرئيسية بضغطة واحدة وبدون استهلاك ذاكرة الهاتف، لتصفح فائق السرعة في أي وقت.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
+                  <span className="w-8 h-8 rounded-lg bg-[#EA580C]/10 text-[#EA580C] flex items-center justify-center shrink-0 mt-0.5">
+                    <Scale className="w-4 h-4 stroke-[2.5]" />
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">عداد أوزان ذكي وواضح (kg)</h4>
+                    <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5">
+                      اختر وعدّل الوزن بالكيلوغرام أو بالوحدة مباشرة داخل السلة بكل دقة وشفافية مع حساب لحظي للسعر الإجمالي دون أي التباس.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
+                  <span className="w-8 h-8 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] flex items-center justify-center shrink-0 mt-0.5">
+                    <PackageCheck className="w-4 h-4 stroke-[2.5]" />
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">صناديق العائلة وفلاتر ذكية</h4>
+                    <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5">
+                      تصفح الفئات المصورة والبحث الفوري والفرز حسب السعر، أو اطلب صناديق العائلة الأسبوعية الجاهزة بتوفير مضمون.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3">
+                  <span className="w-8 h-8 rounded-lg bg-[#EA580C]/10 text-[#EA580C] flex items-center justify-center shrink-0 mt-0.5">
+                    <MapPin className="w-4 h-4 stroke-[2.5]" />
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">تحديد الموقع عبر الـ GPS</h4>
+                    <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5">
+                      إدراج موقع التوصيل بدقة بضغطة زر عبر الـ GPS مع شريط تفاعلي يحسب لك التوصيل المجاني تلقائياً.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#FAF8F3] border border-[#2D6A3F]/12 flex items-start gap-3 sm:col-span-2">
+                  <span className="w-8 h-8 rounded-lg bg-[#2D6A3F]/10 text-[#2D6A3F] flex items-center justify-center shrink-0 mt-0.5">
+                    <CreditCard className="w-4 h-4 stroke-[2.5]" />
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-[#1A3D24]">إتمام طلب آمن وخيارات دفع مرنة</h4>
+                    <p className="text-[11px] sm:text-xs text-[#5A6B5F] leading-relaxed mt-0.5">
+                      اختر بين الدفع نقداً عند الاستلام أو التحويل البنكي السريع لمختلف البنوك المغربية مع إرفاق الوصل وتأكيد فوري عبر واتساب.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* الخاتمة */}

@@ -116,17 +116,17 @@ const CategoryCardButton: React.FC<{
       ariaSelected={isSelected}
       onClick={onSelect}
       rippleColor={hasBackgroundImage ? 'rgba(234,179,8,0.40)' : 'rgba(45,106,63,0.28)'}
-      className={`category-fade-in-right group relative flex flex-col justify-end p-2.5 sm:p-3 rounded-2xl sm:rounded-[20px] border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.97] shrink-0
-        w-[116px] min-w-[116px]
-        xs:w-[124px] xs:min-w-[124px]
-        sm:w-[136px] sm:min-w-[136px]
+      className={`category-fade-in-right group relative flex flex-col justify-end p-3 sm:p-3.5 rounded-2xl sm:rounded-[22px] border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.97] shrink-0
+        w-[130px] min-w-[130px]
+        xs:w-[138px] xs:min-w-[138px]
+        sm:w-[152px] sm:min-w-[152px]
         md:w-auto md:min-w-0
-        min-h-[134px]
-        xs:min-h-[142px]
-        sm:min-h-[152px]
-        md:min-h-[160px]
-        lg:min-h-[170px]
-        xl:min-h-[180px]
+        min-h-[148px]
+        xs:min-h-[158px]
+        sm:min-h-[168px]
+        md:min-h-[176px]
+        lg:min-h-[188px]
+        xl:min-h-[198px]
         ${isSelected
           ? 'border-[#2D6A3F] -translate-y-0.5 shadow-[0_6px_16px_rgba(45,106,63,0.18)] ring-2 ring-[#EAB308]/35'
           : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:-translate-y-0.5 shadow-xs hover:shadow-md'
@@ -183,7 +183,7 @@ const CategoryCardButton: React.FC<{
 
       <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-1.5">
         <span
-          className={`text-[13px] sm:text-[14px] lg:text-[15px] font-black leading-tight transition-colors duration-300 ${
+          className={`text-[14px] sm:text-[15px] lg:text-[16px] font-black leading-tight transition-colors duration-300 ${
             hasBackgroundImage
               ? isSelected
                 ? 'text-[#FACC15] drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]'
@@ -392,7 +392,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
       `}</style>
 
-      <div className="relative bg-gradient-to-b from-[#FAF8F3] to-[#F5EFE3] border border-[#2D6A3F]/12 rounded-[22px] sm:rounded-[28px] p-4 sm:p-5 md:p-6 shadow-[0_2px_10px_rgba(45,106,63,0.05)] overflow-hidden">
+      <div className="relative bg-gradient-to-b from-white via-[#FEFEFC] to-[#FAF8F3] border border-[#2D6A3F]/12 rounded-[22px] sm:rounded-[28px] p-4 sm:p-5 md:p-6 shadow-[0_2px_12px_rgba(45,106,63,0.05)] overflow-hidden">
         <div className="absolute -top-24 -right-24 w-56 h-56 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-56 h-56 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
 

@@ -175,7 +175,7 @@ export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
           ) : (
             <>
               <ShoppingBag className="w-5 h-5 text-[#EAB308] relative z-10" strokeWidth={2.5} />
-              <span className="relative z-10">تأكيد الطلب</span>
+              <span className="relative z-10">تأكيد الدفع</span>
               <span className="px-3 py-1 rounded-xl bg-white/15 text-[#EAB308] text-sm font-black tabular-nums relative z-10 border border-[#EAB308]/25" dir="ltr">
                 {grandTotal.toFixed(2)} DH
               </span>

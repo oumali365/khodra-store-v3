@@ -44,13 +44,13 @@ export const DownloadPage: React.FC = () => {
           </div>
         ) : (
           <a
-            href="/app-release.apk"
+            href="/"
             className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#2E5336] text-white hover:bg-[#1B3A20] transition-all shadow-lg hover:shadow-xl"
           >
             <Download className="w-6 h-6" />
             <div className="text-right">
-              <p className="text-xs opacity-80">تحميل لـ</p>
-              <p className="font-bold text-lg">Android</p>
+              <p className="text-xs opacity-80">موصى به</p>
+              <p className="font-bold text-lg">تثبيت التطبيق الفوري</p>
             </div>
           </a>
         )}

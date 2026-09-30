@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Share, PlusSquare, ArrowDownCircle, ShieldCheck } from 'lucide-react';
+import { Download, X, Share, PlusSquare, ShieldCheck } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { STORE_CONFIG } from '../../data/config';
 
@@ -52,16 +52,6 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
   const markAsInstalled = () => {
     setIsVisible(false);
     onHide?.();
-  };
-
-  const triggerDirectDownload = () => {
-    markAsInstalled();
-    const link = document.createElement('a');
-    link.href = '/app-release.apk';
-    link.download = 'khodra-fresh.apk';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -250,97 +240,72 @@ export const InstallAppBanner: React.FC<InstallAppBannerProps> = ({ onHide }) =>
             </div>
           </div>
         ) : (
-          /* خيارات أجهزة Android والكمبيوتر */
+          /* خيار تثبيت التطبيق الفوري الموصى به فقط */
           <div className="space-y-3.5">
             <p className="text-xs text-[#524B3E] leading-relaxed">
-              اختر الطريقة الأنسب لك لتثبيت التطبيق  والاستمتاع بتجربة طلب سريعة:
+              ثبّت تطبيق خُضرة الفوري بضغطة واحدة واستمتع بتجربة طلب سريعة ومريحة:
             </p>
 
             <div className="space-y-2.5">
-              {/* خيار تثبيت الفوري التحميل المباشر بدون رسائل توجيهية */}
+              {/* خيار تثبيت التطبيق الفوري (موصى به) */}
               <button
                 type="button"
                 onClick={async () => {
                   const prompt = deferredPrompt || (window as unknown as { deferredPrompt?: BeforeInstallPromptEvent }).deferredPrompt;
                   if (prompt) {
                     try {
+                      setModalInstallState('downloading');
                       await prompt.prompt();
                       const { outcome } = await prompt.userChoice;
                       if (outcome === 'accepted') {
+                        setModalInstallState('done');
                         markAsInstalled();
-                        setShowGuideModal(false);
+                        setTimeout(() => {
+                          setShowGuideModal(false);
+                          setModalInstallState('idle');
+                        }, 900);
                         return;
                       }
+                      setModalInstallState('idle');
                     } catch (e) {
                       console.warn(e);
+                      setModalInstallState('idle');
                     }
-                  }
-
-                  // يبدأ التحميل المباشر فوراً على الهاتف ويخفي البانر
-                  setModalInstallState('downloading');
-                  triggerDirectDownload();
-
-                  setTimeout(() => {
+                  } else {
                     setModalInstallState('done');
                     setTimeout(() => {
                       setShowGuideModal(false);
                       setModalInstallState('idle');
                       markAsInstalled();
                     }, 1200);
-                  }, 600);
+                  }
                 }}
                 disabled={modalInstallState === 'downloading'}
-                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white shadow-md active:scale-95 transition-all text-xs sm:text-sm font-black font-['Almarai'] cursor-pointer border border-[#0E2615]"
+                className="w-full flex items-center justify-between p-4 rounded-2xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white shadow-md active:scale-95 transition-all text-xs sm:text-sm font-black font-['Almarai'] cursor-pointer border border-[#0E2615]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
                     <Download className={`w-5 h-5 text-[#F5D76E] ${modalInstallState === 'downloading' ? 'animate-bounce' : ''}`} />
                   </div>
                   <div className="text-right">
-                    <span className="block text-sm">
+                    <span className="block text-sm sm:text-base">
                       {modalInstallState === 'downloading'
-                        ? 'جاري التحميل المباشر...'
+                        ? 'جاري التثبيت الفوري...'
                         : modalInstallState === 'done'
-                        ? 'تم بدء التحميل بنجاح ✅'
+                        ? 'تم التثبيت بنجاح ✅'
                         : 'تثبيت التطبيق الفوري'}
                     </span>
-                    <span className="text-[10px] text-emerald-200 font-normal">
+                    <span className="text-[11px] text-emerald-200 font-normal block mt-0.5">
                       {modalInstallState === 'downloading'
-                        ? 'لحظة واحدة وسيبدأ التثبيت على جهازك'
+                        ? 'لحظة واحدة وسيظهر التطبيق على شاشتك'
                         : 'تطبيق خفيف وسريع بدون استهلاك للذاكرة'}
                     </span>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-[#F5D76E] text-[#0E2615] text-[10px] font-black">
+                <span className="px-2.5 py-1 rounded-full bg-[#F5D76E] text-[#0E2615] text-[11px] font-black shrink-0">
                   {modalInstallState === 'done' ? '✓ تم' : 'موصى به'}
                 </span>
               </button>
-
-              {/* تحميل ملف APK مباشر */}
-              <a
-                href="/app-release.apk"
-                download="khodra-fresh.apk"
-                onClick={() => {
-                  markAsInstalled();
-                  setTimeout(() => {
-                    setShowGuideModal(false);
-                  }, 800);
-                }}
-                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-white hover:bg-[#FAF6EE] text-[#163920] border-2 border-[#E8E1D3] hover:border-[#C25E12]/50 shadow-xs active:scale-95 transition-all text-xs sm:text-sm font-black font-['Almarai']"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 text-[#C25E12] flex items-center justify-center">
-                    <ArrowDownCircle className="w-5 h-5" />
-                  </div>
-                  <div className="text-right">
-                    <span className="block text-sm text-[#163920]">تحميل حزمة Android (APK)</span>
-                    <span className="text-[10px] text-[#6B6455] font-normal">نسخة الأندرويد المباشرة (1.9 ميغابايت)</span>
-                  </div>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#F2EEE4] text-[#8C430E] text-[10px] font-black">
-                  APK
-                </span>
-              </a>
             </div>
           </div>
         )}
