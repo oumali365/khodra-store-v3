@@ -6,7 +6,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, TrendingUp, DollarSign, Package, Target,
   Download, RotateCcw, Save, BarChart3, LineChart, Percent,
-  Info, Sparkles, ChevronDown, ChevronUp, Settings, CheckCircle2, AlertCircle,
+  Info, Sparkles, ChevronDown, ChevronUp, Settings, CheckCircle2, AlertCircle, Printer,
 } from 'lucide-react';
 
 export interface FinancePanelProps {
@@ -322,6 +322,16 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                 ✓ تم الحفظ
               </span>
             )}
+            <a
+              href="/docs/funding-dossier.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-9 px-3 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center gap-1.5 text-xs font-black transition-colors cursor-pointer border border-white/25"
+              title="فتح وطباعة ملف التمويل والاحتضان الرسمي (PDF)"
+            >
+              <Printer className="w-4 h-4 text-[#F5D76E]" />
+              <span className="hidden sm:inline">ملف التمويل PDF</span>
+            </a>
             <button
               type="button"
               onClick={handleSave}
