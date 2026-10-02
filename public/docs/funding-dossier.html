@@ -18,11 +18,7 @@
       --text: #1C1917;
       --muted: #5A6B5F;
     }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       font-family: 'Cairo', 'Tajawal', sans-serif;
       background-color: #E8E4DC;
@@ -57,37 +53,20 @@
       align-items: center;
       gap: 8px;
     }
-    .no-print-bar .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
+    .no-print-bar .actions { display: flex; flex-wrap: wrap; gap: 8px; }
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      border-radius: 10px;
-      font-size: 12.5px;
-      font-weight: 800;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s;
-      border: none;
-      font-family: inherit;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 10px;
+      font-size: 12.5px; font-weight: 800;
+      cursor: pointer; text-decoration: none;
+      transition: all 0.2s; border: none; font-family: inherit;
     }
     .btn-primary {
-      background: var(--secondary);
-      color: white;
+      background: var(--secondary); color: white;
       box-shadow: 0 3px 10px rgba(234,88,12,0.35);
     }
-    .btn-primary:hover {
-      background: #C2410C;
-    }
-    .btn-secondary {
-      background: white;
-      color: var(--primary);
-    }
+    .btn-primary:hover { background: #C2410C; }
+    .btn-secondary { background: white; color: var(--primary); }
 
     /* ═══════════ الحاوية ═══════════ */
     .page-container {
@@ -166,17 +145,9 @@
       color: var(--primary-light);
       margin: 12px 0 6px;
     }
-    p, li {
-      font-size: 12px;
-      color: #292524;
-    }
-    ul, ol {
-      padding-right: 20px;
-      margin-bottom: 8px;
-    }
-    li {
-      margin-bottom: 3px;
-    }
+    p, li { font-size: 12px; color: #292524; }
+    ul, ol { padding-right: 20px; margin-bottom: 8px; }
+    li { margin-bottom: 3px; }
 
     /* ═══════════ الجداول ═══════════ */
     table {
@@ -196,9 +167,7 @@
       font-weight: 800;
       font-size: 11.5px;
     }
-    tr:nth-child(even) td {
-      background-color: #FAF8F3;
-    }
+    tr:nth-child(even) td { background-color: #FAF8F3; }
     .highlight-row td {
       background-color: #FEF3C7 !important;
       font-weight: 800;
@@ -245,79 +214,48 @@
     }
 
     /* ═══════════════════════════════════════════════════
-       🎯 إصلاحات الطباعة (حل المشكلة الأساسية)
+       🎯 إصلاحات الطباعة
        ═══════════════════════════════════════════════════ */
     @media print {
       html, body {
         background: white;
         font-size: 11px;
       }
-      .no-print-bar {
-        display: none !important;
-      }
+      .no-print-bar { display: none !important; }
       .page-container {
         max-width: 100%;
         margin: 0;
         padding: 0;
       }
-
-      /* ─── الجديد: استخدام page-break-before بدل after ─── */
       .sheet {
         box-shadow: none;
         border: none;
         border-radius: 0;
         padding: 0;
         margin-bottom: 0;
-        page-break-inside: avoid; /* منع قطع الجدول بين صفحتين */
+        page-break-inside: avoid;
       }
+      .sheet + .sheet { page-break-before: always; }
 
-      /* كل وثيقة تبدأ صفحة جديدة (ما عدا الأولى) */
-      .sheet + .sheet {
-        page-break-before: always;
-      }
-
-      /* ضبط حجم الصفحة */
       @page {
         size: A4;
         margin: 15mm 14mm;
       }
 
-      /* تقليل الهوامش داخل العناصر */
-      h2 {
-        margin: 10px 0 6px;
-        font-size: 14px;
-      }
-      h3 {
-        margin: 8px 0 4px;
-        font-size: 12.5px;
-      }
-      table {
-        margin: 6px 0 10px;
-        font-size: 10.5px;
-      }
-      th, td {
-        padding: 5px 7px;
-      }
-      .kpi-grid {
-        gap: 6px;
-        margin: 8px 0;
-      }
-      .kpi-card {
-        padding: 6px 8px;
-      }
-      .kpi-card .val {
-        font-size: 13px;
-      }
-      .footer-sign {
-        margin-top: 10px;
-        padding-top: 8px;
-      }
+      h2 { margin: 10px 0 6px; font-size: 14px; }
+      h3 { margin: 8px 0 4px; font-size: 12.5px; }
+      table { margin: 6px 0 10px; font-size: 10.5px; }
+      th, td { padding: 5px 7px; }
+      .kpi-grid { gap: 6px; margin: 8px 0; }
+      .kpi-card { padding: 6px 8px; }
+      .kpi-card .val { font-size: 13px; }
+      .footer-sign { margin-top: 10px; padding-top: 8px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- شريط التحكم العلوي (لا يظهر في الطباعة) -->
+  <!-- شريط التحكم العلوي -->
   <div class="no-print-bar">
     <div class="title">
       <span>🌿 الملف الرسمي للتمويل والاحتضان — شركة خُضرة (SARL)</span>
@@ -539,46 +477,8 @@
         <li><strong>الأهلية لصناديق التمويل والاحتضان:</strong> مطابقة تامة لشروط <strong>Technopark Fès</strong> وصندوق <strong>Innov Invest (Tamwilcom)</strong> و<strong>INDH</strong>.</li>
       </ul>
 
-      <!-- ═══════ ✨ قسم جديد لملء الصفحة ═══════ -->
-      <h2>5. مؤشرات الأداء الرئيسية (KPIs) والجدول الزمني للتنفيذ</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>المؤشر</th>
-            <th>الهدف (السنة الأولى)</th>
-            <th>طريقة القياس</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>متوسط قيمة السلة (AOV)</strong></td>
-            <td>≥ 115 د.م</td>
-            <td>تقرير اللوحة المالية اليومي</td>
-          </tr>
-          <tr>
-            <td><strong>نسبة الاحتفاظ بالعملاء (Retention)</strong></td>
-            <td>≥ 55% (عميل يشتري مرتين+)</td>
-            <td>سجل الطلبات الموحّد</td>
-          </tr>
-          <tr>
-            <td><strong>زمن التوصيل داخل النطاق السريع</strong></td>
-            <td>≤ 45 دقيقة</td>
-            <td>ختم الوقت في تطبيق السائق</td>
-          </tr>
-          <tr>
-            <td><strong>نسبة الطلبات الناجحة</strong></td>
-            <td>≥ 96%</td>
-            <td>تقارير لوحة الإدارة</td>
-          </tr>
-          <tr>
-            <td><strong>رضا العملاء (تقييمات التطبيق)</strong></td>
-            <td>≥ 4.7 / 5</td>
-            <td>قسم التقييمات المدمج</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2>6. الجدول الزمني للتنفيذ (Roadmap 90 يوم)</h2>
+      <!-- ═══════ 5. Roadmap 90 يوم (في مكان KPIs سابقاً) ═══════ -->
+      <h2>5. الجدول الزمني للتنفيذ (Roadmap 90 يوم)</h2>
       <table>
         <thead>
           <tr>
@@ -606,15 +506,55 @@
         </tbody>
       </table>
 
+      <!-- ═══════ 6. الموارد البشرية (قسم جديد لملء الصفحة) ═══════ -->
+      <h2>6. الهيكل التنظيمي والموارد البشرية للسنة الأولى</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>المنصب</th>
+            <th>العدد</th>
+            <th>المهام الأساسية</th>
+            <th>التوقيت</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>المدير المؤسس</strong></td>
+            <td>1</td>
+            <td>الإدارة العامة، المالية، التسويق، العلاقات مع الموردين والعملاء.</td>
+            <td>من الشهر 1</td>
+          </tr>
+          <tr>
+            <td><strong>مندوب الفرز والتوضيب</strong></td>
+            <td>1</td>
+            <td>الفرز اليدوي، الوزن الإلكتروني، التعبئة في صناديق العازلة، إلصاق ملصقات الشحن.</td>
+            <td>من الشهر 2</td>
+          </tr>
+          <tr>
+            <td><strong>سائق توصيل (عقد CNSS)</strong></td>
+            <td>1</td>
+            <td>توصيل الطلبات، تحصيل COD، تسوية المبالغ اليومية مع الإدارة.</td>
+            <td>من الشهر 3</td>
+          </tr>
+          <tr class="highlight-row">
+            <td><strong>إجمالي الفريق</strong></td>
+            <td><strong>3 أشخاص</strong></td>
+            <td><strong>فريق خفيف ومرن في السنة الأولى</strong></td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+
       <div class="footer-sign">
         <span>شركة خُضرة للتجارة الإلكترونية واللوجستيك (SARL) — فاس</span>
         <span>الصفحة 2 / 3</span>
       </div>
     </section>
 
-    <!-- ==================== الوثيقة 03: الدراسة المالية والميزانية ==================== -->
+    <!-- ==================== الوثيقة 03: الدراسة المالية والمؤشرات ==================== -->
     <section class="sheet">
-      <span class="doc-tag">الوثيقة 03 / 03 — الدراسة المالية الموحدة والبرنامج الاستثماري</span>
+      <span class="doc-tag">الوثيقة 03 / 03 — الدراسة المالية الموحدة، مؤشرات الأداء، وإدارة المخاطر</span>
+
       <h2>1. البرنامج الاستثماري وتجهيزات الانطلاق (Investment Budget)</h2>
       <table>
         <thead>
@@ -715,7 +655,46 @@
         </tbody>
       </table>
 
-      <h2>3. مصفوفة تقييم وإدارة المخاطر (Risk Management)</h2>
+      <!-- ═══════ ✨ القسم المنقول من الصفحة 2 ═══════ -->
+      <h2>3. مؤشرات الأداء الرئيسية (KPIs) للسنة الأولى</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>المؤشر</th>
+            <th>الهدف (السنة الأولى)</th>
+            <th>طريقة القياس</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>متوسط قيمة السلة (AOV)</strong></td>
+            <td>≥ 115 د.م</td>
+            <td>تقرير اللوحة المالية اليومي</td>
+          </tr>
+          <tr>
+            <td><strong>نسبة الاحتفاظ بالعملاء (Retention)</strong></td>
+            <td>≥ 55% (عميل يشتري مرتين+)</td>
+            <td>سجل الطلبات الموحّد</td>
+          </tr>
+          <tr>
+            <td><strong>زمن التوصيل داخل النطاق السريع</strong></td>
+            <td>≤ 45 دقيقة</td>
+            <td>ختم الوقت في تطبيق السائق</td>
+          </tr>
+          <tr>
+            <td><strong>نسبة الطلبات الناجحة</strong></td>
+            <td>≥ 96%</td>
+            <td>تقارير لوحة الإدارة</td>
+          </tr>
+          <tr>
+            <td><strong>رضا العملاء (تقييمات التطبيق)</strong></td>
+            <td>≥ 4.7 / 5</td>
+            <td>قسم التقييمات المدمج</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>4. مصفوفة تقييم وإدارة المخاطر (Risk Management)</h2>
       <table>
         <thead>
           <tr>
@@ -739,6 +718,11 @@
             <td><strong>الطلبات الوهمية أو الإلغاء</strong></td>
             <td>متوسط</td>
             <td>حماية <code>Cloudflare Turnstile</code> + تأكيد عبر واتساب + دعم الدفع المسبق بالتحويل البنكي مع إرفاق الوصل.</td>
+          </tr>
+          <tr>
+            <td><strong>منافسة غير متوقعة بفاس</strong></td>
+            <td>متوسط</td>
+            <td>التركيز على الجودة، الأسعار العادلة، وسرعة التوصيل (60 دقيقة) كعوامل تمييز تنافسية.</td>
           </tr>
         </tbody>
       </table>
