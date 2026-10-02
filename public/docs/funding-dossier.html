@@ -23,15 +23,17 @@
       margin: 0;
       padding: 0;
     }
-    body {
+    html, body {
       font-family: 'Cairo', 'Tajawal', sans-serif;
       background-color: #E8E4DC;
       color: var(--text);
-      line-height: 1.65;
-      font-size: 13px;
+      line-height: 1.55;
+      font-size: 12.5px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+
+    /* ═══════════ شريط التحكم ═══════════ */
     .no-print-bar {
       position: sticky;
       top: 0;
@@ -86,6 +88,8 @@
       background: white;
       color: var(--primary);
     }
+
+    /* ═══════════ الحاوية ═══════════ */
     .page-container {
       max-width: 210mm;
       margin: 20px auto;
@@ -99,12 +103,14 @@
       box-shadow: 0 6px 24px rgba(0,0,0,0.08);
       border: 1px solid var(--border);
     }
+
+    /* ═══════════ الترويسة ═══════════ */
     .cover-header {
       background: linear-gradient(135deg, #1A3D24 0%, #2D6A3F 100%);
       color: white;
-      padding: 24px;
+      padding: 20px 22px;
       border-radius: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       border-bottom: 4px solid var(--accent);
       display: flex;
       justify-content: space-between;
@@ -113,13 +119,13 @@
       gap: 14px;
     }
     .cover-header h1 {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 900;
       color: #FFFFFF;
       margin-bottom: 4px;
     }
     .cover-header .subtitle {
-      font-size: 13px;
+      font-size: 12.5px;
       color: #FEF08A;
       font-weight: 700;
     }
@@ -129,8 +135,9 @@
       padding: 8px 14px;
       border-radius: 10px;
       text-align: center;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 700;
+      line-height: 1.6;
     }
     .doc-tag {
       display: inline-block;
@@ -138,51 +145,56 @@
       color: #92400E;
       border: 1px solid #F59E0B;
       font-weight: 800;
-      font-size: 11.5px;
+      font-size: 11px;
       padding: 3px 10px;
       border-radius: 999px;
       margin-bottom: 8px;
     }
+
+    /* ═══════════ العناوين ═══════════ */
     h2 {
-      font-size: 17px;
+      font-size: 15.5px;
       font-weight: 900;
       color: var(--primary);
       border-right: 4px solid var(--secondary);
       padding-right: 10px;
-      margin: 18px 0 10px;
-    }
-    h3 {
-      font-size: 14px;
-      font-weight: 800;
-      color: var(--primary-light);
       margin: 14px 0 8px;
     }
+    h3 {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--primary-light);
+      margin: 12px 0 6px;
+    }
     p, li {
-      font-size: 12.5px;
+      font-size: 12px;
       color: #292524;
     }
     ul, ol {
       padding-right: 20px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     li {
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
+
+    /* ═══════════ الجداول ═══════════ */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 10px 0 16px;
-      font-size: 12px;
+      margin: 8px 0 12px;
+      font-size: 11.5px;
     }
     th, td {
       border: 1px solid var(--border);
-      padding: 7px 10px;
+      padding: 6px 9px;
       text-align: right;
     }
     th {
       background-color: #1A3D24;
       color: #FFFFFF;
       font-weight: 800;
+      font-size: 11.5px;
     }
     tr:nth-child(even) td {
       background-color: #FAF8F3;
@@ -192,43 +204,53 @@
       font-weight: 800;
       color: #1A3D24;
     }
+
+    /* ═══════════ KPI ═══════════ */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-      gap: 10px;
-      margin: 12px 0;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      margin: 10px 0;
     }
     .kpi-card {
       background: #FAF8F3;
       border: 1.5px solid rgba(45,106,63,0.22);
       border-radius: 10px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       text-align: center;
     }
     .kpi-card .val {
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 900;
       color: var(--primary-light);
       display: block;
+      line-height: 1.3;
     }
     .kpi-card .lbl {
+      font-size: 10.5px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    /* ═══════════ التذييل ═══════════ */
+    .footer-sign {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      justify-content: space-between;
       font-size: 11px;
       color: var(--muted);
       font-weight: 700;
     }
-    .footer-sign {
-      margin-top: 20px;
-      padding-top: 12px;
-      border-top: 1px dashed var(--border);
-      display: flex;
-      justify-content: space-between;
-      font-size: 11.5px;
-      color: var(--muted);
-      font-weight: 700;
-    }
+
+    /* ═══════════════════════════════════════════════════
+       🎯 إصلاحات الطباعة (حل المشكلة الأساسية)
+       ═══════════════════════════════════════════════════ */
     @media print {
-      body {
+      html, body {
         background: white;
+        font-size: 11px;
       }
       .no-print-bar {
         display: none !important;
@@ -238,15 +260,57 @@
         margin: 0;
         padding: 0;
       }
+
+      /* ─── الجديد: استخدام page-break-before بدل after ─── */
       .sheet {
         box-shadow: none;
         border: none;
+        border-radius: 0;
         padding: 0;
         margin-bottom: 0;
-        page-break-after: always;
+        page-break-inside: avoid; /* منع قطع الجدول بين صفحتين */
       }
-      .sheet:last-child {
-        page-break-after: auto;
+
+      /* كل وثيقة تبدأ صفحة جديدة (ما عدا الأولى) */
+      .sheet + .sheet {
+        page-break-before: always;
+      }
+
+      /* ضبط حجم الصفحة */
+      @page {
+        size: A4;
+        margin: 15mm 14mm;
+      }
+
+      /* تقليل الهوامش داخل العناصر */
+      h2 {
+        margin: 10px 0 6px;
+        font-size: 14px;
+      }
+      h3 {
+        margin: 8px 0 4px;
+        font-size: 12.5px;
+      }
+      table {
+        margin: 6px 0 10px;
+        font-size: 10.5px;
+      }
+      th, td {
+        padding: 5px 7px;
+      }
+      .kpi-grid {
+        gap: 6px;
+        margin: 8px 0;
+      }
+      .kpi-card {
+        padding: 6px 8px;
+      }
+      .kpi-card .val {
+        font-size: 13px;
+      }
+      .footer-sign {
+        margin-top: 10px;
+        padding-top: 8px;
       }
     }
   </style>
@@ -474,6 +538,73 @@
         <li><strong>التعاقد التجاري مع المؤسسات (B2B):</strong> إصدار فواتير ضريبية رسمية (<code>ICE / RC</code>) للفنادق والمطاعم والمقاهي بفاس دون سقف محدود لرقم المعاملات.</li>
         <li><strong>الأهلية لصناديق التمويل والاحتضان:</strong> مطابقة تامة لشروط <strong>Technopark Fès</strong> وصندوق <strong>Innov Invest (Tamwilcom)</strong> و<strong>INDH</strong>.</li>
       </ul>
+
+      <!-- ═══════ ✨ قسم جديد لملء الصفحة ═══════ -->
+      <h2>5. مؤشرات الأداء الرئيسية (KPIs) والجدول الزمني للتنفيذ</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>المؤشر</th>
+            <th>الهدف (السنة الأولى)</th>
+            <th>طريقة القياس</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>متوسط قيمة السلة (AOV)</strong></td>
+            <td>≥ 115 د.م</td>
+            <td>تقرير اللوحة المالية اليومي</td>
+          </tr>
+          <tr>
+            <td><strong>نسبة الاحتفاظ بالعملاء (Retention)</strong></td>
+            <td>≥ 55% (عميل يشتري مرتين+)</td>
+            <td>سجل الطلبات الموحّد</td>
+          </tr>
+          <tr>
+            <td><strong>زمن التوصيل داخل النطاق السريع</strong></td>
+            <td>≤ 45 دقيقة</td>
+            <td>ختم الوقت في تطبيق السائق</td>
+          </tr>
+          <tr>
+            <td><strong>نسبة الطلبات الناجحة</strong></td>
+            <td>≥ 96%</td>
+            <td>تقارير لوحة الإدارة</td>
+          </tr>
+          <tr>
+            <td><strong>رضا العملاء (تقييمات التطبيق)</strong></td>
+            <td>≥ 4.7 / 5</td>
+            <td>قسم التقييمات المدمج</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>6. الجدول الزمني للتنفيذ (Roadmap 90 يوم)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>المرحلة</th>
+            <th>المدة</th>
+            <th>الأنشطة الرئيسية</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>المرحلة 1: التأسيس</strong></td>
+            <td>اليوم 1 – 30</td>
+            <td>تأسيس شركة SARL، استئجار المقر، شراء التجهيزات، التعاقد مع 3 موردين رئيسيين بسوق بنسودة.</td>
+          </tr>
+          <tr>
+            <td><strong>المرحلة 2: الانطلاق التجريبي</strong></td>
+            <td>اليوم 31 – 60</td>
+            <td>إطلاق تجريبي مع 50 عميلاً، تشغيل 2–3 جولات يومية، ضبط العمليات والجودة.</td>
+          </tr>
+          <tr>
+            <td><strong>المرحلة 3: النمو</strong></td>
+            <td>اليوم 61 – 90</td>
+            <td>رفع الطاقة إلى 15 طلباً/يوم، إطلاق حملات تسويقية محلية، تعيين أول مندوب فرز.</td>
+          </tr>
+        </tbody>
+      </table>
 
       <div class="footer-sign">
         <span>شركة خُضرة للتجارة الإلكترونية واللوجستيك (SARL) — فاس</span>
