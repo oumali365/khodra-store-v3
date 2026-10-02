@@ -19,3 +19,6 @@ export type {
   MonthResult,
   Assumptions,
 } from './FinancePanel';
+export { AdminDocumentsModal } from './AdminDocumentsModal';
+export type { AdminDocumentsModalProps } from './AdminDocumentsModal';
+

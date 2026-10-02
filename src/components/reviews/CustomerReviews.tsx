@@ -18,6 +18,7 @@ import {
   Quote,
   Sparkles,
   BarChart3,
+  FileText,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
 import {
@@ -42,6 +43,7 @@ import {
   AdminErrorBoundary,
   AdminOrdersPanel,
   FinancePanel,
+  AdminDocumentsModal,
 } from '../admin';
 
 export type { CustomerReview };
@@ -124,6 +126,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
 
   const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
   const [isFinancePanelOpen, setIsFinancePanelOpen] = useState(false);
+  const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
 
   // ─── التمرير الأفقي ───
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
@@ -565,6 +568,15 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                 <span className="relative z-10">اللوحة المالية</span>
               </RippleButton>
 
+              <RippleButton
+                onClick={() => setIsDocsModalOpen(true)}
+                rippleColor="rgba(255,255,255,0.30)"
+                className="relative px-3.5 py-2 rounded-xl bg-gradient-to-l from-[#1A3D24] to-[#0E2615] hover:from-[#2D6A3F] hover:to-[#1A3D24] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_4px_14px_rgba(26,61,36,0.30)] active:scale-95 border border-[#EAB308]/35"
+              >
+                <FileText className="w-4 h-4 text-[#EAB308] relative z-10" strokeWidth={2.5} />
+                <span className="relative z-10">وثائق وعقود المشروع</span>
+              </RippleButton>
+
               <button
                 type="button"
                 onClick={() => setIsChangePinModalOpen(true)}
@@ -845,6 +857,11 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
       <FinancePanel
         isOpen={isFinancePanelOpen}
         onClose={handleCloseFinance}
+      />
+
+      <AdminDocumentsModal
+        isOpen={isDocsModalOpen}
+        onClose={() => setIsDocsModalOpen(false)}
       />
 
       {isAdmin && (
