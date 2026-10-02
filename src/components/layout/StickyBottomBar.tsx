@@ -87,8 +87,6 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
         </span>
       </div>
     )}
-  </div>
-</div>
               {/* ─── 🔄 زر فتح السلة (بدل تأكيد الطلب) ─── */}
               <button
                 type="button"
