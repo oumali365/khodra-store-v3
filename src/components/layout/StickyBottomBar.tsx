@@ -56,43 +56,39 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
             )}
           </div>
 
-          {/* ─── المحتوى الرئيسي (ارتفاع أقل) ─── */}
-          <div className="py-1.5 sm:py-2 px-3 sm:px-4">
-            <div className="flex items-center justify-between gap-2.5 sm:gap-4">
-
-              {/* ─── 🔒 منطقة السلة (غير قابلة للنقر — عرض فقط) ─── */}
-              <div
-                className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-2.5 py-1 min-h-[44px] rounded-xl text-right group flex-1 min-w-0 select-none"
-                aria-label={`عرض معلومات السلة: ${cartCount} منتجات بقيمة ${cartTotal.toFixed(2)}`}
-                role="status"
-              >
-                {/* 🔒 أيقونة السلة معطّلة (بدون hover/click) */}
-                <div
-                  id="sticky-cart-icon"
-                  className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] text-white flex items-center justify-center shrink-0 shadow-sm select-none border border-[#EAB308]/25"
-                  aria-hidden="true"
-                >
-                  <ShoppingBag className="w-5 h-5 text-[#EAB308]" strokeWidth={2.5} />
-
-                  {/* شارة العدد */}
-                  {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-[#EA580C] text-white text-[10px] font-black flex items-center justify-center border-2 border-white shadow-sm">
-                      {cartCount > 99 ? '99+' : cartCount}
-                    </span>
-                  )}
-                </div>
-
-                {/* معلومات السلة */}
-                <div className="flex flex-col leading-tight min-w-0 flex-1">
-                  <span className="text-[10px] text-[#5A6B5F] font-bold mb-0.5">
-                    سلة التسوق
-                  </span>
-                  <span className="text-sm sm:text-base font-black text-[#1A3D24] truncate tabular-nums" dir="ltr">
-                    {cartTotal.toFixed(2)} <span className="text-xs font-black text-[#EA580C]">{STORE_CONFIG.currency}</span>
-                  </span>
-                </div>
-              </div>
-
+          {/* ─── شريط علوي: تقدم التوصيل المجاني (أنحف) ─── */}
+<div className={`px-4 py-1 text-[11px] font-black border-b ${
+  isFreeDelivery
+    ? 'bg-[#2D6A3F]/10 text-[#1A3D24] border-[#2D6A3F]/15'
+    : 'bg-[#FEF3C7] text-[#92400E] border-[#EAB308]/30'
+}`}>
+  <div className="flex items-center gap-2">
+    <Truck
+      className={`w-3.5 h-3.5 shrink-0 ${isFreeDelivery ? 'text-[#2D6A3F]' : 'text-[#EA580C]'}`}
+      strokeWidth={2.5}
+    />
+    {isFreeDelivery ? (
+      <span className="flex items-center gap-1">
+        🎉 <strong className="text-[#2D6A3F]">مبروك!</strong> توصيل مجاني
+      </span>
+    ) : (
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className="shrink-0 text-[10px]">
+          {Math.round((cartTotal / STORE_CONFIG.freeDeliveryThreshold) * 100)}%
+        </span>
+        <div className="flex-1 h-1.5 rounded-full bg-[#EAB308]/30 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-l from-[#EA580C] to-[#F59E0B] transition-all duration-300"
+            style={{ width: `${Math.min(100, (cartTotal / STORE_CONFIG.freeDeliveryThreshold) * 100)}%` }}
+          />
+        </div>
+        <span className="shrink-0 text-[10px] text-[#92400E]">
+          {remainingForFree.toFixed(2)} {STORE_CONFIG.currency}
+        </span>
+      </div>
+    )}
+  </div>
+</div>
               {/* ─── 🔄 زر فتح السلة (بدل تأكيد الطلب) ─── */}
               <button
                 type="button"
