@@ -5,16 +5,13 @@
 import React from 'react';
 import {
   Heart,
-  ShieldCheck,
   Truck,
-  RefreshCw,
   MessageCircle,
   Lock,
   MapPin,
   Clock,
   Sparkles,
   ChevronLeft,
-  Banknote,
   Star,
   CheckCircle2,
   BookOpen,
@@ -76,95 +73,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
           </div>
         </div>
 
-        {/* ════════ شبكة بطاقات المزايا الأربعة (مثل نمط بطاقات الإدارة 2×2) ════════ */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-
-          {/* بطاقة 1: جودة وطراوة */}
-          <div className="bg-gradient-to-br from-zinc-900/90 to-[#0e1f13] border border-emerald-500/30 hover:border-[#EAB308]/60 rounded-2xl p-3.5 sm:p-4 text-right transition-all duration-200 shadow-md hover:shadow-emerald-950/50 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#183921] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-sm">
-                <ShieldCheck className="w-5 h-5 text-[#F5D76E]" strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                100%
-              </span>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
-                جودة وطراوة
-              </h3>
-              <p className="text-[10px] sm:text-[11px] text-stone-400 mt-0.5 leading-snug">
-                فرز يومي حبة بحبة من سوق الجملة.
-              </p>
-            </div>
-          </div>
-
-          {/* بطاقة 2: توصيل سريع */}
-          <div className="bg-gradient-to-br from-zinc-900/90 to-[#0e1f13] border border-emerald-500/30 hover:border-[#EAB308]/60 rounded-2xl p-3.5 sm:p-4 text-right transition-all duration-200 shadow-md hover:shadow-emerald-950/50 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#183921] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-sm">
-                <Truck className="w-5 h-5 text-[#F5D76E]" strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                45 دقيقة
-              </span>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
-                توصيل سريع وموثوق
-              </h3>
-              <p className="text-[10px] sm:text-[11px] text-stone-400 mt-0.5 leading-snug">
-                لكافة أحياء فاس في الوقت المحدد.
-              </p>
-            </div>
-          </div>
-
-          {/* بطاقة 3: ضمان الاستبدال */}
-          <div className="bg-gradient-to-br from-zinc-900/90 to-[#0e1f13] border border-emerald-500/30 hover:border-[#EAB308]/60 rounded-2xl p-3.5 sm:p-4 text-right transition-all duration-200 shadow-md hover:shadow-emerald-950/50 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#183921] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-sm">
-                <RefreshCw className="w-5 h-5 text-[#F5D76E]" strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-                فوري
-              </span>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
-                ضمان الاستبدال
-              </h3>
-              <p className="text-[10px] sm:text-[11px] text-stone-400 mt-0.5 leading-snug">
-                استبدال فوري أو إرجاع بدون أي تعقيد.
-              </p>
-            </div>
-          </div>
-
-          {/* بطاقة 4: الدفع عند الاستلام */}
-          <div className="bg-gradient-to-br from-zinc-900/90 to-[#0e1f13] border border-emerald-500/30 hover:border-[#EAB308]/60 rounded-2xl p-3.5 sm:p-4 text-right transition-all duration-200 shadow-md hover:shadow-emerald-950/50 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#183921] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-sm">
-                <Banknote className="w-5 h-5 text-[#F5D76E]" strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                COD
-              </span>
-            </div>
-            <div className="mt-3">
-              <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
-                الدفع عند الاستلام
-              </h3>
-              <p className="text-[10px] sm:text-[11px] text-stone-400 mt-0.5 leading-snug">
-                نقداً أو تحويل بنكي بعد معاينة طلبك.
-              </p>
-            </div>
-          </div>
-
-        </div>
-
         {/* ════════ القسم الأوسط: معلومات الخدمة والتغطية في بطاقتين متوازنتين ════════ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2">
 
-          {/* ─── بطاقة أ: روابط وخدمات المتجر (تم تحويلها إلى بطاقات 2×2) ─── */}
+          {/* ─── بطاقة أ: روابط وخدمات المتجر ─── */}
           <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 sm:p-5 text-right space-y-3.5 shadow-md">
             <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
               <div className="flex items-center gap-2">
@@ -324,7 +236,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
               </p>
             </div>
 
-            {/* زر الواتساب (تمت إزالة "رد سريع") */}
             <div className="pt-2 flex justify-center">
               <a
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
