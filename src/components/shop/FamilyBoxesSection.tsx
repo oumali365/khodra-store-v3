@@ -1,7 +1,7 @@
 // ============================================================
-// FamilyBoxesSection.tsx – الإصدار 4.2
+// FamilyBoxesSection.tsx – الإصدار 4.3
 // قسم صناديق العائلة بهوية خضرة الموحّدة
-// تحسينات: توسيط المحتوى + تفتيح الخلفية + عرض أوضح
+// تحسينات: وضوح أعلى + حذف الشريط السفلي
 // ============================================================
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -522,7 +522,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
         }
       `}</style>
 
-      {/* ════════ الحاوية الموحدة المتوافقة تماماً مع أقسام المتجر الحديثة ════════ */}
+      {/* ════════ الحاوية الموحدة ════════ */}
       <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-4 sm:p-6 lg:p-8 overflow-hidden">
 
         {/* إضاءات محيطية ناعمة */}
@@ -531,7 +531,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
         <div className="relative">
 
-          {/* ═══════ 1. رأس القسم الموحد: العنوان والوصف (مُوسَّط) ═══════ */}
+          {/* ═══════ 1. رأس القسم الموحد (مُوسَّط) ═══════ */}
           <div className="relative flex flex-col items-center text-center gap-4 pb-5 border-b border-[#2D6A3F]/10">
             <div className="text-center space-y-2 max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
@@ -539,7 +539,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
               </h2>
 
-              <p className="text-xs sm:text-sm text-[#4A5D4F] font-bold leading-relaxed">
+              <p className="text-sm sm:text-base text-[#3E4F43] font-bold leading-relaxed">
                 خضار وفواكه منتقاة بعناية تكفي أسرتك طيلة الأسبوع، مع توفير مؤكد في السعر وتوصيل مريح مباشرة لباب بيتك.
               </p>
             </div>
@@ -583,13 +583,13 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
 
                     <div className="absolute top-2 right-2 z-10">
-                      <span className="inline-flex items-center px-2 py-1 rounded-lg bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-[#1A3D24] text-[9px] font-black shadow-xs tracking-wide border border-white/50">
+                      <span className="inline-flex items-center px-2 py-1 rounded-lg bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-[#1A3D24] text-[10px] font-black shadow-sm tracking-wide border border-white/50">
                         {box.badge}
                       </span>
                     </div>
 
                     <div className="absolute bottom-2 left-2 z-10">
-                      <span className="inline-flex items-center px-2 py-1 rounded-lg bg-gradient-to-r from-[#2D6A3F] to-[#1A3D24] text-white text-[9px] font-black shadow-xs tracking-wide border border-[#EAB308]/35">
+                      <span className="inline-flex items-center px-2 py-1 rounded-lg bg-gradient-to-r from-[#2D6A3F] to-[#1A3D24] text-white text-[10px] font-black shadow-sm tracking-wide border border-[#EAB308]/35">
                         {box.savingsBadge}
                       </span>
                     </div>
@@ -600,67 +600,67 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     <div className="text-center">
                       <h3
                         onClick={() => openBoxModal(box)}
-                        className="text-sm sm:text-base font-black text-[#1A3D24] cursor-pointer hover:text-[#2D6A3F] transition-colors leading-snug truncate"
+                        className="text-base sm:text-lg font-black text-[#1A3D24] cursor-pointer hover:text-[#2D6A3F] transition-colors leading-snug truncate"
                         title={box.name}
                       >
                         {box.name}
                       </h3>
-                      <p className="text-[#5A6B5F] text-[10px] sm:text-xs font-semibold mt-0.5">
+                      <p className="text-[#3E4F43] text-xs sm:text-sm font-bold mt-0.5">
                         {box.subtitle}
                       </p>
                     </div>
 
                     <div className="text-center" dir="ltr">
-                      <div className="text-lg sm:text-xl font-black text-[#EA580C] leading-none tracking-tight drop-shadow-[0_2px_6px_rgba(234,88,12,0.15)]">
+                      <div className="text-xl sm:text-2xl font-black text-[#EA580C] leading-none tracking-tight drop-shadow-[0_2px_6px_rgba(234,88,12,0.15)]">
                         <span>{box.price.toFixed(2)}</span>{' '}
-                        <span className="text-xs sm:text-sm font-black text-[#EA580C]">DH</span>
+                        <span className="text-sm sm:text-base font-black text-[#EA580C]">DH</span>
                       </div>
-                      <div className="text-[10px] text-stone-400 line-through font-bold mt-0.5 tracking-tight">
+                      <div className="text-[11px] text-stone-500 line-through font-bold mt-0.5 tracking-tight">
                         <span>{box.originalPrice.toFixed(2)}</span> <span>DH</span>
                       </div>
                     </div>
                   </div>
 
                   {/* ═══ Chips المواصفات (مُوسَّط) ═══ */}
-                  <div className="mt-2.5 flex items-center justify-center gap-1.5 flex-wrap">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#2D6A3F]/8 border border-[#2D6A3F]/15 text-[#1A3D24] text-[10px] font-bold">
-                      <Users className="w-3 h-3 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
+                  <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2D6A3F]/10 border-2 border-[#2D6A3F]/20 text-[#1A3D24] text-[11px] font-black">
+                      <Users className="w-3.5 h-3.5 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
                       <span>{box.servings}</span>
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#2D6A3F]/8 border border-[#2D6A3F]/15 text-[#1A3D24] text-[10px] font-bold">
-                      <Scale className="w-3 h-3 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2D6A3F]/10 border-2 border-[#2D6A3F]/20 text-[#1A3D24] text-[11px] font-black">
+                      <Scale className="w-3.5 h-3.5 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
                       <span>{box.weight}</span>
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#2D6A3F]/8 border border-[#2D6A3F]/15 text-[#1A3D24] text-[10px] font-bold">
-                      <Package className="w-3 h-3 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2D6A3F]/10 border-2 border-[#2D6A3F]/20 text-[#1A3D24] text-[11px] font-black">
+                      <Package className="w-3.5 h-3.5 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
                       <span>{box.itemsCountLabel}</span>
                     </span>
                   </div>
 
                   {/* ═══ الوصف (مُوسَّط) ═══ */}
-                  <div className="mt-2.5 pt-2 border-t border-[#2D6A3F]/10 text-center">
-                    <p className="text-[10px] sm:text-xs text-[#5A6B5F] font-semibold leading-relaxed line-clamp-2">
+                  <div className="mt-3 pt-2 border-t-2 border-[#2D6A3F]/10 text-center">
+                    <p className="text-xs sm:text-sm text-[#1F2937] font-semibold leading-relaxed line-clamp-2">
                       {box.description}
                     </p>
                   </div>
                 </div>
 
                 {/* ═══ الأزرار ═══ */}
-                <div className="mt-2.5 pt-2 border-t border-[#2D6A3F]/10">
-                  <div className="flex items-center justify-center gap-1.5">
+                <div className="mt-3 pt-2 border-t-2 border-[#2D6A3F]/10">
+                  <div className="flex items-center justify-center gap-2">
                     <RippleButton
                       onClick={() => openBoxModal(box)}
                       rippleColor="rgba(45,106,63,0.20)"
-                      className="py-2 px-2.5 rounded-xl border-2 border-[#2D6A3F]/20 bg-white hover:bg-[#FAF8F3] hover:border-[#2D6A3F]/45 text-[#1A3D24] text-[10px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 shadow-sm"
+                      className="py-2.5 px-3 rounded-xl border-2 border-[#2D6A3F]/25 bg-white hover:bg-[#FAF8F3] hover:border-[#2D6A3F]/50 text-[#1A3D24] text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
                     >
-                      <Eye className="w-3 h-3 text-[#2D6A3F] relative z-10" strokeWidth={2.5} />
+                      <Eye className="w-3.5 h-3.5 text-[#2D6A3F] relative z-10" strokeWidth={2.5} />
                       <span className="relative z-10">التفاصيل</span>
                     </RippleButton>
 
                     <RippleButton
                       onClick={(e) => handleQuickAdd(e, box)}
                       rippleColor="rgba(255,255,255,0.30)"
-                      className={`flex-1 py-2 px-2.5 rounded-xl text-white text-[10px] sm:text-xs font-black flex items-center justify-center gap-1 shadow-[0_4px_14px_rgba(45,106,63,0.25)] transition-all duration-200 cursor-pointer active:scale-95 border border-[#EAB308]/25 ${
+                      className={`flex-1 py-2.5 px-3 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md transition-all duration-200 cursor-pointer active:scale-95 border-2 border-[#EAB308]/30 ${
                         isAdded
                           ? 'bg-gradient-to-l from-emerald-600 to-emerald-700'
                           : 'bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F]'
@@ -668,12 +668,12 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     >
                       {isAdded ? (
                         <>
-                          <Check className="w-3 h-3 text-white relative z-10" strokeWidth={2.5} />
+                          <Check className="w-3.5 h-3.5 text-white relative z-10" strokeWidth={2.5} />
                           <span className="relative z-10">تمت الإضافة</span>
                         </>
                       ) : (
                         <>
-                          <ShoppingBag className="w-3 h-3 text-[#EAB308] relative z-10" strokeWidth={2.5} />
+                          <ShoppingBag className="w-3.5 h-3.5 text-[#EAB308] relative z-10" strokeWidth={2.5} />
                           <span className="relative z-10">أضف للسلة</span>
                         </>
                       )}
@@ -715,28 +715,22 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
               type="button"
               onClick={scrollPrev}
               disabled={activeBoxIndex === 0}
-              className="p-1.5 rounded-lg bg-white border border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
+              className="p-2 rounded-lg bg-white border-2 border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
               aria-label="السابق"
             >
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
             </button>
             <button
               type="button"
               onClick={scrollNext}
               disabled={activeBoxIndex >= FAMILY_BOXES.length - 1}
-              className="p-1.5 rounded-lg bg-white border border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
+              className="p-2 rounded-lg bg-white border-2 border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
               aria-label="التالي"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
+              <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
             </button>
           </div>
         </div>
-      </div>
-
-      {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة والتوصيل (مُوسَّط) ═══════ */}
-      <div className="mt-5 pt-4 border-t border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs text-[#4A5D4F] font-bold text-center">
-        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
-        <span>محتويات الصناديق قطاف يومي طازج من أسواق الجملة بفاس — بدون أي وسيط لضمان أقصى طراوة وتوفير.</span>
       </div>
 
     </div>
