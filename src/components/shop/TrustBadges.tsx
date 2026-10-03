@@ -1,7 +1,6 @@
 // ============================================================
-// الملف: TrustBadges.tsx – الإصدار 6.0
-// تصميم موحد ومتوافق تماماً مع قسم التقييمات وقسم المتجر
-// حاوية رئيسية واحدة جامعة + عرض شبكي متناسق + تمرير انسيابي للجوال
+// TrustBadges.tsx – الإصدار 6.1
+// تصميم موحد: توسيط مثالي للبطاقات + وضوح أعلى
 // ============================================================
 import React, { useRef, useState } from 'react';
 import {
@@ -95,84 +94,70 @@ export const TrustBadges: React.FC = () => {
       aria-label="مميزات وثقة متجر خضرة"
       dir="rtl"
     >
-      {/* ════════ الحاوية الموحدة المتوافقة تماماً مع تصميم قسم التقييمات ════════ */}
+      {/* ════════ الحاوية الموحدة ════════ */}
       <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
 
         {/* إضاءات محيطية ناعمة */}
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/5 rounded-full blur-3xl pointer-events-none" />
 
-        {/* ─── 1. رأس القسم الموحد: العنوان والشارات (مُوسَّط) ─── */}
-        <div className="relative flex flex-col items-center text-center gap-5 pb-6 border-b border-[#2D6A3F]/10">
-
-          {/* الجانب الأيمن: العنوان والوصف */}
+        {/* ─── 1. رأس القسم الموحد (مُوسَّط) ─── */}
+        <div className="relative flex flex-col items-center text-center gap-4 pb-6 border-b border-[#2D6A3F]/10">
           <div className="text-center space-y-2 max-w-2xl mx-auto">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
               <span>علاش متجر خُضرة هو الخيار الأول للعائلات؟</span>
               <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
             </h2>
 
-            <p className="text-xs sm:text-sm text-[#4A5D4F] font-bold leading-relaxed">
+            <p className="text-sm sm:text-base text-[#3E4F43] font-bold leading-relaxed">
               مئات العائلات في فاس كيثقوا فينا كل نهار لتوفير طعام صحي وطازج لموائدهم مع تجربة تسوق مريحة.
             </p>
           </div>
-
-          {/* الجانب الأيسر: شارات الضمان المدمجة (مُوسَّط) */}
-          <div className="flex items-center justify-center flex-wrap gap-2.5 shrink-0 w-full">
-            <div className="inline-flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-2xl border border-[#2D6A3F]/20 shadow-sm text-xs font-black text-[#1A3D24]">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>4 ضمانات حصرية</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-800 px-3.5 py-2 rounded-2xl border border-emerald-500/30 shadow-sm text-xs font-black">
-              <span>⚡ توصيل 45 دقيقة</span>
-            </div>
-          </div>
-
         </div>
 
         {/* ─── 2. شبكة المزايا المتناسقة ─── */}
 
-        {/* على الشاشات المتوسطة والكبيرة (sm وأعلى): شبكة 4 أعمدة متكاملة */}
+        {/* على الشاشات المتوسطة والكبيرة (sm وأعلى): شبكة 4 أعمدة */}
         <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 pt-6">
           {features.map((f) => (
             <div
               key={f.id}
-              className="relative bg-white rounded-2xl border-2 border-[#2D6A3F]/15 hover:border-[#2D6A3F]/40 p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group text-center"
+              className="relative bg-white rounded-2xl border-2 border-[#2D6A3F]/15 hover:border-[#2D6A3F]/45 p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between items-center text-center group"
             >
-              <div>
-                {/* رأس البطاقة: الأيقونة + الشارة (مُوسَّط) */}
-                <div className="flex flex-col items-center justify-center gap-3 mb-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl ${f.iconBg} border flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform`}
-                  >
-                    {f.icon}
-                  </div>
-                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${f.tagColor}`}>
-                    {f.badge}
-                  </span>
+              <div className="w-full flex flex-col items-center">
+                {/* الأيقونة */}
+                <div
+                  className={`w-14 h-14 rounded-2xl ${f.iconBg} border-2 flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform mb-3`}
+                >
+                  {f.icon}
                 </div>
 
+                {/* الشارة */}
+                <span className={`text-[11px] font-black px-3 py-1 rounded-full border-2 ${f.tagColor} mb-3`}>
+                  {f.badge}
+                </span>
+
                 {/* العنوان */}
-                <h3 className="text-sm sm:text-base font-black text-[#1A3D24] leading-snug mb-2">
+                <h3 className="text-base font-black text-[#1A3D24] leading-snug mb-2">
                   {f.title}
                 </h3>
 
                 {/* الوصف */}
-                <p className="text-xs text-[#4A5D4F] font-semibold leading-relaxed">
+                <p className="text-sm text-[#1F2937] font-semibold leading-relaxed">
                   {f.desc}
                 </p>
               </div>
 
-              {/* خط سفلي جمالي متناسق (مُوسَّط) */}
-              <div className="pt-3 mt-3 border-t border-stone-100 flex items-center justify-center gap-1.5 text-[10px] font-bold text-emerald-700/80">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+              {/* خط سفلي جمالي (مُوسَّط) */}
+              <div className="w-full pt-3 mt-3 border-t-2 border-stone-100 flex items-center justify-center gap-1.5 text-[11px] font-black text-emerald-700">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" strokeWidth={2.5} />
                 <span>معتمد لزبناء فاس</span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* على شاشات الهاتف المحمول (< sm): شريط أفقي انسيابي مدمج بدون فجوات */}
+        {/* على شاشات الهاتف المحمول (< sm): شريط أفقي انسيابي */}
         <div className="sm:hidden pt-5">
           <div
             ref={scrollRef}
@@ -183,42 +168,42 @@ export const TrustBadges: React.FC = () => {
             {features.map((f) => (
               <div
                 key={f.id}
-                className="w-[82vw] max-w-[300px] shrink-0 snap-center bg-white rounded-2xl border-2 border-[#2D6A3F]/15 p-4 shadow-sm flex flex-col justify-between text-center"
+                className="w-[85vw] max-w-[320px] shrink-0 snap-center bg-white rounded-2xl border-2 border-[#2D6A3F]/15 p-5 shadow-sm flex flex-col justify-between items-center text-center"
               >
-                <div>
-                  {/* رأس البطاقة على الهاتف (مُوسَّط) */}
-                  <div className="flex flex-col items-center justify-center gap-2.5 mb-3">
-                    <div
-                      className={`w-10 h-10 rounded-xl ${f.iconBg} border flex items-center justify-center shrink-0`}
-                    >
-                      {f.icon}
-                    </div>
-                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${f.tagColor}`}>
-                      {f.badge}
-                    </span>
+                <div className="w-full flex flex-col items-center">
+                  {/* الأيقونة */}
+                  <div
+                    className={`w-12 h-12 rounded-2xl ${f.iconBg} border-2 flex items-center justify-center shrink-0 mb-2.5`}
+                  >
+                    {f.icon}
                   </div>
 
-                  {/* عنوان الميزة */}
-                  <h3 className="text-xs font-black text-[#1A3D24] leading-snug mb-1.5">
+                  {/* الشارة */}
+                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border-2 ${f.tagColor} mb-2.5`}>
+                    {f.badge}
+                  </span>
+
+                  {/* العنوان */}
+                  <h3 className="text-sm font-black text-[#1A3D24] leading-snug mb-1.5">
                     {f.title}
                   </h3>
 
-                  {/* نص الوصف */}
-                  <p className="text-xs text-[#4A5D4F] font-semibold leading-relaxed">
+                  {/* الوصف */}
+                  <p className="text-xs text-[#1F2937] font-semibold leading-relaxed">
                     {f.desc}
                   </p>
                 </div>
 
                 {/* تذييل الميزة (مُوسَّط) */}
-                <div className="pt-2.5 mt-2.5 border-t border-stone-100 flex items-center justify-center gap-1.5 text-[10px] font-bold text-emerald-700/80">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                <div className="w-full pt-3 mt-3 border-t-2 border-stone-100 flex items-center justify-center gap-1.5 text-[11px] font-black text-emerald-700">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" strokeWidth={2.5} />
                   <span>معتمد لزبناء فاس</span>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* نقاط التنقل وأسهم التوجيه المدمجة */}
+          {/* نقاط التنقل وأسهم التوجيه */}
           <div className="flex items-center justify-between pt-2 px-1">
             <div className="flex items-center gap-1.5">
               {features.map((_, i) => (
@@ -241,26 +226,26 @@ export const TrustBadges: React.FC = () => {
                 type="button"
                 onClick={scrollPrev}
                 disabled={activeCardIndex === 0}
-                className="p-1.5 rounded-lg bg-white border border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
+                className="p-2 rounded-lg bg-white border-2 border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
                 aria-label="السابق"
               >
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
               </button>
               <button
                 type="button"
                 onClick={scrollNext}
                 disabled={activeCardIndex >= features.length - 1}
-                className="p-1.5 rounded-lg bg-white border border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
+                className="p-2 rounded-lg bg-white border-2 border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
                 aria-label="التالي"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
+                <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* ─── 3. الشريط السفلي المدمج: التزام الجودة (مُوسَّط) ─── */}
-        <div className="mt-6 pt-5 border-t border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs text-[#4A5D4F] font-bold text-center">
+        {/* ─── 3. الشريط السفلي المدمج (مُوسَّط) ─── */}
+        <div className="mt-6 pt-5 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-sm text-[#1F2937] font-black text-center">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
           <span>التزامنا الدائم: خضار وفواكه طازجة يومياً من أسواق الجملة بفاس لباب داركم.</span>
         </div>
