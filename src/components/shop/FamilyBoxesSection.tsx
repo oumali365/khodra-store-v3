@@ -1,7 +1,7 @@
 // ============================================================
-// FamilyBoxesSection.tsx – الإصدار 4.3
+// FamilyBoxesSection.tsx – الإصدار 4.4
 // قسم صناديق العائلة بهوية خضرة الموحّدة
-// تحسينات: وضوح أعلى + حذف الشريط السفلي
+// تحسينات: إعادة ترتيب + حذف Chips + حذف الضمانات + عرض أوضح
 // ============================================================
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -595,7 +595,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </div>
                   </div>
 
-                  {/* ═══ الاسم والسعر (مُوسَّط) ═══ */}
+                  {/* ═══ الاسم + الوصف + السعر (مُوسَّط، بالترتيب المطلوب) ═══ */}
                   <div className="mt-3 flex flex-col items-center justify-center gap-2">
                     <div className="text-center">
                       <h3
@@ -610,7 +610,12 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                       </p>
                     </div>
 
-                    <div className="text-center" dir="ltr">
+                    {/* نص تعريف الصناديق - منقول من أعلى البطاقة */}
+                    <p className="text-xs sm:text-sm text-[#1F2937] font-semibold leading-relaxed text-center line-clamp-2 px-1">
+                      {box.description}
+                    </p>
+
+                    <div className="text-center pt-1" dir="ltr">
                       <div className="text-xl sm:text-2xl font-black text-[#EA580C] leading-none tracking-tight drop-shadow-[0_2px_6px_rgba(234,88,12,0.15)]">
                         <span>{box.price.toFixed(2)}</span>{' '}
                         <span className="text-sm sm:text-base font-black text-[#EA580C]">DH</span>
@@ -619,29 +624,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                         <span>{box.originalPrice.toFixed(2)}</span> <span>DH</span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* ═══ Chips المواصفات (مُوسَّط) ═══ */}
-                  <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2D6A3F]/10 border-2 border-[#2D6A3F]/20 text-[#1A3D24] text-[11px] font-black">
-                      <Users className="w-3.5 h-3.5 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
-                      <span>{box.servings}</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2D6A3F]/10 border-2 border-[#2D6A3F]/20 text-[#1A3D24] text-[11px] font-black">
-                      <Scale className="w-3.5 h-3.5 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
-                      <span>{box.weight}</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2D6A3F]/10 border-2 border-[#2D6A3F]/20 text-[#1A3D24] text-[11px] font-black">
-                      <Package className="w-3.5 h-3.5 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
-                      <span>{box.itemsCountLabel}</span>
-                    </span>
-                  </div>
-
-                  {/* ═══ الوصف (مُوسَّط) ═══ */}
-                  <div className="mt-3 pt-2 border-t-2 border-[#2D6A3F]/10 text-center">
-                    <p className="text-xs sm:text-sm text-[#1F2937] font-semibold leading-relaxed line-clamp-2">
-                      {box.description}
-                    </p>
                   </div>
                 </div>
 
@@ -881,46 +863,8 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gradient-to-l from-[#ECFDF5] to-[#F0FDF4] border-2 border-[#2D6A3F]/25">
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#2D6A3F]/20">
-                  <div className="w-7 h-7 rounded-lg bg-[#2D6A3F] flex items-center justify-center shadow-sm">
-                    <ShieldCheck className="w-4 h-4 text-[#EAB308]" strokeWidth={2.5} />
-                  </div>
-                  <span className="font-black text-[#1A3D24] text-sm">ضمانات خُضرة</span>
-                </div>
+              {/* تم حذف قسم ضمانات خُضرة بناءً على الطلب */}
 
-                <div className="space-y-2.5">
-                  <div className="flex items-start gap-2.5 text-[#1A3D24]">
-                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-[#2D6A3F]/25 mt-0.5">
-                      <HeartHandshake className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-black mb-0.5">ضمان الرضا 100%</div>
-                      <div className="text-[11px] font-medium opacity-90">استبدال فوري لأي صنف لم ينل إعجابك.</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 text-[#1A3D24]">
-                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-[#2D6A3F]/25 mt-0.5">
-                      <Truck className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-black mb-0.5">توصيل مبرد وآمن</div>
-                      <div className="text-[11px] font-medium opacity-90">نحافظ على برودة وطراوة المنتجات حتى باب منزلك.</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 text-[#1A3D24]">
-                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-[#2D6A3F]/25 mt-0.5">
-                      <Star className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-black mb-0.5">قطف طازج يومياً</div>
-                      <div className="text-[11px] font-medium opacity-90">من المزرعة إلى بابك في أقل من 24 ساعة.</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* التذييل */}
