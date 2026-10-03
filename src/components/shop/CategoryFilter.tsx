@@ -136,14 +136,14 @@ const CategoryCardButton: React.FC<{
         lg:min-h-[188px]
         xl:min-h-[198px]
         ${isSelected
-          ? 'border-[#2D6A3F] -translate-y-1 shadow-[0_8px_20px_rgba(45,106,63,0.22)] ring-2 ring-[#EAB308]/50'
-          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:-translate-y-0.5 shadow-xs hover:shadow-md'
+          ? 'border-[#2D6A3F] -translate-y-1 shadow-[0_8px_20px_rgba(45,106,63,0.25)] ring-2 ring-[#EAB308]/60'
+          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:-translate-y-0.5 shadow-sm hover:shadow-md'
         } ${
         !hasBackgroundImage
           ? isSelected
-            ? 'bg-gradient-to-b from-[#163920] to-[#0E2615] text-white'
-            : 'bg-[#FAF8F3] hover:bg-white text-[#112616]'
-          : 'bg-[#163920]'
+            ? 'bg-gradient-to-b from-[#2D6A3F] to-[#1A3D24] text-white'
+            : 'bg-white hover:bg-[#FAF8F3] text-[#1A3D24]'
+          : 'bg-[#1A3D24]'
       }`}
       // @ts-ignore
       style={{ animationDelay: `${animationDelay}ms` }}
@@ -197,8 +197,8 @@ const CategoryCardButton: React.FC<{
                 ? 'text-[#FACC15] drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]'
                 : 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]'
               : isSelected
-              ? 'text-[#EAB308]'
-              : 'text-[#112616]'
+              ? 'text-white'
+              : 'text-[#1A3D24]'
           }`}
         >
           {category.name}
@@ -403,38 +403,38 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       `}</style>
 
       {/* ════════ الحاوية الموحدة المتوافقة تماماً مع شارات الثقة والتقييمات ════════ */}
-      <div className="relative bg-gradient-to-b from-[#FAF8F3] via-white to-[#F7F4EB] border-2 border-[#2D6A3F]/20 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.08)] p-5 sm:p-8 lg:p-10 overflow-hidden">
-        
+      <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
+
         {/* إضاءات محيطية ناعمة للهوية البصرية */}
-        <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
 
-          {/* ═══════ 1. رأس القسم الموحد: العنوان + أدوات التصفية ═══════ */}
-          <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-[#2D6A3F]/12">
-            
+          {/* ═══════ 1. رأس القسم الموحد: العنوان + أدوات التصفية (مُوسَّط) ═══════ */}
+          <div className="relative flex flex-col items-center text-center gap-5 pb-6 border-b border-[#2D6A3F]/10">
+
             {/* الجانب الأيمن: العنوان والوصف */}
-            <div className="text-right space-y-2">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center gap-2">
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
                 <span>تسوق حسب الفئات والأقسام</span>
                 <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
               </h2>
 
-              <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold max-w-xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#4A5D4F] font-bold leading-relaxed">
                 خضار وفواكه طازجة، تمور، أجبان وألبان، وبقالة يومية مختارة بعناية فائقة من أسواق الجملة بفاس.
               </p>
             </div>
 
-            {/* الجانب الأيسر: زر التصفية والفرز والأزرار التفاعلية */}
-            <div className="flex items-center flex-wrap gap-2.5 sm:gap-3 shrink-0">
-              
+            {/* الجانب الأيسر: زر التصفية والفرز والأزرار التفاعلية (مُوسَّط) */}
+            <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 shrink-0 w-full">
+
               {/* إلغاء البحث إذا كان مفعل */}
               {isSearchMode && onClearSearch && (
                 <button
                   type="button"
                   onClick={onClearSearch}
-                  className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3.5 py-2 rounded-2xl transition-all cursor-pointer shadow-xs active:scale-95"
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3.5 py-2 rounded-2xl transition-all cursor-pointer shadow-sm active:scale-95"
                 >
                   <span className="max-w-[120px] truncate">
                     إلغاء البحث "{searchQuery}"
@@ -460,7 +460,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 type="button"
                 id="category-filter-sort-btn"
                 onClick={onOpenSort}
-                className="group relative inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#377A4C] hover:to-[#22502F] text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border border-[#EAB308]/40"
+                className="group relative inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#377A4C] hover:to-[#22502F] text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border border-[#EAB308]/50"
                 title="تصفية وترتيب المنتجات"
                 aria-label="تصفية وترتيب المنتجات"
               >
@@ -477,8 +477,8 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 onClick={() => onSelectCategory('all')}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer active:scale-95 border ${
                   selectedCategory === 'all'
-                    ? 'bg-[#1A3D24] text-[#F5D76E] border-[#EAB308]/60 shadow-xs'
-                    : 'bg-white text-[#5A6B5F] hover:text-[#1A3D24] border-[#2D6A3F]/20 hover:border-[#2D6A3F]/40'
+                    ? 'bg-[#1A3D24] text-[#F5D76E] border-[#EAB308]/70 shadow-sm'
+                    : 'bg-white text-[#4A5D4F] hover:text-[#1A3D24] border-[#2D6A3F]/20 hover:border-[#2D6A3F]/40'
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
@@ -491,7 +491,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
           {/* ═══════ 2. شريط وبطاقات الفئات ═══════ */}
           <div className="relative pt-6">
-            
+
             {/* أزرار التمرير الدائرية (Desktop) */}
             {canScrollRight && (
               <button
@@ -540,7 +540,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 className="md:hidden flex flex-col items-center select-none pointer-events-none mt-3"
                 aria-hidden="true"
               >
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-xs border border-[#2D6A3F]/15 shadow-2xs">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 backdrop-blur-xs border border-[#2D6A3F]/15 shadow-sm">
                   <span
                     className={`inline-flex transition-opacity duration-300 ${
                       canScrollLeft ? 'category-scroll-hint-left opacity-100' : 'opacity-25'
@@ -566,8 +566,8 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
           </div>
 
-          {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة ═══════ */}
-          <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex items-center justify-center sm:justify-start gap-2 text-xs text-[#5A6B5F] font-bold text-center sm:text-right">
+          {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة (مُوسَّط) ═══════ */}
+          <div className="mt-6 pt-5 border-t border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs text-[#4A5D4F] font-bold text-center">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
             <span>جميع المنتجات تخضع للمعاينة والفرز الدقيق قبل التجهيز والتوصيل لباب منزلك.</span>
           </div>
