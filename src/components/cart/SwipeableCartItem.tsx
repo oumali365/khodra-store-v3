@@ -131,6 +131,7 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
               <img
                 src={item.image_url}
                 alt={item.name}
+                referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
                 loading="lazy"
                 onError={() => setImgError(true)}

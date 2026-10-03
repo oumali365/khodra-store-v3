@@ -270,8 +270,8 @@ export default function App() {
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [onlyInStock, setOnlyInStock] = useState<boolean>(false);
 
-  // ─── Products pagination (8 products default) ───
-  const INITIAL_VISIBLE_COUNT = 8;
+  // ─── Products pagination (12 products default to align with 2/3/4 grid columns) ───
+  const INITIAL_VISIBLE_COUNT = 12;
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE_COUNT);
 
   // Reset pagination when category, search, or filters change
@@ -920,7 +920,7 @@ export default function App() {
                         <button
                           type="button"
                           id="load-more-products-btn"
-                          onClick={() => setVisibleCount((prev) => prev + 8)}
+                          onClick={() => setVisibleCount((prev) => prev + 12)}
                           className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-white border-2 border-[#E8E1D3] hover:border-[#C25E12] hover:bg-[#F7F4EC] text-[#163920] text-xs sm:text-sm font-black transition-all cursor-pointer active:scale-95 shadow-sm group"
                           title="عرض باقي المنتجات"
                         >
