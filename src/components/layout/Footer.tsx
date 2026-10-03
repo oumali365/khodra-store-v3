@@ -165,7 +165,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2">
 
           {/* ─── بطاقة أ: روابط وخدمات المتجر ─── */}
-          <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 sm:p-5 text-right space-y-3.5 shadow-md">
+          <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 sm:p-5 text-right space-y-4 shadow-md">
             <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -180,62 +180,85 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            {/* ════ تحويل الأزرار إلى 4 بطاقات بتصميم مشابه للبطاقات العلوية ════ */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              
+              {/* البطاقة 1: من نحن */}
               <button
                 type="button"
                 onClick={() => onOpenPage('about')}
-                className="group flex items-center justify-between p-2.5 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 hover:border-[#EAB308]/60 transition-all cursor-pointer text-right active:scale-[0.98]"
+                className="group bg-zinc-800/40 hover:bg-zinc-800/80 border border-zinc-700/60 hover:border-emerald-500/50 rounded-xl p-3 text-right transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">📖</span>
-                  <span className="text-xs font-bold text-stone-200 group-hover:text-[#F5D76E] transition-colors">
-                    من نحن ورسالتنا
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                    <span className="text-sm">📖</span>
+                  </div>
+                  <ChevronLeft className="w-3.5 h-3.5 text-stone-500 group-hover:text-emerald-400 group-hover:-translate-x-1 transition-all" />
                 </div>
-                <ChevronLeft className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#F5D76E] group-hover:-translate-x-1 transition-all" />
+                <div className="mt-3">
+                  <h4 className="text-[11px] sm:text-xs font-black text-stone-200 group-hover:text-white transition-colors leading-tight">
+                    من نحن ورسالتنا
+                  </h4>
+                </div>
               </button>
 
+              {/* البطاقة 2: سياسة التوصيل */}
               <button
                 type="button"
                 onClick={() => onOpenPage('policy')}
-                className="group flex items-center justify-between p-2.5 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 hover:border-[#EAB308]/60 transition-all cursor-pointer text-right active:scale-[0.98]"
+                className="group bg-zinc-800/40 hover:bg-zinc-800/80 border border-zinc-700/60 hover:border-emerald-500/50 rounded-xl p-3 text-right transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🚚</span>
-                  <span className="text-xs font-bold text-stone-200 group-hover:text-[#F5D76E] transition-colors">
-                    سياسة التوصيل والإرجاع
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                    <span className="text-sm">🚚</span>
+                  </div>
+                  <ChevronLeft className="w-3.5 h-3.5 text-stone-500 group-hover:text-emerald-400 group-hover:-translate-x-1 transition-all" />
                 </div>
-                <ChevronLeft className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#F5D76E] group-hover:-translate-x-1 transition-all" />
+                <div className="mt-3">
+                  <h4 className="text-[11px] sm:text-xs font-black text-stone-200 group-hover:text-white transition-colors leading-tight">
+                    سياسة التوصيل والإرجاع
+                  </h4>
+                </div>
               </button>
 
+              {/* البطاقة 3: سياسة الخصوصية */}
               <button
                 type="button"
                 onClick={() => onOpenPage('privacy')}
-                className="group flex items-center justify-between p-2.5 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 hover:border-[#EAB308]/60 transition-all cursor-pointer text-right active:scale-[0.98]"
+                className="group bg-zinc-800/40 hover:bg-zinc-800/80 border border-zinc-700/60 hover:border-emerald-500/50 rounded-xl p-3 text-right transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🔒</span>
-                  <span className="text-xs font-bold text-stone-200 group-hover:text-[#F5D76E] transition-colors">
-                    سياسة الخصوصية
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                    <span className="text-sm">🔒</span>
+                  </div>
+                  <ChevronLeft className="w-3.5 h-3.5 text-stone-500 group-hover:text-emerald-400 group-hover:-translate-x-1 transition-all" />
                 </div>
-                <ChevronLeft className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#F5D76E] group-hover:-translate-x-1 transition-all" />
+                <div className="mt-3">
+                  <h4 className="text-[11px] sm:text-xs font-black text-stone-200 group-hover:text-white transition-colors leading-tight">
+                    سياسة الخصوصية
+                  </h4>
+                </div>
               </button>
 
+              {/* البطاقة 4: آراء الزبناء */}
               <button
                 type="button"
                 onClick={() => scrollToSection('customer-reviews-section')}
-                className="group flex items-center justify-between p-2.5 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 hover:border-[#EAB308]/60 transition-all cursor-pointer text-right active:scale-[0.98]"
+                className="group bg-zinc-800/40 hover:bg-zinc-800/80 border border-zinc-700/60 hover:border-emerald-500/50 rounded-xl p-3 text-right transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">⭐</span>
-                  <span className="text-xs font-bold text-stone-200 group-hover:text-[#F5D76E] transition-colors">
-                    آراء زبنائنا بفاس
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+                    <span className="text-sm">⭐</span>
+                  </div>
+                  <ChevronLeft className="w-3.5 h-3.5 text-stone-500 group-hover:text-emerald-400 group-hover:-translate-x-1 transition-all" />
                 </div>
-                <ChevronLeft className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#F5D76E] group-hover:-translate-x-1 transition-all" />
+                <div className="mt-3">
+                  <h4 className="text-[11px] sm:text-xs font-black text-stone-200 group-hover:text-white transition-colors leading-tight">
+                    آراء زبنائنا بفاس
+                  </h4>
+                </div>
               </button>
+
             </div>
           </div>
 
@@ -290,11 +313,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
           <div className="absolute top-0 right-1/3 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="relative max-w-xl mx-auto space-y-4">
-            {/* الشارة العلوية */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>خدمة الزبناء والمساعدة الفورية • En ligne</span>
-            </div>
+            {/* تم حذف الشارة العلوية "خدمة الزبناء والمساعدة الفورية" */}
 
             <div className="space-y-1">
               <h3 className="text-base sm:text-xl font-black text-white">
@@ -317,9 +336,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
                   <MessageCircle className="w-4 h-4 fill-white text-emerald-600" />
                 </div>
                 <span>تواصل فوري عبر الواتساب</span>
-                <span className="text-[10px] font-bold bg-white/25 px-2 py-0.5 rounded-full text-white/95">
-                  رد سريع
-                </span>
+                {/* تم حذف "رد سريع" */}
               </a>
             </div>
 
