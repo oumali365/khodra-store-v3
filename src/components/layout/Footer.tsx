@@ -256,15 +256,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
               <span className="text-stone-500 text-[10px] hidden sm:inline">(شركة خُضرة للتجارة الإلكترونية SARL)</span>
             </p>
           </div>
-
-          <div className="inline-flex items-center gap-1.5 justify-center font-bold text-[10px] sm:text-[11px] bg-zinc-900 hover:bg-zinc-800 px-3 py-1.5 rounded-full border border-zinc-800 text-stone-300 transition-colors shadow-2xs">
-            <span>صنع بكل</span>
-            <Heart className="w-3 h-3 text-red-500 fill-current animate-bounce" />
-            <span className="text-white font-black">لخدمة المائدة الفاسية والمغربية</span>
-          </div>
-
         </div>
-
       </div>
     </footer>
   );
