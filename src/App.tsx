@@ -25,7 +25,16 @@ import {
 } from './components/shop';
 import { CustomerReviews } from './components/reviews';
 import { ExitScreen } from './components/common';
-import { AdminErrorBoundary, AdminOrdersPanel } from './components/admin';
+import {
+  AdminErrorBoundary,
+  AdminOrdersPanel,
+  AdminBottomDashboard,
+  PinModal,
+} from './components/admin';
+import {
+  verifyAdminPinRemote,
+  clearCachedAdminPin,
+} from './services/supabaseService';
 
 // ─── تحميل مؤجل للمودالات لتقليص الحجم الأولي وتسريع ظهور الصفحة الرئيسية ───
 const CartDrawer = React.lazy(() =>
@@ -281,6 +290,71 @@ export default function App() {
   const [isAdminOrdersOpen, setIsAdminOrdersOpen] = useState(false);
   const [isAppExited, setIsAppExited] = useState(false);
   const [isInstallBannerVisible, setIsInstallBannerVisible] = useState<boolean>(() => !checkIfAlreadyInstalledOrDownloaded());
+
+  // ─── وضع المدير (Admin Mode) أسفل الفوتر ───
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('khodra_admin_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isAdminPinModalOpen, setIsAdminPinModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleAdminTrigger = () => {
+      if (isAdmin) {
+        const el = document.getElementById('admin-dashboard-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        setIsAdminPinModalOpen(true);
+      }
+    };
+
+    const handleAuthChanged = () => {
+      try {
+        setIsAdmin(sessionStorage.getItem('khodra_admin_auth') === 'true');
+      } catch {}
+    };
+
+    window.addEventListener('khodra_trigger_admin_modal', handleAdminTrigger);
+    window.addEventListener('khodra_admin_auth_changed', handleAuthChanged);
+    return () => {
+      window.removeEventListener('khodra_trigger_admin_modal', handleAdminTrigger);
+      window.removeEventListener('khodra_admin_auth_changed', handleAuthChanged);
+    };
+  }, [isAdmin]);
+
+  const handleAdminPinLogin = async (pin: string): Promise<boolean> => {
+    const res = await verifyAdminPinRemote(pin.trim());
+    if (res.valid) {
+      setIsAdmin(true);
+      try {
+        sessionStorage.setItem('khodra_admin_auth', 'true');
+      } catch {}
+      window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
+      setIsAdminPinModalOpen(false);
+      setTimeout(() => {
+        const el = document.getElementById('admin-dashboard-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+      return true;
+    }
+    return false;
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdmin(false);
+    clearCachedAdminPin();
+    try {
+      sessionStorage.removeItem('khodra_admin_auth');
+    } catch {}
+    window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
+  };
 
   // ─── Refs ───
   const prevStatesRef = useRef({
@@ -1030,6 +1104,21 @@ export default function App() {
 
       {/* ═══════ Footer ═══════ */}
       <Footer onOpenPage={handleOpenPage} />
+
+      {/* ═══════ قسم المدير أسفل الفوتر (بطاقات 2×2) ═══════ */}
+      <AdminBottomDashboard
+        isAdmin={isAdmin}
+        onLogout={handleAdminLogout}
+      />
+
+      {/* ═══════ نافذة إدخال الرمز السري للمدير ═══════ */}
+      {isAdminPinModalOpen && (
+        <PinModal
+          isOpen={isAdminPinModalOpen}
+          onClose={() => setIsAdminPinModalOpen(false)}
+          onSubmit={handleAdminPinLogin}
+        />
+      )}
 
     </div>
   );

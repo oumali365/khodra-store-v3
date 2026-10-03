@@ -11,40 +11,23 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  Trash2,
   ShieldCheck,
-  KeyRound,
-  ShoppingBag,
+  Trash2,
   Quote,
   Sparkles,
-  BarChart3,
-  FileText,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
 import {
   fetchReviews,
   submitCustomerReview,
   deleteCustomerReview,
-  clearCachedAdminPin,
-  verifyAdminPinRemote,
-  updateAdminPassword,
 } from '../../services/supabaseService';
-import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
 import {
   INITIAL_THREE_REVIEWS,
   type CustomerReview,
 } from '../../data/initialReviews';
 import { AddReviewModal } from './AddReviewModal';
-import {
-  AdminNotificationToast,
-  PinModal,
-  ChangePinModal,
-  DeleteReviewModal,
-  AdminErrorBoundary,
-  AdminOrdersPanel,
-  FinancePanel,
-  AdminDocumentsModal,
-} from '../admin';
+import { DeleteReviewModal } from '../admin';
 
 export type { CustomerReview };
 
@@ -99,6 +82,65 @@ const RippleButton: React.FC<{
   );
 };
 
+// ═══════════════════════════════════════════════════════════
+// ✅ RippleCard — عنصر article يمنع خطأ nested button في HTML
+// ═══════════════════════════════════════════════════════════
+const RippleCard: React.FC<{
+  onClick?: () => void;
+  className: string;
+  children: React.ReactNode;
+  rippleColor?: string;
+  ariaLabel?: string;
+  animationDelay?: number;
+}> = ({ onClick, className, children, rippleColor = 'rgba(45,106,63,0.22)', ariaLabel, animationDelay }) => {
+  const cardRef = useRef<HTMLElement>(null);
+
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    const card = cardRef.current;
+    if (card) {
+      const rect = card.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6;
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      const ripple = document.createElement('span');
+      ripple.className = 'rev-ripple';
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      ripple.style.background = rippleColor;
+      card.appendChild(ripple);
+
+      window.setTimeout(() => ripple.remove(), 650);
+    }
+    onClick?.();
+  };
+
+  return (
+    <article
+      ref={cardRef}
+      role="button"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (!(e.target as HTMLElement).closest('button')) {
+            onClick?.();
+          }
+        }
+      }}
+      style={animationDelay !== undefined ? { animationDelay: `${animationDelay}ms` } : undefined}
+      className={`relative overflow-hidden ${className}`}
+    >
+      {children}
+    </article>
+  );
+};
+
 interface CustomerReviewsProps {
   onOpenOrdersPanel?: () => void;
 }
@@ -109,7 +151,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // ─── Admin mode ───
+  // ─── Admin mode (متزامن مع اللوحة الرئيسية أسفل الفوتر) ───
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     try {
       return sessionStorage.getItem('khodra_admin_auth') === 'true';
@@ -118,15 +160,21 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     }
   });
 
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [isChangePinModalOpen, setIsChangePinModalOpen] = useState(false);
   const [deleteConfirmReview, setDeleteConfirmReview] = useState<CustomerReview | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [adminNotification, setAdminNotification] = useState<string | null>(null);
 
-  const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
-  const [isFinancePanelOpen, setIsFinancePanelOpen] = useState(false);
-  const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
+  useEffect(() => {
+    const handleAuthChanged = () => {
+      try {
+        setIsAdmin(sessionStorage.getItem('khodra_admin_auth') === 'true');
+      } catch {}
+    };
+    window.addEventListener('khodra_admin_auth_changed', handleAuthChanged);
+    return () => {
+      window.removeEventListener('khodra_admin_auth_changed', handleAuthChanged);
+    };
+  }, []);
 
   // ─── التمرير الأفقي ───
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
@@ -197,83 +245,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     }
   };
 
-  // ─── 🔔 الإشعارات الصوتية ───
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('khodra_notification_sound') !== 'false';
-    } catch {
-      return true;
-    }
-  });
-
-  const {
-    newCount,
-    totalPending,
-    markAsSeen,
-    refresh: refreshOrders,
-  } = useNewOrdersNotifier({
-    enabled: isAdmin,
-    pollIntervalMs: 45000,
-  });
-
-  const handleToggleSound = useCallback(() => {
-    setSoundEnabled((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('khodra_notification_sound', String(next));
-      } catch {}
-      setAdminNotification(next ? '🔔 تم تفعيل التنبيهات الصوتية' : '🔇 تم كتم التنبيهات الصوتية');
-      setTimeout(() => setAdminNotification(null), 2500);
-      return next;
-    });
-  }, []);
-
-  const handleOpenOrders = useCallback(() => {
-    markAsSeen();
-    if (onOpenOrdersPanel) {
-      onOpenOrdersPanel();
-    } else {
-      setIsOrdersPanelOpen(true);
-      window.dispatchEvent(new CustomEvent('khodra_open_admin_orders'));
-    }
-  }, [markAsSeen, onOpenOrdersPanel]);
-
-  const handleCloseOrdersPanel = useCallback(() => {
-    setIsOrdersPanelOpen(false);
-    try {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-      document.body.style.pointerEvents = '';
-    } catch {}
-    try {
-      refreshOrders();
-    } catch {}
-  }, [refreshOrders]);
-
-  const handleOpenFinance = useCallback(() => {
-    setIsFinancePanelOpen(true);
-  }, []);
-
-  const handleCloseFinance = useCallback(() => {
-    setIsFinancePanelOpen(false);
-  }, []);
-
-  useEffect(() => {
-    const handleUpdated = () => {
-      try {
-        refreshOrders();
-      } catch {}
-    };
-    const handleOpenFinanceEvent = () => setIsFinancePanelOpen(true);
-    window.addEventListener('khodra_orders_updated', handleUpdated);
-    window.addEventListener('khodra_open_finance_panel', handleOpenFinanceEvent);
-    return () => {
-      window.removeEventListener('khodra_orders_updated', handleUpdated);
-      window.removeEventListener('khodra_open_finance_panel', handleOpenFinanceEvent);
-    };
-  }, [refreshOrders]);
-
-  // ─── ✅ جلب التقييمات ───
+  // ─── جلب التقييمات ───
   useEffect(() => {
     let isMounted = true;
     async function loadSupabaseReviews() {
@@ -358,79 +330,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     };
 
     setReviews((prev) => [newReviewItem, ...prev]);
-  };
-
-  useEffect(() => {
-    const handleTrigger = () => {
-      if (isAdmin) {
-        const el = document.getElementById('customer-reviews-section');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else {
-        setIsPinModalOpen(true);
-      }
-    };
-
-    window.addEventListener('khodra_trigger_admin_modal', handleTrigger);
-    return () => {
-      window.removeEventListener('khodra_trigger_admin_modal', handleTrigger);
-    };
-  }, [isAdmin]);
-
-  const handlePinLogin = async (pin: string): Promise<boolean> => {
-    const inputPin = pin.trim();
-    const res = await verifyAdminPinRemote(inputPin);
-
-    if (res.valid) {
-      setIsAdmin(true);
-      try {
-        sessionStorage.setItem('khodra_admin_auth', 'true');
-      } catch {}
-      setAdminNotification('مرحباً بك! تم تفعيل وضع المدير مع التنبيهات الصوتية.');
-      setTimeout(() => setAdminNotification(null), 4000);
-
-      setTimeout(() => {
-        const el = document.getElementById('customer-reviews-section');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 200);
-      return true;
-    }
-
-    if (res.message) {
-      setAdminNotification(`❌ ${res.message}`);
-      setTimeout(() => setAdminNotification(null), 4000);
-    }
-    return false;
-  };
-
-  const handleLogoutAdmin = () => {
-    setIsAdmin(false);
-    clearCachedAdminPin();
-    try {
-      sessionStorage.removeItem('khodra_admin_auth');
-    } catch {}
-    setAdminNotification('تم تسجيل الخروج من وضع المدير.');
-    setTimeout(() => setAdminNotification(null), 3000);
-  };
-
-  const handleChangePin = async (newPin: string): Promise<{ success: boolean; message?: string }> => {
-    try {
-      const res = await updateAdminPassword(newPin);
-      if (res.success) {
-        setAdminNotification(`✅ ${res.message || 'تم تحديث الرمز السري ومزامنته بنجاح.'}`);
-        setTimeout(() => setAdminNotification(null), 4000);
-        return { success: true, message: res.message };
-      } else {
-        setAdminNotification(`❌ فشل التحديث: ${res.message || 'خطأ غير معروف'}`);
-        setTimeout(() => setAdminNotification(null), 4000);
-        return { success: false, message: res.message };
-      }
-    } catch (err: any) {
-      console.error('❌ خطأ في تحديث PIN:', err);
-      const msg = err?.message || 'حدث خطأ غير معروف';
-      setAdminNotification(`❌ خطأ: ${msg}`);
-      setTimeout(() => setAdminNotification(null), 4000);
-      return { success: false, message: msg };
-    }
   };
 
   const handleExecuteDelete = async () => {
@@ -533,70 +432,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           </div>
         )}
 
-        {/* ════════ شريط المدير ════════ */}
-        {isAdmin && (
-          <div className="mb-6 max-w-2xl mx-auto p-3.5 rounded-2xl bg-gradient-to-r from-[#FEF3C7]/70 via-[#FED7AA]/70 to-[#FEF3C7]/70 border-2 border-[#EAB308]/40 text-[#1A3D24] flex flex-wrap items-center justify-between gap-2.5 text-xs font-black text-right shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#2D6A3F] flex items-center justify-center shrink-0 shadow-sm">
-                <ShieldCheck className="w-4 h-4 text-[#EAB308]" strokeWidth={2.5} />
-              </div>
-              <span>
-                <strong>وضع المدير مفعّل:</strong> إدارة الطلبات + التنبيهات
-              </span>
-            </div>
-            <div className="flex items-center gap-2 mr-auto flex-wrap">
-              <RippleButton
-                onClick={handleOpenOrders}
-                rippleColor="rgba(255,255,255,0.30)"
-                className="relative px-3.5 py-2 rounded-xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_4px_14px_rgba(45,106,63,0.30)] active:scale-95 border border-[#EAB308]/25"
-              >
-                <ShoppingBag className="w-4 h-4 text-[#EAB308] relative z-10" strokeWidth={2.5} />
-                <span className="relative z-10">إدارة الطلبات</span>
-                {totalPending > 0 && (
-                  <span className="relative z-10 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#EA580C] text-white text-[10px] font-black border-2 border-white shadow-md animate-pulse">
-                    {totalPending > 99 ? '99+' : totalPending}
-                  </span>
-                )}
-              </RippleButton>
-
-              <RippleButton
-                onClick={handleOpenFinance}
-                rippleColor="rgba(255,255,255,0.30)"
-                className="relative px-3.5 py-2 rounded-xl bg-gradient-to-l from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_4px_14px_rgba(234,88,12,0.30)] active:scale-95 border border-[#EAB308]/25"
-              >
-                <BarChart3 className="w-4 h-4 text-[#EAB308] relative z-10" strokeWidth={2.5} />
-                <span className="relative z-10">اللوحة المالية</span>
-              </RippleButton>
-
-              <RippleButton
-                onClick={() => setIsDocsModalOpen(true)}
-                rippleColor="rgba(255,255,255,0.30)"
-                className="relative px-3.5 py-2 rounded-xl bg-gradient-to-l from-[#1A3D24] to-[#0E2615] hover:from-[#2D6A3F] hover:to-[#1A3D24] text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_4px_14px_rgba(26,61,36,0.30)] active:scale-95 border border-[#EAB308]/35"
-              >
-                <FileText className="w-4 h-4 text-[#EAB308] relative z-10" strokeWidth={2.5} />
-                <span className="relative z-10">وثائق وعقود المشروع</span>
-              </RippleButton>
-
-              <button
-                type="button"
-                onClick={() => setIsChangePinModalOpen(true)}
-                className="px-3 py-2 rounded-xl bg-white border-2 border-[#EAB308]/50 hover:bg-[#FEF3C7] text-[#1A3D24] text-xs font-black transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
-              >
-                <KeyRound className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
-                <span>الرمز السري</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLogoutAdmin}
-                className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border-2 border-rose-200 text-xs font-black transition-colors cursor-pointer active:scale-95"
-              >
-                خروج
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* ════════ 1. بطاقة العنوان — مطابقة لـ TrustBadges ════════ */}
         <div className="relative bg-gradient-to-b from-white via-[#FEFEFC] to-[#FAF8F3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_12px_rgba(45,106,63,0.06)] p-6 sm:p-8 text-center max-w-md sm:max-w-xl mx-auto mb-8 sm:mb-10 overflow-hidden">
           <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
@@ -654,7 +489,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
               const isPulsing = pulsingIndex === idx;
 
               return (
-                <RippleButton
+                <RippleCard
                   key={rev.id}
                   onClick={() => scrollToReview(idx)}
                   ariaLabel={`تقييم من ${rev.author}`}
@@ -733,7 +568,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                       aria-hidden="true"
                     />
                   )}
-                </RippleButton>
+                </RippleCard>
               );
             })}
 
@@ -825,54 +660,12 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
         onSubmit={handleReviewSubmit}
       />
 
-      <PinModal
-        isOpen={isPinModalOpen}
-        onClose={() => setIsPinModalOpen(false)}
-        onSubmit={handlePinLogin}
-      />
-
-      <ChangePinModal
-        isOpen={isChangePinModalOpen}
-        onClose={() => setIsChangePinModalOpen(false)}
-        onSubmit={handleChangePin}
-      />
-
       <DeleteReviewModal
         review={deleteConfirmReview}
         isDeleting={isDeleting}
         onClose={() => !isDeleting && setDeleteConfirmReview(null)}
         onConfirm={handleExecuteDelete}
       />
-
-      {!onOpenOrdersPanel && isOrdersPanelOpen && (
-        <AdminErrorBoundary onClose={handleCloseOrdersPanel}>
-          <AdminOrdersPanel
-            isOpen={isOrdersPanelOpen}
-            onClose={handleCloseOrdersPanel}
-            onOrdersChange={refreshOrders}
-          />
-        </AdminErrorBoundary>
-      )}
-
-      <FinancePanel
-        isOpen={isFinancePanelOpen}
-        onClose={handleCloseFinance}
-      />
-
-      <AdminDocumentsModal
-        isOpen={isDocsModalOpen}
-        onClose={() => setIsDocsModalOpen(false)}
-      />
-
-      {isAdmin && (
-        <AdminNotificationToast
-          newCount={newCount}
-          onOpenOrders={handleOpenOrders}
-          onDismiss={markAsSeen}
-          soundEnabled={soundEnabled}
-          onToggleSound={handleToggleSound}
-        />
-      )}
     </>
   );
 };

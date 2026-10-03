@@ -1,18 +1,149 @@
 // ============================================================
 // FinancePanel.tsx – اللوحة المالية التفاعلية لمتجر خُضرة
 // مودال متكامل للتوقعات المالية ونموذج العمل والحسابات التقديرية
+// يدعم اللغات: الفرنسية والعربية والإنجليزية لتسهيل إدراج البيانات في الجداول
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, TrendingUp, DollarSign, Package, Target,
   Download, RotateCcw, Save, BarChart3, LineChart, Percent,
   Info, Sparkles, ChevronDown, ChevronUp, Settings, CheckCircle2, AlertCircle,
+  Globe, Copy, Check,
 } from 'lucide-react';
 
 export interface FinancePanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+export type FinanceLang = 'fr' | 'ar' | 'en';
+
+// ─── قاموس المصطلحات المالية متعدد اللغات ───
+const FINANCE_TRANSLATIONS = {
+  fr: {
+    title: 'Tableau Financier & Prévisions',
+    subtitle: 'Modèle économique Khodra Fès • Prévisions de trésorerie sur 12 mois',
+    revenue: "Chiffre d'Affaires (CA)",
+    revenueSub: 'MAD sur 12 mois',
+    netProfit: 'Bénéfice Net',
+    marginSub: 'Marge',
+    orders: 'Commandes Totales',
+    ordersAvgSub: 'Moyenne',
+    ordersPerDaySub: 'cmd/jour',
+    avgBasket: 'Panier Moyen (AOV)',
+    avgBasketSub: 'MAD / commande',
+    breakEvenTitle: '🎯 Seuil de Rentabilité (Point Mort / Break-Even)',
+    breakEvenDesc: (orders: number, perDay: number) =>
+      `Il vous faut seulement ${orders} commandes/mois (≈ ${perDay} cmd/jour ouvrable) pour couvrir l'ensemble des charges fixes et variables.`,
+    assumptionsTitle: '⚙️ Hypothèses de Coûts & Marges (Paramètres)',
+    cogs: 'Coût des Marchandises (COGS) %',
+    deliveryCost: 'Frais de Livraison (MAD/cmd)',
+    fixedCosts: 'Charges Fixes (MAD/mois)',
+    taxes: 'Taux Imposition Estimé %',
+    tableTitle: 'Tableau Mensuel Détaillé des Revenus, Coûts et Marges',
+    thMonth: 'Mois',
+    thOrders: 'Commandes',
+    thRevenue: 'CA (MAD)',
+    thExpenses: 'Dépenses',
+    thNetProfit: 'Bénéfice Net',
+    thMargin: 'Marge %',
+    thTotal: 'Total Annuel',
+    chartRevenue: "📈 Évolution du Chiffre d'Affaires Mensuel",
+    chartProfit: '📊 Bénéfice Net Mensuel',
+    monthsAdjustTitle: 'Ajuster les données mensuelles détaillées (M01 - M12)',
+    workingDays: 'Jours ouvrables',
+    ordersPerDay: 'Cmd/jour',
+    exportCsv: 'Exporter CSV (Excel)',
+    exportSuccess: 'Fichier CSV exporté avec succès !',
+    copyTable: 'Copier les données',
+    copySuccess: 'Données copiées dans le presse-papiers !',
+    saveSuccess: 'Modifications enregistrées avec succès',
+    autoSaveText: 'Sauvegarde automatique activée',
+    close: 'Fermer',
+  },
+  ar: {
+    title: 'اللوحة المالية والتوقعات',
+    subtitle: 'توقعات نموذج عمل خُضرة فاس • خطة 12 شهراً',
+    revenue: 'إجمالي الإيرادات (CA)',
+    revenueSub: 'د.م خلال 12 شهر',
+    netProfit: 'صافي الربح',
+    marginSub: 'هامش',
+    orders: 'إجمالي الطلبات',
+    ordersAvgSub: 'متوسط',
+    ordersPerDaySub: 'طلب/يوم',
+    avgBasket: 'متوسط السلة (AOV)',
+    avgBasketSub: 'درهم/طلب',
+    breakEvenTitle: '🎯 نقطة التعادل (Break-even Point / Seuil de Rentabilité)',
+    breakEvenDesc: (orders: number, perDay: number) =>
+      `تحتاج فقط إلى ${orders} طلب في الشهر للوصول لنقطة التعادل (≈ ${perDay} طلب/يوم عمل).`,
+    assumptionsTitle: '⚙️ الفرضيات الأساسية ونسب التكاليف (Paramètres)',
+    cogs: 'تكلفة المنتجات (COGS) %',
+    deliveryCost: 'تكلفة التوصيل (د.م/طلب)',
+    fixedCosts: 'مصاريف ثابتة (د.م/شهر)',
+    taxes: 'الضرائب التقديرية %',
+    tableTitle: 'الجدول الشهري التفصيلي للأرباح والتكاليف (Tableau Mensuel)',
+    thMonth: 'الشهر',
+    thOrders: 'الطلبات',
+    thRevenue: 'الإيرادات',
+    thExpenses: 'المصاريف',
+    thNetProfit: 'الربح الصافي',
+    thMargin: 'هامش الربح',
+    thTotal: 'المجموع',
+    chartRevenue: '📈 نمو الإيرادات الشهرية (CA Mensuel)',
+    chartProfit: '📊 صافي الربح الشهري (Bénéfice Net)',
+    monthsAdjustTitle: 'تعديل بيانات الأشهر الـ 12 بالتفصيل',
+    workingDays: 'أيام العمل',
+    ordersPerDay: 'طلبات/يوم',
+    exportCsv: 'تصدير جدول Excel / CSV',
+    exportSuccess: 'تم تصدير ملف CSV بنجاح!',
+    copyTable: 'نسخ أرقام الجدول',
+    copySuccess: 'تم نسخ أرقام الجدول إلى الحافظة بنجاح!',
+    saveSuccess: 'تم حفظ التعديلات بنجاح',
+    autoSaveText: 'حفظ تلقائي مفعّل',
+    close: 'إغلاق',
+  },
+  en: {
+    title: 'Financial Dashboard & Forecasts',
+    subtitle: 'Khodra Fes Business Model • 12-Month Cashflow Projections',
+    revenue: 'Gross Revenue (Turnover)',
+    revenueSub: 'MAD over 12 months',
+    netProfit: 'Net Profit',
+    marginSub: 'Margin',
+    orders: 'Total Orders',
+    ordersAvgSub: 'Average',
+    ordersPerDaySub: 'orders/day',
+    avgBasket: 'Average Order Value (AOV)',
+    avgBasketSub: 'MAD / order',
+    breakEvenTitle: '🎯 Break-Even Point (Seuil de Rentabilité)',
+    breakEvenDesc: (orders: number, perDay: number) =>
+      `You only need ${orders} orders/month (≈ ${perDay} orders/working day) to reach the break-even point.`,
+    assumptionsTitle: '⚙️ Cost Assumptions & Margins (Settings)',
+    cogs: 'Cost of Goods Sold (COGS) %',
+    deliveryCost: 'Delivery Cost (MAD/order)',
+    fixedCosts: 'Fixed Costs (MAD/month)',
+    taxes: 'Est. Tax Rate %',
+    tableTitle: 'Detailed Monthly Revenue, Expenses & Profit Breakdown',
+    thMonth: 'Month',
+    thOrders: 'Orders',
+    thRevenue: 'Revenue',
+    thExpenses: 'Total Expenses',
+    thNetProfit: 'Net Profit',
+    thMargin: 'Margin %',
+    thTotal: 'Annual Total',
+    chartRevenue: '📈 Monthly Revenue Growth',
+    chartProfit: '📊 Monthly Net Profit',
+    monthsAdjustTitle: 'Adjust detailed monthly inputs (M01 - M12)',
+    workingDays: 'Working days',
+    ordersPerDay: 'Orders/day',
+    exportCsv: 'Export CSV (Excel)',
+    exportSuccess: 'CSV file exported successfully!',
+    copyTable: 'Copy Table Data',
+    copySuccess: 'Table numbers copied to clipboard!',
+    saveSuccess: 'Changes saved successfully',
+    autoSaveText: 'Auto-save enabled',
+    close: 'Close',
+  },
+};
 
 // ─── الأنواع والواجهات ───
 export interface MonthData {
@@ -66,15 +197,15 @@ export const INITIAL_ASSUMPTIONS: Assumptions = {
   taxPercent: 1,
 };
 
-// ─── أدوات التنسيق الرقمي ───
+// ─── أدوات التنسيق الرقمي (Format Français Standard) ───
 const fmt = (n: number) =>
-  new Intl.NumberFormat('ar-MA', {
+  new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n);
 
 const fmtDecimal = (n: number) =>
-  new Intl.NumberFormat('ar-MA', {
+  new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   }).format(n);
@@ -118,6 +249,11 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
   const [savedFlash, setSavedFlash] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [copiedTable, setCopiedTable] = useState(false);
+
+  // ─── عرض اللوحة المالية باللغة الفرنسية حصرياً (Plan Comptable Marocain) ───
+  const lang = 'fr';
+  const t = FINANCE_TRANSLATIONS.fr;
 
   // ─── حفظ تلقائي ───
   useEffect(() => {
@@ -204,13 +340,13 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     );
   };
 
-  // ─── إعادة التعيين الآمنة بدون window.confirm ───
+  // ─── إعادة التعيين الآمنة ───
   const handleConfirmReset = () => {
     setMonths(INITIAL_MONTHS);
     setAssumptions(INITIAL_ASSUMPTIONS);
     setConfirmingReset(false);
     setSavedFlash(true);
-    setFeedbackMessage('تمت استعادة الإعدادات الأولية بنجاح');
+    setFeedbackMessage('Données réinitialisées aux valeurs d’origine');
     setTimeout(() => {
       setSavedFlash(false);
       setFeedbackMessage(null);
@@ -223,27 +359,48 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
       localStorage.setItem('khodra_finance_months', JSON.stringify(months));
       localStorage.setItem('khodra_finance_assumptions', JSON.stringify(assumptions));
       setSavedFlash(true);
-      setFeedbackMessage('تم حفظ التعديلات بنجاح');
+      setFeedbackMessage('Modifications enregistrées avec succès');
       setTimeout(() => {
         setSavedFlash(false);
         setFeedbackMessage(null);
       }, 2500);
     } catch {
-      setFeedbackMessage('تعذر الحفظ في المتصفح');
+      setFeedbackMessage('Erreur lors de la sauvegarde locale');
       setTimeout(() => setFeedbackMessage(null), 3000);
     }
   };
 
-  // ─── تصدير ملف إكسل CSV ───
+  // ─── تصدير ملف إكسل CSV متعدد اللغات ───
   const handleExportCSV = () => {
-    const headers = [
-      'الشهر', 'طلبات/يوم', 'أيام العمل', 'إجمالي الطلبات', 'متوسط السلة',
-      'الإيرادات (درهم)', 'تكلفة المنتجات', 'تكلفة التوصيل', 'مصاريف ثابتة',
-      'تسويق', 'تغليف', 'ضرائب', 'إجمالي المصاريف', 'صافي الربح', 'الهامش %',
-    ];
+    let headers: string[];
+    let totalLabel: string;
+
+    if (lang === 'fr') {
+      headers = [
+        'Mois', 'Commandes/Jour', 'Jours Ouvres', 'Commandes Totales', 'Panier Moyen (MAD)',
+        'Chiffre Affaires (MAD)', 'Cout Marchandises (COGS)', 'Frais Livraison', 'Charges Fixes',
+        'Marketing', 'Emballage', 'Taxes', 'Depenses Totales', 'Benefice Net', 'Marge %',
+      ];
+      totalLabel = 'Total Annuel';
+    } else if (lang === 'en') {
+      headers = [
+        'Month', 'Orders/Day', 'Working Days', 'Total Orders', 'AOV (MAD)',
+        'Gross Revenue (MAD)', 'COGS', 'Delivery Cost', 'Fixed Costs',
+        'Marketing', 'Packaging', 'Taxes', 'Total Expenses', 'Net Profit', 'Margin %',
+      ];
+      totalLabel = 'Annual Total';
+    } else {
+      headers = [
+        'الشهر', 'طلبات/يوم', 'أيام العمل', 'إجمالي الطلبات', 'متوسط السلة',
+        'الإيرادات (درهم)', 'تكلفة المنتجات', 'تكلفة التوصيل', 'مصاريف ثابتة',
+        'تسويق', 'تغليف', 'ضرائب', 'إجمالي المصاريف', 'صافي الربح', 'الهامش %',
+      ];
+      totalLabel = 'المجموع';
+    }
 
     const rows = results.map((r) => [
-      r.month, r.ordersPerDay, r.workingDays, r.totalOrders, r.avgBasket,
+      lang === 'fr' ? `M${String(r.month).padStart(2, '0')}` : r.month,
+      r.ordersPerDay, r.workingDays, r.totalOrders, r.avgBasket,
       r.revenue.toFixed(2), r.cogs.toFixed(2), r.deliveryCost.toFixed(2),
       r.fixedCosts.toFixed(2), r.marketing.toFixed(2), r.packaging.toFixed(2),
       r.taxes.toFixed(2), r.totalExpenses.toFixed(2), r.netProfit.toFixed(2),
@@ -251,7 +408,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     ]);
 
     const totalRow = [
-      'المجموع', '', '', totals.totalOrders, totals.avgBasket.toFixed(2),
+      totalLabel, '', '', totals.totalOrders, totals.avgBasket.toFixed(2),
       totals.totalRevenue.toFixed(2), '', '', '', '', '', '',
       totals.totalExpenses.toFixed(2), totals.totalProfit.toFixed(2),
       totals.avgMargin.toFixed(2),
@@ -265,11 +422,30 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `khodra_financial_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `khodra_previsions_financieres_12_mois_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    setFeedbackMessage('تم تصدير ملف CSV بنجاح');
+    setFeedbackMessage(t.exportSuccess || 'Fichier CSV exporté avec succès !');
     setTimeout(() => setFeedbackMessage(null), 2500);
+  };
+
+  // ─── نسخ أرقام الجدول مباشرة إلى الحافظة (لصق مباشر في Excel / Sheets) ───
+  const handleCopyTableTSV = async () => {
+    try {
+      const headers = ['Mois', 'Commandes', 'CA', 'Depenses', 'Benefice_Net', 'Marge_%'].join('\t');
+      const rows = results.map((r) =>
+        [r.month, r.totalOrders, r.revenue.toFixed(0), r.totalExpenses.toFixed(0), r.netProfit.toFixed(0), r.margin.toFixed(1)].join('\t')
+      );
+      const total = ['Total', totals.totalOrders, totals.totalRevenue.toFixed(0), totals.totalExpenses.toFixed(0), totals.totalProfit.toFixed(0), totals.avgMargin.toFixed(1)].join('\t');
+      const tsv = [headers, ...rows, total].join('\n');
+      await navigator.clipboard.writeText(tsv);
+      setCopiedTable(true);
+      setFeedbackMessage(t.copySuccess);
+      setTimeout(() => {
+        setCopiedTable(false);
+        setFeedbackMessage(null);
+      }, 3000);
+    } catch {}
   };
 
   // ─── نقطة التعادل ───
@@ -298,61 +474,86 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     >
       <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-[#FAF8F4] w-full sm:max-w-6xl shadow-2xl z-10 sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[95vh] overflow-hidden text-right border border-[#E8E1D3]">
+      <div
+        lang="fr"
+        dir="ltr"
+        className="relative bg-[#FAF8F4] w-full sm:max-w-6xl shadow-2xl z-10 sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[95vh] overflow-hidden text-left border border-[#E8E1D3]"
+      >
 
         {/* ═══════ Header ═══════ */}
-        <div className="p-4 sm:p-5 bg-gradient-to-l from-[#C25E12] to-[#9C4505] text-white flex items-center justify-between shrink-0 shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center shadow-inner">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-[#C25E12] to-[#9C4505] text-white flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 shadow-md">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center shadow-inner shrink-0">
               <BarChart3 className="w-5 h-5 text-[#F5D76E]" />
             </div>
             <div>
               <h2 className="font-black text-base sm:text-lg flex items-center gap-2">
-                <span>اللوحة المالية والتوقعات</span>
+                <span>{t.title}</span>
                 <Sparkles className="w-4 h-4 text-[#F5D76E]" />
               </h2>
               <p className="text-[11px] sm:text-xs text-orange-100/90 font-medium">
-                توقعات نموذج عمل خُضرة فاس • خطة 12 شهراً
+                {t.subtitle}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
+            {/* ─── شارة المعيار المحاسبي المغربي ─── */}
+            <div className="flex items-center gap-1.5 bg-black/25 px-3 py-1.5 rounded-xl border border-white/20 text-xs font-black text-amber-200 shadow-xs">
+              <span>Norme Comptable Marocaine (MAD)</span>
+            </div>
+
             {savedFlash && (
               <span className="hidden sm:inline-block text-[11px] bg-emerald-500 text-white px-2.5 py-1 rounded-lg font-bold shadow-xs">
-                ✓ تم الحفظ
+                ✓
               </span>
             )}
+
             <button
               type="button"
-              onClick={handleSave}
-              className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              title="حفظ التعديلات"
+              onClick={handleCopyTableTSV}
+              className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+              title={t.copyTable}
             >
-              <Save className="w-4 h-4" />
+              {copiedTable ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+              <span className="hidden md:inline">{t.copyTable}</span>
             </button>
+
             <button
               type="button"
               onClick={handleExportCSV}
-              className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              title="تصدير جدول Excel / CSV"
+              className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+              title={t.exportCsv}
             >
               <Download className="w-4 h-4" />
+              <span className="hidden md:inline">CSV</span>
             </button>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
+              title="Enregistrer"
+            >
+              <Save className="w-4 h-4" />
+            </button>
+
             <button
               type="button"
               onClick={() => setConfirmingReset(true)}
-              className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              title="إعادة التعيين للوضع الأصلي"
+              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
+              title="Réinitialiser"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
+
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              aria-label="إغلاق"
+              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Fermer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -375,22 +576,22 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
           <div className="bg-amber-50 border-b border-amber-300 p-3 sm:px-5 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-amber-950">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>هل تريد فعلاً استعادة الأرقام الافتراضية وحذف التعديلات المحفوظة؟</span>
+              <span>Voulez-vous vraiment réinitialiser les prévisions aux valeurs d’origine ?</span>
             </div>
             <div className="flex items-center gap-2 mr-auto">
               <button
                 type="button"
                 onClick={handleConfirmReset}
-                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-xs cursor-pointer active:scale-95"
+                className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-xs cursor-pointer active:scale-95"
               >
-                نعم، استعد
+                Oui, réinitialiser
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmingReset(false)}
                 className="px-3 py-1.5 rounded-lg bg-white border border-stone-300 text-stone-700 font-bold text-xs cursor-pointer hover:bg-stone-50"
               >
-                إلغاء
+                Annuler
               </button>
             </div>
           </div>
@@ -403,63 +604,62 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
             <div className="bg-white border-2 border-emerald-200 rounded-2xl p-3 sm:p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs text-emerald-800 font-bold mb-1">
-                <span>إجمالي الإيرادات</span>
+                <span>{t.revenue}</span>
                 <DollarSign className="w-4 h-4 text-emerald-600" />
               </div>
               <div className="text-lg sm:text-2xl font-black text-emerald-950 tabular-nums">
                 {fmt(totals.totalRevenue)}
               </div>
-              <p className="text-[10px] sm:text-[11px] text-stone-500 mt-1 font-medium">د.م خلال 12 شهر</p>
+              <p className="text-[10px] sm:text-[11px] text-stone-500 mt-1 font-medium">{t.revenueSub}</p>
             </div>
 
             <div className={`border-2 rounded-2xl p-3 sm:p-4 shadow-xs ${getProfitColor(totals.totalProfit)}`}>
               <div className="flex items-center justify-between text-xs font-bold mb-1">
-                <span>صافي الربح</span>
+                <span>{t.netProfit}</span>
                 <TrendingUp className="w-4 h-4" />
               </div>
               <div className="text-lg sm:text-2xl font-black tabular-nums">
                 {totals.totalProfit >= 0 ? '+' : ''}{fmt(totals.totalProfit)}
               </div>
               <p className="text-[10px] sm:text-[11px] mt-1 font-medium opacity-75">
-                هامش {fmtDecimal(totals.avgMargin)}%
+                {t.marginSub} {fmtDecimal(totals.avgMargin)}%
               </p>
             </div>
 
             <div className="bg-white border-2 border-blue-200 rounded-2xl p-3 sm:p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs text-blue-800 font-bold mb-1">
-                <span>إجمالي الطلبات</span>
+                <span>{t.orders}</span>
                 <Package className="w-4 h-4 text-blue-600" />
               </div>
               <div className="text-lg sm:text-2xl font-black text-blue-950 tabular-nums">
                 {fmt(totals.totalOrders)}
               </div>
               <p className="text-[10px] sm:text-[11px] text-stone-500 mt-1 font-medium">
-                متوسط {fmtDecimal(totals.totalOrders / 12 / 26)} طلب/يوم
+                {t.ordersAvgSub} {fmtDecimal(totals.totalOrders / 12 / 26)} {t.ordersPerDaySub}
               </p>
             </div>
 
             <div className="bg-white border-2 border-amber-200 rounded-2xl p-3 sm:p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs text-amber-800 font-bold mb-1">
-                <span>متوسط السلة</span>
+                <span>{t.avgBasket}</span>
                 <Target className="w-4 h-4 text-amber-600" />
               </div>
               <div className="text-lg sm:text-2xl font-black text-amber-950 tabular-nums">
                 {fmt(totals.avgBasket)}
               </div>
               <p className="text-[10px] sm:text-[11px] text-stone-500 mt-1 font-medium">
-                درهم/طلب
+                {t.avgBasketSub}
               </p>
             </div>
           </div>
 
           {/* ─── بطاقة نقطة التعادل ─── */}
-          <div className="bg-gradient-to-l from-emerald-50 to-blue-50 border border-emerald-300 rounded-2xl p-3 sm:p-4 flex items-start gap-3 text-xs sm:text-sm">
+          <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-300 rounded-2xl p-3 sm:p-4 flex items-start gap-3 text-xs sm:text-sm">
             <Info className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <div className="font-black text-emerald-950 mb-0.5">🎯 نقطة التعادل (Break-even Point)</div>
+              <div className="font-black text-emerald-950 mb-0.5">{t.breakEvenTitle}</div>
               <div className="text-emerald-800 font-semibold leading-relaxed">
-                تحتاج فقط إلى <strong className="text-emerald-900 text-base">{breakEven}</strong> طلب في الشهر للوصول لنقطة التعادل
-                (≈ <strong className="text-emerald-900">{Math.ceil(breakEven / 26)}</strong> طلب/يوم عمل).
+                {t.breakEvenDesc(breakEven, Math.ceil(breakEven / 26))}
               </div>
             </div>
           </div>
@@ -474,7 +674,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
               <div className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-[#1E4327]" />
                 <span className="font-black text-sm text-[#1E4327]">
-                  ⚙️ الفرضيات الأساسية ونسب التكاليف
+                  {t.assumptionsTitle}
                 </span>
               </div>
               {showAssumptions ? <ChevronUp className="w-5 h-5 text-stone-500" /> : <ChevronDown className="w-5 h-5 text-stone-500" />}
@@ -483,7 +683,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             {showAssumptions && (
               <div className="border-t border-[#E8E1D3] p-3 sm:p-4 grid grid-cols-2 lg:grid-cols-4 gap-3 bg-[#FAF8F4]">
                 <label className="block">
-                  <span className="text-xs font-bold text-stone-700 block mb-1">تكلفة المنتجات (COGS) %</span>
+                  <span className="text-xs font-bold text-stone-700 block mb-1">{t.cogs}</span>
                   <input
                     type="number"
                     value={assumptions.cogsPercent}
@@ -493,7 +693,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold text-stone-700 block mb-1">تكلفة التوصيل (د.م/طلب)</span>
+                  <span className="text-xs font-bold text-stone-700 block mb-1">{t.deliveryCost}</span>
                   <input
                     type="number"
                     value={assumptions.deliveryCostPerOrder}
@@ -503,7 +703,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold text-stone-700 block mb-1">مصاريف ثابتة (د.م/شهر)</span>
+                  <span className="text-xs font-bold text-stone-700 block mb-1">{t.fixedCosts}</span>
                   <input
                     type="number"
                     value={assumptions.fixedCostsPerMonth}
@@ -513,7 +713,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-bold text-stone-700 block mb-1">الضرائب التقديرية %</span>
+                  <span className="text-xs font-bold text-stone-700 block mb-1">{t.taxes}</span>
                   <input
                     type="number"
                     value={assumptions.taxPercent}
@@ -536,7 +736,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-[#1E4327]" />
                 <span className="font-black text-sm text-[#1E4327]">
-                  📅 تعديل مدخلات الأشهر الـ 12 (الطلبات اليومية ومتوسط السلة)
+                  {t.monthsAdjustTitle}
                 </span>
               </div>
               {showMonths ? <ChevronUp className="w-5 h-5 text-stone-500" /> : <ChevronDown className="w-5 h-5 text-stone-500" />}
@@ -546,12 +746,12 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
               <div className="border-t border-[#E8E1D3] p-2 sm:p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {months.map((m, i) => (
                   <div key={m.month} className="bg-[#FAF8F4] border border-[#E8E1D3] rounded-xl p-2.5 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#1E4327] text-white flex items-center justify-center font-black text-xs shrink-0">
-                      ش{m.month}
+                    <div className="w-8 h-8 rounded-lg bg-[#1E4327] text-white flex items-center justify-center font-black text-xs shrink-0 font-mono">
+                      M{String(m.month).padStart(2, '0')}
                     </div>
                     <div className="flex-1 grid grid-cols-2 gap-1.5">
                       <label className="block">
-                        <span className="text-[10px] font-bold text-stone-500 block">طلبات/يوم</span>
+                        <span className="text-[10px] font-bold text-stone-500 block">{t.ordersPerDay}</span>
                         <input
                           type="number"
                           value={m.ordersPerDay}
@@ -561,7 +761,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                         />
                       </label>
                       <label className="block">
-                        <span className="text-[10px] font-bold text-stone-500 block">السلة (د.م)</span>
+                        <span className="text-[10px] font-bold text-stone-500 block">{t.avgBasket}</span>
                         <input
                           type="number"
                           value={m.avgBasket}
@@ -579,29 +779,39 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
 
           {/* ─── الجدول الشهري التفصيلي ─── */}
           <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl overflow-hidden shadow-xs">
-            <div className="p-3 sm:p-4 bg-gradient-to-l from-[#C25E12] to-[#9C4505] text-white flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-[#F5D76E]" />
-              <span className="font-black text-sm">الجدول الشهري التفصيلي للأرباح والتكاليف</span>
+            <div className="p-3 sm:p-4 bg-gradient-to-r from-[#C25E12] to-[#9C4505] text-white flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-[#F5D76E]" />
+                <span className="font-black text-sm">{t.tableTitle}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyTableTSV}
+                className="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-black flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                {copiedTable ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedTable ? t.copySuccess : t.copyTable}</span>
+              </button>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-xs sm:text-sm">
+              <table className="w-full text-xs sm:text-sm text-left">
                 <thead className="bg-[#FAF8F4] border-b border-[#E8E1D3]">
                   <tr className="text-[11px] sm:text-xs font-black text-stone-700">
-                    <th className="p-2 text-right">الشهر</th>
-                    <th className="p-2 text-center">الطلبات</th>
-                    <th className="p-2 text-center">الإيرادات</th>
-                    <th className="p-2 text-center">المصاريف</th>
-                    <th className="p-2 text-center">الربح الصافي</th>
-                    <th className="p-2 text-center">هامش الربح</th>
+                    <th className="p-2 text-left">{t.thMonth}</th>
+                    <th className="p-2 text-center">{t.thOrders}</th>
+                    <th className="p-2 text-center">{t.thRevenue}</th>
+                    <th className="p-2 text-center">{t.thExpenses}</th>
+                    <th className="p-2 text-center">{t.thNetProfit}</th>
+                    <th className="p-2 text-center">{t.thMargin}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {results.map((r) => (
                     <tr key={r.month} className="border-b border-[#F0E9DA] hover:bg-[#FAF8F4] transition-colors">
-                      <td className="p-2 text-right">
-                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#1E4327] text-white font-black text-[11px]">
-                          {r.month}
+                      <td className="p-2 text-left">
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-lg bg-[#1E4327] text-white font-mono font-black text-[11px]">
+                          {lang === 'fr' ? `M${String(r.month).padStart(2, '0')}` : r.month}
                         </span>
                       </td>
                       <td className="p-2 text-center font-bold text-stone-700 tabular-nums">{fmt(r.totalOrders)}</td>
@@ -625,8 +835,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-gradient-to-l from-[#C25E12]/10 to-[#9C4505]/10 border-t-2 border-[#C25E12] font-black">
-                    <td className="p-2 text-right text-[#C25E12]">المجموع</td>
+                  <tr className="bg-gradient-to-r from-[#C25E12]/10 to-[#9C4505]/10 border-t-2 border-[#C25E12] font-black">
+                    <td className="p-2 text-left text-[#C25E12]">{t.thTotal}</td>
                     <td className="p-2 text-center text-[#C25E12] tabular-nums">{fmt(totals.totalOrders)}</td>
                     <td className="p-2 text-center text-emerald-700 tabular-nums">{fmt(totals.totalRevenue)}</td>
                     <td className="p-2 text-center text-stone-700 tabular-nums">{fmt(totals.totalExpenses)}</td>
@@ -643,19 +853,21 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl p-3 sm:p-4 shadow-xs">
               <h3 className="font-black text-sm text-[#1E4327] mb-3 flex items-center gap-2">
                 <LineChart className="w-4 h-4 text-emerald-600" />
-                <span>📈 نمو الإيرادات الشهرية</span>
+                <span>{t.chartRevenue}</span>
               </h3>
               <div className="space-y-1.5">
                 {results.map((r) => (
                   <div key={r.month} className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-stone-500 w-6 text-center">{r.month}</span>
+                    <span className="text-[10px] font-bold text-stone-500 w-8 text-center font-mono">
+                      {lang === 'fr' ? `M${String(r.month).padStart(2, '0')}` : r.month}
+                    </span>
                     <div className="flex-1 h-5 bg-stone-100 rounded-md overflow-hidden relative">
                       <div
-                        className="h-full bg-gradient-to-l from-emerald-500 to-emerald-400 transition-all duration-300"
+                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-300"
                         style={{ width: `${(r.revenue / maxRevenue) * 100}%` }}
                       />
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-white drop-shadow">
-                        {fmt(r.revenue)}
+                        {fmt(r.revenue)} MAD
                       </span>
                     </div>
                   </div>
@@ -666,23 +878,25 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl p-3 sm:p-4 shadow-xs">
               <h3 className="font-black text-sm text-[#1E4327] mb-3 flex items-center gap-2">
                 <Percent className="w-4 h-4 text-emerald-600" />
-                <span>📊 صافي الربح الشهري</span>
+                <span>{t.chartProfit}</span>
               </h3>
               <div className="space-y-1.5">
                 {results.map((r) => (
                   <div key={r.month} className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-stone-500 w-6 text-center">{r.month}</span>
+                    <span className="text-[10px] font-bold text-stone-500 w-8 text-center font-mono">
+                      {lang === 'fr' ? `M${String(r.month).padStart(2, '0')}` : r.month}
+                    </span>
                     <div className="flex-1 h-5 bg-stone-100 rounded-md overflow-hidden relative">
                       <div
                         className={`h-full transition-all duration-300 ${
                           r.netProfit >= 0
-                            ? 'bg-gradient-to-l from-emerald-500 to-emerald-400'
-                            : 'bg-gradient-to-l from-red-500 to-red-400'
+                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                            : 'bg-gradient-to-r from-red-500 to-red-400'
                         }`}
                         style={{ width: `${(Math.abs(r.netProfit) / maxProfit) * 100}%` }}
                       />
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-stone-800">
-                        {r.netProfit >= 0 ? '+' : ''}{fmt(r.netProfit)}
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-stone-800">
+                        {r.netProfit >= 0 ? '+' : ''}{fmt(r.netProfit)} MAD
                       </span>
                     </div>
                   </div>
@@ -692,7 +906,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
           </div>
 
           <div className="text-center text-[11px] text-stone-500 py-2 border-t border-[#E8E1D3]">
-            💾 كل تعديل يُحفظ تلقائياً في المتصفح • 📥 استخدم زر التصدير لفتح الملف في Microsoft Excel أو Google Sheets
+            💾 {t.autoSaveText} • 📥 {t.exportCsv}
           </div>
         </div>
 
@@ -700,9 +914,9 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
         <div className="p-3 sm:p-4 bg-white border-t border-[#E8E1D3] flex items-center justify-between gap-2 shrink-0">
           <div className="text-[11px] text-stone-500 font-medium">
             {savedFlash ? (
-              <span className="text-emerald-600 font-bold">✓ تم الحفظ التلقائي</span>
+              <span className="text-emerald-600 font-bold">✓ {t.saveSuccess}</span>
             ) : (
-              <>حفظ تلقائي مفعّل</>
+              <>{t.autoSaveText}</>
             )}
           </div>
           <button
@@ -710,7 +924,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-[#C25E12] hover:bg-[#9C4505] text-white text-xs font-black cursor-pointer active:scale-95 transition-all shadow-sm"
           >
-            إغلاق
+            {t.close}
           </button>
         </div>
 

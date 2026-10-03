@@ -21,4 +21,7 @@ export type {
 } from './FinancePanel';
 export { AdminDocumentsModal } from './AdminDocumentsModal';
 export type { AdminDocumentsModalProps } from './AdminDocumentsModal';
+export { AdminSocialPublisherModal } from './AdminSocialPublisherModal';
+export type { AdminSocialPublisherModalProps } from './AdminSocialPublisherModal';
+export { AdminBottomDashboard } from './AdminBottomDashboard';
 
