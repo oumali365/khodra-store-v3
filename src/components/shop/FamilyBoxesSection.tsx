@@ -5,7 +5,7 @@
 // ============================================================
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Package, Check, Plus, Minus, X, Sparkles, ShieldCheck,
+  Package, Check, Plus, Minus, X, ShieldCheck,
   Truck, ShoppingBag, Eye, HeartHandshake, Users, Scale,
   Star, Leaf, Award, Clock, ChevronRight, ChevronLeft,
 } from 'lucide-react';
@@ -535,14 +535,8 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
           {/* ═══════ 1. رأس القسم الموحد: العنوان والشارات ═══════ */}
           <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-[#2D6A3F]/12">
             
-            {/* الجانب الأيمن: شارة الهوية والعنوان والوصف */}
+            {/* الجانب الأيمن: العنوان والوصف */}
             <div className="text-right space-y-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EAB308]/15 border border-[#EAB308]/40 text-[#1A3D24] font-black text-xs">
-                <Sparkles className="w-3.5 h-3.5 text-[#EA580C]" strokeWidth={2.5} />
-                <span>باقات التوفير الأسبوعية • طراوة شاملة</span>
-                <Package className="w-3 h-3 text-[#2D6A3F]" strokeWidth={2.5} />
-              </div>
-
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center gap-2">
                 <span>صناديق العائلة الطازجة</span>
                 <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
@@ -764,15 +758,9 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
       </div>
 
       {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة والتوصيل ═══════ */}
-      <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
-        <div className="flex items-center gap-2 text-xs text-[#5A6B5F] font-bold">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
-          <span>محتويات الصناديق قطاف يومي طازج من أسواق الجملة بفاس — بدون أي وسيط لضمان أقصى طراوة وتوفير.</span>
-        </div>
-
-        <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#1A3D24] bg-[#2D6A3F]/10 px-3 py-1 rounded-full border border-[#2D6A3F]/20">
-          <span>ضمان استبدال فوري أو استرجاع 100% ✓</span>
-        </div>
+      <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex items-center justify-center sm:justify-start gap-2 text-xs text-[#5A6B5F] font-bold text-center sm:text-right">
+        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
+        <span>محتويات الصناديق قطاف يومي طازج من أسواق الجملة بفاس — بدون أي وسيط لضمان أقصى طراوة وتوفير.</span>
       </div>
 
     </div>

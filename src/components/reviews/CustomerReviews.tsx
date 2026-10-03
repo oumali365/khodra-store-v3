@@ -11,9 +11,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  ShieldCheck,
   Trash2,
-  Quote,
   Sparkles,
   ChevronRight,
   ChevronLeft,
@@ -247,14 +245,8 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           {/* ─── 1. رأس القسم الموحد: العنوان + التقييم الإجمالي + زر إضافة تقييم ─── */}
           <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-[#2D6A3F]/12">
             
-            {/* الجانب الأيمن: شارة الهوية والعنوان */}
+            {/* الجانب الأيمن: العنوان والوصف */}
             <div className="text-right space-y-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EAB308]/15 border border-[#EAB308]/40 text-[#1A3D24] font-black text-xs">
-                <Sparkles className="w-3.5 h-3.5 text-[#EA580C]" strokeWidth={2.5} />
-                <span>شهادات حية وموثقة • زبناء فاس</span>
-                <Quote className="w-3 h-3 text-[#2D6A3F]" strokeWidth={2.5} />
-              </div>
-
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center gap-2">
                 <span>آراء زبنائنا بمدينة فاس</span>
                 <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
@@ -492,15 +484,9 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
             )}
           </div>
 
-          {/* ─── 3. الشريط السفلي المدمج: ضمان المصداقية + زر عرض المزيد ─── */}
-          <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
-            
-            <div className="flex items-center gap-2 text-xs text-[#5A6B5F] font-bold">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
-              <span>جميع التقييمات صادقة وموثقة من طلبات فعلية لزبائن خُضرة بمدينة فاس.</span>
-            </div>
-
-            {reviews.length > INITIAL_VISIBLE_COUNT && (
+          {/* ─── 3. الشريط السفلي المدمج: زر عرض المزيد ─── */}
+          {reviews.length > INITIAL_VISIBLE_COUNT && (
+            <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex items-center justify-center">
               <button
                 type="button"
                 onClick={() => setShowAllReviews(!showAllReviews)}
@@ -518,9 +504,8 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                   </>
                 )}
               </button>
-            )}
-
-          </div>
+            </div>
+          )}
 
         </div>
       </section>

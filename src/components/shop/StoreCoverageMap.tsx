@@ -9,8 +9,6 @@ import {
   ZoomOut,
   RotateCcw,
   Lock,
-  MapPin,
-  Sparkles,
   Navigation,
   Leaf,
 } from 'lucide-react';
@@ -290,14 +288,6 @@ export const StoreCoverageMap: React.FC = () => {
 
           {/* ════════ الرأس ════════ */}
           <div className="text-center mb-6 sm:mb-8 max-w-2xl mx-auto">
-
-            {/* شارة ذهبية */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] border border-[#EAB308]/50 text-[#1A3D24] font-black text-[11px] sm:text-xs mb-4 shadow-[0_3px_12px_rgba(234,179,8,0.30)]">
-              <Sparkles className="w-3.5 h-3.5" strokeWidth={2.5} />
-              <span>نطاق التغطية</span>
-              <MapPin className="w-3.5 h-3.5" strokeWidth={2.5} />
-            </div>
-
             {/* العنوان */}
             <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#1A3D24] mb-3 leading-tight font-['Almarai'] flex items-center justify-center gap-2 flex-wrap">
               موقع المتجر ونطاق التوصيل بفاس

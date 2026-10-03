@@ -9,8 +9,6 @@ import {
   Truck,
   ShieldCheck,
   HeartHandshake,
-  Sparkles,
-  Award,
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
@@ -107,14 +105,8 @@ export const TrustBadges: React.FC = () => {
         {/* ─── 1. رأس القسم الموحد: العنوان والشارات ─── */}
         <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-[#2D6A3F]/12">
           
-          {/* الجانب الأيمن: شارة الهوية والعنوان والوصف */}
+          {/* الجانب الأيمن: العنوان والوصف */}
           <div className="text-right space-y-2">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EAB308]/15 border border-[#EAB308]/40 text-[#1A3D24] font-black text-xs">
-              <Sparkles className="w-3.5 h-3.5 text-[#EA580C]" strokeWidth={2.5} />
-              <span>ضمانات وخدمة متجر خُضرة</span>
-              <Award className="w-3 h-3 text-[#2D6A3F]" strokeWidth={2.5} />
-            </div>
-
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center gap-2">
               <span>علاش متجر خُضرة هو الخيار الأول للعائلات؟</span>
               <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
@@ -268,15 +260,9 @@ export const TrustBadges: React.FC = () => {
         </div>
 
         {/* ─── 3. الشريط السفلي المدمج: التزام الجودة ─── */}
-        <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
-          <div className="flex items-center gap-2 text-xs text-[#5A6B5F] font-bold">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
-            <span>التزامنا الدائم: خضار وفواكه طازجة يومياً من أسواق الجملة بفاس لباب داركم.</span>
-          </div>
-
-          <div className="text-[11px] font-black text-[#1A3D24] bg-[#2D6A3F]/10 px-3 py-1 rounded-full border border-[#2D6A3F]/20">
-            <span>فرز يدوي دقيق حبة بحبة ✓</span>
-          </div>
+        <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex items-center justify-center sm:justify-start gap-2 text-xs text-[#5A6B5F] font-bold text-center sm:text-right">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
+          <span>التزامنا الدائم: خضار وفواكه طازجة يومياً من أسواق الجملة بفاس لباب داركم.</span>
         </div>
 
       </div>
