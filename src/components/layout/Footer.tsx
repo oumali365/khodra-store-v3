@@ -1,9 +1,22 @@
 // ============================================================
-// الملف: Footer.tsx – الإصدار 2.0
-// تذييل المتجر – تصميم أنيق ومتناسق
+// Footer.tsx – تذييل المتجر المتطور بالمعايير اللونية الحديثة
+// هوية بصرية موحدة: أخضر غابوي عميق + لمسات ذهبية وترابية + شارات الجودة
 // ============================================================
 import React from 'react';
-import { Heart, ShieldCheck, Truck, RefreshCw, MessageCircle, Lock } from 'lucide-react';
+import {
+  Heart,
+  ShieldCheck,
+  Truck,
+  RefreshCw,
+  MessageCircle,
+  Lock,
+  MapPin,
+  Clock,
+  Sparkles,
+  ChevronLeft,
+  Banknote,
+  CheckCircle2,
+} from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
 
 interface FooterProps {
@@ -15,130 +28,217 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
     window.dispatchEvent(new CustomEvent('khodra_trigger_admin_modal'));
   };
 
+  const scrollToSection = (id: string) => {
+    try {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch {}
+  };
+
   return (
-    <footer className="relative overflow-hidden bg-gradient-to-b from-[#112616] to-[#0B1C10] text-white pt-8 pb-20 sm:pb-16 border-t-4 border-[#C25E12]">
-      {/* إضاءة محيطية ناعمة في خلفية التذييل */}
-      <div className="absolute -top-24 right-1/4 w-72 h-72 bg-[#2D6A3F]/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 left-1/4 w-72 h-72 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
+    <footer
+      className="relative overflow-hidden bg-gradient-to-b from-[#142E1B] via-[#0E2415] to-[#09170E] text-white pt-12 pb-24 sm:pb-16 border-t-2 border-[#EAB308]/40 shadow-2xl"
+      dir="rtl"
+    >
+      {/* ═══════ إضاءات محيطية ناعمة للهوية البصرية ═══════ */}
+      <div className="absolute -top-32 right-1/4 w-96 h-96 bg-[#2D6A3F]/25 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-10 w-80 h-80 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 right-10 w-64 h-64 bg-[#EA580C]/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* ════════ الشبكة الرئيسية ════════ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 text-right items-start">
+        {/* ════════ شبكة المحتوى الرئيسية (4 أعمدة متوازنة) ════════ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 pb-10 border-b border-white/15 text-right items-start">
 
-          {/* ─── العمود 1: العلامة التجارية ─── */}
-          <div className="space-y-3 max-w-md mx-auto md:mx-0 text-center md:text-right">
-            <div className="flex items-center justify-center md:justify-start gap-2">
-              <span className="text-2xl">🌿</span>
-              <span className="text-xl sm:text-2xl font-black text-[#F5D76E] tracking-tight">
-                {STORE_CONFIG.storeName}
-              </span>
+          {/* ─── العمود 1: الهوية والعلامة التجارية ─── */}
+          <div className="space-y-4 text-center sm:text-right">
+            <div className="flex items-center justify-center sm:justify-start gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] border border-[#EAB308]/40 flex items-center justify-center shadow-[0_4px_14px_rgba(234,179,8,0.25)] shrink-0">
+                <span className="text-xl">🌿</span>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black text-[#F5D76E] tracking-tight block">
+                  {STORE_CONFIG.storeName}
+                </span>
+                <span className="text-[11px] text-emerald-200/80 font-bold block -mt-1">
+                  طراوة يومية لباب الدار بفاس
+                </span>
+              </div>
             </div>
 
-            <p className="text-sm text-white/95 leading-relaxed font-medium">
-              نرسل أجود الخضروات، الفواكه، وأفضل منتجات البقالة والألبان مع توصيل سريع ومباشر لباب الدار.
+            <p className="text-xs sm:text-sm text-stone-200/90 leading-relaxed font-medium">
+              نختار لكم يومياً أجود الخضار، الفواكه الطازجة، ومنتجات البقالة والألبان بعناية فائقة من أسواق الجملة بفاس مع توصيل سريع وموثوق لباب منزلك.
             </p>
 
-            {/* شارات الميزات */}
-            <div className="flex flex-wrap gap-2 pt-0.5 justify-center md:justify-start">
-              <span className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full border border-white/20 font-bold text-white flex items-center gap-1.5 backdrop-blur-xs transition-all">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#F5D76E]" />
-                100% طراوة
+            {/* شارات الضمان الثلاثية المحدثة */}
+            <div className="flex flex-wrap gap-2 pt-1 justify-center sm:justify-start">
+              <span className="text-[11px] bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 font-bold text-white flex items-center gap-1.5 backdrop-blur-xs transition-colors shadow-2xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#F5D76E]" strokeWidth={2.5} />
+                <span>100% جودة وطراوة</span>
               </span>
-              <span className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full border border-white/20 font-bold text-white flex items-center gap-1.5 backdrop-blur-xs transition-all">
-                <Truck className="w-3.5 h-3.5 text-[#F5D76E]" />
-                توصيل سريع
+              <span className="text-[11px] bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 font-bold text-white flex items-center gap-1.5 backdrop-blur-xs transition-colors shadow-2xs">
+                <Truck className="w-3.5 h-3.5 text-[#F5D76E]" strokeWidth={2.5} />
+                <span>توصيل سريع 45 دقيقة</span>
               </span>
-              <span className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full border border-white/20 font-bold text-white flex items-center gap-1.5 backdrop-blur-xs transition-all">
-                <RefreshCw className="w-3.5 h-3.5 text-[#F5D76E]" />
-                دفع آمن
+              <span className="text-[11px] bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 font-bold text-white flex items-center gap-1.5 backdrop-blur-xs transition-colors shadow-2xs">
+                <RefreshCw className="w-3.5 h-3.5 text-[#F5D76E]" strokeWidth={2.5} />
+                <span>ضمان الاستبدال</span>
               </span>
             </div>
           </div>
 
-          {/* ─── العمود 2: روابط مهمة + الواتساب ─── */}
-          <div className="space-y-3 text-center md:text-right max-w-md mx-auto md:mx-0 w-full">
-            <h3 className="text-sm sm:text-base font-black text-[#F5D76E] relative inline-block md:block">
-              روابط مهمة
-              <span className="block md:hidden h-0.5 w-8 bg-[#C25E12] mx-auto mt-1 rounded-full" />
+          {/* ─── العمود 2: روابط مهمة وشفافية الخدمة ─── */}
+          <div className="space-y-3.5 text-center sm:text-right">
+            <h3 className="text-sm sm:text-base font-black text-[#F5D76E] flex items-center justify-center sm:justify-start gap-2">
+              <Sparkles className="w-4 h-4 text-[#EAB308]" strokeWidth={2.5} />
+              <span>معلومات وخدمات</span>
             </h3>
 
-            {/* قائمة الروابط */}
-            <ul className="flex flex-wrap justify-center md:justify-start gap-3 sm:gap-4 pt-0.5">
+            <ul className="space-y-2 pt-0.5">
               <li>
                 <button
                   type="button"
                   onClick={() => onOpenPage('about')}
-                  className="text-sm text-white hover:text-[#F5D76E] transition-colors duration-200 cursor-pointer font-bold hover:underline"
+                  className="group inline-flex items-center gap-2 text-xs sm:text-sm text-stone-200 hover:text-[#F5D76E] transition-colors cursor-pointer font-bold"
                 >
-                  من نحن
+                  <ChevronLeft className="w-3.5 h-3.5 text-[#EAB308]/60 group-hover:text-[#F5D76E] group-hover:-translate-x-1 transition-all" />
+                  <span>من نحن ورسالتنا</span>
                 </button>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={() => onOpenPage('policy')}
-                  className="text-sm text-white hover:text-[#F5D76E] transition-colors duration-200 cursor-pointer font-bold hover:underline"
+                  className="group inline-flex items-center gap-2 text-xs sm:text-sm text-stone-200 hover:text-[#F5D76E] transition-colors cursor-pointer font-bold"
                 >
-                  سياسة الإرجاع
+                  <ChevronLeft className="w-3.5 h-3.5 text-[#EAB308]/60 group-hover:text-[#F5D76E] group-hover:-translate-x-1 transition-all" />
+                  <span>سياسة التوصيل والإرجاع</span>
                 </button>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={() => onOpenPage('privacy')}
-                  className="text-sm text-white hover:text-[#F5D76E] transition-colors duration-200 cursor-pointer font-bold hover:underline"
+                  className="group inline-flex items-center gap-2 text-xs sm:text-sm text-stone-200 hover:text-[#F5D76E] transition-colors cursor-pointer font-bold"
                 >
-                  سياسة الخصوصية
+                  <ChevronLeft className="w-3.5 h-3.5 text-[#EAB308]/60 group-hover:text-[#F5D76E] group-hover:-translate-x-1 transition-all" />
+                  <span>سياسة الخصوصية وحماية البيانات</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('customer-reviews-section')}
+                  className="group inline-flex items-center gap-2 text-xs sm:text-sm text-stone-200 hover:text-[#F5D76E] transition-colors cursor-pointer font-bold"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 text-[#EAB308]/60 group-hover:text-[#F5D76E] group-hover:-translate-x-1 transition-all" />
+                  <span>آراء وتقييمات زبنائنا بفاس</span>
                 </button>
               </li>
             </ul>
+          </div>
 
-            {/* زر الواتساب */}
-            <div className="space-y-3 pt-1">
+          {/* ─── العمود 3: أوقات العمل والتغطية ─── */}
+          <div className="space-y-3.5 text-center sm:text-right">
+            <h3 className="text-sm sm:text-base font-black text-[#F5D76E] flex items-center justify-center sm:justify-start gap-2">
+              <MapPin className="w-4 h-4 text-[#EA580C]" strokeWidth={2.5} />
+              <span>نطاق التوصيل والمواعيد</span>
+            </h3>
+
+            <div className="space-y-2.5 text-xs text-stone-200/90 font-medium">
+              <div className="flex items-start justify-center sm:justify-start gap-2">
+                <Clock className="w-4 h-4 text-[#EAB308] shrink-0 mt-0.5" strokeWidth={2} />
+                <div>
+                  <strong className="text-white block font-black">أوقات العمل واستقبال الطلبات:</strong>
+                  <span>يومياً من 08:00 صباحاً حتى 20:00 مساءً</span>
+                </div>
+              </div>
+
+              <div className="flex items-start justify-center sm:justify-start gap-2">
+                <MapPin className="w-4 h-4 text-[#EAB308] shrink-0 mt-0.5" strokeWidth={2} />
+                <div>
+                  <strong className="text-white block font-black">التغطية الحالية:</strong>
+                  <span>فاس (طريق إيموزار، الأطلس، النرجس، عين الشقف، المدينة الجديدة، زواغة، وبنسودة).</span>
+                </div>
+              </div>
+
+              <div className="flex items-start justify-center sm:justify-start gap-2">
+                <Banknote className="w-4 h-4 text-[#EAB308] shrink-0 mt-0.5" strokeWidth={2} />
+                <div>
+                  <strong className="text-white block font-black">وسائل الدفع:</strong>
+                  <span>الدفع عند الاستلام نقداً (COD) أو عبر التحويل البنكي لـ 6 بنوك مغربية.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── العمود 4: التواصل الفوري والدعم ─── */}
+          <div className="space-y-3.5 text-center sm:text-right">
+            <h3 className="text-sm sm:text-base font-black text-[#F5D76E] flex items-center justify-center sm:justify-start gap-2">
+              <MessageCircle className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
+              <span>خدمة الزبناء والطلبات</span>
+            </h3>
+
+            <p className="text-xs text-stone-200 leading-relaxed font-medium">
+              فريقنا جاهز للرد على استفساراتكم ومتابعة طلباتكم بكل اهتمام عبر الواتساب المباشر.
+            </p>
+
+            <div className="pt-1">
               <a
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20BA5A] text-white px-5 py-2.5 rounded-full font-black text-sm no-underline transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(37,211,102,0.35)] cursor-pointer shadow-md"
+                className="group relative inline-flex items-center justify-center gap-2.5 bg-gradient-to-l from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white px-5 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all duration-200 shadow-[0_6px_20px_rgba(34,197,94,0.30)] hover:shadow-[0_8px_26px_rgba(34,197,94,0.45)] hover:-translate-y-0.5 active:scale-95 w-full sm:w-auto cursor-pointer border border-emerald-400/30"
               >
-                <MessageCircle className="w-4 h-4 fill-current text-white" />
-                <span>تواصل عبر الواتساب</span>
+                <span className="w-2 h-2 rounded-full bg-white animate-ping shrink-0" />
+                <MessageCircle className="w-4 h-4 fill-current text-white shrink-0" />
+                <span>تواصل فوري عبر الواتساب</span>
               </a>
+            </div>
+
+            <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-stone-300 font-semibold pt-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>رد سريع ومباشر خلال دقائق</span>
             </div>
           </div>
 
         </div>
 
-        {/* ════════ التذييل السفلي ════════ */}
-        <div className="pt-4 border-t border-white/20 flex flex-col sm:flex-row items-center justify-between text-xs text-white/90 gap-3 text-center">
+        {/* ════════ التذييل السفلي وحقوق الملكية ════════ */}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-300 gap-4 text-center sm:text-right">
 
-          {/* حقوق النشر + زر المدير */}
-          <div className="font-bold tracking-wide flex items-center justify-center sm:justify-start gap-1.5">
+          {/* حقوق النشر الرسمية + زر قفل المدير */}
+          <div className="flex items-center justify-center sm:justify-start gap-2 font-bold tracking-wide">
             <button
               type="button"
               onClick={handleAdminTrigger}
-              title="إدارة تقييمات المتجر"
-              aria-label="إدارة التقييمات للمدير"
-              className="text-white/40 hover:text-[#F5D76E] transition-colors p-1 rounded-md hover:bg-white/10 cursor-pointer select-none"
+              title="دخول إدارة المتجر (PIN)"
+              aria-label="دخول إدارة المتجر"
+              className="text-stone-400 hover:text-[#F5D76E] transition-colors p-1.5 rounded-lg hover:bg-white/10 cursor-pointer select-none"
             >
-              <Lock className="w-3.5 h-3.5" />
+              <Lock className="w-3.5 h-3.5 text-stone-400 hover:text-[#F5D76E]" />
             </button>
             <p>
               جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
-              <span className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</span>
+              <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>{' '}
+              <span className="text-stone-400 text-[11px] hidden sm:inline">(شركة خُضرة للتجارة الإلكترونية SARL)</span>
             </p>
           </div>
 
-          {/* "صنع بكل ❤️" */}
-          <p className="flex items-center gap-1.5 justify-center font-bold whitespace-nowrap bg-white/10 px-3 py-1 rounded-full border border-white/20">
+          {/* شارة "صنع بكل ❤️" */}
+          <div className="inline-flex items-center gap-1.5 justify-center font-bold text-[11px] sm:text-xs bg-white/10 hover:bg-white/15 px-3.5 py-1.5 rounded-full border border-white/15 text-stone-200 transition-colors shadow-2xs">
             <span>صنع بكل</span>
             <Heart className="w-3.5 h-3.5 text-red-500 fill-current animate-bounce" />
-            <span className="text-white">لخدمة المائدة المغربية</span>
-          </p>
+            <span className="text-white font-black">لخدمة المائدة الفاسية والمغربية</span>
+          </div>
+
         </div>
 
       </div>
     </footer>
   );
 };
+
+export default Footer;

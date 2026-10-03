@@ -240,8 +240,8 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
                   Commandes
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug line-clamp-2 sm:line-clamp-none font-medium">
-                متابعة الحالات، تجميع مسارات فاس الأربعة، وطباعة بوليصة الشحن الحرارية (Bordereau 80mm).
+              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium">
+                متابعة وتجهيز الطلبات، وطباعة بوليصة الشحن (Bordereau 80mm).
               </p>
             </div>
           </button>
@@ -270,8 +270,8 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
                   Tableau Financier
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug line-clamp-2 sm:line-clamp-none font-medium">
-                Chiffre d'Affaires, Seuil de rentabilité, Cash-Flow sur 12 mois et export Excel / CSV.
+              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium">
+                CA, Seuil de rentabilité et prévisions de trésorerie sur 12 mois.
               </p>
             </div>
           </button>
@@ -300,8 +300,8 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
                   Contrats SARL
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug line-clamp-2 sm:line-clamp-none font-medium">
-                Pitch Deck، دراسة تقنية MVP، ميزانية التمويل (100K)، وعقود السائق والتوريد B2B.
+              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium">
+                ملف التمويل، Pitch Deck، وعقود السائق والتوريد والشراكة.
               </p>
             </div>
           </button>
@@ -316,7 +316,7 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] border border-cyan-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
                 <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-[#FEF08A]" strokeWidth={2.5} />
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              <span dir="ltr" className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                 1-Click
               </span>
             </div>
@@ -330,8 +330,8 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
                   Marketing
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug line-clamp-2 sm:line-clamp-none font-medium">
-                توليد وإرسال عروض اليوم آلياً إلى واتساب، فيسبوك، تليغرام، وإنستغرام بضغطة زر.
+              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium">
+                توليد وإرسال عروض اليوم آلياً إلى واتساب وشبكات التواصل.
               </p>
             </div>
           </button>
