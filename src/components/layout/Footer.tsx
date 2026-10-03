@@ -4,15 +4,12 @@
 // ============================================================
 import React from 'react';
 import {
-  Heart,
   ShieldCheck,
-  Truck,
   RefreshCw,
   MessageCircle,
   Lock,
   Sparkles,
   ChevronLeft,
-  CheckCircle2,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
 
@@ -59,9 +56,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
                 <span className="text-2xl font-black text-[#F5D76E] tracking-tight block">
                   {STORE_CONFIG.storeName}
                 </span>
-                <span className="text-[11px] text-emerald-200/80 font-bold block -mt-1">
-                  طراوة يومية لباب الدار بفاس
-                </span>
               </div>
             </div>
 
@@ -69,15 +63,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
               نختار لكم يومياً أجود الخضار، الفواكه الطازجة، ومنتجات البقالة والألبان بعناية فائقة من أسواق الجملة بفاس مع توصيل سريع وموثوق لباب منزلك.
             </p>
 
-            {/* شارات الضمان الثلاثية المحدثة */}
+            {/* شارات الضمان */}
             <div className="flex flex-wrap gap-2 pt-1 justify-center sm:justify-start">
               <span className="text-[11px] bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 font-bold text-white flex items-center gap-1.5 backdrop-blur-xs transition-colors shadow-2xs">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#F5D76E]" strokeWidth={2.5} />
                 <span>100% جودة وطراوة</span>
-              </span>
-              <span className="text-[11px] bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 font-bold text-white flex items-center gap-1.5 backdrop-blur-xs transition-colors shadow-2xs">
-                <Truck className="w-3.5 h-3.5 text-[#F5D76E]" strokeWidth={2.5} />
-                <span>توصيل سريع 45 دقيقة</span>
               </span>
               <span className="text-[11px] bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 font-bold text-white flex items-center gap-1.5 backdrop-blur-xs transition-colors shadow-2xs">
                 <RefreshCw className="w-3.5 h-3.5 text-[#F5D76E]" strokeWidth={2.5} />
@@ -139,24 +129,15 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
 
           {/* ─── العمود 3: التواصل الفوري والدعم ─── */}
           <div className="space-y-3.5 text-center sm:text-right">
-            <h3 className="text-sm sm:text-base font-black text-[#F5D76E] flex items-center justify-center sm:justify-start gap-2">
-              <MessageCircle className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
-              <span>خدمة الزبناء والطلبات</span>
-            </h3>
-
-            <p className="text-xs text-stone-200 leading-relaxed font-medium">
-              فريقنا جاهز للرد على استفساراتكم ومتابعة طلباتكم بكل اهتمام عبر الواتساب المباشر.
-            </p>
-
-            <div className="pt-1">
+            <div className="pt-0">
               <a
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative inline-flex items-center justify-center gap-2.5 bg-gradient-to-l from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white px-5 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all duration-200 shadow-[0_6px_20px_rgba(34,197,94,0.30)] hover:shadow-[0_8px_26px_rgba(34,197,94,0.45)] hover:-translate-y-0.5 active:scale-95 w-full sm:w-auto cursor-pointer border border-emerald-400/30"
+                className="group relative inline-flex items-center justify-center gap-2 bg-gradient-to-l from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white px-4 py-2 rounded-xl font-black text-[11px] sm:text-xs transition-all duration-200 shadow-[0_4px_14px_rgba(34,197,94,0.25)] hover:shadow-[0_6px_18px_rgba(34,197,94,0.40)] hover:-translate-y-0.5 active:scale-95 w-full sm:w-auto cursor-pointer border border-emerald-400/30"
               >
-                <span className="w-2 h-2 rounded-full bg-white animate-ping shrink-0" />
-                <MessageCircle className="w-4 h-4 fill-current text-white shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping shrink-0" />
+                <MessageCircle className="w-3.5 h-3.5 fill-current text-white shrink-0" />
                 <span>تواصل فوري عبر الواتساب</span>
               </a>
             </div>
@@ -167,7 +148,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
         {/* ════════ التذييل السفلي وحقوق الملكية ════════ */}
         <div className="pt-6 flex items-center justify-center text-xs text-stone-300 gap-4 text-center">
 
-          {/* حقوق النشر الرسمية + زر قفل المدير */}
           <div className="flex items-center justify-center gap-2 font-bold tracking-wide">
             <button
               type="button"
