@@ -1,6 +1,6 @@
 // ============================================================
 // Footer.tsx – تذييل المتجر المتطور بالمعايير الفاخرة الموحدة
-// تصميم احترافي متناسق مع لوحة إدارة المتجر: خلفية داكنة عميقة + بطاقات تفاعلية + شارات جودة + زر واتساب متناسق
+// تصميم احترافي متناسق مع لوحة إدارة المتجر: خلفية داكنة عميقة + بطاقات تفاعلية + شارات جودة + زر واتساب 
 // ============================================================
 import React from 'react';
 import {
@@ -56,22 +56,22 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
         {/* ════════ رأس الفوتر: هوية المتجر والعلامة التجارية ════════ */}
         <div className="flex flex-col items-center text-center space-y-4 max-w-2xl mx-auto">
           {/* أيقونة الهوية الفاخرة */}
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border-2 border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0">
-            <span className="text-2xl sm:text-3xl">🌿</span>
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border-1 border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0">
+            <span className="text-2xl sm:text-2xl">🌿</span>
           </div>
 
           <div>
-            <div className="flex items-center justify-center gap-2.5 flex-wrap">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 متجر <span className="text-[#F5D76E]">{STORE_CONFIG.storeName}</span>
               </h2>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                فاس • طراوة يومية
+                FES
               </span>
             </div>
             <p className="text-xs sm:text-sm text-stone-300 font-medium mt-2 leading-relaxed">
-              نختار لكم كل صباح أجود الخضار، الفواكه الطازجة، ومنتجات البقالة والألبان بعناية فائقة من أسواق الجملة بفاس مع توصيل سريع وموثوق لباب منزلك.
+              نختار لكم كل صباح أجود الخضار، الفواكه، ومنتجات البقالة والألبان بعناية فائقة من أسواق الجملة بفاس مع توصيل سريع وموثوق لباب دارك.
             </p>
           </div>
         </div>
