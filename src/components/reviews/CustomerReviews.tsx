@@ -1,6 +1,7 @@
 // ============================================================
-// CustomerReviews.tsx – الإصدار 5.0 (تصميم موحد ومتكامل بدون بطاقات متفرقة)
+// CustomerReviews.tsx – الإصدار 5.1 (تصميم موحد ومتكامل)
 // يجمع الرأس والتقييمات ودعوة المشاركة داخل إطار فاخر ومتناسق
+// تحسينات: توسيط المحتوى + تفتيح الخلفية + عرض أوضح
 // ============================================================
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
@@ -235,49 +236,49 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           </div>
         )}
 
-        {/* ════════ الحاوية الرئيسية الموحدة (بدون تجزئة أو بطاقات متباعدة) ════════ */}
-        <div className="relative bg-gradient-to-b from-[#FAF8F3] via-white to-[#F7F4EB] border-2 border-[#2D6A3F]/20 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.08)] p-5 sm:p-8 lg:p-10 overflow-hidden">
-          
-          {/* إضاءات خلفية ناعمة للهوية البصرية */}
-          <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
+        {/* ════════ الحاوية الرئيسية الموحدة ════════ */}
+        <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
 
-          {/* ─── 1. رأس القسم الموحد: العنوان + التقييم الإجمالي + زر إضافة تقييم ─── */}
-          <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-[#2D6A3F]/12">
-            
+          {/* إضاءات خلفية ناعمة للهوية البصرية */}
+          <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/5 rounded-full blur-3xl pointer-events-none" />
+
+          {/* ─── 1. رأس القسم الموحد (مُوسَّط) ─── */}
+          <div className="relative flex flex-col items-center text-center gap-5 pb-6 border-b border-[#2D6A3F]/10">
+
             {/* الجانب الأيمن: العنوان والوصف */}
-            <div className="text-right space-y-2">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center gap-2">
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
                 <span>آراء زبنائنا بمدينة فاس</span>
                 <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
               </h2>
 
-              <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold max-w-xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#4A5D4F] font-bold leading-relaxed">
                 تجارب حقيقية لعائلات تثق بجودة خضار وفواكه متجر خُضرة وتعتمد على التوصيل السريع يومياً.
               </p>
             </div>
 
-            {/* الجانب الأيسر: شارة التقييم 4.9 + زر المشاركة المباشر */}
-            <div className="flex items-center flex-wrap gap-2.5 sm:gap-3 shrink-0">
-              
+            {/* الجانب الأيسر: شارة التقييم + زر المشاركة (مُوسَّط) */}
+            <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 shrink-0 w-full">
+
               {/* وسام التقييم الذهبي */}
-              <div className="inline-flex items-center gap-2 bg-white px-3.5 py-2 rounded-2xl border border-[#2D6A3F]/20 shadow-xs">
+              <div className="inline-flex items-center gap-2 bg-white px-3.5 py-2 rounded-2xl border border-[#2D6A3F]/20 shadow-sm">
                 <span className="font-black text-[#EA580C] text-lg tabular-nums leading-none">4.9</span>
                 <div className="flex text-amber-400 gap-0.5">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <span className="text-[11px] text-[#5A6B5F] font-bold border-r border-[#2D6A3F]/20 pr-2 mr-0.5">
+                <span className="text-[11px] text-[#4A5D4F] font-bold border-r border-[#2D6A3F]/20 pr-2 mr-0.5">
                   {reviews.length}+ تقييم معتمد
                 </span>
               </div>
 
-              {/* زر إضافة تقييم مدمج في الرأس مباشرة */}
+              {/* زر إضافة تقييم مدمج */}
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="group inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#377A4C] hover:to-[#22502F] text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border border-[#EAB308]/40"
+                className="group inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#377A4C] hover:to-[#22502F] text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border border-[#EAB308]/50"
               >
                 <MessageSquarePlus className="w-4 h-4 text-[#F5D76E] group-hover:scale-110 transition-transform" strokeWidth={2.5} />
                 <span>شاركنا تجربتك</span>
@@ -289,42 +290,40 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
           </div>
 
           {/* ─── 2. شبكة / شريط عرض التقييمات المتناسق ─── */}
-          
-          {/* على الشاشات المتوسطة والكبيرة (sm وأعلى): شبكة أنيقة متماسكة */}
+
+          {/* على الشاشات المتوسطة والكبيرة (sm وأعلى): شبكة 3 أعمدة */}
           <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5 pt-6">
             {displayedReviews.map((rev) => (
               <div
                 key={rev.id}
-                className="relative bg-white rounded-2xl border-2 border-[#2D6A3F]/15 hover:border-[#2D6A3F]/40 p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
+                className="relative bg-white rounded-2xl border-2 border-[#2D6A3F]/15 hover:border-[#2D6A3F]/40 p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group text-center"
               >
                 <div>
-                  {/* رأس بطاقة التقييم: الأفاتار والاسم والموقع */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] border border-[#EAB308]/30 text-[#F5D76E] font-black text-lg flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-                        {rev.author.trim().charAt(0) || 'خ'}
+                  {/* رأس بطاقة التقييم (مُوسَّط) */}
+                  <div className="flex flex-col items-center justify-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] border border-[#EAB308]/40 text-[#F5D76E] font-black text-lg flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform">
+                      {rev.author.trim().charAt(0) || 'خ'}
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-black text-[#1A3D24] leading-snug">
+                          {rev.author}
+                        </h3>
+                        {rev.verified && (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full border border-emerald-300">
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                            <span>موثق</span>
+                          </span>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h3 className="text-sm font-black text-[#1A3D24] leading-snug">
-                            {rev.author}
-                          </h3>
-                          {rev.verified && (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-black bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full border border-emerald-300">
-                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                              <span>موثق</span>
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-[#5A6B5F] font-bold flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-[#EA580C] shrink-0" strokeWidth={2.5} />
-                          <span>{rev.neighborhood}</span>
-                        </p>
-                      </div>
+                      <p className="text-[11px] text-[#4A5D4F] font-bold flex items-center justify-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-[#EA580C] shrink-0" strokeWidth={2.5} />
+                        <span>{rev.neighborhood}</span>
+                      </p>
                     </div>
 
                     {/* النجوم */}
-                    <div className="flex text-amber-400 gap-0.5 shrink-0 pt-1" aria-label={`تقييم ${rev.rating} من 5 نجوم`}>
+                    <div className="flex text-amber-400 gap-0.5 shrink-0" aria-label={`تقييم ${rev.rating} من 5 نجوم`}>
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
@@ -338,15 +337,16 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                     </div>
                   </div>
 
-                  {/* نص التعليق */}
-                  <p className="text-xs sm:text-[13px] text-[#2D3748] font-semibold leading-relaxed text-right pt-1 pb-2">
+                  {/* نص التعليق (مُوسَّط) */}
+                  <p className="text-xs sm:text-[13px] text-[#2D3748] font-semibold leading-relaxed text-center pt-1 pb-2">
                     "{rev.comment}"
                   </p>
                 </div>
 
-                {/* تذييل البطاقة: التاريخ وزر الحذف للمدير */}
-                <div className="pt-3 mt-2 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-400">
+                {/* تذييل البطاقة (مُوسَّط) */}
+                <div className="pt-3 mt-2 border-t border-stone-100 flex items-center justify-center text-[11px] text-stone-400 gap-2">
                   <span>{rev.date || 'منذ يومين'}</span>
+                  <span className="text-stone-300">•</span>
                   {isAdmin ? (
                     <button
                       type="button"
@@ -366,7 +366,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
             ))}
           </div>
 
-          {/* على شاشات الهاتف المحمول (< sm): شريط أفقي انسيابي مدمج بدون فجوات */}
+          {/* على شاشات الهاتف المحمول (< sm): شريط أفقي انسيابي */}
           <div className="sm:hidden pt-5">
             <div
               ref={reviewsScrollRef}
@@ -377,33 +377,31 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
               {displayedReviews.map((rev, idx) => (
                 <div
                   key={rev.id}
-                  className="w-[82vw] max-w-[300px] shrink-0 snap-center bg-white rounded-2xl border-2 border-[#2D6A3F]/15 p-4 shadow-xs flex flex-col justify-between text-right"
+                  className="w-[82vw] max-w-[300px] shrink-0 snap-center bg-white rounded-2xl border-2 border-[#2D6A3F]/15 p-4 shadow-sm flex flex-col justify-between text-center"
                 >
                   <div>
-                    {/* رأس البطاقة */}
-                    <div className="flex items-start justify-between gap-2 mb-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] text-[#F5D76E] font-black text-base flex items-center justify-center shrink-0 border border-[#EAB308]/30">
-                          {rev.author.trim().charAt(0) || 'خ'}
+                    {/* رأس البطاقة (مُوسَّط) */}
+                    <div className="flex flex-col items-center justify-center gap-2.5 mb-2.5">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] text-[#F5D76E] font-black text-base flex items-center justify-center shrink-0 border border-[#EAB308]/40">
+                        {rev.author.trim().charAt(0) || 'خ'}
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <h3 className="text-xs font-black text-[#1A3D24] leading-snug">
+                            {rev.author}
+                          </h3>
+                          {rev.verified && (
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                          )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1">
-                            <h3 className="text-xs font-black text-[#1A3D24] leading-snug">
-                              {rev.author}
-                            </h3>
-                            {rev.verified && (
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-[10px] text-[#5A6B5F] font-bold flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-2.5 h-2.5 text-[#EA580C] shrink-0" />
-                            <span>{rev.neighborhood}</span>
-                          </p>
-                        </div>
+                        <p className="text-[10px] text-[#4A5D4F] font-bold flex items-center justify-center gap-1 mt-0.5">
+                          <MapPin className="w-2.5 h-2.5 text-[#EA580C] shrink-0" />
+                          <span>{rev.neighborhood}</span>
+                        </p>
                       </div>
 
                       {/* النجوم */}
-                      <div className="flex text-amber-400 gap-0.5 pt-0.5">
+                      <div className="flex text-amber-400 gap-0.5">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
@@ -416,14 +414,15 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                     </div>
 
                     {/* نص التعليق */}
-                    <p className="text-xs text-[#2D3748] font-semibold leading-relaxed py-1">
+                    <p className="text-xs text-[#2D3748] font-semibold leading-relaxed py-1 text-center">
                       "{rev.comment}"
                     </p>
                   </div>
 
-                  {/* تذييل البطاقة */}
-                  <div className="pt-2.5 mt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-400">
+                  {/* تذييل البطاقة (مُوسَّط) */}
+                  <div className="pt-2.5 mt-2 border-t border-stone-100 flex items-center justify-center text-[10px] text-stone-400 gap-1.5">
                     <span>{rev.date || 'مؤخراً'}</span>
+                    <span className="text-stone-300">•</span>
                     {isAdmin ? (
                       <button
                         type="button"
@@ -484,13 +483,13 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
             )}
           </div>
 
-          {/* ─── 3. الشريط السفلي المدمج: زر عرض المزيد ─── */}
+          {/* ─── 3. الشريط السفلي المدمج: زر عرض المزيد (مُوسَّط) ─── */}
           {reviews.length > INITIAL_VISIBLE_COUNT && (
-            <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex items-center justify-center">
+            <div className="mt-6 pt-5 border-t border-[#2D6A3F]/10 flex items-center justify-center">
               <button
                 type="button"
                 onClick={() => setShowAllReviews(!showAllReviews)}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-[#FAF8F3] border border-[#2D6A3F]/25 text-[#1A3D24] text-xs font-black transition-all cursor-pointer active:scale-95 shadow-2xs"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-[#FAF8F3] border border-[#2D6A3F]/25 text-[#1A3D24] text-xs font-black transition-all cursor-pointer active:scale-95 shadow-sm"
               >
                 {showAllReviews ? (
                   <>
