@@ -63,7 +63,7 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
       try {
         localStorage.setItem('khodra_notification_sound', String(next));
       } catch {}
-      setDashboardNotice(next ? '🔔 تم تفعيل التنبيهات الصوتية للطلبات' : '🔇 تم كتم التنبيهات الصوتية');
+      setDashboardNotice(next ? '🔔 تم تفعيل التنبيهات الصوتية' : '🔇 تم كتم التنبيهات الصوتية');
       setTimeout(() => setDashboardNotice(null), 3000);
       return next;
     });
@@ -135,11 +135,11 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             <div>
               <div className="flex items-center gap-2.5 justify-center sm:justify-start flex-wrap">
                 <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                  لوحة تحكم وإدارة متجر خُضرة
+                    إدارة المتجر 
                 </h2>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  مفعّل • En ligne
+                    En ligne
                 </span>
               </div>
             </div>
