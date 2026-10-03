@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Package, Check, Plus, Minus, X, Sparkles, ShieldCheck,
   Truck, ShoppingBag, Eye, HeartHandshake, Users, Scale,
-  Star, Leaf, Award, Clock,
+  Star, Leaf, Award, Clock, ChevronRight, ChevronLeft,
 } from 'lucide-react';
 import { gsap } from 'gsap';
 import { Product } from '../../types';
@@ -467,11 +467,22 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
     }
   };
 
+  const scrollNext = () => {
+    const nextIdx = Math.min(FAMILY_BOXES.length - 1, activeBoxIndex + 1);
+    scrollToBox(nextIdx);
+  };
+
+  const scrollPrev = () => {
+    const prevIdx = Math.max(0, activeBoxIndex - 1);
+    scrollToBox(prevIdx);
+  };
+
   return (
     <section
       id="family-boxes-section"
-      className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-16"
+      className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-14"
       aria-label="قسم صناديق العائلة التوفيرية"
+      dir="rtl"
     >
       {/* ═══════ الأنماط الحركية ═══════ */}
       <style>{`
@@ -512,44 +523,60 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
         }
       `}</style>
 
-      {/* ─── عنوان القسم ─── */}
-      <div className="relative bg-gradient-to-b from-white via-[#FEFEFC] to-[#FAF8F3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-3xl shadow-[0_2px_12px_rgba(45,106,63,0.06)] p-6 sm:p-8 text-center max-w-xl mx-auto mb-8 sm:mb-12 overflow-hidden">
-        {/* دوائر ضوئية */}
-        <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-[#2D6A3F]/10 rounded-full blur-3xl pointer-events-none" />
+      {/* ════════ الحاوية الموحدة المتوافقة تماماً مع أقسام المتجر الحديثة ════════ */}
+      <div className="relative bg-gradient-to-b from-[#FAF8F3] via-white to-[#F7F4EB] border-2 border-[#2D6A3F]/20 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.08)] p-5 sm:p-8 lg:p-10 overflow-hidden">
+        
+        {/* إضاءات محيطية ناعمة */}
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
-          {/* شارة ذهبية */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FACC15] to-[#EAB308] border border-[#EAB308]/50 text-[#1A3D24] font-black text-xs sm:text-sm mb-4 shadow-[0_3px_12px_rgba(234,179,8,0.30)]">
-            <Package className="w-4 h-4" strokeWidth={2.5} />
-            <span>باقات التوفير الأسبوعية</span>
-            <Sparkles className="w-3.5 h-3.5" strokeWidth={2.5} />
+
+          {/* ═══════ 1. رأس القسم الموحد: العنوان والشارات ═══════ */}
+          <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-[#2D6A3F]/12">
+            
+            {/* الجانب الأيمن: شارة الهوية والعنوان والوصف */}
+            <div className="text-right space-y-2">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EAB308]/15 border border-[#EAB308]/40 text-[#1A3D24] font-black text-xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#EA580C]" strokeWidth={2.5} />
+                <span>باقات التوفير الأسبوعية • طراوة شاملة</span>
+                <Package className="w-3 h-3 text-[#2D6A3F]" strokeWidth={2.5} />
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center gap-2">
+                <span>صناديق العائلة الطازجة</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
+              </h2>
+
+              <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold max-w-xl leading-relaxed">
+                خضار وفواكه منتقاة بعناية تكفي أسرتك طيلة الأسبوع، مع توفير مؤكد في السعر وتوصيل مريح مباشرة لباب بيتك.
+              </p>
+            </div>
+
+            {/* الجانب الأيسر: شارات التوفير والضمان المدمجة */}
+            <div className="flex items-center flex-wrap gap-2.5 shrink-0">
+              <div className="inline-flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-2xl border border-[#2D6A3F]/20 shadow-xs text-xs font-black text-[#1A3D24]">
+                <Package className="w-4 h-4 text-[#2D6A3F]" />
+                <span>3 أحجام عائلية</span>
+              </div>
+              <div className="inline-flex items-center gap-1.5 bg-[#EA580C]/10 text-[#EA580C] px-3.5 py-2 rounded-2xl border border-[#EA580C]/30 shadow-xs text-xs font-black">
+                <span>💰 وفر حتى 40.00 DH</span>
+              </div>
+              <div className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-800 px-3.5 py-2 rounded-2xl border border-emerald-500/30 shadow-xs text-xs font-black">
+                <span>⚡ توصيل مجاني بفاس</span>
+              </div>
+            </div>
+
           </div>
 
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight mb-3 flex items-center justify-center gap-2">
-            صناديق العائلة الطازجة
-            <span className="inline-block w-2 h-2 rounded-full bg-[#EAB308]" />
-          </h2>
-
-          <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold leading-relaxed max-w-md mx-auto">
-            خضار وفواكه منتقاة بعناية تكفي أسرتك طيلة الأسبوع، مع توفير مؤكد في السعر وراحة تامة مباشرة لباب بيتك.
-          </p>
-
-          <div className="flex sm:hidden items-center justify-center gap-2 mt-5 pt-4 border-t border-[#2D6A3F]/10">
-            <span className="text-[11px] font-black text-[#1A3D24]">اسحب لاكتشاف جميع الباقات</span>
-            <span className="text-xs text-[#2D6A3F]">←</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── عرض الصناديق ─── */}
-      <div className="relative max-w-6xl mx-auto">
-        <div
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          className="flex flex-row md:grid md:grid-cols-3 gap-5 sm:gap-6 lg:gap-7 overflow-x-auto md:overflow-x-visible pb-6 md:pb-0 pt-2 px-2 sm:px-0 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-        >
+          {/* ═══════ 2. شبكة وعرض الصناديق ═══════ */}
+          <div className="relative pt-6">
+            <div
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className="flex flex-row md:grid md:grid-cols-3 gap-5 sm:gap-6 lg:gap-7 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 px-1 md:px-0 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+            >
           {FAMILY_BOXES.map((box, idx) => {
             const isAdded = addedBoxId === box.id;
             const isActive = activeBoxIndex === idx;
@@ -695,23 +722,61 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
           })}
         </div>
 
-        {/* ─── نقاط التنقل ─── */}
-        <div className="flex md:hidden items-center justify-center gap-2 mt-4">
-          {FAMILY_BOXES.map((_, i) => (
+        {/* مؤشرات التنقل وأسهم التوجيه على الهاتف */}
+        <div className="flex md:hidden items-center justify-between pt-3 px-1">
+          <div className="flex items-center gap-1.5">
+            {FAMILY_BOXES.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => scrollToBox(i)}
+                className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                  activeBoxIndex === i
+                    ? 'w-6 bg-[#2D6A3F]'
+                    : 'w-2 bg-[#2D6A3F]/25 hover:bg-[#2D6A3F]/50'
+                }`}
+                aria-label={`الانتقال إلى الصندوق ${i + 1}`}
+              />
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1">
             <button
-              key={i}
               type="button"
-              onClick={() => scrollToBox(i)}
-              className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
-                activeBoxIndex === i
-                  ? 'w-7 bg-[#2D6A3F] shadow-xs'
-                  : 'w-2.5 bg-[#2D6A3F]/30 hover:bg-[#2D6A3F]/55'
-              }`}
-              aria-label={`الانتقال إلى الصندوق ${i + 1}`}
-            />
-          ))}
+              onClick={scrollPrev}
+              disabled={activeBoxIndex === 0}
+              className="p-1.5 rounded-lg bg-white border border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
+              aria-label="السابق"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={scrollNext}
+              disabled={activeBoxIndex >= FAMILY_BOXES.length - 1}
+              className="p-1.5 rounded-lg bg-white border border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
+              aria-label="التالي"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة والتوصيل ═══════ */}
+      <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
+        <div className="flex items-center gap-2 text-xs text-[#5A6B5F] font-bold">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
+          <span>محتويات الصناديق قطاف يومي طازج من أسواق الجملة بفاس — بدون أي وسيط لضمان أقصى طراوة وتوفير.</span>
+        </div>
+
+        <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#1A3D24] bg-[#2D6A3F]/10 px-3 py-1 rounded-full border border-[#2D6A3F]/20">
+          <span>ضمان استبدال فوري أو استرجاع 100% ✓</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
       {/* ════════ النافذة المنبثقة ════════ */}
       {selectedBox && (

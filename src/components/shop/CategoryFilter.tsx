@@ -1,9 +1,18 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 5.5
-// تحسين مؤشر التمرير: هوامش + إبراز العبارة والأسهم
+// الملف: CategoryFilter.tsx – الإصدار 6.0
+// تصميم موحد ومتوافق تماماً مع أقسام المتجر (TrustBadges & CustomerReviews)
+// حاوية رئيسية واحدة جامعة + رأس متكامل مع أزرار الفرز + شبكة بطاقات فاخرة
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { SlidersHorizontal, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  SlidersHorizontal,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Store,
+  CheckCircle2,
+  Layers,
+} from 'lucide-react';
 import { ProductCategory, Product } from '../../types';
 import { CATEGORIES_CONFIG } from '../../data/mockProducts';
 import { SortOption } from './SortFilterModal';
@@ -128,7 +137,7 @@ const CategoryCardButton: React.FC<{
         lg:min-h-[188px]
         xl:min-h-[198px]
         ${isSelected
-          ? 'border-[#2D6A3F] -translate-y-0.5 shadow-[0_6px_16px_rgba(45,106,63,0.18)] ring-2 ring-[#EAB308]/35'
+          ? 'border-[#2D6A3F] -translate-y-1 shadow-[0_8px_20px_rgba(45,106,63,0.22)] ring-2 ring-[#EAB308]/50'
           : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:-translate-y-0.5 shadow-xs hover:shadow-md'
         } ${
         !hasBackgroundImage
@@ -158,13 +167,13 @@ const CategoryCardButton: React.FC<{
           <div
             className={`absolute inset-0 transition-opacity duration-300 ${
               isSelected
-                ? 'bg-gradient-to-t from-[#0B1C10]/78 via-[#0B1C10]/20 to-transparent'
-                : 'bg-gradient-to-t from-[#0B1C10]/70 via-[#0B1C10]/12 to-transparent group-hover:from-[#0B1C10]/75 group-hover:via-[#0B1C10]/20'
+                ? 'bg-gradient-to-t from-[#0B1C10]/85 via-[#0B1C10]/25 to-transparent'
+                : 'bg-gradient-to-t from-[#0B1C10]/70 via-[#0B1C10]/15 to-transparent group-hover:from-[#0B1C10]/75 group-hover:via-[#0B1C10]/20'
             }`}
           />
 
           {isSelected && (
-            <div className="absolute inset-0 bg-[#EAB308]/8 pointer-events-none" />
+            <div className="absolute inset-0 bg-[#EAB308]/10 pointer-events-none" />
           )}
         </div>
       )}
@@ -186,8 +195,8 @@ const CategoryCardButton: React.FC<{
           className={`text-[14px] sm:text-[15px] lg:text-[16px] font-black leading-tight transition-colors duration-300 ${
             hasBackgroundImage
               ? isSelected
-                ? 'text-[#FACC15] drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]'
-                : 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]'
+                ? 'text-[#FACC15] drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]'
+                : 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]'
               : isSelected
               ? 'text-[#EAB308]'
               : 'text-[#112616]'
@@ -197,7 +206,7 @@ const CategoryCardButton: React.FC<{
         </span>
 
         {isSelected ? (
-          <span className="w-8 sm:w-9 h-1 rounded-full bg-[#EAB308] mt-1.5" />
+          <span className="w-8 sm:w-9 h-1 rounded-full bg-[#EAB308] mt-1.5 shadow-xs" />
         ) : (
           <span
             className={`h-0.5 rounded-full mt-1.5 transition-all duration-300 ${
@@ -333,7 +342,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   const showScrollHint = canScrollLeft || canScrollRight;
 
   return (
-    <div className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-2 sm:mt-3 lg:mt-4 mb-10 sm:mb-12 lg:mb-14 ${className}`}>
+    <div
+      className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-2 sm:mt-4 mb-10 sm:my-14 ${className}`}
+      dir="rtl"
+    >
       <style>{`
         @keyframes categoryFadeInRight {
           0%   { opacity: 0; transform: translateX(40px); }
@@ -365,7 +377,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
           will-change: transform, opacity;
         }
 
-        /* ✅ سهام مؤشر التمرير — إبراز أقوى */
         @keyframes categoryScrollHintLeft {
           0%, 100% { transform: translateX(0)    scale(1);    opacity: 0.65; }
           50%      { transform: translateX(-5px) scale(1.08); opacity: 1; }
@@ -392,79 +403,109 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
       `}</style>
 
-      <div className="relative bg-gradient-to-b from-white via-[#FEFEFC] to-[#FAF8F3] border border-[#2D6A3F]/12 rounded-[22px] sm:rounded-[28px] p-4 sm:p-5 md:p-6 shadow-[0_2px_12px_rgba(45,106,63,0.05)] overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-56 h-56 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-56 h-56 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
+      {/* ════════ الحاوية الموحدة المتوافقة تماماً مع شارات الثقة والتقييمات ════════ */}
+      <div className="relative bg-gradient-to-b from-[#FAF8F3] via-white to-[#F7F4EB] border-2 border-[#2D6A3F]/20 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.08)] p-5 sm:p-8 lg:p-10 overflow-hidden">
+        
+        {/* إضاءات محيطية ناعمة للهوية البصرية */}
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
 
-          {/* ═══════ 1. الرأس ═══════ */}
-          <div className="flex items-center justify-between gap-3 mb-3.5 sm:mb-4 pb-3 border-b border-[#2D6A3F]/10">
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <button
-                type="button"
-                id="category-filter-sort-btn"
-                onClick={onOpenSort}
-                className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] active:scale-95 transition-all flex items-center justify-center shrink-0 shadow-xs hover:shadow-md cursor-pointer border border-[#EAB308]/25 group focus:outline-none focus:ring-2 focus:ring-[#2D6A3F]/30"
-                title="فرز وتصفية المنتجات"
-                aria-label="فرز وتصفية المنتجات"
-              >
-                <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5 text-[#EAB308] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90" />
-                {hasActiveFilters && (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FB923C] opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-[#EA580C] border-2 border-white shadow-xs" />
-                  </span>
-                )}
-              </button>
-
-              <div className="min-w-0">
-                <h2 className="text-base sm:text-xl font-black text-[#112616] leading-tight truncate flex items-center gap-1.5">
-                  تسوق حسب الفئات
-                  <span className="inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#EAB308] shrink-0" />
-                </h2>
-                <p className="text-[11px] sm:text-xs text-[#5A6B5F] font-bold mt-0.5 truncate">
-                  اختر الفئة المناسبة لتصفح المنتجات
-                </p>
+          {/* ═══════ 1. رأس القسم الموحد: العنوان + أدوات التصفية ═══════ */}
+          <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-[#2D6A3F]/12">
+            
+            {/* الجانب الأيمن: الشارة والعنوان والوصف */}
+            <div className="text-right space-y-2">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EAB308]/15 border border-[#EAB308]/40 text-[#1A3D24] font-black text-xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#EA580C]" strokeWidth={2.5} />
+                <span>أقسام وفئات المتجر • طراوة يومية</span>
+                <Store className="w-3 h-3 text-[#2D6A3F]" strokeWidth={2.5} />
               </div>
+
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center gap-2">
+                <span>تسوق حسب الفئات والأقسام</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
+              </h2>
+
+              <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold max-w-xl leading-relaxed">
+                خضار وفواكه طازجة، تمور، أجبان وألبان، وبقالة يومية مختارة بعناية فائقة من أسواق الجملة بفاس.
+              </p>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            {/* الجانب الأيسر: زر التصفية والفرز والأزرار التفاعلية */}
+            <div className="flex items-center flex-wrap gap-2.5 sm:gap-3 shrink-0">
+              
+              {/* إلغاء البحث إذا كان مفعل */}
               {isSearchMode && onClearSearch && (
                 <button
                   type="button"
                   onClick={onClearSearch}
-                  className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3 py-1.5 rounded-full transition-all cursor-pointer shadow-xs active:scale-95"
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3.5 py-2 rounded-2xl transition-all cursor-pointer shadow-xs active:scale-95"
                 >
-                  <span className="max-w-[110px] sm:max-w-none truncate">
+                  <span className="max-w-[120px] truncate">
                     إلغاء البحث "{searchQuery}"
                   </span>
                   <span className="text-xs font-bold leading-none">✕</span>
                 </button>
               )}
 
+              {/* شارة التصفية النشطة */}
               {hasActiveFilters && (
                 <button
                   type="button"
                   onClick={onOpenSort}
-                  className="hidden sm:inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FACC15] to-[#EAB308] hover:from-[#EAB308] hover:to-[#CA8A04] text-[#1A3D24] border border-[#EAB308]/50 px-3 py-1.5 rounded-full text-xs font-black cursor-pointer transition-all active:scale-95 shadow-xs shrink-0"
-                  title="تعديل خيارات التصفية"
+                  className="inline-flex items-center gap-1.5 bg-[#FAF8F3] hover:bg-white text-[#1A3D24] border border-[#2D6A3F]/20 px-3.5 py-2 rounded-2xl text-xs font-black cursor-pointer transition-all active:scale-95 shadow-xs"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3.5 h-3.5 text-[#EA580C]" />
                   <span>{getSortLabel() || (onlyInStock ? 'المتوفر فقط' : 'مصفّى')}</span>
                 </button>
               )}
+
+              {/* زر الفرز والتصفية الرئيسي بتصميم مميز */}
+              <button
+                type="button"
+                id="category-filter-sort-btn"
+                onClick={onOpenSort}
+                className="group relative inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#377A4C] hover:to-[#22502F] text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border border-[#EAB308]/40"
+                title="تصفية وترتيب المنتجات"
+                aria-label="تصفية وترتيب المنتجات"
+              >
+                <SlidersHorizontal className="w-4 h-4 text-[#F5D76E] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90" />
+                <span>تصفية وترتيب</span>
+                {hasActiveFilters && (
+                  <span className="w-2 h-2 rounded-full bg-[#EA580C] border border-white animate-pulse" />
+                )}
+              </button>
+
+              {/* زر "الكل" السريع للرجوع لكافة الأقسام */}
+              <button
+                type="button"
+                onClick={() => onSelectCategory('all')}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer active:scale-95 border ${
+                  selectedCategory === 'all'
+                    ? 'bg-[#1A3D24] text-[#F5D76E] border-[#EAB308]/60 shadow-xs'
+                    : 'bg-white text-[#5A6B5F] hover:text-[#1A3D24] border-[#2D6A3F]/20 hover:border-[#2D6A3F]/40'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>جميع الأقسام</span>
+              </button>
+
             </div>
+
           </div>
 
-          {/* ═══════ 2. شريط الفئات ═══════ */}
-          <div className="relative">
+          {/* ═══════ 2. شريط وبطاقات الفئات ═══════ */}
+          <div className="relative pt-6">
+            
+            {/* أزرار التمرير الدائرية (Desktop) */}
             {canScrollRight && (
               <button
                 type="button"
                 onClick={() => scrollByAmount('right')}
                 aria-label="تمرير لليمين"
-                className="hidden md:flex absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 shadow-xs text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
+                className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -475,15 +516,16 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 type="button"
                 onClick={() => scrollByAmount('left')}
                 aria-label="تمرير لليسار"
-                className="hidden md:flex absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 shadow-xs text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
+                className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
             )}
 
+            {/* شبكة الفئات المتجاوبة: شبكة 6 أعمدة على الحاسوب وشريط انسيابي للجوال */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5 lg:gap-4 overflow-x-auto md:overflow-visible py-2 px-1.5 sm:px-2 md:px-0.5 overscroll-x-contain no-scrollbar items-stretch"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
@@ -498,40 +540,60 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 />
               ))}
             </div>
+
+            {/* مؤشر التمرير على الهاتف */}
+            {showScrollHint && (
+              <div
+                className="md:hidden flex flex-col items-center select-none pointer-events-none mt-3"
+                aria-hidden="true"
+              >
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-xs border border-[#2D6A3F]/15 shadow-2xs">
+                  <span
+                    className={`inline-flex transition-opacity duration-300 ${
+                      canScrollLeft ? 'category-scroll-hint-left opacity-100' : 'opacity-25'
+                    }`}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={3} />
+                  </span>
+
+                  <span className="text-[11px] font-black text-[#1A3D24] tracking-wide whitespace-nowrap">
+                    اسحب لتصفح باقي الفئات
+                  </span>
+
+                  <span
+                    className={`inline-flex transition-opacity duration-300 ${
+                      canScrollRight ? 'category-scroll-hint-right opacity-100' : 'opacity-25'
+                    }`}
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={3} />
+                  </span>
+                </div>
+              </div>
+            )}
+
           </div>
 
-          {/* ═══════ 3. مؤشر التمرير (جوال) — متناسق وخفيف ═══════ */}
-          {showScrollHint && (
-            <div
-              className="md:hidden flex flex-col items-center select-none pointer-events-none mt-2.5 mb-0.5"
-              aria-hidden="true"
-            >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/75 backdrop-blur-xs border border-[#2D6A3F]/15 shadow-2xs">
-                <span
-                  className={`inline-flex transition-opacity duration-300 ${
-                    canScrollLeft ? 'category-scroll-hint-left opacity-100' : 'opacity-25'
-                  }`}
-                >
-                  <ChevronLeft className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={3} />
-                </span>
-
-                <span className="text-[11px] font-black text-[#1A3D24] tracking-wide whitespace-nowrap">
-                  اسحب للتصفح
-                </span>
-
-                <span
-                  className={`inline-flex transition-opacity duration-300 ${
-                    canScrollRight ? 'category-scroll-hint-right opacity-100' : 'opacity-25'
-                  }`}
-                >
-                  <ChevronRight className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={3} />
-                </span>
-              </div>
+          {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة وتأكيد الفئة ═══════ */}
+          <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
+            <div className="flex items-center gap-2 text-xs text-[#5A6B5F] font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
+              <span>جميع المنتجات تخضع للمعاينة والفرز الدقيق قبل التجهيز والتوصيل لباب منزلك.</span>
             </div>
-          )}
+
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#1A3D24] bg-[#2D6A3F]/10 px-3 py-1 rounded-full border border-[#2D6A3F]/20">
+              <span>
+                {selectedCategory === 'all'
+                  ? 'عرض جميع المنتجات متوفر حالياً'
+                  : `تصفية نشطة: ${CATEGORIES_CONFIG.find((c) => c.id === selectedCategory)?.name || ''}`}
+              </span>
+              <span>✓</span>
+            </div>
+          </div>
 
         </div>
       </div>
     </div>
   );
 };
+
+export default CategoryFilter;
