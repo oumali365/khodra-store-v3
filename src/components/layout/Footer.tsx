@@ -10,11 +10,8 @@ import {
   RefreshCw,
   MessageCircle,
   Lock,
-  MapPin,
-  Clock,
   Sparkles,
   ChevronLeft,
-  Banknote,
   CheckCircle2,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
@@ -49,8 +46,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* ════════ شبكة المحتوى الرئيسية (4 أعمدة متوازنة) ════════ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 pb-10 border-b border-white/15 text-right items-start">
+        {/* ════════ شبكة المحتوى الرئيسية (3 أعمدة متوازنة) ════════ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10 pb-10 border-b border-white/15 text-right items-start">
 
           {/* ─── العمود 1: الهوية والعلامة التجارية ─── */}
           <div className="space-y-4 text-center sm:text-right">
@@ -140,41 +137,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
             </ul>
           </div>
 
-          {/* ─── العمود 3: أوقات العمل والتغطية ─── */}
-          <div className="space-y-3.5 text-center sm:text-right">
-            <h3 className="text-sm sm:text-base font-black text-[#F5D76E] flex items-center justify-center sm:justify-start gap-2">
-              <MapPin className="w-4 h-4 text-[#EA580C]" strokeWidth={2.5} />
-              <span>نطاق التوصيل والمواعيد</span>
-            </h3>
-
-            <div className="space-y-2.5 text-xs text-stone-200/90 font-medium">
-              <div className="flex items-start justify-center sm:justify-start gap-2">
-                <Clock className="w-4 h-4 text-[#EAB308] shrink-0 mt-0.5" strokeWidth={2} />
-                <div>
-                  <strong className="text-white block font-black">أوقات العمل واستقبال الطلبات:</strong>
-                  <span>يومياً من 08:00 صباحاً حتى 20:00 مساءً</span>
-                </div>
-              </div>
-
-              <div className="flex items-start justify-center sm:justify-start gap-2">
-                <MapPin className="w-4 h-4 text-[#EAB308] shrink-0 mt-0.5" strokeWidth={2} />
-                <div>
-                  <strong className="text-white block font-black">التغطية الحالية:</strong>
-                  <span>فاس (طريق إيموزار، الأطلس، النرجس، عين الشقف، المدينة الجديدة، زواغة، وبنسودة).</span>
-                </div>
-              </div>
-
-              <div className="flex items-start justify-center sm:justify-start gap-2">
-                <Banknote className="w-4 h-4 text-[#EAB308] shrink-0 mt-0.5" strokeWidth={2} />
-                <div>
-                  <strong className="text-white block font-black">وسائل الدفع:</strong>
-                  <span>الدفع عند الاستلام نقداً (COD) أو عبر التحويل البنكي لـ 6 بنوك مغربية.</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ─── العمود 4: التواصل الفوري والدعم ─── */}
+          {/* ─── العمود 3: التواصل الفوري والدعم ─── */}
           <div className="space-y-3.5 text-center sm:text-right">
             <h3 className="text-sm sm:text-base font-black text-[#F5D76E] flex items-center justify-center sm:justify-start gap-2">
               <MessageCircle className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
@@ -197,20 +160,15 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
                 <span>تواصل فوري عبر الواتساب</span>
               </a>
             </div>
-
-            <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[11px] text-stone-300 font-semibold pt-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>رد سريع ومباشر خلال دقائق</span>
-            </div>
           </div>
 
         </div>
 
         {/* ════════ التذييل السفلي وحقوق الملكية ════════ */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-300 gap-4 text-center sm:text-right">
+        <div className="pt-6 flex items-center justify-center text-xs text-stone-300 gap-4 text-center">
 
           {/* حقوق النشر الرسمية + زر قفل المدير */}
-          <div className="flex items-center justify-center sm:justify-start gap-2 font-bold tracking-wide">
+          <div className="flex items-center justify-center gap-2 font-bold tracking-wide">
             <button
               type="button"
               onClick={handleAdminTrigger}
@@ -225,13 +183,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
               <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>{' '}
               <span className="text-stone-400 text-[11px] hidden sm:inline">(شركة خُضرة للتجارة الإلكترونية SARL)</span>
             </p>
-          </div>
-
-          {/* شارة "صنع بكل ❤️" */}
-          <div className="inline-flex items-center gap-1.5 justify-center font-bold text-[11px] sm:text-xs bg-white/10 hover:bg-white/15 px-3.5 py-1.5 rounded-full border border-white/15 text-stone-200 transition-colors shadow-2xs">
-            <span>صنع بكل</span>
-            <Heart className="w-3.5 h-3.5 text-red-500 fill-current animate-bounce" />
-            <span className="text-white font-black">لخدمة المائدة الفاسية والمغربية</span>
           </div>
 
         </div>
