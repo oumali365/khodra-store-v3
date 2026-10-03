@@ -1,7 +1,7 @@
 // ============================================================
-// FamilyBoxesSection.tsx – الإصدار 4.1
+// FamilyBoxesSection.tsx – الإصدار 4.2
 // قسم صناديق العائلة بهوية خضرة الموحّدة
-// تحسينات: Ripple + Focus Pulse + Fade + ظلال عضوية + Chips
+// تحسينات: توسيط المحتوى + تفتيح الخلفية + عرض أوضح
 // ============================================================
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -426,7 +426,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
     setActiveBoxIndex((prev) => {
       if (prev !== closestIdx) {
-        // ✅ نبضة تركيز عند تغيير البطاقة النشطة
         setPulsingIndex(closestIdx);
         if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
         pulseTimer.current = window.setTimeout(() => setPulsingIndex(null), FOCUS_PULSE_MS);
@@ -524,47 +523,30 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
       `}</style>
 
       {/* ════════ الحاوية الموحدة المتوافقة تماماً مع أقسام المتجر الحديثة ════════ */}
-      <div className="relative bg-gradient-to-b from-[#FAF8F3] via-white to-[#F7F4EB] border-2 border-[#2D6A3F]/20 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.08)] p-5 sm:p-8 lg:p-10 overflow-hidden">
+      <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-4 sm:p-6 lg:p-8 overflow-hidden">
 
         {/* إضاءات محيطية ناعمة */}
-        <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
 
-          {/* ═══════ 1. رأس القسم الموحد: العنوان والشارات ═══════ */}
-          <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-[#2D6A3F]/12">
-
-            {/* الجانب الأيمن: العنوان والوصف */}
-            <div className="text-right space-y-2">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center gap-2">
+          {/* ═══════ 1. رأس القسم الموحد: العنوان والوصف (مُوسَّط) ═══════ */}
+          <div className="relative flex flex-col items-center text-center gap-4 pb-5 border-b border-[#2D6A3F]/10">
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
                 <span>صناديق العائلة الطازجة</span>
                 <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
               </h2>
 
-              <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold max-w-xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#4A5D4F] font-bold leading-relaxed">
                 خضار وفواكه منتقاة بعناية تكفي أسرتك طيلة الأسبوع، مع توفير مؤكد في السعر وتوصيل مريح مباشرة لباب بيتك.
               </p>
             </div>
-
-            {/* الجانب الأيسر: شارات التوفير والضمان المدمجة */}
-            <div className="flex items-center flex-wrap gap-2.5 shrink-0">
-              <div className="inline-flex items-center gap-1.5 bg-white px-3.5 py-2 rounded-2xl border border-[#2D6A3F]/20 shadow-xs text-xs font-black text-[#1A3D24]">
-                <Package className="w-4 h-4 text-[#2D6A3F]" />
-                <span>3 أحجام عائلية</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 bg-[#EA580C]/10 text-[#EA580C] px-3.5 py-2 rounded-2xl border border-[#EA580C]/30 shadow-xs text-xs font-black">
-                <span>💰 وفر حتى 40.00 DH</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-800 px-3.5 py-2 rounded-2xl border border-emerald-500/30 shadow-xs text-xs font-black">
-                <span>⚡ توصيل مجاني بفاس</span>
-              </div>
-            </div>
-
           </div>
 
           {/* ═══════ 2. شبكة وعرض الصناديق ═══════ */}
-          <div className="relative pt-6">
+          <div className="relative pt-5">
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
@@ -580,7 +562,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
               <article
                 key={box.id}
                 style={{ animationDelay: `${idx * 100}ms` }}
-                className={`box-fade-in-right group/card relative w-[70vw] max-w-[260px] sm:w-[280px] md:w-auto md:max-w-none shrink-0 snap-center bg-white rounded-2xl border-2 transition-all duration-300 md:hover:-translate-y-1 p-3 sm:p-4 text-right flex flex-col justify-between ${
+                className={`box-fade-in-right group/card relative w-[75vw] max-w-[280px] sm:w-[300px] md:w-auto md:max-w-none shrink-0 snap-center bg-white rounded-2xl border-2 transition-all duration-300 md:hover:-translate-y-1 p-3.5 sm:p-4 text-center flex flex-col justify-between ${
                   isActive
                     ? 'border-[#2D6A3F] shadow-[0_6px_20px_rgba(45,106,63,0.14)] md:hover:shadow-[0_12px_28px_rgba(45,106,63,0.18)]'
                     : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/45 shadow-xs md:hover:shadow-[0_10px_24px_rgba(45,106,63,0.14)]'
@@ -598,17 +580,14 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                       className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-106"
                     />
 
-                    {/* تدرج خفيف أسفل الصورة لإبراز الشارات */}
                     <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
 
-                    {/* شارة علوية ذهبية */}
                     <div className="absolute top-2 right-2 z-10">
                       <span className="inline-flex items-center px-2 py-1 rounded-lg bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-[#1A3D24] text-[9px] font-black shadow-xs tracking-wide border border-white/50">
                         {box.badge}
                       </span>
                     </div>
 
-                    {/* شارة سفلية خضراء */}
                     <div className="absolute bottom-2 left-2 z-10">
                       <span className="inline-flex items-center px-2 py-1 rounded-lg bg-gradient-to-r from-[#2D6A3F] to-[#1A3D24] text-white text-[9px] font-black shadow-xs tracking-wide border border-[#EAB308]/35">
                         {box.savingsBadge}
@@ -616,9 +595,9 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </div>
                   </div>
 
-                  {/* ═══ الاسم والسعر ═══ */}
-                  <div className="mt-3 flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                  {/* ═══ الاسم والسعر (مُوسَّط) ═══ */}
+                  <div className="mt-3 flex flex-col items-center justify-center gap-2">
+                    <div className="text-center">
                       <h3
                         onClick={() => openBoxModal(box)}
                         className="text-sm sm:text-base font-black text-[#1A3D24] cursor-pointer hover:text-[#2D6A3F] transition-colors leading-snug truncate"
@@ -631,7 +610,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                       </p>
                     </div>
 
-                    <div className="text-left shrink-0" dir="ltr">
+                    <div className="text-center" dir="ltr">
                       <div className="text-lg sm:text-xl font-black text-[#EA580C] leading-none tracking-tight drop-shadow-[0_2px_6px_rgba(234,88,12,0.15)]">
                         <span>{box.price.toFixed(2)}</span>{' '}
                         <span className="text-xs sm:text-sm font-black text-[#EA580C]">DH</span>
@@ -642,8 +621,8 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </div>
                   </div>
 
-                  {/* ═══ Chips المواصفات ═══ */}
-                  <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+                  {/* ═══ Chips المواصفات (مُوسَّط) ═══ */}
+                  <div className="mt-2.5 flex items-center justify-center gap-1.5 flex-wrap">
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#2D6A3F]/8 border border-[#2D6A3F]/15 text-[#1A3D24] text-[10px] font-bold">
                       <Users className="w-3 h-3 text-[#2D6A3F] shrink-0" strokeWidth={2.5} />
                       <span>{box.servings}</span>
@@ -658,8 +637,8 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                     </span>
                   </div>
 
-                  {/* ═══ الوصف ═══ */}
-                  <div className="mt-2.5 pt-2 border-t border-[#2D6A3F]/10">
+                  {/* ═══ الوصف (مُوسَّط) ═══ */}
+                  <div className="mt-2.5 pt-2 border-t border-[#2D6A3F]/10 text-center">
                     <p className="text-[10px] sm:text-xs text-[#5A6B5F] font-semibold leading-relaxed line-clamp-2">
                       {box.description}
                     </p>
@@ -668,8 +647,7 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
                 {/* ═══ الأزرار ═══ */}
                 <div className="mt-2.5 pt-2 border-t border-[#2D6A3F]/10">
-                  <div className="flex items-center gap-1.5">
-                    {/* زر التفاصيل */}
+                  <div className="flex items-center justify-center gap-1.5">
                     <RippleButton
                       onClick={() => openBoxModal(box)}
                       rippleColor="rgba(45,106,63,0.20)"
@@ -679,7 +657,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                       <span className="relative z-10">التفاصيل</span>
                     </RippleButton>
 
-                    {/* زر أضف للسلة */}
                     <RippleButton
                       onClick={(e) => handleQuickAdd(e, box)}
                       rippleColor="rgba(255,255,255,0.30)"
@@ -704,7 +681,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                   </div>
                 </div>
 
-                {/* ✅ نبضة التركيز */}
                 {isPulsing && (
                   <div
                     className="box-focus-pulse absolute inset-0 rounded-2xl bg-[#EAB308]/12 pointer-events-none"
@@ -757,8 +733,8 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
         </div>
       </div>
 
-      {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة والتوصيل ═══════ */}
-      <div className="mt-6 pt-5 border-t border-[#2D6A3F]/12 flex items-center justify-center sm:justify-start gap-2 text-xs text-[#5A6B5F] font-bold text-center sm:text-right">
+      {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة والتوصيل (مُوسَّط) ═══════ */}
+      <div className="mt-5 pt-4 border-t border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs text-[#4A5D4F] font-bold text-center">
         <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
         <span>محتويات الصناديق قطاف يومي طازج من أسواق الجملة بفاس — بدون أي وسيط لضمان أقصى طراوة وتوفير.</span>
       </div>
@@ -791,7 +767,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
               <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C10] via-[#0B1C10]/50 to-[#0B1C10]/10 pointer-events-none" />
 
-              {/* زر الإغلاق */}
               <button
                 type="button"
                 onClick={() => setSelectedBox(null)}
@@ -801,7 +776,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 <X className="w-5 h-5" strokeWidth={2.5} />
               </button>
 
-              {/* شارات علوية */}
               <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-1.5 flex-wrap justify-end">
                 <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-[#1A3D24] text-xs font-black shadow-md border border-white/40">
                   {selectedBox.badge}
@@ -812,7 +786,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </span>
               </div>
 
-              {/* عنوان داخل الصورة */}
               <div className="absolute bottom-0 right-0 left-0 p-4 sm:p-5 flex items-end justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h3 id="box-modal-title" className="text-xl sm:text-2xl font-black text-white leading-tight drop-shadow-lg mb-0.5">
@@ -828,7 +801,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
             {/* التفاصيل */}
             <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 overscroll-contain">
 
-              {/* السعر */}
               <div className="relative p-4 sm:p-4.5 rounded-2xl bg-gradient-to-l from-[#FEF3C7]/80 to-[#FED7AA]/80 border border-[#EAB308]/40 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -856,7 +828,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </div>
               </div>
 
-              {/* Chips المعلومات */}
               <div className="grid grid-cols-3 gap-2.5">
                 <div className="p-3 rounded-xl bg-white border border-[#2D6A3F]/15 text-center">
                   <Users className="w-5 h-5 text-[#2D6A3F] mx-auto mb-1.5" strokeWidth={2.5} />
@@ -875,7 +846,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </div>
               </div>
 
-              {/* الوصف */}
               <div className="p-4 rounded-2xl bg-white border border-[#2D6A3F]/15">
                 <div className="flex items-center gap-2 mb-2">
                   <Leaf className="w-4 h-4 text-[#2D6A3F]" strokeWidth={2.5} />
@@ -886,7 +856,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </p>
               </div>
 
-              {/* المحتويات */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-black text-[#1A3D24] flex items-center gap-1.5">
@@ -918,7 +887,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </div>
               </div>
 
-              {/* الضمانات */}
               <div className="p-4 rounded-2xl bg-gradient-to-l from-[#ECFDF5] to-[#F0FDF4] border-2 border-[#2D6A3F]/25">
                 <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#2D6A3F]/20">
                   <div className="w-7 h-7 rounded-lg bg-[#2D6A3F] flex items-center justify-center shadow-sm">
@@ -963,7 +931,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
 
             {/* التذييل */}
             <div className="p-4 sm:p-5 bg-white border-t-2 border-[#2D6A3F]/15 flex items-center gap-3 shrink-0 shadow-[0_-4px_20px_rgba(45,106,63,0.06)]">
-              {/* العدّاد */}
               <div className="flex items-center gap-1 bg-[#FAF8F3] border-2 border-[#2D6A3F]/20 p-1 rounded-2xl shrink-0">
                 <button
                   type="button"
@@ -988,7 +955,6 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
                 </button>
               </div>
 
-              {/* زر الإضافة */}
               <RippleButton
                 id="modal-add-box-btn"
                 onClick={() => handleModalAdd(selectedBox)}
