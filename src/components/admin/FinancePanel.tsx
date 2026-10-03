@@ -1,7 +1,6 @@
 // ============================================================
 // FinancePanel.tsx – اللوحة المالية التفاعلية لمتجر خُضرة
-// مودال متكامل للتوقعات المالية ونموذج العمل والحسابات التقديرية
-// يدعم اللغات: الفرنسية والعربية والإنجليزية لتسهيل إدراج البيانات في الجداول
+// (نسخة معدلة: إصلاح ظهور الأرقام في حقول الإدخال)
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -197,7 +196,7 @@ export const INITIAL_ASSUMPTIONS: Assumptions = {
   taxPercent: 1,
 };
 
-// ─── أدوات التنسيق الرقمي (Format Français Standard) ───
+// ─── أدوات التنسيق الرقمي ───
 const fmt = (n: number) =>
   new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 0,
@@ -225,7 +224,6 @@ const getMarginColor = (margin: number) => {
 };
 
 export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) => {
-  // ─── الحالة التخزينية ───
   const [months, setMonths] = useState<MonthData[]>(() => {
     try {
       const saved = localStorage.getItem('khodra_finance_months');
@@ -251,11 +249,9 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [copiedTable, setCopiedTable] = useState(false);
 
-  // ─── عرض اللوحة المالية باللغة الفرنسية حصرياً (Plan Comptable Marocain) ───
   const lang = 'fr';
   const t = FINANCE_TRANSLATIONS.fr;
 
-  // ─── حفظ تلقائي ───
   useEffect(() => {
     try {
       localStorage.setItem('khodra_finance_months', JSON.stringify(months));
@@ -268,7 +264,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     } catch {}
   }, [assumptions]);
 
-  // ─── قفل التمرير عند فتح المودال ───
   useEffect(() => {
     if (isOpen) {
       const prev = document.body.style.overflow;
@@ -279,7 +274,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     }
   }, [isOpen]);
 
-  // ─── زر الهروب Escape للإغلاق ───
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
@@ -289,7 +283,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
-  // ─── الحسابات المالية الدورية ───
   const results: MonthResult[] = useMemo(() => {
     return months.map((m) => {
       const totalOrders = m.ordersPerDay * m.workingDays;
@@ -321,7 +314,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     });
   }, [months, assumptions]);
 
-  // ─── الإجماليات السنوية ───
   const totals = useMemo(() => {
     const totalRevenue = results.reduce((s, r) => s + r.revenue, 0);
     const totalExpenses = results.reduce((s, r) => s + r.totalExpenses, 0);
@@ -333,14 +325,12 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     return { totalRevenue, totalExpenses, totalProfit, totalOrders, avgMargin, avgBasket };
   }, [results]);
 
-  // ─── تعديل شهر ───
   const updateMonth = (index: number, field: keyof MonthData, value: number) => {
     setMonths((prev) =>
       prev.map((m, i) => (i === index ? { ...m, [field]: value } : m))
     );
   };
 
-  // ─── إعادة التعيين الآمنة ───
   const handleConfirmReset = () => {
     setMonths(INITIAL_MONTHS);
     setAssumptions(INITIAL_ASSUMPTIONS);
@@ -353,7 +343,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     }, 2500);
   };
 
-  // ─── حفظ يدوي ───
   const handleSave = () => {
     try {
       localStorage.setItem('khodra_finance_months', JSON.stringify(months));
@@ -370,7 +359,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     }
   };
 
-  // ─── تصدير ملف إكسل CSV متعدد اللغات ───
   const handleExportCSV = () => {
     let headers: string[];
     let totalLabel: string;
@@ -429,7 +417,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     setTimeout(() => setFeedbackMessage(null), 2500);
   };
 
-  // ─── نسخ أرقام الجدول مباشرة إلى الحافظة (لصق مباشر في Excel / Sheets) ───
   const handleCopyTableTSV = async () => {
     try {
       const headers = ['Mois', 'Commandes', 'CA', 'Depenses', 'Benefice_Net', 'Marge_%'].join('\t');
@@ -448,7 +435,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     } catch {}
   };
 
-  // ─── نقطة التعادل ───
   const breakEven = useMemo(() => {
     const avgBasket = totals.avgBasket || 100;
     const variableCostPerOrder =
@@ -498,7 +484,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
-            {/* ─── شارة المعيار المحاسبي المغربي ─── */}
             <div className="flex items-center gap-1.5 bg-black/25 px-3 py-1.5 rounded-xl border border-white/20 text-xs font-black text-amber-200 shadow-xs">
               <span>Norme Comptable Marocaine (MAD)</span>
             </div>
@@ -664,7 +649,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          {/* ─── الفرضيات الأساسية القابلة للتعديل ─── */}
+          {/* ─── الفرضيات الأساسية القابلة للتعديل (تم إصلاح ظهور الأرقام) ─── */}
           <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl overflow-hidden shadow-xs">
             <button
               type="button"
@@ -689,7 +674,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                     value={assumptions.cogsPercent}
                     onChange={(e) => setAssumptions((p) => ({ ...p, cogsPercent: +e.target.value }))}
                     min="0" max="100" step="1"
-                    className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm font-bold focus:outline-none focus:border-[#1E4327]"
+                    inputMode="decimal"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm font-bold text-stone-900 focus:outline-none focus:border-[#1E4327] focus:ring-2 focus:ring-[#1E4327]/20"
                   />
                 </label>
                 <label className="block">
@@ -699,7 +685,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                     value={assumptions.deliveryCostPerOrder}
                     onChange={(e) => setAssumptions((p) => ({ ...p, deliveryCostPerOrder: +e.target.value }))}
                     min="0" step="1"
-                    className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm font-bold focus:outline-none focus:border-[#1E4327]"
+                    inputMode="decimal"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm font-bold text-stone-900 focus:outline-none focus:border-[#1E4327] focus:ring-2 focus:ring-[#1E4327]/20"
                   />
                 </label>
                 <label className="block">
@@ -709,7 +696,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                     value={assumptions.fixedCostsPerMonth}
                     onChange={(e) => setAssumptions((p) => ({ ...p, fixedCostsPerMonth: +e.target.value }))}
                     min="0" step="50"
-                    className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm font-bold focus:outline-none focus:border-[#1E4327]"
+                    inputMode="decimal"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm font-bold text-stone-900 focus:outline-none focus:border-[#1E4327] focus:ring-2 focus:ring-[#1E4327]/20"
                   />
                 </label>
                 <label className="block">
@@ -719,14 +707,15 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                     value={assumptions.taxPercent}
                     onChange={(e) => setAssumptions((p) => ({ ...p, taxPercent: +e.target.value }))}
                     min="0" max="20" step="0.5"
-                    className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm font-bold focus:outline-none focus:border-[#1E4327]"
+                    inputMode="decimal"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm font-bold text-stone-900 focus:outline-none focus:border-[#1E4327] focus:ring-2 focus:ring-[#1E4327]/20"
                   />
                 </label>
               </div>
             )}
           </div>
 
-          {/* ─── محرر بيانات الأشهر الـ 12 ─── */}
+          {/* ─── محرر بيانات الأشهر الـ 12 (تم إصلاح ظهور الأرقام) ─── */}
           <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl overflow-hidden shadow-xs">
             <button
               type="button"
@@ -757,7 +746,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                           value={m.ordersPerDay}
                           onChange={(e) => updateMonth(i, 'ordersPerDay', +e.target.value)}
                           min="1" max="100"
-                          className="w-full px-2 py-1 rounded-md border border-stone-300 bg-white text-xs font-bold focus:outline-none focus:border-[#1E4327]"
+                          inputMode="decimal"
+                          className="w-full px-2 py-1 rounded-md border border-stone-300 bg-white text-xs font-bold text-stone-900 focus:outline-none focus:border-[#1E4327] focus:ring-2 focus:ring-[#1E4327]/20"
                         />
                       </label>
                       <label className="block">
@@ -767,7 +757,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
                           value={m.avgBasket}
                           onChange={(e) => updateMonth(i, 'avgBasket', +e.target.value)}
                           min="20" max="500" step="5"
-                          className="w-full px-2 py-1 rounded-md border border-stone-300 bg-white text-xs font-bold focus:outline-none focus:border-[#1E4327]"
+                          inputMode="decimal"
+                          className="w-full px-2 py-1 rounded-md border border-stone-300 bg-white text-xs font-bold text-stone-900 focus:outline-none focus:border-[#1E4327] focus:ring-2 focus:ring-[#1E4327]/20"
                         />
                       </label>
                     </div>
