@@ -74,7 +74,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
           </div>
         </div>
 
-        {/* ─── بطاقة : معلومات وخدمات المتجر ─── */}
+        {/* ════════ القسم الرئيسي: معلومات الخدمة والتغطية في بطاقتين متوازنتين ════════ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+
+          {/* ─── بطاقة 1: معلومات وخدمات المتجر ─── */}
           <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-5 sm:p-6 text-center space-y-4 shadow-md flex flex-col justify-between">
             {/* عنوان نظيف بدون أي أيقونة (حذف الأيقونة حسب التوجيهات) */}
             <div className="pb-3 border-b border-zinc-800 text-center">
@@ -155,6 +158,60 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
             </div>
           </div>
 
+          {/* ─── بطاقة 2: المواعيد ونطاق التوصيل ─── */}
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-5 sm:p-6 text-center space-y-4 shadow-md flex flex-col justify-between">
+            {/* عنوان نظيف بدون أي أيقونة (حذف الأيقونة حسب التوجيهات) */}
+            <div className="pb-3 border-b border-zinc-800 text-center">
+              <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                المواعيد ونطاق التوصيل
+              </h3>
+            </div>
+
+            <div className="space-y-3.5 text-xs text-stone-300">
+              {/* صندوق المواعيد – محتوى مُوسَّط */}
+              <div className="bg-zinc-950/70 p-4 rounded-2xl border border-zinc-800 flex flex-col items-center justify-center text-center space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-[#2D6A3F]/25 border border-[#EAB308]/25 flex items-center justify-center text-[#F5D76E] shrink-0 shadow-xs">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div className="space-y-1">
+                  <strong className="text-white block font-black text-xs sm:text-sm">
+                    أوقات استقبال وتوصيل الطلبات
+                  </strong>
+                  <p className="text-stone-300 text-xs leading-relaxed font-medium">
+                    طيلة أيام الأسبوع من <span className="font-bold text-emerald-300 tabular-nums">08:00 صباحاً</span> إلى <span className="font-bold text-emerald-300 tabular-nums">20:00 مساءً</span> بدون انقطاع
+                  </p>
+                </div>
+              </div>
+
+              {/* صندوق أحياء فاس المغطاة – محتوى مُوسَّط */}
+              <div className="bg-zinc-950/70 p-4 rounded-2xl border border-zinc-800 flex flex-col items-center justify-center text-center space-y-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-[#EA580C] shrink-0 shadow-xs">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div className="w-full space-y-2">
+                  <strong className="text-white block font-black text-xs sm:text-sm">
+                    أحياء مدينة فاس المغطاة بالتوصيل
+                  </strong>
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    {FEZ_NEIGHBORHOODS.map((zone) => (
+                      <span
+                        key={zone}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-700/80 text-[10px] sm:text-[11px] font-bold text-stone-300"
+                      >
+                        {zone}
+                      </span>
+                    ))}
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-950/70 border border-emerald-700/60 text-[10px] sm:text-[11px] font-bold text-emerald-300">
+                      + جميع النواحي
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
         {/* ════════ مركز خدمة الزبناء والواتساب المطور (مُوسَّط) ════════ */}
         <div className="bg-gradient-to-br from-[#102715] via-[#09170d] to-[#050e08] border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-6 text-center shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-1/3 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -162,7 +219,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
           <div className="relative max-w-xl mx-auto space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>Online •</span>
+              <span>خدمة الزبناء والطلبات الخاصة • فاس</span>
             </div>
 
             <div className="space-y-1">
