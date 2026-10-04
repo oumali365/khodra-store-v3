@@ -1,6 +1,6 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 8.0
-// تصميم بطاقات الفئات مطابق لبطاقات شارات الثقة (TrustBadges) مع زيادة في الارتفاع
+// الملف: CategoryFilter.tsx – الإصدار 8.2
+// إصلاح تشوه الفئة عند التحديد + هوامش سفلية وعلوية آمنة
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  Layers,
 } from 'lucide-react';
 import { ProductCategory, Product } from '../../types';
 import { CATEGORIES_CONFIG } from '../../data/mockProducts';
@@ -128,14 +127,14 @@ const CategoryCardButton: React.FC<{
         xs:w-[138px] xs:min-w-[138px]
         sm:w-[152px] sm:min-w-[152px]
         md:w-auto md:min-w-0
-        min-h-[180px]  /* زيادة الارتفاع لتناسب الصور */
+        min-h-[180px]
         xs:min-h-[190px]
         sm:min-h-[200px]
         md:min-h-[210px]
         lg:min-h-[220px]
         xl:min-h-[230px]
         ${isSelected
-          ? 'border-[#2D6A3F] -translate-y-1 shadow-[0_8px_20px_rgba(45,106,63,0.25)] ring-2 ring-[#EAB308]/60'
+          ? 'border-[#2D6A3F] -translate-y-0.5 shadow-[0_8px_20px_rgba(45,106,63,0.25)] ring-2 ring-[#EAB308]/60 ring-offset-0'
           : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:-translate-y-0.5 shadow-sm hover:shadow-md'
         } ${
         !hasBackgroundImage
@@ -147,7 +146,6 @@ const CategoryCardButton: React.FC<{
       // @ts-ignore
       style={{ animationDelay: `${animationDelay}ms` }}
     >
-      {/* ─── صورة الخلفية (إن وجدت) ─── */}
       {currentSrc && !hasError && (
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-[12px] sm:rounded-[14px]">
           <img
@@ -163,7 +161,6 @@ const CategoryCardButton: React.FC<{
             onError={handleImgError}
           />
 
-          {/* تدرج لوني لضمان وضوح النص */}
           <div
             className={`absolute inset-0 transition-opacity duration-300 ${
               isSelected
@@ -178,7 +175,6 @@ const CategoryCardButton: React.FC<{
         </div>
       )}
 
-      {/* ─── أيقونة احتياطية (في حال عدم وجود صورة) ─── */}
       {!hasBackgroundImage && (
         <div className="relative z-10 flex-1 flex items-center justify-center py-1.5">
           <span
@@ -191,7 +187,6 @@ const CategoryCardButton: React.FC<{
         </div>
       )}
 
-      {/* ─── المحتوى السفلي: اسم الفئة والشريط ─── */}
       <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-1.5">
         <span
           className={`text-[14px] sm:text-[15px] lg:text-[16px] font-black leading-tight transition-colors duration-300 ${
@@ -220,13 +215,11 @@ const CategoryCardButton: React.FC<{
         )}
       </div>
 
-      {/* ─── شريط سفلي صغير (مطابق لشارات الثقة) ─── */}
       <div className="relative z-10 w-full pt-2 mt-2 border-t border-white/20 flex items-center justify-center gap-1 text-[9px] sm:text-[10px] font-black text-white/80">
         <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400 shrink-0" strokeWidth={3} />
         <span>متوفر</span>
       </div>
 
-      {/* ─── تأثير الوميض عند التحديد ─── */}
       {isPulsing && (
         <div
           className="category-focus-pulse absolute inset-0 rounded-[12px] sm:rounded-[14px] bg-[#EAB308]/20 pointer-events-none"
@@ -368,7 +361,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
       `}</style>
 
-      {/* ════════ الحاوية الموحدة ════════ */}
       <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
 
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
@@ -389,63 +381,37 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </p>
             </div>
 
-            <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 w-full mt-2">
-              {isSearchMode && onClearSearch && (
-                <button
-                  type="button"
-                  onClick={onClearSearch}
-                  className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3.5 py-2 rounded-2xl transition-all cursor-pointer shadow-sm active:scale-95"
-                >
-                  <span className="max-w-[120px] truncate">
-                    إلغاء البحث "{searchQuery}"
-                  </span>
-                  <span className="text-xs font-bold leading-none">✕</span>
-                </button>
-              )}
-
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={onOpenSort}
-                  className="inline-flex items-center gap-1.5 bg-[#FAF8F3] hover:bg-white text-[#1A3D24] border border-[#2D6A3F]/20 px-3.5 py-2 rounded-2xl text-xs font-black cursor-pointer transition-all active:scale-95 shadow-xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-[#EA580C]" />
-                  <span>{getSortLabel() || (onlyInStock ? 'المتوفر فقط' : 'مصفّى')}</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                id="category-filter-sort-btn"
-                onClick={onOpenSort}
-                className="group relative inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#377A4C] hover:to-[#22502F] text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border border-[#EAB308]/50"
-                title="تصفية وترتيب المنتجات"
-                aria-label="تصفية وترتيب المنتجات"
-              >
-                <SlidersHorizontal className="w-4 h-4 text-[#F5D76E] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90" />
-                <span>تصفية وترتيب</span>
-                {hasActiveFilters && (
-                  <span className="w-2 h-2 rounded-full bg-[#EA580C] border border-white animate-pulse" />
+            {(isSearchMode || hasActiveFilters) && (
+              <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 w-full mt-2">
+                {isSearchMode && onClearSearch && (
+                  <button
+                    type="button"
+                    onClick={onClearSearch}
+                    className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-gradient-to-r from-[#EA580C] to-[#C25E12] hover:from-[#F97316] hover:to-[#EA580C] px-3.5 py-2 rounded-2xl transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <span className="max-w-[120px] truncate">
+                      إلغاء البحث "{searchQuery}"
+                    </span>
+                    <span className="text-xs font-bold leading-none">✕</span>
+                  </button>
                 )}
-              </button>
 
-              <button
-                type="button"
-                onClick={() => onSelectCategory('all')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer active:scale-95 border ${
-                  selectedCategory === 'all'
-                    ? 'bg-[#1A3D24] text-[#F5D76E] border-[#EAB308]/70 shadow-sm'
-                    : 'bg-white text-[#4A5D4F] hover:text-[#1A3D24] border-[#2D6A3F]/20 hover:border-[#2D6A3F]/40'
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>جميع الأقسام</span>
-              </button>
-            </div>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={onOpenSort}
+                    className="inline-flex items-center gap-1.5 bg-[#FAF8F3] hover:bg-white text-[#1A3D24] border border-[#2D6A3F]/20 px-3.5 py-2 rounded-2xl text-xs font-black cursor-pointer transition-all active:scale-95 shadow-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#EA580C]" />
+                    <span>{getSortLabel() || (onlyInStock ? 'المتوفر فقط' : 'مصفّى')}</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* ═══════ 2. بطاقات الفئات ═══════ */}
-          <div className="relative pt-8 pb-2">
+          {/* ═══════ 2. بطاقات الفئات (مع هوامش آمنة لمنع التشوه) ═══════ */}
+          <div className="relative pt-8 pb-8"> {/* زيادة pb إلى 8 */}
             {canScrollRight && (
               <button
                 type="button"
@@ -468,9 +434,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
+            {/* حاوية التمرير مع هوامش داخلية py-4 لمنع قطع الحلقة الذهبية */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible py-4 px-1 overscroll-x-contain no-scrollbar items-stretch"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
@@ -486,8 +453,23 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               ))}
             </div>
 
-            {/* ═══════ أسهم التمرير للجوال ═══════ */}
-            <div className="flex md:hidden items-center justify-end pt-5 px-1">
+            {/* ═══════ الصف السفلي ═══════ */}
+            <div className="flex md:hidden items-center justify-between pt-5 px-1">
+              
+              <button
+                type="button"
+                onClick={onOpenSort}
+                className="group relative inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#377A4C] hover:to-[#22502F] text-white font-black text-xs shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border border-[#EAB308]/50"
+                title="تصفية وترتيب المنتجات"
+                aria-label="تصفية وترتيب المنتجات"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#F5D76E] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90" />
+                <span>تصفية</span>
+                {hasActiveFilters && (
+                  <span className="w-2 h-2 rounded-full bg-[#EA580C] border border-white animate-pulse" />
+                )}
+              </button>
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
