@@ -74,7 +74,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
           </div>
         </div>
 
-        {/* ─── بطاقة 1: معلومات وخدمات المتجر ─── */}
+        {/* ─── بطاقة: معلومات وخدمات المتجر ─── */}
           <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-5 sm:p-6 text-center space-y-4 shadow-md flex flex-col justify-between">
             {/* عنوان نظيف بدون أي أيقونة (حذف الأيقونة حسب التوجيهات) */}
             <div className="pb-3 border-b border-zinc-800 text-center">
