@@ -1,7 +1,7 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 7.2
-// تصميم موحد ومتوافق تماماً مع أقسام المتجر (TrustBadges & CustomerReviews)
-// استرجاع آلية التمرير الأصلية + إزالة مكون السحب + إضافة نقاط وأسهم تنقل
+// الملف: CategoryFilter.tsx – الإصدار 7.3
+// تصميم موحد مع TrustBadges + أسهم تمرير مستقرة بدون تعارض
+// حذف نقاط التنقل + الاعتماد على scrollTo مع offsetLeft
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -272,10 +272,9 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const scrollRaf = useRef<number | null>(null);
 
-  // ─── تتبع حالة التمرير (النسخة الأصلية) ───
+  // ─── تتبع حالة التمرير (لتحديد ظهور الأسهم) ───
   const updateScrollState = useCallback(() => {
     if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
     scrollRaf.current = requestAnimationFrame(() => {
@@ -309,60 +308,13 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     };
   }, [categories.length, updateScrollState]);
 
-  // ─── التمرير إلى الفئة المحددة عند تغيير selectedCategory (النسخة الأصلية) ───
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    if (selectedCategory === 'all') {
-      container.scrollTo({ left: 0, behavior: 'smooth' });
-      setActiveCategoryIndex(0);
-      return;
-    }
-
-    const targetCard = container.querySelector<HTMLElement>(
-      `[data-category-id="${selectedCategory}"]`
-    );
-    if (targetCard) {
-      const containerRect = container.getBoundingClientRect();
-      const cardRect = targetCard.getBoundingClientRect();
-      const deltaX =
-        cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
-
-      if (Math.abs(deltaX) > 4) {
-        container.scrollBy({ left: deltaX, behavior: 'smooth' });
-      }
-
-      const idx = categories.findIndex((c) => c.id === selectedCategory);
-      if (idx !== -1) setActiveCategoryIndex(idx);
-    }
-  }, [selectedCategory, categories]);
-
-  // ─── التمرير بواسطة الأسهم (النسخة الأصلية) ───
+  // ─── التمرير بواسطة الأسهم باستخدام scrollTo (مستقر ولا يتعارض) ───
   const scrollByAmount = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
     const amount = el.clientWidth * 0.75;
-    el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
-  };
-
-  // ─── الانتقال إلى فئة محددة عبر النقاط (للجوال) ───
-  const scrollToCategory = (index: number) => {
-    const container = scrollRef.current;
-    if (!container) return;
-    const cards = container.querySelectorAll('button[data-category-id]');
-    if (cards[index]) {
-      const targetCard = cards[index] as HTMLElement;
-      const containerRect = container.getBoundingClientRect();
-      const cardRect = targetCard.getBoundingClientRect();
-      const deltaX =
-        cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
-
-      if (Math.abs(deltaX) > 4) {
-        container.scrollBy({ left: deltaX, behavior: 'smooth' });
-      }
-      setActiveCategoryIndex(index);
-    }
+    const target = el.scrollLeft + (dir === 'left' ? -amount : amount);
+    el.scrollTo({ left: target, behavior: 'smooth' });
   };
 
   return (
@@ -486,9 +438,9 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             </div>
           </div>
 
-          {/* ═══════ 2. شريط وبطاقات الفئات (مع هوامش مريحة) ═══════ */}
+          {/* ═══════ 2. شريط وبطاقات الفئات (مع هوامش مريحة وأسهم فقط) ═══════ */}
           <div className="relative pt-8 pb-2">
-            {/* أسهم التمرير (Desktop) – النسخة الأصلية */}
+            {/* أسهم التمرير (Desktop) */}
             {canScrollRight && (
               <button
                 type="button"
@@ -511,7 +463,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
-            {/* شبكة الفئات – النسخة الأصلية */}
+            {/* شبكة الفئات */}
             <div
               ref={scrollRef}
               className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch"
@@ -530,31 +482,13 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               ))}
             </div>
 
-            {/* ═══════ مؤشرات التنقل وأسهم التوجيه الموحدة (للجوال) ═══════ */}
-            <div className="flex md:hidden items-center justify-between pt-5 px-1">
-              {/* نقاط التنقل */}
-              <div className="flex items-center gap-1.5">
-                {categories.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => scrollToCategory(i)}
-                    className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
-                      activeCategoryIndex === i
-                        ? 'w-7 bg-[#2D6A3F]'
-                        : 'w-2 bg-[#2D6A3F]/25 hover:bg-[#2D6A3F]/50'
-                    }`}
-                    aria-label={`الفئة ${i + 1}`}
-                  />
-                ))}
-              </div>
-
-              {/* أسهم التمرير المكبرة الموحدة */}
+            {/* ═══════ أسهم التمرير للجوال (بدون نقاط) ═══════ */}
+            <div className="flex md:hidden items-center justify-end pt-5 px-1">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => scrollToCategory(Math.max(0, activeCategoryIndex - 1))}
-                  disabled={activeCategoryIndex === 0}
+                  onClick={() => scrollByAmount('right')}
+                  disabled={!canScrollRight}
                   className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
                   aria-label="السابق"
                 >
@@ -562,8 +496,8 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => scrollToCategory(Math.min(categories.length - 1, activeCategoryIndex + 1))}
-                  disabled={activeCategoryIndex >= categories.length - 1}
+                  onClick={() => scrollByAmount('left')}
+                  disabled={!canScrollLeft}
                   className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
                   aria-label="التالي"
                 >
