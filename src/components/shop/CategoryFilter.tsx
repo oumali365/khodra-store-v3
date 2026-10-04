@@ -1,7 +1,8 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 7.0
+// الملف: CategoryFilter.tsx – الإصدار 7.1
 // تصميم موحد ومتوافق تماماً مع أقسام المتجر (TrustBadges & CustomerReviews)
 // حاوية موحدة + رأس متمركز + أدوات فرز متناسقة + شبكة بطاقات فاخرة
+// إصلاح مشكل التمرير + إضافة نقاط وأسهم تنقل مطابقة للتصميم
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -323,11 +324,9 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     const cards = container.querySelectorAll('button[data-category-id]');
     if (cards[index]) {
       const targetCard = cards[index] as HTMLElement;
-      const containerRect = container.getBoundingClientRect();
-      const cardRect = targetCard.getBoundingClientRect();
-      const deltaX = cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
-
-      container.scrollBy({ left: deltaX, behavior: 'smooth' });
+      // حساب الموضع المطلق للتمرير بدقة
+      const scrollLeft = targetCard.offsetLeft - (container.clientWidth - targetCard.clientWidth) / 2;
+      container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
       setActiveCategoryIndex(index);
     }
   };
@@ -347,14 +346,11 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       `[data-category-id="${selectedCategory}"]`
     );
     if (targetCard) {
-      const containerRect = container.getBoundingClientRect();
-      const cardRect = targetCard.getBoundingClientRect();
-      const deltaX = cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
-
-      if (Math.abs(deltaX) > 4) {
-        container.scrollBy({ left: deltaX, behavior: 'smooth' });
+      const scrollLeft = targetCard.offsetLeft - (container.clientWidth - targetCard.clientWidth) / 2;
+      // التمرير فقط إذا كان الموضع الحالي بعيداً عن الهدف لتجنب القفزات غير الضرورية
+      if (Math.abs(container.scrollLeft - scrollLeft) > 10) {
+        container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
       }
-      
       const idx = categories.findIndex(c => c.id === selectedCategory);
       if (idx !== -1) setActiveCategoryIndex(idx);
     }
@@ -507,7 +503,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             {/* شبكة الفئات */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch scroll-smooth"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch scroll-smooth touch-pan-x w-full"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
