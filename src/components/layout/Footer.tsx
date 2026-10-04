@@ -1,7 +1,7 @@
 // ============================================================
-// Footer.tsx – تذييل المتجر المتطور بالمعايير الفاخرة الموحدة
-// عرض أوضح لمعلومات المتجر، شارات ثقة عالية التباين،
-// وتعديل دقيق للهامش السفلي ليتوافق مع شريط السلة العائم دون فراغات ميتة
+// Footer.tsx – تذييل متجر خُضرة
+// معايير: حذف الجزء العلوي والشعار، إزالة الأيقونات من العناوين الرئيسية،
+// توسيط محتوى البطاقات الداخلية بهوامش مدروسة، وتوافق تام مع شريط السلة
 // ============================================================
 import React from 'react';
 import {
@@ -10,15 +10,10 @@ import {
   Lock,
   MapPin,
   Clock,
-  Sparkles,
   Star,
   CheckCircle2,
   BookOpen,
-  ShieldCheck,
-  BadgeCheck,
-  CreditCard,
   Phone,
-  ArrowUpRight,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
 
@@ -26,6 +21,19 @@ interface FooterProps {
   onOpenPage: (page: 'about' | 'policy' | 'privacy' | null) => void;
   hasStickyBar?: boolean;
 }
+
+const FEZ_NEIGHBORHOODS = [
+  'طريق إيموزار',
+  'حي النرجس',
+  'حي الأطلس',
+  'عين الشقف',
+  'المدينة الجديدة',
+  'حي زواغة',
+  'حي بنسودة',
+  'حي السعادة',
+  'طريق صفرو',
+  'حي طارق',
+];
 
 export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false }) => {
   const handleAdminTrigger = () => {
@@ -43,81 +51,49 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
 
   return (
     <footer
-      className={`relative overflow-hidden bg-[#0A100C] text-white pt-6 border-t-2 border-[#EAB308]/40 shadow-2xl select-none transition-all duration-300 ${
-        hasStickyBar ? 'pb-20 sm:pb-22' : 'pb-6 sm:pb-8'
+      className={`relative overflow-hidden bg-[#0A100C] text-white pt-6 sm:pt-8 border-t-2 border-[#EAB308]/40 shadow-2xl select-none transition-all duration-300 ${
+        hasStickyBar ? 'pb-20 sm:pb-24' : 'pb-6 sm:pb-8'
       }`}
       dir="rtl"
     >
       {/* ═══════ خط التوهج الذهبي في أعلى الفوتر ═══════ */}
       <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#EAB308]/80 to-transparent pointer-events-none" />
 
-      {/* ═══════ إضاءات محيطية ناعمة تحاكي هوية خُضرة ═══════ */}
+      {/* ═══════ إضاءات محيطية ناعمة ═══════ */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-1/3 left-10 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-3 sm:px-5 lg:px-8 space-y-6">
 
-        {/* ════════ رأس الفوتر: هوية المتجر والعلامة التجارية ════════ */}
-        <div className="flex flex-col items-center text-center space-y-2 max-w-2xl mx-auto pt-1">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0">
-            <span className="text-2xl">🌿</span>
-          </div>
+        {/* ════════ القسم الرئيسي: معلومات الخدمة والتغطية في بطاقتين متوازنتين ════════ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
 
-          <div>
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                متجر <span className="text-[#F5D76E]">{STORE_CONFIG.storeName}</span>
-              </h2>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                سوق بنسودة • فاس
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-stone-300 font-medium mt-1.5 leading-relaxed max-w-xl mx-auto">
-              نختار لكم كل صباح أجود الخضار والفواكه ومنتجات البقالة والألبان بعناية فائقة، مع توصيل سريع وموثوق لباب منزلك بمدينة فاس.
-            </p>
-          </div>
-        </div>
-
-        {/* ════════ القسم الأوسط: معلومات الخدمة والتغطية في بطاقتين متوازنتين ════════ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-
-          {/* ─── بطاقة أ: روابط وخدمات المتجر ─── */}
-          <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-4 sm:p-5 text-right space-y-3.5 shadow-md flex flex-col justify-between">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                  <Sparkles className="w-4 h-4 text-[#F5D76E]" />
-                </div>
-                <h3 className="text-sm sm:text-base font-black text-white">
-                  معلومات وخدمات المتجر
-                </h3>
-              </div>
-              <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-800/40">
-                روابط سريعة
-              </span>
+          {/* ─── بطاقة 1: معلومات وخدمات المتجر ─── */}
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-5 sm:p-6 text-center space-y-4 shadow-md flex flex-col justify-between">
+            {/* عنوان نظيف بدون أي أيقونة (حذف الأيقونة حسب التوجيهات) */}
+            <div className="pb-3 border-b border-zinc-800 text-center">
+              <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                معلومات وخدمات المتجر
+              </h3>
             </div>
 
-            {/* شبكة البطاقات 2×2 */}
-            <div className="grid grid-cols-2 gap-2.5">
+            {/* شبكة البطاقات 2×2 – محتوى متمركز بهوامش وحشوات مناسبة */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {/* بطاقة: من نحن */}
               <button
                 type="button"
                 onClick={() => onOpenPage('about')}
-                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-3 text-right transition-all duration-200 shadow-sm flex flex-col justify-between min-h-[82px] active:scale-[0.98] cursor-pointer"
+                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 text-center transition-all duration-200 shadow-sm flex flex-col items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex items-center justify-between">
-                  <div className="w-7 h-7 rounded-lg bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E]">
-                    <BookOpen className="w-3.5 h-3.5" />
-                  </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#F5D76E] transition-colors" />
+                <div className="w-11 h-11 rounded-xl bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E] shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <BookOpen className="w-5 h-5" />
                 </div>
-                <div>
-                  <h4 className="text-xs font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                <div className="space-y-1 text-center">
+                  <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
                     من نحن ورسالتنا
                   </h4>
-                  <p className="text-[10px] text-zinc-400 font-medium mt-0.5">قصتنا وقيمنا</p>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">قصتنا وقيمنا</p>
                 </div>
               </button>
 
@@ -125,19 +101,16 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
               <button
                 type="button"
                 onClick={() => onOpenPage('policy')}
-                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-3 text-right transition-all duration-200 shadow-sm flex flex-col justify-between min-h-[82px] active:scale-[0.98] cursor-pointer"
+                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 text-center transition-all duration-200 shadow-sm flex flex-col items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex items-center justify-between">
-                  <div className="w-7 h-7 rounded-lg bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E]">
-                    <Truck className="w-3.5 h-3.5" />
-                  </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#F5D76E] transition-colors" />
+                <div className="w-11 h-11 rounded-xl bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E] shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <Truck className="w-5 h-5" />
                 </div>
-                <div>
-                  <h4 className="text-xs font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                <div className="space-y-1 text-center">
+                  <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
                     التوصيل والإرجاع
                   </h4>
-                  <p className="text-[10px] text-zinc-400 font-medium mt-0.5">المواعيد والشروط</p>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">المواعيد والشروط</p>
                 </div>
               </button>
 
@@ -145,46 +118,94 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
               <button
                 type="button"
                 onClick={() => onOpenPage('privacy')}
-                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-3 text-right transition-all duration-200 shadow-sm flex flex-col justify-between min-h-[82px] active:scale-[0.98] cursor-pointer"
+                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 text-center transition-all duration-200 shadow-sm flex flex-col items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex items-center justify-between">
-                  <div className="w-7 h-7 rounded-lg bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E]">
-                    <Lock className="w-3.5 h-3.5" />
-                  </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#F5D76E] transition-colors" />
+                <div className="w-11 h-11 rounded-xl bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E] shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <Lock className="w-5 h-5" />
                 </div>
-                <div>
-                  <h4 className="text-xs font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                <div className="space-y-1 text-center">
+                  <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
                     سياسة الخصوصية
                   </h4>
-                  <p className="text-[10px] text-zinc-400 font-medium mt-0.5">أمان وسرية بياناتك</p>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">أمان وسرية بياناتك</p>
                 </div>
               </button>
 
-              {/* بطاقة: آراء الزبناء */}
+              {/* بطاقة: تقييمات الزبناء */}
               <button
                 type="button"
                 onClick={() => scrollToSection('customer-reviews-section')}
-                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-3 text-right transition-all duration-200 shadow-sm flex flex-col justify-between min-h-[82px] active:scale-[0.98] cursor-pointer"
+                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 text-center transition-all duration-200 shadow-sm flex flex-col items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex items-center justify-between">
-                  <div className="w-7 h-7 rounded-lg bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E]">
-                    <Star className="w-3.5 h-3.5" />
-                  </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#F5D76E] transition-colors" />
+                <div className="w-11 h-11 rounded-xl bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E] shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <Star className="w-5 h-5" />
                 </div>
-                <div>
-                  <h4 className="text-xs font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                <div className="space-y-1 text-center">
+                  <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
                     تقييمات الزبناء
                   </h4>
-                  <p className="text-[10px] text-zinc-400 font-medium mt-0.5">آراء أهل فاس</p>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">آراء أهل فاس</p>
                 </div>
               </button>
             </div>
           </div>
 
-        {/* ════════ مركز خدمة الزبناء والواتساب المطور ════════ */}
-        <div className="bg-gradient-to-br from-[#102715] via-[#09170d] to-[#050e08] border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-6 text-center shadow-xl relative overflow-hidden">
+          {/* ─── بطاقة 2: المواعيد ونطاق التوصيل ─── */}
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-5 sm:p-6 text-center space-y-4 shadow-md flex flex-col justify-between">
+            {/* عنوان نظيف بدون أي أيقونة (حذف الأيقونة حسب التوجيهات) */}
+            <div className="pb-3 border-b border-zinc-800 text-center">
+              <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                المواعيد ونطاق التوصيل
+              </h3>
+            </div>
+
+            <div className="space-y-3.5 text-xs text-stone-300">
+              {/* صندوق المواعيد – محتوى مُوسَّط */}
+              <div className="bg-zinc-950/70 p-4 rounded-2xl border border-zinc-800 flex flex-col items-center justify-center text-center space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-[#2D6A3F]/25 border border-[#EAB308]/25 flex items-center justify-center text-[#F5D76E] shrink-0 shadow-xs">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div className="space-y-1">
+                  <strong className="text-white block font-black text-xs sm:text-sm">
+                    أوقات استقبال وتوصيل الطلبات
+                  </strong>
+                  <p className="text-stone-300 text-xs leading-relaxed font-medium">
+                    طيلة أيام الأسبوع من <span className="font-bold text-emerald-300 tabular-nums">08:00 صباحاً</span> إلى <span className="font-bold text-emerald-300 tabular-nums">20:00 مساءً</span> بدون انقطاع
+                  </p>
+                </div>
+              </div>
+
+              {/* صندوق أحياء فاس المغطاة – محتوى مُوسَّط */}
+              <div className="bg-zinc-950/70 p-4 rounded-2xl border border-zinc-800 flex flex-col items-center justify-center text-center space-y-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-[#EA580C] shrink-0 shadow-xs">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div className="w-full space-y-2">
+                  <strong className="text-white block font-black text-xs sm:text-sm">
+                    أحياء مدينة فاس المغطاة بالتوصيل
+                  </strong>
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    {FEZ_NEIGHBORHOODS.map((zone) => (
+                      <span
+                        key={zone}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-700/80 text-[10px] sm:text-[11px] font-bold text-stone-300"
+                      >
+                        {zone}
+                      </span>
+                    ))}
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-950/70 border border-emerald-700/60 text-[10px] sm:text-[11px] font-bold text-emerald-300">
+                      + جميع النواحي
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ════════ مركز خدمة الزبناء والواتساب المطور (مُوسَّط) ════════ */}
+        <div className="bg-gradient-to-br from-[#102715] via-[#09170d] to-[#050e08] border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-6 text-center shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-1/3 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="relative max-w-xl mx-auto space-y-3">
@@ -195,11 +216,14 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
 
             <div className="space-y-1">
               <h3 className="text-base sm:text-xl font-black text-white">
-                هل تحتاج إلى مساعدة ؟
+                هل تحتاج مساعدة أو تفضل الطلب عبر الواتساب؟
               </h3>
+              <p className="text-xs sm:text-sm text-emerald-100/80 font-medium leading-relaxed">
+                نستقبل رسائلكم وقوائم مشترياتكم المكتوبة والتسجيلات الصوتية مباشرة طيلة اليوم.
+              </p>
             </div>
 
-            <div className="pt-1.5 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
@@ -209,7 +233,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
                 <div className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center shrink-0">
                   <MessageCircle className="w-3.5 h-3.5 fill-white text-emerald-600" />
                 </div>
-                <span>تواصل معنا عبر الواتساب</span>
+                <span>تواصل فوري عبر الواتساب</span>
               </a>
 
               <a
@@ -220,10 +244,15 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
                 <span dir="ltr">{STORE_CONFIG.whatsappNumber}</span>
               </a>
             </div>
+
+            <div className="flex items-center justify-center gap-2 text-[11px] text-emerald-200/80 font-semibold pt-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>استجابة ومتابعة سريعة مع مندوب التوصيل في فاس</span>
+            </div>
           </div>
         </div>
 
-        {/* ════════ التذييل السفلي وحقوق الملكية وزر إدارة المتجر ════════ */}
+        {/* ════════ التذييل السفلي وحقوق الملكية وزر إدارة المتجر (بدون أيقونة شعار) ════════ */}
         <div className="pt-4 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-300 gap-3 text-center sm:text-right">
           <div className="flex items-center justify-center sm:justify-start gap-2.5 font-bold">
             <button
@@ -238,7 +267,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
             <p className="text-stone-300">
               جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
               <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>{' '}
-              <span className="text-stone-400 text-[11px] hidden sm:inline">(شركة خُضرة للتجارة الإلكترونية والتوصيل SARL)</span>
+              <span className="text-stone-400 text-[11px] hidden sm:inline">(سوق بنسودة • فاس)</span>
             </p>
           </div>
 
