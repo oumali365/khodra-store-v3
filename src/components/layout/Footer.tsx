@@ -71,49 +71,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
 
       <div className="relative max-w-6xl mx-auto px-3 sm:px-5 lg:px-8 space-y-6">
 
-        {/* ════════ شريط مميزات وثقة المتجر (4 ركائز واضحة) ════════ */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5 pb-2">
-          <div className="bg-zinc-900/90 border border-emerald-500/30 rounded-2xl p-3 sm:p-3.5 flex items-center gap-3 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0 text-emerald-400">
-              <Sparkles className="w-5 h-5 text-[#F5D76E]" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-xs sm:text-sm font-black text-white leading-tight">طازجة 100%</h4>
-              <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate">منتقاة فجر كل يوم</p>
-            </div>
-          </div>
-
-          <div className="bg-zinc-900/90 border border-emerald-500/30 rounded-2xl p-3 sm:p-3.5 flex items-center gap-3 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0 text-emerald-400">
-              <Truck className="w-5 h-5 text-[#F5D76E]" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-xs sm:text-sm font-black text-white leading-tight">توصيل سريع بفاس</h4>
-              <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate">مباشرة لباب منزلك</p>
-            </div>
-          </div>
-
-          <div className="bg-zinc-900/90 border border-emerald-500/30 rounded-2xl p-3 sm:p-3.5 flex items-center gap-3 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0 text-emerald-400">
-              <CreditCard className="w-5 h-5 text-[#F5D76E]" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-xs sm:text-sm font-black text-white leading-tight">الدفع عند الاستلام</h4>
-              <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate">نقداً أو تحويل بنكي</p>
-            </div>
-          </div>
-
-          <div className="bg-zinc-900/90 border border-emerald-500/30 rounded-2xl p-3 sm:p-3.5 flex items-center gap-3 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0 text-emerald-400">
-              <ShieldCheck className="w-5 h-5 text-[#F5D76E]" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-xs sm:text-sm font-black text-white leading-tight">ضمان المعاينة</h4>
-              <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate">استبدال أو إرجاع فوري</p>
-            </div>
-          </div>
-        </div>
-
         {/* ════════ رأس الفوتر: هوية المتجر والعلامة التجارية ════════ */}
         <div className="flex flex-col items-center text-center space-y-2 max-w-2xl mx-auto pt-1">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0">
