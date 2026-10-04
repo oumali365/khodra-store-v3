@@ -51,7 +51,7 @@ const FINANCE_TRANSLATIONS = {
     chartProfit: '📊 Bénéfice Net Mensuel',
     monthsAdjustTitle: 'Ajuster les données mensuelles détaillées (M01 - M12)',
     workingDays: 'Jours ouvrables',
-    ordersPerDay: 'Cmd/jour',
+    ordersPerDay: 'cmd/jour',
     exportCsv: 'Exporter CSV (Excel)',
     exportSuccess: 'Fichier CSV exporté avec succès !',
     copyTable: 'Copier les données',
@@ -61,7 +61,6 @@ const FINANCE_TRANSLATIONS = {
     close: 'Fermer',
     operationalBreakEven: 'Seuil de Rentabilité Opérationnel',
     ordersPerMonth: 'cmd/mois',
-    ordersPerDay: 'cmd/jour',
   },
   ar: {
     title: 'اللوحة المالية والتوقعات',
@@ -95,7 +94,7 @@ const FINANCE_TRANSLATIONS = {
     chartProfit: '📊 صافي الربح الشهري (Bénéfice Net)',
     monthsAdjustTitle: 'تعديل بيانات الأشهر الـ 12 بالتفصيل',
     workingDays: 'أيام العمل',
-    ordersPerDay: 'طلبات/يوم',
+    ordersPerDay: 'طلب/يوم',
     exportCsv: 'تصدير جدول Excel / CSV',
     exportSuccess: 'تم تصدير ملف CSV بنجاح!',
     copyTable: 'نسخ أرقام الجدول',
@@ -105,7 +104,6 @@ const FINANCE_TRANSLATIONS = {
     close: 'إغلاق',
     operationalBreakEven: 'نقطة التعادل التشغيلي',
     ordersPerMonth: 'طلب/شهر',
-    ordersPerDay: 'طلب/يوم',
   },
   en: {
     title: 'Financial Dashboard & Forecasts',
@@ -139,7 +137,7 @@ const FINANCE_TRANSLATIONS = {
     chartProfit: '📊 Monthly Net Profit',
     monthsAdjustTitle: 'Adjust detailed monthly inputs (M01 - M12)',
     workingDays: 'Working days',
-    ordersPerDay: 'Orders/day',
+    ordersPerDay: 'orders/day',
     exportCsv: 'Export CSV (Excel)',
     exportSuccess: 'CSV file exported successfully!',
     copyTable: 'Copy Table Data',
@@ -149,7 +147,6 @@ const FINANCE_TRANSLATIONS = {
     close: 'Close',
     operationalBreakEven: 'Operational Break-Even Point',
     ordersPerMonth: 'orders/month',
-    ordersPerDay: 'orders/day',
   },
 };
 
