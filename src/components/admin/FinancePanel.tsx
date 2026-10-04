@@ -6,8 +6,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, TrendingUp, DollarSign, Package, Target,
   Download, RotateCcw, Save, BarChart3, LineChart, Percent,
-  Info, Sparkles, ChevronDown, ChevronUp, Settings, CheckCircle2, AlertCircle,
-  Globe, Copy, Check,
+  ChevronDown, ChevronUp, Settings, CheckCircle2, AlertCircle,
+  Copy, Check,
 } from 'lucide-react';
 
 export interface FinancePanelProps {
@@ -16,7 +16,7 @@ export interface FinancePanelProps {
   onClose?: () => void;
 }
 
-export type FinanceLang = 'fr' | 'ar' | 'en';
+export type FinanceLang = 'fr' | 'ar';
 
 // ─── قاموس المصطلحات المالية متعدد اللغات ───
 const FINANCE_TRANSLATIONS = {
@@ -57,9 +57,11 @@ const FINANCE_TRANSLATIONS = {
     exportSuccess: 'Fichier CSV exporté avec succès !',
     copyTable: 'Copier les données',
     copySuccess: 'Données copiées dans le presse-papiers !',
+    save: 'Enregistrer',
     saveSuccess: 'Modifications enregistrées avec succès',
     autoSaveText: 'Sauvegarde automatique activée',
     close: 'Fermer',
+    reset: 'Réinitialiser',
     operationalBreakEven: 'Seuil de Rentabilité Opérationnel',
     ordersPerMonth: 'cmd/mois',
   },
@@ -100,54 +102,13 @@ const FINANCE_TRANSLATIONS = {
     exportSuccess: 'تم تصدير ملف CSV بنجاح!',
     copyTable: 'نسخ أرقام الجدول',
     copySuccess: 'تم نسخ أرقام الجدول إلى الحافظة بنجاح!',
+    save: 'حفظ',
     saveSuccess: 'تم حفظ التعديلات بنجاح',
     autoSaveText: 'حفظ تلقائي مفعّل',
     close: 'إغلاق',
+    reset: 'استعادة',
     operationalBreakEven: 'نقطة التعادل التشغيلي',
     ordersPerMonth: 'طلب/شهر',
-  },
-  en: {
-    title: 'Financial Dashboard & Forecasts',
-    subtitle: 'Khodra Fes Business Model • 12-Month Cashflow Projections',
-    revenue: 'Gross Revenue (Turnover)',
-    revenueSub: 'MAD over 12 months',
-    netProfit: 'Net Profit',
-    marginSub: 'Margin',
-    orders: 'Total Orders',
-    ordersAvgSub: 'Average',
-    ordersPerDaySub: 'orders/day',
-    avgBasket: 'Average Order Value (AOV)',
-    avgBasketSub: 'MAD / order',
-    breakEvenTitle: '🎯 Break-Even Point (Seuil de Rentabilité)',
-    breakEvenDesc: (orders: number, perDay: number) =>
-      `You only need ${orders} orders/month (≈ ${perDay} orders/working day) to reach the break-even point.`,
-    assumptionsTitle: '⚙️ Cost Assumptions & Margins (Settings)',
-    cogs: 'Cost of Goods Sold (COGS) %',
-    deliveryCost: 'Delivery Cost (MAD/order)',
-    fixedCosts: 'Fixed Costs (MAD/month)',
-    taxes: 'Est. Tax Rate %',
-    tableTitle: 'Detailed Monthly Revenue, Expenses & Profit Breakdown',
-    thMonth: 'Month',
-    thOrders: 'Orders',
-    thRevenue: 'Revenue',
-    thExpenses: 'Total Expenses',
-    thNetProfit: 'Net Profit',
-    thMargin: 'Margin %',
-    thTotal: 'Annual Total',
-    chartRevenue: '📈 Monthly Revenue Growth',
-    chartProfit: '📊 Monthly Net Profit',
-    monthsAdjustTitle: 'Adjust detailed monthly inputs (M01 - M12)',
-    workingDays: 'Working days',
-    ordersPerDay: 'orders/day',
-    exportCsv: 'Export CSV (Excel)',
-    exportSuccess: 'CSV file exported successfully!',
-    copyTable: 'Copy Table Data',
-    copySuccess: 'Table numbers copied to clipboard!',
-    saveSuccess: 'Changes saved successfully',
-    autoSaveText: 'Auto-save enabled',
-    close: 'Close',
-    operationalBreakEven: 'Operational Break-Even Point',
-    ordersPerMonth: 'orders/month',
   },
 };
 
@@ -182,24 +143,24 @@ export interface Assumptions {
 
 // ─── البيانات الأولية (تم تحديثها لتتطابق مع الجدول في الصورة) ───
 export const INITIAL_MONTHS: MonthData[] = [
-  { month: 1, ordersPerDay: 6, workingDays: 26, avgBasket: 115 },  // الشهر 1: 6 طلبات
+  { month: 1, ordersPerDay: 6, workingDays: 26, avgBasket: 115 },
   { month: 2, ordersPerDay: 9, workingDays: 26, avgBasket: 115 },
-  { month: 3, ordersPerDay: 12, workingDays: 26, avgBasket: 115 }, // الشهر 3: 12 طلب
+  { month: 3, ordersPerDay: 12, workingDays: 26, avgBasket: 115 },
   { month: 4, ordersPerDay: 14, workingDays: 26, avgBasket: 115 },
   { month: 5, ordersPerDay: 16, workingDays: 26, avgBasket: 115 },
-  { month: 6, ordersPerDay: 18, workingDays: 26, avgBasket: 115 }, // الشهر 6: 18 طلب
+  { month: 6, ordersPerDay: 18, workingDays: 26, avgBasket: 115 },
   { month: 7, ordersPerDay: 20, workingDays: 26, avgBasket: 116 },
   { month: 8, ordersPerDay: 22, workingDays: 26, avgBasket: 117 },
   { month: 9, ordersPerDay: 24, workingDays: 26, avgBasket: 118 },
   { month: 10, ordersPerDay: 26, workingDays: 26, avgBasket: 119 },
   { month: 11, ordersPerDay: 27, workingDays: 26, avgBasket: 119 },
-  { month: 12, ordersPerDay: 28, workingDays: 26, avgBasket: 120 }, // الشهر 12: 28 طلب
+  { month: 12, ordersPerDay: 28, workingDays: 26, avgBasket: 120 },
 ];
 
 export const INITIAL_ASSUMPTIONS: Assumptions = {
   cogsPercent: 68,
   deliveryCostPerOrder: 8,
-  fixedCostsPerMonth: 7800, // ⚠️ تم رفعه من 550 إلى 7800 ليتوافق مع نقطة التعادل 10-12 طلب/يوم
+  fixedCostsPerMonth: 7800,
   taxPercent: 1,
 };
 
@@ -299,7 +260,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     } catch {}
   }, [assumptions]);
 
-  // ⚠️ قفل تمرير الصفحة فقط في وضع النافذة المنبثقة وليس في الصفحة المستقلة لتجنب تجمد الشاشة
   useEffect(() => {
     if (isOpen && !standalone) {
       const prev = document.body.style.overflow;
@@ -389,7 +349,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
       localStorage.setItem('khodra_finance_months', JSON.stringify(months));
       localStorage.setItem('khodra_finance_assumptions', JSON.stringify(assumptions));
       setSavedFlash(true);
-      setFeedbackMessage('Modifications enregistrées avec succès');
+      setFeedbackMessage(t.saveSuccess);
       setTimeout(() => {
         setSavedFlash(false);
         setFeedbackMessage(null);
@@ -411,13 +371,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
         'Marketing', 'Emballage', 'Taxes', 'Depenses Totales', 'Benefice Net', 'Marge %',
       ];
       totalLabel = 'Total Annuel';
-    } else if (lang === 'en') {
-      headers = [
-        'Month', 'Orders/Day', 'Working Days', 'Total Orders', 'AOV (MAD)',
-        'Gross Revenue (MAD)', 'COGS', 'Delivery Cost', 'Fixed Costs',
-        'Marketing', 'Packaging', 'Taxes', 'Total Expenses', 'Net Profit', 'Margin %',
-      ];
-      totalLabel = 'Annual Total';
     } else {
       headers = [
         'الشهر', 'طلبات/يوم', 'أيام العمل', 'إجمالي الطلبات', 'متوسط السلة',
@@ -454,7 +407,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     a.download = `khodra_previsions_financieres_12_mois_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    setFeedbackMessage(t.exportSuccess || 'Fichier CSV exporté avec succès !');
+    setFeedbackMessage(t.exportSuccess);
     setTimeout(() => setFeedbackMessage(null), 2500);
   };
 
@@ -476,7 +429,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     } catch {}
   };
 
-  // ⚠️ تصحيح حساب نقطة التعادل لتعتمد على بيانات الشهر الأول والفرضيات المحدثة مع حماية من القسمة على صفر أو القيم غير المحددة
   const breakEven = useMemo(() => {
     const firstMonth = months[0] || INITIAL_MONTHS[0];
     const targetAOV = Number.isFinite(firstMonth?.avgBasket) && (firstMonth?.avgBasket ?? 0) > 0 ? firstMonth.avgBasket : 115;
@@ -488,17 +440,17 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     const variableCostPerOrder =
       (targetAOV * cogsPct) / 100 +
       deliveryCost +
-      2 + // Packaging cost
+      2 +
       (targetAOV * taxPct) / 100;
     const contribution = targetAOV - variableCostPerOrder;
     if (!Number.isFinite(contribution) || contribution <= 0) {
       return { orders: 999, perDay: 38, workingDays: 26 };
     }
-    
+
     const breakevenOrders = Math.max(1, Math.ceil(fixedCosts / contribution));
     const workingDays = Number.isFinite(firstMonth?.workingDays) && (firstMonth?.workingDays ?? 0) > 0 ? firstMonth.workingDays : 26;
     const breakevenPerDay = Math.max(1, Math.ceil(breakevenOrders / workingDays));
-    
+
     return { orders: breakevenOrders, perDay: breakevenPerDay, workingDays };
   }, [months, assumptions]);
 
@@ -525,9 +477,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
               <BarChart3 className="w-5 h-5 text-[#F5D76E]" />
             </div>
             <div>
-              <h2 className="font-black text-base sm:text-lg flex items-center gap-2">
-                <span>{t.title}</span>
-                <Sparkles className="w-4 h-4 text-[#F5D76E]" />
+              <h2 className="font-black text-base sm:text-lg">
+                {t.title}
               </h2>
               <p className="text-[11px] sm:text-xs text-orange-100/90 font-medium">
                 {t.subtitle}
@@ -535,15 +486,15 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
-            {/* Language Switcher */}
-            <div className="flex items-center bg-black/25 rounded-xl border border-white/20 p-0.5">
-              {(['fr', 'ar', 'en'] as FinanceLang[]).map((l) => (
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+            {/* Language Switcher — FR / AR only */}
+            <div className="flex items-center bg-black/25 rounded-xl border border-white/20 p-0.5 shrink-0">
+              {(['fr', 'ar'] as FinanceLang[]).map((l) => (
                 <button
                   key={l}
                   type="button"
                   onClick={() => setLang(l)}
-                  className={`px-2 py-1 text-[10px] font-black rounded-lg transition-colors cursor-pointer ${
+                  className={`px-3 py-1 text-[10px] font-black rounded-lg transition-colors cursor-pointer ${
                     lang === l ? 'bg-white text-[#C25E12]' : 'text-white/70 hover:text-white'
                   }`}
                 >
@@ -552,62 +503,48 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
               ))}
             </div>
 
-            <div className="flex items-center gap-1.5 bg-black/25 px-3 py-1.5 rounded-xl border border-white/20 text-xs font-black text-amber-200 shadow-xs">
-              <span>Norme Comptable Marocaine (MAD)</span>
+            {/* 4 action buttons in 2x2 grid */}
+            <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={handleCopyTableTSV}
+                className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+                title={t.copyTable}
+              >
+                {copiedTable ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                <span className="truncate">{t.copyTable}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+                title={t.exportCsv}
+              >
+                <Download className="w-4 h-4" />
+                <span className="truncate">CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSave}
+                className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+                title={t.save}
+              >
+                <Save className="w-4 h-4" />
+                <span className="truncate">{t.save}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setConfirmingReset(true)}
+                className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+                title={t.reset}
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span className="truncate">{t.reset}</span>
+              </button>
             </div>
-
-            {savedFlash && (
-              <span className="hidden sm:inline-block text-[11px] bg-emerald-500 text-white px-2.5 py-1 rounded-lg font-bold shadow-xs">
-                ✓
-              </span>
-            )}
-
-            <button
-              type="button"
-              onClick={handleCopyTableTSV}
-              className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
-              title={t.copyTable}
-            >
-              {copiedTable ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-              <span className="hidden md:inline">{t.copyTable}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleExportCSV}
-              className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
-              title={t.exportCsv}
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden md:inline">CSV</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSave}
-              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              title="Enregistrer"
-            >
-              <Save className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setConfirmingReset(true)}
-              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              title="Réinitialiser"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              aria-label="Fermer"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
         </div>
 
@@ -706,7 +643,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
             </div>
           </div>
 
-          {/* ─── بطاقة نقطة التعادل (تم إعادة تصميمها لتشبه الصورة) ─── */}
+          {/* ─── بطاقة نقطة التعادل ─── */}
           <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col items-center justify-center text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-full -mr-8 -mt-8 opacity-50"></div>
             <div className="relative z-10">
