@@ -23,9 +23,5 @@ export { AdminDocumentsModal } from './AdminDocumentsModal';
 export type { AdminDocumentsModalProps } from './AdminDocumentsModal';
 export { AdminSocialPublisherModal } from './AdminSocialPublisherModal';
 export type { AdminSocialPublisherModalProps } from './AdminSocialPublisherModal';
-export { AdminMarketingView } from './AdminMarketingView';
-export { AdminPageLayout } from './AdminPageLayout';
-export type { AdminRoute } from './AdminPageLayout';
 export { AdminBottomDashboard } from './AdminBottomDashboard';
-
 

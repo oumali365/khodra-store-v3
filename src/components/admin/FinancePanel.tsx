@@ -11,9 +11,8 @@ import {
 } from 'lucide-react';
 
 export interface FinancePanelProps {
-  isOpen?: boolean;
-  standalone?: boolean;
-  onClose?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export type FinanceLang = 'fr' | 'ar' | 'en';
@@ -230,11 +229,7 @@ const getMarginColor = (margin: number) => {
   return 'bg-red-500';
 };
 
-export const FinancePanel: React.FC<FinancePanelProps> = ({
-  isOpen = false,
-  standalone = false,
-  onClose,
-}) => {
+export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) => {
   const [lang, setLang] = useState<FinanceLang>('ar'); // ⚠️ تم إضافة حالة اللغة
 
   const [months, setMonths] = useState<MonthData[]>(() => {
@@ -468,18 +463,21 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
   const maxRevenue = Math.max(...results.map((r) => r.revenue), 1);
   const maxProfit = Math.max(...results.map((r) => Math.abs(r.netProfit)), 1);
 
-  if (!isOpen && !standalone) return null;
+  if (!isOpen) return null;
 
-  const panelBody = (
+  return (
     <div
-      lang={lang}
-      dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      className={`relative bg-[#FAF8F4] w-full ${
-        standalone
-          ? 'max-w-7xl mx-auto shadow-md rounded-3xl min-h-[700px]'
-          : 'sm:max-w-6xl shadow-2xl sm:rounded-3xl max-h-screen sm:max-h-[95vh]'
-      } flex flex-col overflow-hidden text-left border border-[#E8E1D3]`}
+      className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
     >
+      <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+
+      <div
+        lang={lang}
+        dir={lang === 'ar' ? 'rtl' : 'ltr'}
+        className="relative bg-[#FAF8F4] w-full sm:max-w-6xl shadow-2xl z-10 sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[95vh] overflow-hidden text-left border border-[#E8E1D3]"
+      >
 
         {/* ═══════ Header ═══════ */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-[#C25E12] to-[#9C4505] text-white flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 shadow-md">
@@ -952,36 +950,16 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
               <>{t.autoSaveText}</>
             )}
           </div>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 rounded-xl bg-[#C25E12] hover:bg-[#9C4505] text-white text-xs font-black cursor-pointer active:scale-95 transition-all shadow-sm"
-            >
-              {t.close}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 rounded-xl bg-[#C25E12] hover:bg-[#9C4505] text-white text-xs font-black cursor-pointer active:scale-95 transition-all shadow-sm"
+          >
+            {t.close}
+          </button>
         </div>
 
       </div>
-  );
-
-  if (standalone) {
-    return (
-      <div className="w-full space-y-4">
-        {panelBody}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
-      {panelBody}
     </div>
   );
 };

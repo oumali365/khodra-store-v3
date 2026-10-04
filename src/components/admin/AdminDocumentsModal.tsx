@@ -22,9 +22,8 @@ import {
 } from 'lucide-react';
 
 export interface AdminDocumentsModalProps {
-  isOpen?: boolean;
-  standalone?: boolean;
-  onClose?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 interface DocItem {
@@ -125,14 +124,12 @@ const LEGAL_CONTRACTS: DocItem[] = [
 ];
 
 export const AdminDocumentsModal: React.FC<AdminDocumentsModalProps> = ({
-  isOpen = false,
-  standalone = false,
+  isOpen,
   onClose,
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (standalone) return;
     if (isOpen) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
@@ -140,10 +137,10 @@ export const AdminDocumentsModal: React.FC<AdminDocumentsModalProps> = ({
         document.body.style.overflow = prev;
       };
     }
-  }, [isOpen, standalone]);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !onClose) return;
+    if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -151,7 +148,7 @@ export const AdminDocumentsModal: React.FC<AdminDocumentsModalProps> = ({
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
-  if (!isOpen && !standalone) return null;
+  if (!isOpen) return null;
 
   const handleCopyUrl = async (id: string, path: string) => {
     try {
@@ -164,12 +161,19 @@ export const AdminDocumentsModal: React.FC<AdminDocumentsModalProps> = ({
     }
   };
 
-  const panelContent = (
-    <div className={`relative bg-[#FAF8F4] w-full ${
-      standalone
-        ? 'max-w-7xl mx-auto shadow-md rounded-3xl min-h-[700px]'
-        : 'sm:max-w-5xl shadow-2xl sm:rounded-3xl max-h-screen sm:max-h-[94vh]'
-    } flex flex-col overflow-hidden text-right border-2 border-[#E8E1D3]`}>
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="وثائق المشروع والعقود التشغيلية"
+    >
+      <div
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      <div className="relative bg-[#FAF8F4] w-full sm:max-w-5xl shadow-2xl z-10 sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[94vh] overflow-hidden text-right border-2 border-[#E8E1D3]">
         {/* ═══════ الرأس ═══════ */}
         <div className="p-4 sm:p-5 bg-gradient-to-l from-[#1A3D24] via-[#2D6A3F] to-[#163920] text-white flex items-center justify-between gap-3 shrink-0 shadow-md border-b-2 border-[#EAB308]/40">
           <div className="flex items-center gap-3">
@@ -430,28 +434,6 @@ export const AdminDocumentsModal: React.FC<AdminDocumentsModalProps> = ({
           </div>
         </div>
       </div>
-  );
-
-  if (standalone) {
-    return (
-      <div className="w-full space-y-4">
-        {panelContent}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
-      role="dialog"
-      aria-modal="true"
-      aria-label="وثائق المشروع والعقود التشغيلية"
-    >
-      <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      {panelContent}
     </div>
   );
 };

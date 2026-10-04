@@ -1,14 +1,48 @@
 // ============================================================
-// AdminOrdersPanel.tsx – الإصدار 4.0 (نظيف واحترافي)
-// نافذة إدارة الطلبات ومسارات التوصيل الفوري بفاس
+// AdminOrdersPanel.tsx – الإصدار 5.0 (المُحدَّث والشامل)
+// لوحة التحكم المتقدمة في الطلبات ومسارات التوصيل الفوري بفاس
+// تصميم متناسق ومتقن مع هوية خضرة v4 ونظام التشغيل الكامل
 // ============================================================
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
-  X, Package, Clock, CheckCircle2, XCircle, Search, Loader2,
-  Phone, MapPin, MessageCircle, RefreshCw, ShoppingBag, ExternalLink,
-  User, TrendingUp, Calendar, AlertCircle, Inbox, Copy, Trash2, Check,
-  Printer, Sparkles, ShieldCheck, Bike, Navigation,
-  ChevronDown, ChevronUp, Send, Save, Percent,
+  X,
+  Package,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Search,
+  Loader2,
+  Phone,
+  MapPin,
+  MessageCircle,
+  RefreshCw,
+  ShoppingBag,
+  ExternalLink,
+  User,
+  TrendingUp,
+  Calendar,
+  AlertCircle,
+  Inbox,
+  Copy,
+  Trash2,
+  Check,
+  Printer,
+  Sparkles,
+  ShieldCheck,
+  Bike,
+  Navigation,
+  ChevronDown,
+  ChevronUp,
+  Send,
+  Save,
+  Percent,
+  Download,
+  PhoneCall,
+  SlidersHorizontal,
+  Bell,
+  BellOff,
+  Coins,
+  Layers,
 } from 'lucide-react';
 import {
   fetchOrders,
@@ -37,54 +71,60 @@ import {
   FezZoneId,
 } from '../../types';
 
-export interface AdminOrdersPanelProps {
-  isOpen?: boolean;
-  standalone?: boolean;
-  onClose?: () => void;
+interface AdminOrdersPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
   onOrdersChange?: (counts: { total: number; pending: number }) => void;
 }
 
-// ─── إعدادات الحالة (بدون "ملغى" في الواجهة الرئيسية) ───
-const STATUS_CONFIG: Record<OrderStatus, {
-  label: string;
-  Icon: React.FC<{ className?: string }>;
-  pill: string;
-  buttonActive: string;
-  buttonIdle: string;
-}> = {
+// ─── إعدادات وتنسيقات الحالات ───
+const STATUS_CONFIG: Record<
+  OrderStatus,
+  {
+    label: string;
+    Icon: React.FC<{ className?: string }>;
+    pill: string;
+    buttonActive: string;
+    buttonIdle: string;
+    dotColor: string;
+  }
+> = {
   pending: {
     label: 'قيد الإنشاء',
     Icon: Clock,
     pill: 'bg-amber-100 text-amber-900 border-amber-300',
-    buttonActive: 'bg-amber-500 text-white border-amber-500 shadow-sm',
+    buttonActive: 'bg-amber-500 text-white border-amber-500 shadow-sm font-black',
     buttonIdle: 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50',
+    dotColor: 'bg-amber-500',
   },
   prepared: {
     label: 'تم التجهيز',
     Icon: Package,
     pill: 'bg-blue-100 text-blue-900 border-blue-300',
-    buttonActive: 'bg-blue-600 text-white border-blue-600 shadow-sm',
+    buttonActive: 'bg-blue-600 text-white border-blue-600 shadow-sm font-black',
     buttonIdle: 'bg-white text-blue-800 border-blue-300 hover:bg-blue-50',
+    dotColor: 'bg-blue-500',
   },
   delivered: {
     label: 'تم التسليم',
     Icon: CheckCircle2,
     pill: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-    buttonActive: 'bg-emerald-600 text-white border-emerald-600 shadow-sm',
+    buttonActive: 'bg-emerald-600 text-white border-emerald-600 shadow-sm font-black',
     buttonIdle: 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50',
+    dotColor: 'bg-emerald-500',
   },
   cancelled: {
     label: 'ملغى',
     Icon: XCircle,
     pill: 'bg-red-100 text-red-900 border-red-300',
-    buttonActive: 'bg-red-600 text-white border-red-600 shadow-sm',
+    buttonActive: 'bg-red-600 text-white border-red-600 shadow-sm font-black',
     buttonIdle: 'bg-white text-red-800 border-red-300 hover:bg-red-50',
+    dotColor: 'bg-red-500',
   },
 };
 
-// الفلاتر الظاهرة في الإحصائيات (بدون "ملغى")
-const VISIBLE_FILTERS: OrderStatus[] = ['pending', 'prepared', 'delivered'];
-const STATUS_ORDER_CHANGEABLE: OrderStatus[] = ['pending', 'prepared', 'delivered'];
+const ALL_STATUSES: OrderStatus[] = ['pending', 'prepared', 'delivered', 'cancelled'];
+const STATUS_CHANGE_OPTIONS: OrderStatus[] = ['pending', 'prepared', 'delivered', 'cancelled'];
 
 // ─── أدوات مساعدة ───
 function toWhatsApp(phone: string): string {
@@ -114,15 +154,18 @@ function timeAgo(dateStr: string): string {
 function formatDateTime(dateStr: string): string {
   try {
     return new Date(dateStr).toLocaleString('ar-MA', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   } catch {
     return '';
   }
 }
 
-// ─── تنظيف الملاحظات من المعلومات الزائدة ───
+// ─── تنظيف الملاحظات من النصوص التقنية ───
 function cleanNote(note: string): string {
   if (!note) return '';
   return note
@@ -130,7 +173,6 @@ function cleanNote(note: string): string {
     .filter((part) => {
       const p = part.trim();
       if (!p) return false;
-      // حذف وقت التسليم وطريقة الدفع ورابط الخريطة والمنتجات والتوصيل
       if (/وقت\s*التسليم/.test(p)) return false;
       if (/طريقة\s*الدفع/.test(p)) return false;
       if (/رابط\s*الخريطة/.test(p)) return false;
@@ -142,37 +184,46 @@ function cleanNote(note: string): string {
     .join(' • ');
 }
 
+// ─── بناء نص تفاصيل الطلب للنسخ ───
 function buildOrderText(order: DbOrder): string {
   const lines: string[] = [];
-  lines.push(`🛒 طلب ${order.order_code}`);
+  lines.push(`🌿 *طلب جديد من متجر خُضرة ${order.order_code}*`);
   lines.push(`👤 العميل: ${order.customer_name}`);
   lines.push(`📞 الهاتف: ${order.phone}`);
   lines.push(`📍 العنوان: ${order.address}`);
+  if (order.maps_link) {
+    lines.push(`🗺️ رابط الخريطة: ${order.maps_link}`);
+  }
   const clean = cleanNote(order.note || '');
   if (clean) lines.push(`📝 ملاحظات: ${clean}`);
   lines.push('');
-  lines.push('📦 المنتجات:');
-  if (order.items.length === 0) {
-    lines.push('  (لا توجد تفاصيل)');
+  lines.push(`📦 محتويات السلة (${order.items.length} أصناف):`);
+  if (!order.items || order.items.length === 0) {
+    lines.push('  (تفاصيل الأصناف غير محددة)');
   } else {
     order.items.forEach((it) => {
       const isWeight = /^kg$/i.test(it.variantLabel || '');
       const qtyLabel = isWeight
         ? `${it.qty} kg`
         : `${it.qty}${it.variantLabel ? ` (${it.variantLabel})` : ''}`;
-      lines.push(`  - ${it.name} × ${qtyLabel} = ${Number(it.lineTotal).toFixed(2)} DH`);
+      lines.push(`  • ${it.icon || '▫️'} ${it.name} × ${qtyLabel} = ${Number(it.lineTotal).toFixed(2)} DH`);
     });
   }
   lines.push('');
-  lines.push(`🚚 التوصيل: ${order.delivery_fee.toFixed(2)} DH`);
-  lines.push(`💰 الإجمالي: ${order.total.toFixed(2)} DH`);
-  lines.push(`🕐 تاريخ الطلب: ${formatDateTime(order.created_at)}`);
-  lines.push(`📌 الحالة: ${STATUS_CONFIG[order.status].label}`);
+  lines.push(`💰 المجموع الفرعي: ${order.subtotal.toFixed(2)} DH`);
+  lines.push(`🚚 رسوم التوصيل: ${order.delivery_fee.toFixed(2)} DH`);
+  lines.push(`💵 الإجمالي النهائي: ${order.total.toFixed(2)} DH`);
+  lines.push(`🕐 وقت الطلب: ${formatDateTime(order.created_at)}`);
+  lines.push(`📌 الحالة: ${STATUS_CONFIG[order.status]?.label || order.status}`);
   return lines.join('\n');
 }
 
+// ─── تشغيل رنين التنبيه الصوتي عند وصول طلب جديد ───
 function playOrderChime() {
   try {
+    const isSoundEnabled = localStorage.getItem('khodra_notification_sound') !== 'false';
+    if (!isSoundEnabled) return;
+
     const AudioContextClass =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -186,24 +237,32 @@ function playOrderChime() {
     osc1.frequency.setValueAtTime(587.33, now);
     gain1.gain.setValueAtTime(0.14, now);
     gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
-    osc1.connect(gain1); gain1.connect(ctx.destination);
-    osc1.start(now); osc1.stop(now + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = 'sine';
     osc2.frequency.setValueAtTime(880, now + 0.12);
     gain2.gain.setValueAtTime(0.18, now + 0.12);
     gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
-    osc2.connect(gain2); gain2.connect(ctx.destination);
-    osc2.start(now + 0.12); osc2.stop(now + 0.55);
-  } catch { /* تجاهل */ }
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.55);
+  } catch {
+    /* ignore */
+  }
 }
 
+// ─── رسالة واتساب لاستدعاء السائق ───
 function buildDriverDispatchMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
   const hub = STORE_PICKUP_HUB;
   const dispatch = draft || order.delivery_dispatch;
   const providerObj = DELIVERY_PROVIDERS.find((p) => p.id === dispatch?.provider) || DELIVERY_PROVIDERS[0];
-  const zoneKey = (dispatch?.zone || order.delivery_zone || detectFezZone(order.address || '') || 'north') as keyof typeof FEZ_DELIVERY_ZONES;
+  const zoneKey = (dispatch?.zone || order.delivery_zone || detectFezZone(order.address || '') || 'north') as FezZoneId;
   const zoneInfo = FEZ_DELIVERY_ZONES[zoneKey] || FEZ_DELIVERY_ZONES.north;
   const driverGreeting = dispatch?.driverName
     ? `السلام عليكم كابتن *${dispatch.driverName}* 🛵`
@@ -218,7 +277,7 @@ function buildDriverDispatchMessage(order: DbOrder, draft?: DeliveryDispatchInfo
   const safeTotal = Number(order.total ?? 0);
 
   const itemsPreview =
-    order.items.length > 0
+    order.items && order.items.length > 0
       ? order.items
           .slice(0, 6)
           .map((it) => {
@@ -263,6 +322,7 @@ function buildDriverDispatchMessage(order: DbOrder, draft?: DeliveryDispatchInfo
     .join('\n');
 }
 
+// ─── رسالة إشعار الزبون بانطلاق الطلب ───
 function buildCustomerNotifyMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
   const dispatch = draft || order.delivery_dispatch;
   const provider = DELIVERY_PROVIDERS.find((p) => p.id === dispatch?.provider)?.name || 'inDrive Delivery';
@@ -281,9 +341,65 @@ ${driverPhone ? `📞 رقم السائق: ${driverPhone}\n` : ''}⏰ الوصو
 شكراً لثقتك في خُضرة 🌿`;
 }
 
+// ─── تصدير الطلبات إلى ملف Excel / CSV (يدعم العربية بـ BOM) ───
+function exportOrdersToCsv(orders: DbOrder[]) {
+  const headers = [
+    'رقم الطلب',
+    'العميل',
+    'الهاتف',
+    'العنوان',
+    'المنطقة',
+    'عدد الأصناف',
+    'المجموع الفرعي (DH)',
+    'رسوم التوصيل (DH)',
+    'الإجمالي النهائي (DH)',
+    'الحالة',
+    'شركة التوصيل',
+    'اسم السائق',
+    'هاتف السائق',
+    'أجرة السائق (DH)',
+    'تاريخ الطلب',
+    'ملاحظات الزبون',
+  ];
+
+  const rows = orders.map((o) => {
+    const zoneKey = (o.delivery_zone || o.delivery_dispatch?.zone || 'north') as FezZoneId;
+    const zoneName = FEZ_DELIVERY_ZONES[zoneKey]?.name || 'فاس';
+    const providerName = DELIVERY_PROVIDERS.find((p) => p.id === o.delivery_dispatch?.provider)?.name || '-';
+    return [
+      `"${o.order_code}"`,
+      `"${(o.customer_name || '').replace(/"/g, '""')}"`,
+      `"${(o.phone || '').replace(/"/g, '""')}"`,
+      `"${(o.address || '').replace(/"/g, '""')}"`,
+      `"${zoneName}"`,
+      o.items?.length || 0,
+      o.subtotal.toFixed(2),
+      o.delivery_fee.toFixed(2),
+      o.total.toFixed(2),
+      `"${STATUS_CONFIG[o.status]?.label || o.status}"`,
+      `"${providerName}"`,
+      `"${(o.delivery_dispatch?.driverName || '').replace(/"/g, '""')}"`,
+      `"${(o.delivery_dispatch?.driverPhone || '').replace(/"/g, '""')}"`,
+      (o.delivery_dispatch?.deliveryCost ?? 25).toFixed(2),
+      `"${formatDateTime(o.created_at)}"`,
+      `"${cleanNote(o.note || '').replace(/"/g, '""')}"`,
+    ].join(',');
+  });
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `khodra_orders_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
-  isOpen = false,
-  standalone = false,
+  isOpen,
   onClose,
   onOrdersChange,
 }) => {
@@ -294,20 +410,57 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | number | null>(null);
   const [deletingId, setDeletingId] = useState<string | number | null>(null);
+
+  // فلاتر وبحث وترتيب
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
+  const [filterZone, setFilterZone] = useState<FezZoneId | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest_price'>('newest');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // إشعار Toast ونسخ
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | number | null>(null);
+
+  // نوافذ فرعية
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<DbOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState<DbOrder | null>(null);
   const [bordereauOrder, setBordereauOrder] = useState<DbOrder | null>(null);
 
+  // قوائم المنتجات المفتوحة (Accordion)
+  const [expandedItemsIds, setExpandedItemsIds] = useState<Set<string | number>>(new Set());
+
+  // تخصيص التوصيل والسائق
   const [expandedDispatchId, setExpandedDispatchId] = useState<string | number | null>(null);
   const [dispatchDrafts, setDispatchDrafts] = useState<Record<string, DeliveryDispatchInfo>>({});
   const [savingDispatchId, setSavingDispatchId] = useState<string | number | null>(null);
 
-  // حماية من التكرار اللانهائي لإعادة التصير (Infinite Loop Prevention)
+  // إعداد الصوت
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('khodra_notification_sound') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleSound = () => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('khodra_notification_sound', String(next));
+      } catch {}
+      showToast('success', next ? '🔔 تم تفعيل التنبيهات الصوتية' : '🔇 تم كتم التنبيهات الصوتية');
+      return next;
+    });
+  };
+
+  const showToast = useCallback((type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  // حماية من التكرار اللانهائي لإعادة التصيير
   const lastNotifiedRef = useRef<{ total: number; pending: number } | null>(null);
 
   useEffect(() => {
@@ -329,8 +482,9 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     }
   }, [orders, onOrdersChange]);
 
+  // جلب الطلبات والاشتراك في التحديثات الحية
   useEffect(() => {
-    if (!isOpen && !standalone) return;
+    if (!isOpen) return;
     let mounted = true;
     setIsLoading(true);
 
@@ -359,7 +513,11 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
             );
             return;
           }
-          fetchOrders().then((data) => { if (mounted) setOrders(data); }).catch(() => {});
+          fetchOrders()
+            .then((data) => {
+              if (mounted) setOrders(data);
+            })
+            .catch(() => {});
           if (payload.eventType === 'INSERT') {
             playOrderChime();
             const clientName = payload.new?.client_name || payload.new?.customer_name || 'زبون';
@@ -367,7 +525,9 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
             showToast('success', `🔔 طلب جديد من ${clientName} ${code}`);
           }
         },
-        (status) => { if (mounted) setIsRealtimeActive(status === 'SUBSCRIBED'); }
+        (status) => {
+          if (mounted) setIsRealtimeActive(status === 'SUBSCRIBED');
+        }
       );
     } catch (err) {
       console.warn('Realtime subscription error in AdminOrdersPanel:', err);
@@ -381,11 +541,10 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
         } catch {}
       }
     };
-  }, [isOpen, standalone]);
+  }, [isOpen, showToast]);
 
-  // تأمين التمرير للصفحة الرئيسية ومنع تجميدها بعد الخروج
+  // قفل تمرير الصفحة ومنع تجمد الشاشة
   useEffect(() => {
-    if (standalone) return;
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -404,9 +563,9 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
         document.body.style.pointerEvents = '';
       } catch {}
     };
-  }, [isOpen, standalone]);
+  }, [isOpen]);
 
-  // إغلاق النوافذ الفرعية أو اللوحة عند الضغط على Escape
+  // إغلاق النوافذ الفرعية بالتسلسل عند الضغط على Escape
   useEffect(() => {
     if (!isOpen) return;
 
@@ -430,17 +589,12 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, deleteConfirmOrder, invoiceOrder, bordereauOrder, expandedDispatchId, onClose]);
 
-  const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3000);
-  };
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     const data = await fetchOrders();
     setOrders(data);
     setIsRefreshing(false);
-    showToast('success', `تم تحديث القائمة (${data.length} طلب)`);
+    showToast('success', `تم تحديث قائمة الطلبات (${data.length} طلب)`);
   };
 
   const handleStatusChange = async (orderId: string | number, newStatus: OrderStatus) => {
@@ -469,17 +623,31 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
       try {
         const ta = document.createElement('textarea');
         ta.value = text;
-        ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
         setCopiedId(order.id);
         showToast('success', `تم نسخ تفاصيل الطلب ${order.order_code}`);
         setTimeout(() => setCopiedId(null), 2000);
       } catch {
-        showToast('error', 'تعذّر النسخ، حاول مرة أخرى');
+        showToast('error', 'تعذّر النسخ، يرجى المحاولة يدوياً');
       }
     }
+  };
+
+  const toggleItemsAccordion = (orderId: string | number) => {
+    setExpandedItemsIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
   };
 
   const handleToggleDispatchEdit = (order: DbOrder) => {
@@ -493,7 +661,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
           driverPhone: '',
           deliveryCost: 25,
           dispatchStatus: 'ready_for_pickup',
-          zone: detectFezZone(order.address),
+          zone: (order.delivery_zone || detectFezZone(order.address)) as FezZoneId,
           packagingType: 'cooler_box',
         },
       }));
@@ -507,9 +675,13 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
       ...prev,
       [idKey]: {
         ...(prev[idKey] || {
-          provider: 'indrive', driverName: '', driverPhone: '',
-          deliveryCost: 25, dispatchStatus: 'ready_for_pickup',
-          zone: 'north', packagingType: 'cooler_box',
+          provider: 'indrive',
+          driverName: '',
+          driverPhone: '',
+          deliveryCost: 25,
+          dispatchStatus: 'ready_for_pickup',
+          zone: 'north',
+          packagingType: 'cooler_box',
         }),
         ...patch,
       },
@@ -521,10 +693,14 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     const draft = dispatchDrafts[idKey];
     if (!draft) return;
     setSavingDispatchId(order.id);
-    const res = await updateOrderDispatch(order.id, draft);
+    const res = await updateOrderDispatch(order.id, order.order_code, draft);
     setSavingDispatchId(null);
     if (res.success) {
-      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, delivery_dispatch: draft } : o)));
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id ? { ...o, delivery_dispatch: draft, delivery_zone: draft.zone || o.delivery_zone } : o
+        )
+      );
       showToast('success', `تم حفظ بيانات التوصيل للطلب ${order.order_code}`);
       setExpandedDispatchId(null);
     } else {
@@ -545,7 +721,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
       showToast('success', 'تم نسخ الرسالة وفتح واتساب لإرسال بيانات الشحنة للسائق');
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-      showToast('success', 'تم نسخ رسالة استدعاء السائق وفتح واتساب لاختيار السائق');
+      showToast('success', 'تم نسخ تفاصيل المسار وفتح واتساب لاختيار السائق');
     }
   };
 
@@ -558,7 +734,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
       showToast('success', 'تم فتح واتساب لإشعار الزبون');
     } else {
       navigator.clipboard.writeText(msg);
-      showToast('success', 'تم نسخ نص الإشعار');
+      showToast('success', 'تم نسخ نص الإشعار للزبون');
     }
   };
 
@@ -568,7 +744,9 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     setDeletingId(deleteConfirmOrder.id);
     const res = await deleteOrder(deleteConfirmOrder.id);
     if (res.success) {
-      setOrders((prev) => prev.filter((o) => o.id !== deleteConfirmOrder.id && o.order_code !== deleteConfirmOrder.order_code));
+      setOrders((prev) =>
+        prev.filter((o) => o.id !== deleteConfirmOrder.id && o.order_code !== deleteConfirmOrder.order_code)
+      );
       showToast('success', `تم حذف الطلب ${deleteConfirmOrder.order_code}`);
       setDeleteConfirmOrder(null);
     } else {
@@ -578,68 +756,112 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     setDeletingId(null);
   };
 
+  // ─── الإحصائيات الشاملة ───
   const stats = useMemo(() => {
     const counts = { pending: 0, prepared: 0, delivered: 0, cancelled: 0 };
-    if (!Array.isArray(orders)) return counts;
+    let activeRevenue = 0;
+    if (!Array.isArray(orders)) return { counts, activeRevenue, totalCount: 0 };
+
     orders.forEach((o) => {
       const s = o?.status && STATUS_CONFIG[o.status] ? o.status : 'pending';
       counts[s]++;
+      if (s !== 'cancelled') {
+        activeRevenue += Number(o.total || 0);
+      }
     });
-    return counts;
+    return { counts, activeRevenue, totalCount: orders.length };
   }, [orders]);
 
+  // ─── التصفية والفرز ───
   const filteredOrders = useMemo(() => {
     if (!Array.isArray(orders)) return [];
     const q = searchQuery.trim().toLowerCase();
-    return orders.filter((o) => {
+
+    const filtered = orders.filter((o) => {
       if (!o) return false;
       const orderStatus = o.status && STATUS_CONFIG[o.status] ? o.status : 'pending';
       if (filterStatus !== 'all' && orderStatus !== filterStatus) return false;
+
+      const orderZone = o.delivery_zone || o.delivery_dispatch?.zone || detectFezZone(o.address || '');
+      if (filterZone !== 'all' && orderZone !== filterZone) return false;
+
       if (!q) return true;
+
+      const itemsMatch =
+        Array.isArray(o.items) &&
+        o.items.some((it) => it.name && it.name.toLowerCase().includes(q));
+
       return (
         String(o.order_code || '').toLowerCase().includes(q) ||
         String(o.customer_name || '').toLowerCase().includes(q) ||
         String(o.phone || '').includes(q) ||
-        String(o.address || '').toLowerCase().includes(q)
+        String(o.address || '').toLowerCase().includes(q) ||
+        itemsMatch
       );
     });
-  }, [orders, filterStatus, searchQuery]);
 
-  if (!isOpen && !standalone) return null;
+    return filtered.sort((a, b) => {
+      if (sortBy === 'oldest') {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      if (sortBy === 'highest_price') {
+        return Number(b.total || 0) - Number(a.total || 0);
+      }
+      // default: newest
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [orders, filterStatus, filterZone, searchQuery, sortBy]);
 
-  const panelBody = (
+  if (!isOpen) return null;
+
+  return (
     <>
-      <div className={`relative bg-[#FBF9F5] w-full ${
-        standalone
-          ? 'max-w-7xl mx-auto shadow-md rounded-3xl min-h-[650px]'
-          : 'sm:max-w-4xl shadow-2xl sm:rounded-[28px] max-h-screen sm:max-h-[92vh]'
-      } flex flex-col overflow-hidden text-right border border-[#E8E1D3]`}>
+      <div
+        className="fixed inset-0 z-[70] flex items-start sm:items-center justify-center p-0 sm:p-4 select-none"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
 
-          {/* ═══════════ Header ═══════════ */}
-          <div className="relative p-4 sm:p-5 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shrink-0 shadow-md overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,215,110,0.15),transparent_60%)] pointer-events-none" />
+        <div className="relative bg-[#FBF9F5] w-full sm:max-w-5xl shadow-2xl z-10 sm:rounded-[28px] flex flex-col max-h-screen sm:max-h-[92vh] overflow-hidden text-right border border-[#E8E1D3]">
+
+          {/* ═══════════ Header — هوية خضرة الفاخرة ═══════════ */}
+          <div className="relative p-4 sm:p-5 bg-gradient-to-l from-[#163920] via-[#122F1B] to-[#0A1C10] text-white flex items-center justify-between shrink-0 shadow-md overflow-hidden">
+            {/* زخارف ضوئية ذهبية */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[radial-gradient(circle_at_top_right,rgba(245,215,110,0.18),transparent_65%)] pointer-events-none" />
+            <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
             <div className="relative flex items-center gap-3 min-w-0">
-              <div className="relative w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0">
+              <div className="relative w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0 shadow-xs">
                 <ShoppingBag className="w-5 h-5 text-[#F5D76E]" />
-                {stats.pending > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-[#0E2615] shadow-md animate-pulse">
-                    {stats.pending > 99 ? '99+' : stats.pending}
+                {stats.counts.pending > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-[#0A1C10] shadow-md animate-pulse">
+                    {stats.counts.pending > 99 ? '99+' : stats.counts.pending}
                   </span>
                 )}
               </div>
               <div className="min-w-0">
-                <h2 className="font-black text-base sm:text-lg flex items-center gap-2">
-                  <span>إدارة الطلبات</span>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-black text-base sm:text-lg text-white">إدارة الطلبات والتوصيل</h2>
                   <Sparkles className="w-4 h-4 text-[#F5D76E]" />
-                </h2>
-                <p className="text-[11px] sm:text-xs text-emerald-100/90 font-bold">
-                  {orders.length} طلب مسجل • {stats.pending} قيد الإنشاء
+                </div>
+                <p className="text-[11px] sm:text-xs text-emerald-100/90 font-bold flex items-center gap-1.5">
+                  <span>{stats.totalCount} طلب مسجل</span>
+                  <span>•</span>
+                  <span className="text-[#F5D76E]">{stats.counts.pending} بانتظار التجهيز</span>
+                  <span>•</span>
+                  <span>{stats.activeRevenue.toFixed(0)} د.م إيرادات</span>
                 </p>
               </div>
             </div>
-            <div className="relative flex items-center gap-2 shrink-0">
+
+            <div className="relative flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* مؤشر الربط اللحظي */}
               {isRealtimeActive && (
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 text-[10px] font-black backdrop-blur-xs" title="الاستقبال اللحظي مفعّل">
+                <span
+                  className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-400/30 text-[10px] font-black backdrop-blur-xs"
+                  title="الاستقبال اللحظي للطلبات مفعّل عبر Supabase Realtime"
+                >
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
@@ -647,50 +869,104 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                   <span>مباشر</span>
                 </span>
               )}
-              <button type="button" onClick={handleRefresh} disabled={isRefreshing}
-                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 border border-white/15" title="تحديث">
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+
+              {/* زر تفعيل/كتم الصوت */}
+              <button
+                type="button"
+                onClick={toggleSound}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center transition-all cursor-pointer border border-white/15"
+                title={soundEnabled ? 'كتم التنبيهات الصوتية' : 'تفعيل التنبيهات الصوتية'}
+              >
+                {soundEnabled ? (
+                  <Bell className="w-4 h-4 text-[#F5D76E]" />
+                ) : (
+                  <BellOff className="w-4 h-4 text-stone-300" />
+                )}
               </button>
-              <button type="button" onClick={onClose}
-                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer border border-white/15" aria-label="إغلاق">
-                <X className="w-5 h-5" />
+
+              {/* زر تصدير Excel CSV */}
+              <button
+                type="button"
+                onClick={() => exportOrdersToCsv(filteredOrders)}
+                disabled={filteredOrders.length === 0}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center transition-all cursor-pointer disabled:opacity-40 border border-white/15"
+                title="تصدير الطلبات المعروضة إلى ملف Excel (CSV)"
+              >
+                <Download className="w-4 h-4 text-emerald-200" />
+              </button>
+
+              {/* زر التحديث */}
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center transition-all cursor-pointer disabled:opacity-50 border border-white/15"
+                title="تحديث قائمة الطلبات"
+              >
+                <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+
+              {/* زر الإغلاق */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 active:scale-90 flex items-center justify-center transition-all cursor-pointer border border-white/20"
+                aria-label="إغلاق النافذة"
+              >
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
           </div>
 
-          {/* ═══════════ Toast ═══════════ */}
+          {/* ═══════════ Toast الإشعارات ═══════════ */}
           {toast && (
-            <div className={`px-4 py-3 text-xs font-black flex items-center gap-2.5 ${
-              toast.type === 'success'
-                ? 'bg-emerald-50 text-emerald-900 border-b-2 border-emerald-200'
-                : 'bg-red-50 text-red-900 border-b-2 border-red-200'
-            }`}>
-              {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-              <span>{toast.message}</span>
+            <div
+              className={`px-4 py-3 text-xs font-black flex items-center gap-2.5 transition-all shadow-xs ${
+                toast.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-950 border-b-2 border-emerald-300'
+                  : 'bg-red-50 text-red-950 border-b-2 border-red-300'
+              }`}
+            >
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              )}
+              <span className="flex-1">{toast.message}</span>
             </div>
           )}
 
-          {/* ═══════════ Tab Switcher (تسمية جديدة) ═══════════ */}
-          <div className="flex border-b border-[#E8E1D3] bg-white text-xs font-black shrink-0">
-            <button type="button" onClick={() => setActiveTab('orders')}
+          {/* ═══════════ أزرار التبويبات (Tabs) ═══════════ */}
+          <div className="flex border-b border-[#E8E1D3] bg-white text-xs font-black shrink-0 shadow-xs">
+            <button
+              type="button"
+              onClick={() => setActiveTab('orders')}
               className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
                 activeTab === 'orders'
-                  ? 'border-[#163920] text-[#163920] bg-emerald-50/40'
+                  ? 'border-[#163920] text-[#163920] bg-emerald-50/50'
                   : 'border-transparent text-[#787163] hover:text-[#112616] hover:bg-[#F7F4EC]'
-              }`}>
+              }`}
+            >
               <ShoppingBag className="w-4 h-4" />
               <span>إدارة الطلبات</span>
-              <span className="px-2 py-0.5 rounded-full bg-[#163920]/10 text-[#163920] text-[10px]">{orders.length}</span>
+              <span className="px-2 py-0.5 rounded-full bg-[#163920]/10 text-[#163920] text-[10px] font-black">
+                {orders.length}
+              </span>
             </button>
-            <button type="button" onClick={() => setActiveTab('fleet')}
+            <button
+              type="button"
+              onClick={() => setActiveTab('fleet')}
               className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
                 activeTab === 'fleet'
-                  ? 'border-[#C25E12] text-[#C25E12] bg-amber-50/40'
+                  ? 'border-[#C25E12] text-[#C25E12] bg-amber-50/50'
                   : 'border-transparent text-[#787163] hover:text-[#112616] hover:bg-[#F7F4EC]'
-              }`}>
+              }`}
+            >
               <Bike className="w-4 h-4 text-[#C25E12]" />
-              <span>مسارات التوصيل</span>
-              <span className="px-2 py-0.5 rounded-full bg-[#C25E12]/15 text-[#C25E12] text-[10px]">inDrive + فاس</span>
+              <span>مسارات التوصيل والأسطول</span>
+              <span className="px-2 py-0.5 rounded-full bg-[#C25E12]/15 text-[#C25E12] text-[10px] font-black">
+                inDrive + فاس
+              </span>
             </button>
           </div>
 
@@ -705,69 +981,157 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
             </div>
           ) : (
             <>
-              {/* ═══════════ Stats Row (3 فلاتر فقط بدون "ملغى") ═══════════ */}
-              <div className="grid grid-cols-3 gap-2 p-3 sm:p-4 bg-white border-b border-[#E8E1D3]">
-                {VISIBLE_FILTERS.map((s) => {
+              {/* ═══════════ شريط إحصائيات وفلاتر الحالات (Status Filter Cards) ═══════════ */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-3 sm:p-4 bg-white border-b border-[#E8E1D3]">
+                {/* 1. الكل */}
+                <button
+                  type="button"
+                  onClick={() => setFilterStatus('all')}
+                  className={`p-2.5 rounded-xl border-2 flex items-center gap-2 transition-all cursor-pointer active:scale-95 ${
+                    filterStatus === 'all'
+                      ? 'bg-stone-800 text-white border-stone-800 shadow-sm'
+                      : 'bg-[#F7F4EC] border-[#E8E1D3] hover:border-stone-400 text-stone-800'
+                  }`}
+                >
+                  <Layers className="w-4 h-4 shrink-0" />
+                  <div className="text-right flex-1 min-w-0">
+                    <div className="text-[10px] font-black truncate">كل الطلبات</div>
+                    <div className="text-base sm:text-lg font-black leading-none tabular-nums">
+                      {stats.totalCount}
+                    </div>
+                  </div>
+                </button>
+
+                {/* الحالات الفردية */}
+                {ALL_STATUSES.map((s) => {
                   const cfg = STATUS_CONFIG[s];
                   const Icon = cfg.Icon;
                   const isActive = filterStatus === s;
+                  const count = stats.counts[s];
                   return (
-                    <button key={s} type="button"
+                    <button
+                      key={s}
+                      type="button"
                       onClick={() => setFilterStatus(isActive ? 'all' : s)}
                       className={`p-2.5 rounded-xl border-2 flex items-center gap-2 transition-all cursor-pointer active:scale-95 ${
-                        isActive ? cfg.buttonActive : 'bg-[#F7F4EC] border-[#E8E1D3] hover:border-[#C25E12]/50 hover:bg-white'
-                      }`}>
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? '' : 'text-[#524B3E]'}`} />
+                        isActive
+                          ? cfg.buttonActive
+                          : 'bg-[#F7F4EC] border-[#E8E1D3] hover:border-[#C25E12]/50 hover:bg-white text-[#524B3E]'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
                       <div className="text-right flex-1 min-w-0">
-                        <div className={`text-[10px] sm:text-[11px] font-black truncate ${isActive ? '' : 'text-[#524B3E]'}`}>{cfg.label}</div>
-                        <div className={`text-base sm:text-lg font-black leading-none tabular-nums ${isActive ? '' : 'text-[#112616]'}`}>{stats[s]}</div>
+                        <div className="text-[10px] font-black truncate">{cfg.label}</div>
+                        <div className="text-base sm:text-lg font-black leading-none tabular-nums">
+                          {count}
+                        </div>
                       </div>
                     </button>
                   );
                 })}
               </div>
 
-              {/* ═══════════ Search ═══════════ */}
-              <div className="p-3 sm:p-4 bg-[#F7F4EC] border-b border-[#E8E1D3] flex items-center gap-2">
+              {/* ═══════════ شريط البحث والتصفية المتقدمة ═══════════ */}
+              <div className="p-3 sm:p-4 bg-[#F7F4EC] border-b border-[#E8E1D3] flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                {/* حقل البحث السريع */}
                 <div className="relative flex-1">
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#787163] pointer-events-none" />
-                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="ابحث برقم الطلب، الاسم، الهاتف، أو العنوان..."
-                    className="w-full pr-9 pl-9 py-2.5 rounded-xl border border-[#E8E1D3] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/15 text-[#112616] transition-all" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ابحث برقم الطلب، العميل، الهاتف، العنوان أو الصنف..."
+                    className="w-full pr-9 pl-9 py-2.5 rounded-xl border border-[#E8E1D3] bg-white text-xs sm:text-sm focus:outline-none focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/15 text-[#112616] transition-all placeholder:text-stone-400"
+                  />
                   {searchQuery && (
-                    <button type="button" onClick={() => setSearchQuery('')}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] flex items-center justify-center cursor-pointer transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#F7F4EC] hover:bg-[#EAE2D2] flex items-center justify-center cursor-pointer transition-colors"
+                      title="مسح البحث"
+                    >
                       <X className="w-3 h-3 text-[#524B3E]" />
                     </button>
                   )}
                 </div>
-                {filterStatus !== 'all' && (
-                  <button type="button" onClick={() => setFilterStatus('all')}
-                    className="px-3 py-2.5 rounded-xl bg-white border-2 border-[#E8E1D3] hover:border-[#C25E12] text-xs font-black text-[#524B3E] hover:text-[#C25E12] cursor-pointer flex items-center gap-1 shrink-0 transition-colors">
-                    <X className="w-3.5 h-3.5" />
-                    <span>مسح</span>
-                  </button>
-                )}
+
+                {/* فلتر المنطقة */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <select
+                    value={filterZone}
+                    onChange={(e) => setFilterZone(e.target.value as FezZoneId | 'all')}
+                    className="py-2.5 px-3 rounded-xl border border-[#E8E1D3] bg-white text-xs font-black text-[#112616] focus:outline-none focus:border-[#163920] cursor-pointer"
+                  >
+                    <option value="all">كل مناطق فاس (4 مسارات)</option>
+                    <option value="north">🟢 المنطقة الشمالية (الأطلس، النرجس)</option>
+                    <option value="central">🟡 المنطقة الوسطى (إيموزار، فلورنس)</option>
+                    <option value="south">🟠 المنطقة الجنوبية (عين الشقف، الزهور)</option>
+                    <option value="east">🟣 المنطقة الشرقية (المرينيين، المدينة القديمة)</option>
+                  </select>
+
+                  {/* فرز الترتيب */}
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="py-2.5 px-3 rounded-xl border border-[#E8E1D3] bg-white text-xs font-black text-[#112616] focus:outline-none focus:border-[#163920] cursor-pointer"
+                  >
+                    <option value="newest">الأحدث أولاً</option>
+                    <option value="oldest">الأقدم أولاً</option>
+                    <option value="highest_price">الأعلى قيمة (DH)</option>
+                  </select>
+
+                  {/* زر مسح كل الفلاتر عند التفعيل */}
+                  {(filterStatus !== 'all' || filterZone !== 'all' || searchQuery) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterStatus('all');
+                        setFilterZone('all');
+                        setSearchQuery('');
+                      }}
+                      className="py-2.5 px-3 rounded-xl bg-white border-2 border-red-200 hover:border-red-400 text-xs font-black text-red-700 cursor-pointer flex items-center gap-1 transition-colors"
+                      title="إعادة ضبط الفلاتر"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>إلغاء التصفية</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* ═══════════ Orders List ═══════════ */}
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+              {/* ═══════════ قائمة الطلبات (Orders Cards Stream) ═══════════ */}
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5 bg-[#FAF8F4]">
                 {isLoading ? (
-                  <div className="py-16 text-center">
-                    <Loader2 className="w-8 h-8 text-[#163920] animate-spin mx-auto mb-3" />
-                    <p className="text-xs text-[#787163] font-black">جارٍ تحميل الطلبات...</p>
+                  <div className="py-20 text-center space-y-3">
+                    <Loader2 className="w-9 h-9 text-[#163920] animate-spin mx-auto" />
+                    <p className="text-xs text-[#787163] font-black">جارٍ تحميل وتحديث الطلبات...</p>
                   </div>
                 ) : filteredOrders.length === 0 ? (
-                  <div className="py-16 text-center">
-                    <div className="w-16 h-16 rounded-full bg-[#F7F4EC] flex items-center justify-center mx-auto mb-3 border-2 border-dashed border-[#E8E1D3]">
+                  <div className="py-20 text-center max-w-sm mx-auto">
+                    <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto mb-3 border-2 border-dashed border-[#E8E1D3] shadow-xs">
                       <Inbox className="w-8 h-8 text-[#787163]" />
                     </div>
                     <p className="text-sm font-black text-[#112616] mb-1">
-                      {orders.length === 0 ? 'لا توجد طلبات بعد' : 'لا توجد نتائج مطابقة'}
+                      {orders.length === 0 ? 'لا توجد طلبات مسجلة حتى الآن' : 'لا توجد طلبات مطابقة لمعايير البحث'}
                     </p>
-                    <p className="text-xs text-[#787163]">
-                      {orders.length === 0 ? 'ستظهر هنا كل الطلبات' : 'جرّب تغيير الفلتر أو مسح البحث'}
+                    <p className="text-xs text-[#787163] mb-4">
+                      {orders.length === 0
+                        ? 'ستظهر هنا طلبات العملاء فور تسجيلها في المتجر'
+                        : 'جرّب تغيير حالة الطلب أو البحث بكلمات أخرى'}
                     </p>
+                    {(filterStatus !== 'all' || filterZone !== 'all' || searchQuery) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterStatus('all');
+                          setFilterZone('all');
+                          setSearchQuery('');
+                        }}
+                        className="py-2 px-4 rounded-xl bg-emerald-800 text-white font-black text-xs cursor-pointer shadow-xs active:scale-95"
+                      >
+                        عرض جميع الطلبات
+                      </button>
+                    )}
                   </div>
                 ) : (
                   filteredOrders.map((order) => {
@@ -782,196 +1146,398 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                     const isFreeDelivery = Number(order.delivery_fee ?? 0) === 0;
                     const cleanN = cleanNote(order.note || '');
                     const safeTotal = Number(order.total ?? 0);
+                    const safeSubtotal = Number(order.subtotal ?? (safeTotal - Number(order.delivery_fee ?? 0)));
+                    const isItemsExpanded = expandedItemsIds.has(order.id);
+
+                    const zoneKey = (order.delivery_zone ||
+                      order.delivery_dispatch?.zone ||
+                      detectFezZone(order.address || '')) as FezZoneId;
+                    const zoneInfo = FEZ_DELIVERY_ZONES[zoneKey] || FEZ_DELIVERY_ZONES.north;
+
+                    const mapHref =
+                      order.maps_link ||
+                      (order.address
+                        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                            order.address + ' فاس'
+                          )}`
+                        : '#');
 
                     return (
-                      <article key={order.id}
-                        className={`bg-white rounded-2xl border-2 p-3.5 sm:p-4 transition-all ${
+                      <article
+                        key={order.id}
+                        className={`bg-white rounded-2xl border-2 p-3.5 sm:p-4 transition-all shadow-xs ${
                           isUpdating || isBeingDeleted
-                            ? 'border-amber-400 shadow-md'
-                            : 'border-[#E8E1D3] hover:border-[#C25E12]/40 hover:shadow-sm'
-                        } ${isBeingDeleted ? 'opacity-60' : ''}`}>
-
-                        {/* ─── Row 1: رقم الطلب + الحالة + الوقت ─── */}
-                        <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-[#F0E9DA]">
+                            ? 'border-amber-400 bg-amber-50/20'
+                            : 'border-[#E8E1D3] hover:border-[#C25E12]/50 hover:shadow-md'
+                        } ${isBeingDeleted ? 'opacity-50' : ''}`}
+                      >
+                        {/* ─── السطر 1: رقم الطلب + شارة الحالة + المنطقة + التوقيت ─── */}
+                        <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-[#F0E9DA] flex-wrap">
                           <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                            <span className="text-sm sm:text-base font-black text-[#112616] shrink-0 tabular-nums">{order.order_code}</span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] sm:text-[11px] font-black shrink-0 ${cfg.pill}`}>
+                            <span className="text-sm sm:text-base font-black text-[#112616] tabular-nums tracking-wide">
+                              {order.order_code}
+                            </span>
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] sm:text-[11px] font-black shrink-0 ${cfg.pill}`}
+                            >
                               <PillIcon className="w-3 h-3" />
                               <span>{cfg.label}</span>
                             </span>
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-black shrink-0 ${zoneInfo.badgeClass}`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${zoneInfo.dotColor}`} />
+                              <span>{zoneInfo.name}</span>
+                            </span>
                             {isFreeDelivery && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-black shrink-0">
-                                <Percent className="w-3 h-3" />
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-[10px] font-black shrink-0">
+                                <Percent className="w-3 h-3 text-emerald-600" />
                                 <span>توصيل مجاني</span>
                               </span>
                             )}
                             {isUpdating && <Loader2 className="w-3.5 h-3.5 text-amber-600 animate-spin" />}
                           </div>
-                          <span className="text-[10px] sm:text-[11px] text-[#787163] font-black shrink-0 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {timeAgo(order.created_at)}
-                          </span>
+
+                          <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-[#787163] font-bold">
+                            <span className="flex items-center gap-1" title={formatDateTime(order.created_at)}>
+                              <Calendar className="w-3 h-3" />
+                              <span>{timeAgo(order.created_at)}</span>
+                            </span>
+                          </div>
                         </div>
 
-                        {/* ─── Row 2: معلومات العميل + الإجمالي فقط ─── */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                          <div className="space-y-2 text-xs">
+                        {/* ─── السطر 2: معلومات العميل والعنوان والمجموع ─── */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
+                          {/* بيانات العميل والتواصل */}
+                          <div className="md:col-span-8 space-y-2 text-xs">
                             <div className="flex items-center gap-2">
                               <div className="w-6 h-6 rounded-lg bg-[#C25E12]/10 flex items-center justify-center shrink-0">
                                 <User className="w-3.5 h-3.5 text-[#C25E12]" />
                               </div>
-                              <span className="font-black text-[#112616] truncate">{order.customer_name}</span>
+                              <span className="font-black text-[#112616] text-sm">{order.customer_name}</span>
                             </div>
-                            <div className="flex items-center gap-2">
+
+                            <div className="flex items-center gap-2 flex-wrap">
                               <div className="w-6 h-6 rounded-lg bg-[#C25E12]/10 flex items-center justify-center shrink-0">
                                 <Phone className="w-3.5 h-3.5 text-[#C25E12]" />
                               </div>
-                              <span className="font-bold text-[#524B3E] tabular-nums" dir="ltr">{order.phone}</span>
+                              <a
+                                href={`tel:${order.phone}`}
+                                className="font-black text-emerald-800 hover:text-emerald-950 hover:underline tabular-nums"
+                                dir="ltr"
+                                title="اتصال هاتفي مباشر"
+                              >
+                                {order.phone}
+                              </a>
+                              {wa && (
+                                <a
+                                  href={`https://wa.me/${wa}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#128C7E] font-bold text-[10px] transition-colors"
+                                  title="محادثة واتساب"
+                                >
+                                  <MessageCircle className="w-3 h-3 text-[#25D366]" />
+                                  <span>واتساب</span>
+                                </a>
+                              )}
                             </div>
+
                             <div className="flex items-start gap-2">
                               <div className="w-6 h-6 rounded-lg bg-[#C25E12]/10 flex items-center justify-center shrink-0 mt-0.5">
                                 <MapPin className="w-3.5 h-3.5 text-[#C25E12]" />
                               </div>
-                              <span className="font-medium text-[#524B3E] leading-snug line-clamp-2">{order.address}</span>
+                              <div className="leading-snug">
+                                <span className="font-bold text-[#2A2721]">{order.address}</span>
+                              </div>
                             </div>
                           </div>
 
-                          {/* الإجمالي فقط - تم حذف المنتجات والتوصيل */}
-                          <div className="bg-gradient-to-br from-[#F7F4EC] to-white rounded-xl p-3 border border-[#E8E1D3] flex flex-col justify-center">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-black text-[#112616] flex items-center gap-1">
+                          {/* ملخص المبلغ المالي */}
+                          <div className="md:col-span-4 bg-gradient-to-br from-[#FAF8F4] to-white rounded-xl p-3 border border-[#E8E1D3] flex flex-col justify-center space-y-1 text-xs">
+                            <div className="flex items-center justify-between text-[#787163]">
+                              <span>المنتجات:</span>
+                              <span className="font-bold tabular-nums">{safeSubtotal.toFixed(2)} DH</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[#787163]">
+                              <span>التوصيل:</span>
+                              <span className="font-bold tabular-nums">
+                                {isFreeDelivery ? 'مجاني' : `${Number(order.delivery_fee).toFixed(2)} DH`}
+                              </span>
+                            </div>
+                            <div className="pt-1.5 border-t border-[#E8E1D3] flex items-center justify-between">
+                              <span className="font-black text-[#112616] flex items-center gap-1">
                                 <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                                 <span>الإجمالي:</span>
                               </span>
-                              <span className="text-lg font-black text-[#C25E12] tabular-nums">{safeTotal.toFixed(2)} DH</span>
+                              <span className="text-base sm:text-lg font-black text-[#C25E12] tabular-nums">
+                                {safeTotal.toFixed(2)} DH
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        {/* ─── ملاحظات (منظفة) ─── */}
+                        {/* ─── ملاحظات العميل ─── */}
                         {cleanN && (
-                          <div className="mb-3 p-2.5 rounded-lg bg-amber-50/60 border border-amber-200 text-[11px] text-amber-950">
-                            <span className="font-medium leading-snug">{cleanN}</span>
+                          <div className="mb-3 p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-950 flex items-start gap-2">
+                            <span className="font-black shrink-0">📝 ملاحظة:</span>
+                            <span className="font-medium leading-relaxed">{cleanN}</span>
                           </div>
                         )}
 
-                        {/* ─── قسم التوصيل ─── */}
+                        {/* ─── Accordion المنتجات المفصلة (جديد: يتيح مراجعة الأصناف فوراً) ─── */}
+                        <div className="mb-3 rounded-xl border border-[#E8E1D3] overflow-hidden bg-[#FAF8F4]">
+                          <button
+                            type="button"
+                            onClick={() => toggleItemsAccordion(order.id)}
+                            className="w-full px-3 py-2 flex items-center justify-between text-xs font-black text-[#112616] hover:bg-[#F2EEE4] transition-colors cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Package className="w-4 h-4 text-[#163920]" />
+                              <span>
+                                محتويات السلة ({order.items?.length || 0} أصناف)
+                              </span>
+                            </span>
+                            <span className="text-[11px] text-[#787163] flex items-center gap-1 font-bold">
+                              <span>{isItemsExpanded ? 'إخفاء التفاصيل' : 'عرض الأصناف'}</span>
+                              {isItemsExpanded ? (
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              )}
+                            </span>
+                          </button>
+
+                          {isItemsExpanded && (
+                            <div className="p-3 bg-white border-t border-[#E8E1D3] space-y-2">
+                              {order.items && order.items.length > 0 ? (
+                                <div className="divide-y divide-stone-100">
+                                  {order.items.map((it, idx) => {
+                                    const isWeight = /^kg$/i.test(it.variantLabel || '');
+                                    const qtyText = isWeight
+                                      ? `${it.qty} kg`
+                                      : `${it.qty} × ${it.variantLabel || 'وحدة'}`;
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="py-1.5 flex items-center justify-between text-xs font-bold"
+                                      >
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <span className="text-base select-none">{it.icon || '🥬'}</span>
+                                          <span className="text-[#112616] truncate">{it.name}</span>
+                                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FAF8F4] border border-[#E8E1D3] text-[#524B3E]">
+                                            {qtyText}
+                                          </span>
+                                        </div>
+                                        <span className="text-stone-800 tabular-nums shrink-0">
+                                          {Number(it.lineTotal).toFixed(2)} DH
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-[#787163] text-center py-2">
+                                  لا توجد تفاصيل أصناف مخزنة لهذا الطلب
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ─── صندوق التوصيل وإدارة السائق (inDrive, DONE, Yassir) ─── */}
                         {(() => {
                           const idKey = String(order.id);
                           const currentDispatch = order.delivery_dispatch;
                           const draft = dispatchDrafts[idKey] || currentDispatch || {
                             provider: 'indrive' as DeliveryProvider,
-                            driverName: '', driverPhone: '',
+                            driverName: '',
+                            driverPhone: '',
                             deliveryCost: 25,
                             dispatchStatus: 'ready_for_pickup' as DeliveryDispatchStatus,
-                            zone: detectFezZone(order.address),
+                            zone: zoneKey,
                             packagingType: 'cooler_box',
                           };
                           const isExpanded = expandedDispatchId === order.id;
-                          const providerCfg = DELIVERY_PROVIDERS.find((p) => p.id === draft.provider) || DELIVERY_PROVIDERS[0];
-                          const zoneCfg = FEZ_DELIVERY_ZONES[draft.zone || 'north'] || FEZ_DELIVERY_ZONES.north;
+                          const providerCfg =
+                            DELIVERY_PROVIDERS.find((p) => p.id === draft.provider) || DELIVERY_PROVIDERS[0];
 
                           return (
                             <div className="mb-3 rounded-xl border-2 border-emerald-200/90 bg-emerald-50/40 overflow-hidden text-xs">
-                              <div className="p-2.5 bg-gradient-to-r from-emerald-100/80 to-emerald-50 flex items-center justify-between gap-2 border-b border-emerald-200">
+                              {/* شريط السائق المخصص */}
+                              <div className="p-2.5 bg-gradient-to-r from-emerald-100/90 to-emerald-50 flex items-center justify-between gap-2 border-b border-emerald-200 flex-wrap">
                                 <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                  <span className="inline-flex items-center gap-1 font-black text-emerald-900">
+                                  <span className="inline-flex items-center gap-1 font-black text-emerald-950">
                                     <Bike className="w-4 h-4 text-emerald-700" />
                                     <span>{providerCfg.name}</span>
                                   </span>
-                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white border border-emerald-300 text-emerald-800">{zoneCfg.name}</span>
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white border border-emerald-300 text-emerald-800">
+                                    {zoneInfo.name}
+                                  </span>
                                   {draft.driverName ? (
                                     <span className="text-[11px] font-bold text-stone-700">
-                                      السائق: <strong className="text-emerald-950">{draft.driverName}</strong>
+                                      السائق: <strong className="text-emerald-950 font-black">{draft.driverName}</strong>
                                     </span>
                                   ) : (
-                                    <span className="text-[10px] text-amber-800 font-bold bg-amber-100/70 px-1.5 py-0.5 rounded">بانتظار تخصيص السائق</span>
+                                    <span className="text-[10px] text-amber-900 font-bold bg-amber-100/80 px-2 py-0.5 rounded-md">
+                                      بانتظار تخصيص السائق
+                                    </span>
+                                  )}
+                                  {draft.deliveryCost && (
+                                    <span className="text-[10px] text-stone-600 font-bold">
+                                      (الأجرة: {draft.deliveryCost} DH)
+                                    </span>
                                   )}
                                 </div>
-                                <button type="button" onClick={() => handleToggleDispatchEdit(order)}
-                                  className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 bg-white hover:bg-emerald-50 px-2 py-1 rounded-md border border-emerald-300 transition-colors cursor-pointer">
-                                  <span>{isExpanded ? 'إخفاء' : 'تعديل السائق'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleDispatchEdit(order)}
+                                  className="text-[11px] font-black text-emerald-900 hover:text-emerald-950 flex items-center gap-1 bg-white hover:bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-300 transition-colors cursor-pointer shadow-xs"
+                                >
+                                  <span>{isExpanded ? 'إخفاء الإعدادات' : 'تعديل السائق والمسار'}</span>
                                   {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                                 </button>
                               </div>
 
+                              {/* نموذج تعديل التوصيل والسائق */}
                               {isExpanded && (
                                 <div className="p-3 bg-white border-b border-emerald-200 space-y-2.5">
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div>
-                                      <label className="block text-[10px] font-black text-stone-600 mb-1">شركة التوصيل:</label>
-                                      <select value={draft.provider}
-                                        onChange={(e) => handleUpdateDispatchDraft(order.id, { provider: e.target.value as DeliveryProvider })}
-                                        className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600">
+                                      <label className="block text-[10px] font-black text-stone-700 mb-1">
+                                        تطبيق أو شركة التوصيل:
+                                      </label>
+                                      <select
+                                        value={draft.provider}
+                                        onChange={(e) =>
+                                          handleUpdateDispatchDraft(order.id, {
+                                            provider: e.target.value as DeliveryProvider,
+                                          })
+                                        }
+                                        className="w-full p-2 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600"
+                                      >
                                         {DELIVERY_PROVIDERS.map((p) => (
-                                          <option key={p.id} value={p.id}>{p.name} {p.recommended ? '⭐' : ''}</option>
+                                          <option key={p.id} value={p.id}>
+                                            {p.name} {p.recommended ? '⭐ (الموصى به)' : ''}
+                                          </option>
                                         ))}
                                       </select>
                                     </div>
                                     <div>
-                                      <label className="block text-[10px] font-black text-stone-600 mb-1">منطقة فاس:</label>
-                                      <select value={draft.zone || 'north'}
-                                        onChange={(e) => handleUpdateDispatchDraft(order.id, { zone: e.target.value as FezZoneId })}
-                                        className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600">
-                                        <option value="north">المنطقة الشمالية</option>
-                                        <option value="central">المنطقة الوسطى</option>
-                                        <option value="south">المنطقة الجنوبية</option>
-                                        <option value="east">المنطقة الشرقية</option>
+                                      <label className="block text-[10px] font-black text-stone-700 mb-1">
+                                        منطقة فاس (المسار الذكي):
+                                      </label>
+                                      <select
+                                        value={draft.zone || zoneKey}
+                                        onChange={(e) =>
+                                          handleUpdateDispatchDraft(order.id, {
+                                            zone: e.target.value as FezZoneId,
+                                          })
+                                        }
+                                        className="w-full p-2 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600"
+                                      >
+                                        <option value="north">🟢 المنطقة الشمالية (الأطلس، النرجس)</option>
+                                        <option value="central">🟡 المنطقة الوسطى (طريق إيموزار، فلورنس)</option>
+                                        <option value="south">🟠 المنطقة الجنوبية (عين الشقف، الزهور)</option>
+                                        <option value="east">🟣 المنطقة الشرقية (المرينيين، فاس البالي)</option>
                                       </select>
                                     </div>
                                   </div>
+
                                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <div>
-                                      <label className="block text-[10px] font-black text-stone-600 mb-1">اسم السائق:</label>
-                                      <input type="text" value={draft.driverName || ''}
-                                        onChange={(e) => handleUpdateDispatchDraft(order.id, { driverName: e.target.value })}
+                                      <label className="block text-[10px] font-black text-stone-700 mb-1">
+                                        اسم السائق:
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={draft.driverName || ''}
+                                        onChange={(e) =>
+                                          handleUpdateDispatchDraft(order.id, { driverName: e.target.value })
+                                        }
                                         placeholder="مثال: يوسف العلوي"
-                                        className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white text-stone-800 focus:outline-emerald-600" />
+                                        className="w-full p-2 text-xs rounded-lg border border-stone-300 bg-white text-stone-800 focus:outline-emerald-600 font-bold"
+                                      />
                                     </div>
                                     <div>
-                                      <label className="block text-[10px] font-black text-stone-600 mb-1">هاتف السائق:</label>
-                                      <input type="tel" value={draft.driverPhone || ''}
-                                        onChange={(e) => handleUpdateDispatchDraft(order.id, { driverPhone: e.target.value })}
+                                      <label className="block text-[10px] font-black text-stone-700 mb-1">
+                                        هاتف السائق:
+                                      </label>
+                                      <input
+                                        type="tel"
+                                        value={draft.driverPhone || ''}
+                                        onChange={(e) =>
+                                          handleUpdateDispatchDraft(order.id, { driverPhone: e.target.value })
+                                        }
                                         placeholder="06XXXXXXXX"
-                                        className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white text-stone-800 focus:outline-emerald-600" dir="ltr" />
+                                        className="w-full p-2 text-xs rounded-lg border border-stone-300 bg-white text-stone-800 focus:outline-emerald-600 font-bold"
+                                        dir="ltr"
+                                      />
                                     </div>
                                     <div>
-                                      <label className="block text-[10px] font-black text-stone-600 mb-1">تكلفة التوصيل (DH):</label>
-                                      <input type="number" value={draft.deliveryCost ?? 25}
-                                        onChange={(e) => handleUpdateDispatchDraft(order.id, { deliveryCost: Number(e.target.value) || 0 })}
-                                        className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600" />
+                                      <label className="block text-[10px] font-black text-stone-700 mb-1">
+                                        أجرة التوصيل للسائق (DH):
+                                      </label>
+                                      <input
+                                        type="number"
+                                        value={draft.deliveryCost ?? 25}
+                                        onChange={(e) =>
+                                          handleUpdateDispatchDraft(order.id, {
+                                            deliveryCost: Number(e.target.value) || 0,
+                                          })
+                                        }
+                                        className="w-full p-2 text-xs rounded-lg border border-stone-300 bg-white font-black text-stone-800 focus:outline-emerald-600"
+                                      />
                                     </div>
                                   </div>
+
                                   <div className="flex items-center justify-between pt-1">
-                                    <span className="text-[10px] text-stone-500">نقطة الاستلام: {STORE_PICKUP_HUB.name}</span>
-                                    <button type="button" disabled={savingDispatchId === order.id}
+                                    <span className="text-[10px] text-stone-500 font-medium">
+                                      مقر التموين: {STORE_PICKUP_HUB.name}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      disabled={savingDispatchId === order.id}
                                       onClick={() => handleSaveDispatch(order)}
-                                      className="py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs">
-                                      {savingDispatchId === order.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                                      <span>حفظ</span>
+                                      className="py-1.5 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-95"
+                                    >
+                                      {savingDispatchId === order.id ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      ) : (
+                                        <Save className="w-3.5 h-3.5" />
+                                      )}
+                                      <span>حفظ بيانات التوصيل</span>
                                     </button>
                                   </div>
                                 </div>
                               )}
 
-                              <div className="p-2 grid grid-cols-1 sm:grid-cols-3 gap-1.5 bg-emerald-50/70">
-                                <button type="button" onClick={() => handleSendDriverDispatch(order)}
+                              {/* أزرار التواصل السريع الخاصة بالتوصيل */}
+                              <div className="p-2 grid grid-cols-1 sm:grid-cols-3 gap-1.5 bg-emerald-50/80">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendDriverDispatch(order)}
                                   className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-100/70 text-emerald-900 border border-emerald-300 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                                  title="إرسال بيانات الشحنة للسائق عبر واتساب ونسخها">
+                                  title="إرسال بيانات الشحنة للسائق عبر واتساب ونسخها"
+                                >
                                   <Send className="w-3.5 h-3.5 text-emerald-700" />
                                   <span>استدعاء السائق</span>
                                 </button>
-                                <button type="button" onClick={() => handleSendCustomerDispatchNotify(order)}
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendCustomerDispatchNotify(order)}
                                   className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-100/70 text-emerald-900 border border-emerald-300 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                                  title="إشعار الزبون بمغادرة الطلب">
+                                  title="إشعار الزبون بمغادرة الطلب"
+                                >
                                   <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
                                   <span>إشعار الزبون</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setBordereauOrder({ ...order, delivery_dispatch: draft })}
-                                  className="py-1.5 px-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                                  title="معاينة وطباعة ملصق الشحن">
+                                  className="py-1.5 px-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-95"
+                                  title="معاينة وطباعة ملصق الشحن للصندوق"
+                                >
                                   <Printer className="w-3.5 h-3.5 text-[#F5D76E]" />
                                   <span>ملصق الشحن</span>
                                 </button>
@@ -980,50 +1546,41 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                           );
                         })()}
 
-                        {/* ─── أزرار الإجراءات بتصميم شبكة 2×2 متناسقة ومصغرة ─── */}
-                        <div className="mb-3 grid grid-cols-2 gap-2">
-                          {/* 1. زر الخريطة (مصغر ضمن شبكة 2×2) */}
-                          {(() => {
-                            const mapHref =
-                              order.maps_link ||
-                              (order.address
-                                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address + ' فاس')}`
-                                : '#');
-                            return (
-                              <a
-                                href={mapHref}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-gradient-to-l from-[#2563EB] to-[#1E40AF] hover:from-[#1E40AF] hover:to-[#1E3A8A] text-white font-black text-xs shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 border-2 border-[#1E40AF]"
-                                title={order.maps_link ? 'فتح موقع الزبون الدقيق على الخريطة' : 'البحث عن عنوان الزبون في خرائط جوجل'}
-                              >
-                                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">فتح الخريطة</span>
-                              </a>
-                            );
-                          })()}
+                        {/* ─── أزرار الإجراءات الأساسية (شبكة منظمة 4×1 أو 2×2) ─── */}
+                        <div className="mb-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {/* 1. فتح الخريطة GPS */}
+                          <a
+                            href={mapHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-gradient-to-l from-[#2563EB] to-[#1E40AF] hover:from-[#1E40AF] hover:to-[#1E3A8A] text-white font-black text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95 border-2 border-[#1E40AF]"
+                            title="فتح موقع الزبون على الخريطة"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">فتح الخريطة</span>
+                          </a>
 
-                          {/* 2. زر الفاتورة */}
+                          {/* 2. الفاتورة */}
                           <button
                             type="button"
                             onClick={() => setInvoiceOrder(order)}
-                            className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-xs shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 border-2 border-[#0E2615]"
-                            title="معاينة وطباعة الفاتورة"
+                            className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white font-black text-xs shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95 border-2 border-[#0E2615]"
+                            title="معاينة وطباعة فاتورة الطلب للزبون"
                           >
                             <Printer className="w-3.5 h-3.5 text-[#F5D76E] shrink-0" />
                             <span className="truncate">الفاتورة</span>
                           </button>
 
-                          {/* 3. زر النسخ */}
+                          {/* 3. نسخ تفاصيل الطلب */}
                           <button
                             type="button"
                             onClick={() => handleCopyOrder(order)}
                             className={`inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-black text-xs border-2 shadow-xs transition-all cursor-pointer active:scale-95 ${
                               isCopied
-                                ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
-                                : 'bg-white hover:bg-[#F7F4EC] text-[#524B3E] hover:text-[#112616] border-[#E8E1D3] hover:border-[#C25E12]/40'
+                                ? 'bg-emerald-100 text-emerald-950 border-emerald-400'
+                                : 'bg-white hover:bg-[#F7F4EC] text-[#524B3E] hover:text-[#112616] border-[#E8E1D3] hover:border-[#C25E12]/50'
                             }`}
-                            title="نسخ تفاصيل الطلب"
+                            title="نسخ ملخص الطلب إلى الحافظة"
                           >
                             {isCopied ? (
                               <>
@@ -1038,18 +1595,18 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                             )}
                           </button>
 
-                          {/* 4. زر الحذف */}
+                          {/* 4. حذف الطلب */}
                           <button
                             type="button"
                             onClick={() => setDeleteConfirmOrder(order)}
                             disabled={isBeingDeleted}
-                            className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-black text-xs border-2 shadow-xs transition-all cursor-pointer active:scale-95 bg-red-50 hover:bg-red-100 text-red-700 border-red-300 hover:border-red-400 disabled:opacity-60"
-                            title="حذف الطلب"
+                            className="inline-flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-black text-xs border-2 shadow-xs transition-all cursor-pointer active:scale-95 bg-red-50 hover:bg-red-100 text-red-700 border-red-300 hover:border-red-400 disabled:opacity-50"
+                            title="حذف الطلب نهائياً"
                           >
                             {isBeingDeleted ? (
                               <>
                                 <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />
-                                <span className="truncate">جاري...</span>
+                                <span className="truncate">جارٍ الحذف...</span>
                               </>
                             ) : (
                               <>
@@ -1060,24 +1617,34 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                           </button>
                         </div>
 
-                        {/* ─── صف الحالة ─── */}
+                        {/* ─── أزرار تغيير الحالة المباشرة ─── */}
                         <div className="pt-3 border-t border-[#F0E9DA]">
-                          <div className="text-[11px] font-black text-[#787163] mb-2 flex items-center gap-1.5">
-                            <ShieldCheck className="w-3.5 h-3.5 text-[#C25E12]" />
-                            <span>تغيير الحالة إلى:</span>
+                          <div className="text-[11px] font-black text-[#787163] mb-2 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                              <ShieldCheck className="w-3.5 h-3.5 text-[#C25E12]" />
+                              <span>تحديث حالة الطلب إلى:</span>
+                            </span>
+                            <span className="text-[10px] text-stone-500 font-bold">
+                              الحالية: {cfg.label}
+                            </span>
                           </div>
-                          <div className="grid grid-cols-3 gap-1.5">
-                            {STATUS_ORDER_CHANGEABLE.map((s) => {
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            {STATUS_CHANGE_OPTIONS.map((s) => {
                               const sCfg = STATUS_CONFIG[s];
                               const SIcon = sCfg.Icon;
                               const isActive = safeStatus === s;
                               return (
-                                <button key={s} type="button"
+                                <button
+                                  key={s}
+                                  type="button"
                                   disabled={isActive || isUpdating || isBeingDeleted}
                                   onClick={() => handleStatusChange(order.id, s)}
-                                  className={`py-2 px-2 rounded-lg border-2 text-[11px] sm:text-xs font-black flex items-center justify-center gap-1 transition-all active:scale-95 ${
-                                    isActive ? sCfg.buttonActive + ' cursor-default' : sCfg.buttonIdle + ' cursor-pointer'
-                                  } disabled:opacity-60`}>
+                                  className={`py-2 px-2 rounded-xl border-2 text-[11px] font-black flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
+                                    isActive
+                                      ? sCfg.buttonActive + ' cursor-default'
+                                      : sCfg.buttonIdle + ' cursor-pointer'
+                                  } disabled:opacity-60`}
+                                >
                                   <SIcon className="w-3.5 h-3.5 shrink-0" />
                                   <span className="truncate">{sCfg.label}</span>
                                 </button>
@@ -1091,24 +1658,46 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                 )}
               </div>
 
-              {/* ═══════════ Footer ═══════════ */}
+              {/* ═══════════ شريط القاع (Footer) ═══════════ */}
               <div className="p-3 sm:p-4 bg-white border-t border-[#E8E1D3] flex items-center justify-between gap-2 shrink-0">
                 <p className="text-[11px] text-[#787163] font-black">
-                  عرض <span className="text-[#112616]">{filteredOrders.length}</span> من أصل <span className="text-[#112616]">{orders.length}</span> طلب
+                  عرض <span className="text-[#112616] font-black">{filteredOrders.length}</span> من أصل{' '}
+                  <span className="text-[#112616] font-black">{orders.length}</span> طلب مسجل
                 </p>
-                <button type="button" onClick={onClose}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white text-xs font-black cursor-pointer active:scale-95 transition-all border-2 border-[#0E2615] shadow-sm">
-                  إغلاق
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => exportOrdersToCsv(filteredOrders)}
+                    disabled={filteredOrders.length === 0}
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-[#E8E1D3] hover:border-emerald-600 text-xs font-black text-stone-700 hover:text-emerald-800 transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>تصدير Excel</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-5 py-2 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white text-xs font-black cursor-pointer active:scale-95 transition-all border-2 border-[#0E2615] shadow-xs"
+                  >
+                    إغلاق
+                  </button>
+                </div>
               </div>
             </>
           )}
         </div>
 
-        {/* ═══════════ Delete Confirmation Modal ═══════════ */}
+        {/* ═══════════ نافذة تأكيد الحذف الآمن ═══════════ */}
         {deleteConfirmOrder && (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
-            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => !isDeleting && setDeleteConfirmOrder(null)} />
+          <div
+            className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div
+              className="fixed inset-0 bg-black/75 backdrop-blur-sm"
+              onClick={() => !isDeleting && setDeleteConfirmOrder(null)}
+            />
             <div className="relative bg-white border-2 border-red-300 rounded-[24px] w-full max-w-sm shadow-2xl z-10 overflow-hidden p-6 text-right animate-in zoom-in-95 duration-200">
               <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
                 <Trash2 className="w-7 h-7" />
@@ -1121,63 +1710,66 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                 <strong className="text-[#112616]"> {deleteConfirmOrder.customer_name} </strong>
                 نهائياً؟
                 <br />
-                <span className="text-red-600 font-black">لا يمكن التراجع عن هذا الإجراء.</span>
+                <span className="text-red-600 font-black">لا يمكن التراجع عن هذا الإجراء بعد تنفيذه.</span>
               </p>
-              <div className="bg-[#F7F4EC] p-3.5 rounded-xl border border-[#E8E1D3] mb-4 text-xs text-[#524B3E] space-y-1.5">
+              <div className="bg-[#FAF8F4] p-3.5 rounded-xl border border-[#E8E1D3] mb-4 text-xs text-[#524B3E] space-y-1.5">
                 <div className="flex justify-between">
                   <span className="font-black">الهاتف:</span>
-                  <span className="tabular-nums" dir="ltr">{deleteConfirmOrder.phone}</span>
+                  <span className="tabular-nums font-bold" dir="ltr">
+                    {deleteConfirmOrder.phone}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-black">الإجمالي:</span>
-                  <span className="font-black text-[#C25E12] tabular-nums">{Number(deleteConfirmOrder.total ?? 0).toFixed(2)} DH</span>
+                  <span className="font-black">المبلغ المطلوب:</span>
+                  <span className="font-black text-[#C25E12] tabular-nums">
+                    {Number(deleteConfirmOrder.total ?? 0).toFixed(2)} DH
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
-                <button type="button" disabled={isDeleting} onClick={handleExecuteDelete}
-                  className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={handleExecuteDelete}
+                  className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                >
                   {isDeleting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>جاري الحذف...</span>
+                      <span>جارٍ الحذف...</span>
                     </>
                   ) : (
                     <>
                       <Trash2 className="w-4 h-4" />
-                      <span>نعم، حذف</span>
+                      <span>نعم، حذف الطلب</span>
                     </>
                   )}
                 </button>
-                <button type="button" disabled={isDeleting} onClick={() => setDeleteConfirmOrder(null)}
-                  className="py-3 px-4 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#524B3E] font-black text-sm cursor-pointer active:scale-95 transition-colors">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setDeleteConfirmOrder(null)}
+                  className="py-3 px-4 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#524B3E] font-black text-sm cursor-pointer active:scale-95 transition-colors"
+                >
                   إلغاء
                 </button>
               </div>
             </div>
           </div>
         )}
-    </>
-  );
-
-  if (standalone) {
-    return (
-      <div className="w-full space-y-4">
-        {panelBody}
-        <OrderInvoiceModal order={invoiceOrder} isOpen={!!invoiceOrder} onClose={() => setInvoiceOrder(null)} />
-        <OrderBordereauModal order={bordereauOrder} isOpen={!!bordereauOrder} onClose={() => setBordereauOrder(null)} />
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="fixed inset-0 z-[70] flex items-start sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-        {panelBody}
       </div>
 
-      <OrderInvoiceModal order={invoiceOrder} isOpen={!!invoiceOrder} onClose={() => setInvoiceOrder(null)} />
-      <OrderBordereauModal order={bordereauOrder} isOpen={!!bordereauOrder} onClose={() => setBordereauOrder(null)} />
+      {/* نوافذ الفاتورة وملصق الشحن */}
+      <OrderInvoiceModal
+        order={invoiceOrder}
+        isOpen={!!invoiceOrder}
+        onClose={() => setInvoiceOrder(null)}
+      />
+      <OrderBordereauModal
+        order={bordereauOrder}
+        isOpen={!!bordereauOrder}
+        onClose={() => setBordereauOrder(null)}
+      />
     </>
   );
 };

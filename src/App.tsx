@@ -59,18 +59,6 @@ const AdminBottomDashboard = React.lazy(() =>
 const AdminOrdersPanel = React.lazy(() =>
   import('./components/admin/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
 );
-const AdminPageLayout = React.lazy(() =>
-  import('./components/admin/AdminPageLayout').then((m) => ({ default: m.AdminPageLayout }))
-);
-const FinancePanel = React.lazy(() =>
-  import('./components/admin/FinancePanel').then((m) => ({ default: m.FinancePanel }))
-);
-const AdminDocumentsModal = React.lazy(() =>
-  import('./components/admin/AdminDocumentsModal').then((m) => ({ default: m.AdminDocumentsModal }))
-);
-const AdminMarketingView = React.lazy(() =>
-  import('./components/admin/AdminMarketingView').then((m) => ({ default: m.AdminMarketingView }))
-);
 const PinModal = React.lazy(() =>
   import('./components/admin/AdminReviewModals').then((m) => ({ default: m.PinModal }))
 );
@@ -132,23 +120,6 @@ import { Product, CartItem, ProductCategory, OrderSubmission } from './types';
 import { fetchProducts, submitOrder } from './services/supabaseService';
 import { STORE_CONFIG } from './data/config';
 import { CATEGORIES_CONFIG } from './data/mockProducts';
-import type { AdminRoute } from './components/admin';
-
-function parseAdminRoute(): AdminRoute | null {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const adminParam = params.get('admin') as AdminRoute | null;
-    if (adminParam && ['orders', 'finance', 'documents', 'marketing'].includes(adminParam)) {
-      return adminParam;
-    }
-    const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
-    if (path === 'admin' || path === 'admin/orders') return 'orders';
-    if (path === 'admin/finance') return 'finance';
-    if (path === 'admin/documents') return 'documents';
-    if (path === 'admin/marketing') return 'marketing';
-  } catch {}
-  return null;
-}
 
 export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -262,20 +233,6 @@ export default function App() {
     return null;
   });
 
-  const [activeAdminRoute, setActiveAdminRoute] = useState<AdminRoute | null>(parseAdminRoute);
-
-  const handleNavigateAdmin = useCallback((route: AdminRoute) => {
-    setActiveAdminRoute(route);
-    window.history.pushState({ admin: route }, '', `/admin/${route}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
-  const handleReturnToStore = useCallback(() => {
-    setActiveAdminRoute(null);
-    window.history.pushState({ page: 'main' }, '', '/');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
   // ─── تحديث عنوان الصفحة والوصف والروابط تلقائياً لتحسين SEO ───
   useEffect(() => {
     try {
@@ -284,25 +241,7 @@ export default function App() {
         'متجر خُضرة الإلكتروني لتسوق الخضروات والفواكه الطازجة ومنتجات البقالة والألبان مع التوصيل السريع والدفع عند الاستلام في مدينة فاس ونواحيها.';
       let canonicalPath = '/';
 
-      if (activeAdminRoute) {
-        if (activeAdminRoute === 'orders') {
-          pageTitle = 'إدارة الطلبات | خُضرة فاس';
-          pageDesc = 'لوحة التحكم ومتابعة وتجهيز طلبات الخضار والفواكه وطباعة بوليصات الشحن بفاس.';
-          canonicalPath = '/admin/orders';
-        } else if (activeAdminRoute === 'finance') {
-          pageTitle = 'اللوحة المالية والتوقعات | خُضرة فاس';
-          pageDesc = 'توقعات التدفقات النقدية ونموذج عمل متجر خُضرة بفاس وخطة 12 شهراً.';
-          canonicalPath = '/admin/finance';
-        } else if (activeAdminRoute === 'documents') {
-          pageTitle = 'وثائق وعقود المشروع | خُضرة فاس';
-          pageDesc = 'ملف التمويل والاحتضان وعقود الشراكة والتشغيل الرسمية لشركة خُضرة SARL.';
-          canonicalPath = '/admin/documents';
-        } else if (activeAdminRoute === 'marketing') {
-          pageTitle = 'مركز النشر والتسويق | خُضرة فاس';
-          pageDesc = 'توليد ونشر عروض اليوم الذكية من سوق بنسودة وإرسالها لواتساب وشبكات التواصل.';
-          canonicalPath = '/admin/marketing';
-        }
-      } else if (activeInfoPage === 'about') {
+      if (activeInfoPage === 'about') {
         pageTitle = 'من نحن | متجر خُضرة بفاس';
         pageDesc = 'تعرف على متجر خُضرة لبيع وتوصيل الخضار والفواكه الطازجة يومياً من سوق بنسودة إلى باب منزلك بمدينة فاس.';
         canonicalPath = '/about';
@@ -335,7 +274,7 @@ export default function App() {
         canonicalLink.setAttribute('href', `https://khodrafresh.vercel.app${canonicalPath}`);
       }
     } catch {}
-  }, [selectedCategory, activeInfoPage, activeAdminRoute]);
+  }, [selectedCategory, activeInfoPage]);
 
   // ─── Sorting and in-stock filter ───
   const [sortBy, setSortBy] = useState<SortOption>('default');
@@ -469,22 +408,16 @@ export default function App() {
 
   // ─── استقبال أحداث فتح وإغلاق لوحة الإدارة المركزية ───
   useEffect(() => {
-    const handleAdminRouteEvent = (e: any) => {
-      if (e?.detail) handleNavigateAdmin(e.detail);
-    };
-    const handleOpenOrders = () => handleNavigateAdmin('orders');
-    const handleOpenFinance = () => handleNavigateAdmin('finance');
+    const handleOpenAdmin = () => setIsAdminOrdersOpen(true);
+    const handleCloseAdmin = () => setIsAdminOrdersOpen(false);
 
-    window.addEventListener('khodra_admin_route_changed', handleAdminRouteEvent);
-    window.addEventListener('khodra_open_admin_orders', handleOpenOrders);
-    window.addEventListener('khodra_open_finance_panel', handleOpenFinance);
-
+    window.addEventListener('khodra_open_admin_orders', handleOpenAdmin);
+    window.addEventListener('khodra_close_admin_orders', handleCloseAdmin);
     return () => {
-      window.removeEventListener('khodra_admin_route_changed', handleAdminRouteEvent);
-      window.removeEventListener('khodra_open_admin_orders', handleOpenOrders);
-      window.removeEventListener('khodra_open_finance_panel', handleOpenFinance);
+      window.removeEventListener('khodra_open_admin_orders', handleOpenAdmin);
+      window.removeEventListener('khodra_close_admin_orders', handleCloseAdmin);
     };
-  }, [handleNavigateAdmin]);
+  }, []);
 
   // ─── Handle browser / mobile hardware back button ───
   useEffect(() => {
@@ -493,19 +426,7 @@ export default function App() {
     window.history.pushState({ page: 'main' }, '');
 
     const handlePopState = () => {
-      // 0. إذا كان مسار الإدارة مفتوحاً: الرجوع يغلق الإدارة ويعود للمتجر
-      const currentAdmin = parseAdminRoute();
-      if (currentAdmin !== activeAdminRoute) {
-        setActiveAdminRoute(currentAdmin);
-        if (currentAdmin) return;
-      }
-      if (activeAdminRoute) {
-        setActiveAdminRoute(null);
-        window.history.pushState({ page: 'main' }, '', '/');
-        return;
-      }
-
-      // 0.1 إذا كانت لوحة إدارة الطلبات مفتوحة: زر الرجوع يغلقها فقط ويعود للمتجر بأمان بدون أي خروج من التطبيق!
+      // 0. إذا كانت لوحة إدارة الطلبات مفتوحة: زر الرجوع يغلقها فقط ويعود للمتجر بأمان بدون أي خروج من التطبيق!
       if (isAdminOrdersOpen) {
         setIsAdminOrdersOpen(false);
         window.history.pushState({ page: 'main' }, '');
@@ -879,61 +800,6 @@ export default function App() {
     );
   }
 
-  // ─── وضع الصفحات المخصصة لأدوات الإدارة الأربعة (روابط مستقلة) ───
-  if (activeAdminRoute) {
-    return (
-      <Suspense
-        fallback={
-          <div className="min-h-screen bg-[#F4EFE6] flex items-center justify-center p-8">
-            <div className="flex items-center gap-3 font-black text-sm text-[#163920] bg-white px-6 py-4 rounded-2xl shadow-md border border-[#E8E1D3]">
-              <span className="w-5 h-5 rounded-full border-2 border-[#163920] border-t-transparent animate-spin" />
-              <span>جارٍ تحميل صفحة الإدارة...</span>
-            </div>
-          </div>
-        }
-      >
-        <AdminPageLayout
-          currentRoute={activeAdminRoute}
-          isAdmin={isAdmin}
-          onLoginSuccess={() => {
-            setIsAdmin(true);
-            try {
-              sessionStorage.setItem('khodra_admin_auth', 'true');
-            } catch {}
-          }}
-          onLogout={handleAdminLogout}
-          onNavigate={handleNavigateAdmin}
-          onReturnToStore={handleReturnToStore}
-        >
-          {activeAdminRoute === 'orders' && (
-            <AdminOrdersPanel
-              standalone={true}
-              isOpen={true}
-              onClose={handleReturnToStore}
-            />
-          )}
-          {activeAdminRoute === 'finance' && (
-            <FinancePanel
-              standalone={true}
-              isOpen={true}
-              onClose={handleReturnToStore}
-            />
-          )}
-          {activeAdminRoute === 'documents' && (
-            <AdminDocumentsModal
-              standalone={true}
-              isOpen={true}
-              onClose={handleReturnToStore}
-            />
-          )}
-          {activeAdminRoute === 'marketing' && (
-            <AdminMarketingView />
-          )}
-        </AdminPageLayout>
-      </Suspense>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
 
@@ -1281,7 +1147,6 @@ export default function App() {
           <AdminBottomDashboard
             isAdmin={isAdmin}
             onLogout={handleAdminLogout}
-            onNavigateAdmin={handleNavigateAdmin}
           />
         </Suspense>
       )}

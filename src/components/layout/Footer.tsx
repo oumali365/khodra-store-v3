@@ -54,10 +54,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
 
         {/* ════════ رأس الفوتر: هوية المتجر والعلامة التجارية ════════ */}
         <div className="flex flex-col items-center text-center space-y-2 max-w-2xl mx-auto">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  FES
-              </span>
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0">
+            <span className="text-xl sm:text-2xl">🌿</span>
           </div>
 
           <div>
@@ -65,6 +63,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 متجر <span className="text-[#F5D76E]">{STORE_CONFIG.storeName}</span>
               </h2>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                FES
+              </span>
             </div>
             <p className="text-[11px] sm:text-xs text-stone-300 font-medium mt-1.5 leading-relaxed">
               نختار لكم كل صباح أجود الخضار، الفواكه، ومنتجات البقالة والألبان بعناية فائقة من أسواق الجملة بفاس مع توصيل سريع وموثوق لباب دارك.
