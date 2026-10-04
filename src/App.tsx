@@ -2,7 +2,7 @@
 // App.tsx – الإصدار 4.1
 // يدمج CategoryHeader داخل CategoryFilter + ScrollToTopButton + هيكلية مجلدات منظمة
 // ============================================================
-import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { RotateCcw, ChevronDown } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
@@ -18,19 +18,12 @@ import {
   Hero,
   CategoryFilter,
   ProductCard,
-  FamilyBoxesSection,
-  FamilyBox,
+  type FamilyBox,
   TrustBadges,
   SortOption,
 } from './components/shop';
-import { CustomerReviews } from './components/reviews';
 import { ExitScreen } from './components/common';
-import {
-  AdminErrorBoundary,
-  AdminOrdersPanel,
-  AdminBottomDashboard,
-  PinModal,
-} from './components/admin';
+import { AdminErrorBoundary } from './components/admin/AdminErrorBoundary';
 import {
   verifyAdminPinRemote,
   clearCachedAdminPin,
@@ -51,6 +44,23 @@ const ExitConfirmationModal = React.lazy(() =>
 );
 const SortFilterModal = React.lazy(() =>
   import('./components/shop/SortFilterModal').then((m) => ({ default: m.SortFilterModal }))
+);
+
+// ─── تحميل مؤجل للمكونات الثقيلة واللوحة الإدارية والتقييمات ───
+const FamilyBoxesSection = React.lazy(() =>
+  import('./components/shop/FamilyBoxesSection').then((m) => ({ default: m.FamilyBoxesSection }))
+);
+const CustomerReviews = React.lazy(() =>
+  import('./components/reviews/CustomerReviews').then((m) => ({ default: m.CustomerReviews }))
+);
+const AdminBottomDashboard = React.lazy(() =>
+  import('./components/admin/AdminBottomDashboard').then((m) => ({ default: m.AdminBottomDashboard }))
+);
+const AdminOrdersPanel = React.lazy(() =>
+  import('./components/admin/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
+);
+const PinModal = React.lazy(() =>
+  import('./components/admin/AdminReviewModals').then((m) => ({ default: m.PinModal }))
 );
 
 // ─── تحميل مؤجل للصفحات الإضافية والخريطة ───
@@ -572,7 +582,17 @@ export default function App() {
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.qty, 0), [cart]);
   const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.lineTotal, 0), [cart]);
 
-  const handleAddToCart = (product: Product, quantity: number) => {
+  // خريطة سريعة O(1) لكميات المنتجات في السلة لتسريع العرض وتجنب الحلقات التكرارية
+  const cartQtyByIdMap = useMemo(() => {
+    const map = new Map<number, number>();
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      map.set(item.id, (map.get(item.id) || 0) + item.qty);
+    }
+    return map;
+  }, [cart]);
+
+  const handleAddToCart = useCallback((product: Product, quantity: number) => {
     const isWeight = product.type === 'weight';
     const variantLabel = isWeight ? 'kg' : (product.unit_label || 'وحدة');
     const key = String(product.id);
@@ -608,9 +628,9 @@ export default function App() {
       };
       return [...prev, newItem];
     });
-  };
+  }, []);
 
-  const handleUpdateCartQty = (key: string, delta: number) => {
+  const handleUpdateCartQty = useCallback((key: string, delta: number) => {
     setCart((prev) => {
       return prev
         .map((item) => {
@@ -626,13 +646,13 @@ export default function App() {
         })
         .filter(Boolean) as CartItem[];
     });
-  };
+  }, []);
 
-  const handleRemoveFromCart = (key: string) => {
+  const handleRemoveFromCart = useCallback((key: string) => {
     setCart((prev) => prev.filter((i) => i.key !== key));
-  };
+  }, []);
 
-  const handleClearCart = () => setCart([]);
+  const handleClearCart = useCallback(() => setCart([]), []);
 
   // ─── Order submission ───
   const handleOrderSubmission = async (order: OrderSubmission) => {
@@ -898,9 +918,7 @@ export default function App() {
                     className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 min-h-[320px]"
                   >
                     {displayedProducts.map((product, idx) => {
-                      const inCartQty = cart
-                        .filter((c) => c.id === product.id)
-                        .reduce((sum, c) => sum + c.qty, 0);
+                      const inCartQty = cartQtyByIdMap.get(product.id) || 0;
                       return (
                         <ProductCard
                           key={product.id}
@@ -952,11 +970,19 @@ export default function App() {
 
             {/* ─── Family Boxes Section ─── */}
             <div ref={bundlesSectionRef}>
-              <FamilyBoxesSection
-                onAddToCart={handleAddToCart}
-                selectedBox={selectedFamilyBox}
-                onSelectBox={setSelectedFamilyBox}
-              />
+              <Suspense
+                fallback={
+                  <div className="py-12 text-center text-[#524B3E]/60 text-xs font-bold animate-pulse">
+                    جاري تحميل صناديق العائلة...
+                  </div>
+                }
+              >
+                <FamilyBoxesSection
+                  onAddToCart={handleAddToCart}
+                  selectedBox={selectedFamilyBox}
+                  onSelectBox={setSelectedFamilyBox}
+                />
+              </Suspense>
             </div>
 
             {/* ─── Trust Badges ─── */}
@@ -981,7 +1007,15 @@ export default function App() {
             </MapErrorBoundary>
 
             {/* ─── Customer Reviews ─── */}
-            <CustomerReviews onOpenOrdersPanel={() => setIsAdminOrdersOpen(true)} />
+            <Suspense
+              fallback={
+                <div className="py-12 text-center text-[#524B3E]/60 text-xs font-bold animate-pulse">
+                  جاري تحميل آراء الزبائن...
+                </div>
+              }
+            >
+              <CustomerReviews onOpenOrdersPanel={() => setIsAdminOrdersOpen(true)} />
+            </Suspense>
           </>
         )}
       </main>
@@ -998,18 +1032,20 @@ export default function App() {
             } catch {}
           }}
         >
-          <AdminOrdersPanel
-            isOpen={isAdminOrdersOpen}
-            onClose={() => {
-              setIsAdminOrdersOpen(false);
-              try {
-                document.body.style.overflow = '';
-                document.documentElement.style.overflow = '';
-                document.body.style.pointerEvents = '';
-              } catch {}
-              window.dispatchEvent(new CustomEvent('khodra_orders_updated'));
-            }}
-          />
+          <Suspense fallback={null}>
+            <AdminOrdersPanel
+              isOpen={isAdminOrdersOpen}
+              onClose={() => {
+                setIsAdminOrdersOpen(false);
+                try {
+                  document.body.style.overflow = '';
+                  document.documentElement.style.overflow = '';
+                  document.body.style.pointerEvents = '';
+                } catch {}
+                window.dispatchEvent(new CustomEvent('khodra_orders_updated'));
+              }}
+            />
+          </Suspense>
         </AdminErrorBoundary>
       )}
 
@@ -1106,18 +1142,24 @@ export default function App() {
       <Footer onOpenPage={handleOpenPage} />
 
       {/* ═══════ قسم المدير أسفل الفوتر (بطاقات 2×2) ═══════ */}
-      <AdminBottomDashboard
-        isAdmin={isAdmin}
-        onLogout={handleAdminLogout}
-      />
+      {isAdmin && (
+        <Suspense fallback={null}>
+          <AdminBottomDashboard
+            isAdmin={isAdmin}
+            onLogout={handleAdminLogout}
+          />
+        </Suspense>
+      )}
 
       {/* ═══════ نافذة إدخال الرمز السري للمدير ═══════ */}
       {isAdminPinModalOpen && (
-        <PinModal
-          isOpen={isAdminPinModalOpen}
-          onClose={() => setIsAdminPinModalOpen(false)}
-          onSubmit={handleAdminPinLogin}
-        />
+        <Suspense fallback={null}>
+          <PinModal
+            isOpen={isAdminPinModalOpen}
+            onClose={() => setIsAdminPinModalOpen(false)}
+            onSubmit={handleAdminPinLogin}
+          />
+        </Suspense>
       )}
 
     </div>

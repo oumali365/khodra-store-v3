@@ -43,11 +43,26 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'vendor-react';
+            }
             if (id.includes('node_modules/leaflet')) {
               return 'leaflet';
             }
             if (id.includes('node_modules/canvas-confetti')) {
               return 'confetti';
+            }
+            if (id.includes('node_modules/motion')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('node_modules/@supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-lucide';
+            }
+            if (id.includes('node_modules/gsap')) {
+              return 'vendor-gsap';
             }
           },
         },

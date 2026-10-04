@@ -63,7 +63,7 @@ const RippleButton: React.FC<{
   );
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({
+const ProductCardComponent: React.FC<ProductCardProps> = ({
   product,
   inCartQty,
   onAddToCart,
@@ -401,3 +401,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     </motion.article>
   );
 };
+
+export const ProductCard = React.memo(ProductCardComponent, (prev, next) => {
+  return (
+    prev.product.id === next.product.id &&
+    prev.inCartQty === next.inCartQty &&
+    prev.product.stock === next.product.stock &&
+    prev.product.price === next.product.price &&
+    prev.product.name === next.product.name &&
+    prev.product.image_url === next.product.image_url &&
+    prev.product.active === next.product.active &&
+    prev.index === next.index
+  );
+});
