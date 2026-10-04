@@ -244,19 +244,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
         <div className="pt-4 border-t border-zinc-800/60">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center py-1">
 
-            {/* 🔒 القفل – على يمين النص (يظهر أولًا في RTL) */}
-            <button
-              type="button"
-              onClick={handleAdminTrigger}
-              title=""
-              aria-label=""
-              tabIndex={-1}
-              className="admin-lock p-0 m-0 bg-transparent border-0 shadow-none outline-none text-[#070b09] hover:text-[#F5D76E] transition-colors cursor-pointer select-none shrink-0 leading-none order-1"
-              style={{ background: 'transparent', border: 'none' }}
-            >
-              <Lock className="w-3 h-3" />
-            </button>
-
             {/* 📝 النص الرئيسي */}
             <p className="text-sm sm:text-base text-stone-200 font-bold leading-tight order-2">
               جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
@@ -270,13 +257,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
             <p className="text-[11px] sm:text-xs text-stone-400 font-semibold order-4">
               شركة خُضرة للتجارة الإلكترونية SARL
             </p>
-          </div>
-
-          {/* سطر ثانوي: حقوق إضافية – حشو مُقلَّص */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-[10px] sm:text-[11px] text-zinc-500 font-medium text-center">
-            <span>صُنع بحب في المغرب 🇲🇦</span>
-            <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-zinc-700" aria-hidden="true" />
-            <span>جميع العلامات التجارية مملوكة لأصحابها</span>
           </div>
         </div>
 
