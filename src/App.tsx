@@ -905,30 +905,32 @@ export default function App() {
           onNavigate={handleNavigateAdmin}
           onReturnToStore={handleReturnToStore}
         >
-          {activeAdminRoute === 'orders' && (
-            <AdminOrdersPanel
-              standalone={true}
-              isOpen={true}
-              onClose={handleReturnToStore}
-            />
-          )}
-          {activeAdminRoute === 'finance' && (
-            <FinancePanel
-              standalone={true}
-              isOpen={true}
-              onClose={handleReturnToStore}
-            />
-          )}
-          {activeAdminRoute === 'documents' && (
-            <AdminDocumentsModal
-              standalone={true}
-              isOpen={true}
-              onClose={handleReturnToStore}
-            />
-          )}
-          {activeAdminRoute === 'marketing' && (
-            <AdminMarketingView />
-          )}
+          <AdminErrorBoundary onClose={handleReturnToStore}>
+            {activeAdminRoute === 'orders' && (
+              <AdminOrdersPanel
+                standalone={true}
+                isOpen={true}
+                onClose={handleReturnToStore}
+              />
+            )}
+            {activeAdminRoute === 'finance' && (
+              <FinancePanel
+                standalone={true}
+                isOpen={true}
+                onClose={handleReturnToStore}
+              />
+            )}
+            {activeAdminRoute === 'documents' && (
+              <AdminDocumentsModal
+                standalone={true}
+                isOpen={true}
+                onClose={handleReturnToStore}
+              />
+            )}
+            {activeAdminRoute === 'marketing' && (
+              <AdminMarketingView />
+            )}
+          </AdminErrorBoundary>
         </AdminPageLayout>
       </Suspense>
     );
@@ -1273,7 +1275,7 @@ export default function App() {
       />
 
       {/* ═══════ Footer ═══════ */}
-      <Footer onOpenPage={handleOpenPage} />
+      <Footer onOpenPage={handleOpenPage} hasStickyBar={cartCount > 0} />
 
       {/* ═══════ قسم المدير أسفل الفوتر (بطاقات 2×2) ═══════ */}
       {isAdmin && (

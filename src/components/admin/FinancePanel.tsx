@@ -235,24 +235,47 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
   standalone = false,
   onClose,
 }) => {
-  const [lang, setLang] = useState<FinanceLang>('ar'); // ⚠️ تم إضافة حالة اللغة
+  const [lang, setLang] = useState<FinanceLang>('ar');
 
   const [months, setMonths] = useState<MonthData[]>(() => {
     try {
       const saved = localStorage.getItem('khodra_finance_months');
-      return saved ? JSON.parse(saved) : INITIAL_MONTHS;
-    } catch {
-      return INITIAL_MONTHS;
-    }
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 12) {
+          const valid = parsed.every(
+            (m) =>
+              m &&
+              Number.isFinite(m.month) &&
+              Number.isFinite(m.ordersPerDay) &&
+              m.ordersPerDay > 0 &&
+              Number.isFinite(m.workingDays) &&
+              Number.isFinite(m.avgBasket)
+          );
+          if (valid) return parsed;
+        }
+      }
+    } catch {}
+    return INITIAL_MONTHS;
   });
 
   const [assumptions, setAssumptions] = useState<Assumptions>(() => {
     try {
       const saved = localStorage.getItem('khodra_finance_assumptions');
-      return saved ? JSON.parse(saved) : INITIAL_ASSUMPTIONS;
-    } catch {
-      return INITIAL_ASSUMPTIONS;
-    }
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          parsed &&
+          Number.isFinite(parsed.cogsPercent) &&
+          Number.isFinite(parsed.deliveryCostPerOrder) &&
+          Number.isFinite(parsed.fixedCostsPerMonth) &&
+          Number.isFinite(parsed.taxPercent)
+        ) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return INITIAL_ASSUMPTIONS;
   });
 
   const [showAssumptions, setShowAssumptions] = useState(false);
@@ -262,7 +285,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [copiedTable, setCopiedTable] = useState(false);
 
-  const t = FINANCE_TRANSLATIONS[lang];
+  const t = FINANCE_TRANSLATIONS[lang] || FINANCE_TRANSLATIONS.ar;
 
   useEffect(() => {
     try {
@@ -276,24 +299,25 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     } catch {}
   }, [assumptions]);
 
+  // ⚠️ قفل تمرير الصفحة فقط في وضع النافذة المنبثقة وليس في الصفحة المستقلة لتجنب تجمد الشاشة
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !standalone) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = prev;
       };
     }
-  }, [isOpen]);
+  }, [isOpen, standalone]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || standalone) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && onClose) onClose();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  }, [isOpen, standalone, onClose]);
 
   const results: MonthResult[] = useMemo(() => {
     return months.map((m) => {
@@ -338,14 +362,19 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
   }, [results]);
 
   const updateMonth = (index: number, field: keyof MonthData, value: number) => {
+    const safeVal = Number.isFinite(value) && value > 0 ? value : 1;
     setMonths((prev) =>
-      prev.map((m, i) => (i === index ? { ...m, [field]: value } : m))
+      prev.map((m, i) => (i === index ? { ...m, [field]: safeVal } : m))
     );
   };
 
   const handleConfirmReset = () => {
     setMonths(INITIAL_MONTHS);
     setAssumptions(INITIAL_ASSUMPTIONS);
+    try {
+      localStorage.removeItem('khodra_finance_months');
+      localStorage.removeItem('khodra_finance_assumptions');
+    } catch {}
     setConfirmingReset(false);
     setSavedFlash(true);
     setFeedbackMessage('Données réinitialisées aux valeurs d’origine');
@@ -447,26 +476,34 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     } catch {}
   };
 
-  // ⚠️ تصحيح حساب نقطة التعادل لتعتمد على بيانات الشهر الأول والفرضيات المحدثة
+  // ⚠️ تصحيح حساب نقطة التعادل لتعتمد على بيانات الشهر الأول والفرضيات المحدثة مع حماية من القسمة على صفر أو القيم غير المحددة
   const breakEven = useMemo(() => {
-    const targetAOV = months[0]?.avgBasket || 115;
+    const firstMonth = months[0] || INITIAL_MONTHS[0];
+    const targetAOV = Number.isFinite(firstMonth?.avgBasket) && (firstMonth?.avgBasket ?? 0) > 0 ? firstMonth.avgBasket : 115;
+    const cogsPct = Number.isFinite(assumptions.cogsPercent) ? assumptions.cogsPercent : 68;
+    const deliveryCost = Number.isFinite(assumptions.deliveryCostPerOrder) ? assumptions.deliveryCostPerOrder : 8;
+    const taxPct = Number.isFinite(assumptions.taxPercent) ? assumptions.taxPercent : 1;
+    const fixedCosts = Number.isFinite(assumptions.fixedCostsPerMonth) ? assumptions.fixedCostsPerMonth : 7800;
+
     const variableCostPerOrder =
-      (targetAOV * assumptions.cogsPercent) / 100 +
-      assumptions.deliveryCostPerOrder +
+      (targetAOV * cogsPct) / 100 +
+      deliveryCost +
       2 + // Packaging cost
-      (targetAOV * assumptions.taxPercent) / 100;
+      (targetAOV * taxPct) / 100;
     const contribution = targetAOV - variableCostPerOrder;
-    if (contribution <= 0) return { orders: 999, perDay: 999, workingDays: 26 };
+    if (!Number.isFinite(contribution) || contribution <= 0) {
+      return { orders: 999, perDay: 38, workingDays: 26 };
+    }
     
-    const breakevenOrders = Math.ceil(assumptions.fixedCostsPerMonth / contribution);
-    const workingDays = months[0]?.workingDays || 26;
-    const breakevenPerDay = Math.ceil(breakevenOrders / workingDays);
+    const breakevenOrders = Math.max(1, Math.ceil(fixedCosts / contribution));
+    const workingDays = Number.isFinite(firstMonth?.workingDays) && (firstMonth?.workingDays ?? 0) > 0 ? firstMonth.workingDays : 26;
+    const breakevenPerDay = Math.max(1, Math.ceil(breakevenOrders / workingDays));
     
     return { orders: breakevenOrders, perDay: breakevenPerDay, workingDays };
   }, [months, assumptions]);
 
-  const maxRevenue = Math.max(...results.map((r) => r.revenue), 1);
-  const maxProfit = Math.max(...results.map((r) => Math.abs(r.netProfit)), 1);
+  const maxRevenue = Math.max(...results.map((r) => (Number.isFinite(r.revenue) ? r.revenue : 0)), 1);
+  const maxProfit = Math.max(...results.map((r) => (Number.isFinite(r.netProfit) ? Math.abs(r.netProfit) : 0)), 1);
 
   if (!isOpen && !standalone) return null;
 
@@ -476,9 +513,9 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
       className={`relative bg-[#FAF8F4] w-full ${
         standalone
-          ? 'max-w-7xl mx-auto shadow-md rounded-3xl min-h-[700px]'
-          : 'sm:max-w-6xl shadow-2xl sm:rounded-3xl max-h-screen sm:max-h-[95vh]'
-      } flex flex-col overflow-hidden text-left border border-[#E8E1D3]`}
+          ? 'max-w-7xl mx-auto shadow-md rounded-3xl'
+          : 'sm:max-w-6xl shadow-2xl sm:rounded-3xl max-h-screen sm:max-h-[95vh] flex flex-col overflow-hidden'
+      } text-left border border-[#E8E1D3]`}
     >
 
         {/* ═══════ Header ═══════ */}
@@ -614,7 +651,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
         )}
 
         {/* ═══════ المحتوى الرئيسي ═══════ */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4">
+        <div className={`${standalone ? 'p-3 sm:p-5 space-y-4' : 'flex-1 overflow-y-auto p-3 sm:p-5 space-y-4'}`}>
 
           {/* ─── 4 بطاقات مؤشرات أداء رئيسية KPI Cards ─── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
