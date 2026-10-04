@@ -37,9 +37,10 @@ import {
   FezZoneId,
 } from '../../types';
 
-interface AdminOrdersPanelProps {
-  isOpen: boolean;
-  onClose: () => void;
+export interface AdminOrdersPanelProps {
+  isOpen?: boolean;
+  standalone?: boolean;
+  onClose?: () => void;
   onOrdersChange?: (counts: { total: number; pending: number }) => void;
 }
 
@@ -280,7 +281,12 @@ ${driverPhone ? `📞 رقم السائق: ${driverPhone}\n` : ''}⏰ الوصو
 شكراً لثقتك في خُضرة 🌿`;
 }
 
-export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onClose, onOrdersChange }) => {
+export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
+  isOpen = false,
+  standalone = false,
+  onClose,
+  onOrdersChange,
+}) => {
   const [activeTab, setActiveTab] = useState<'orders' | 'fleet'>('orders');
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -324,7 +330,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
   }, [orders, onOrdersChange]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen && !standalone) return;
     let mounted = true;
     setIsLoading(true);
 
@@ -375,10 +381,11 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
         } catch {}
       }
     };
-  }, [isOpen]);
+  }, [isOpen, standalone]);
 
   // تأمين التمرير للصفحة الرئيسية ومنع تجميدها بعد الخروج
   useEffect(() => {
+    if (standalone) return;
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -397,7 +404,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
         document.body.style.pointerEvents = '';
       } catch {}
     };
-  }, [isOpen]);
+  }, [isOpen, standalone]);
 
   // إغلاق النوافذ الفرعية أو اللوحة عند الضغط على Escape
   useEffect(() => {
@@ -598,14 +605,15 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
     });
   }, [orders, filterStatus, searchQuery]);
 
-  if (!isOpen) return null;
+  if (!isOpen && !standalone) return null;
 
-  return (
+  const panelBody = (
     <>
-      <div className="fixed inset-0 z-[70] flex items-start sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-
-        <div className="relative bg-[#FBF9F5] w-full sm:max-w-4xl shadow-2xl z-10 sm:rounded-[28px] flex flex-col max-h-screen sm:max-h-[92vh] overflow-hidden text-right border border-[#E8E1D3]">
+      <div className={`relative bg-[#FBF9F5] w-full ${
+        standalone
+          ? 'max-w-7xl mx-auto shadow-md rounded-3xl min-h-[650px]'
+          : 'sm:max-w-4xl shadow-2xl sm:rounded-[28px] max-h-screen sm:max-h-[92vh]'
+      } flex flex-col overflow-hidden text-right border border-[#E8E1D3]`}>
 
           {/* ═══════════ Header ═══════════ */}
           <div className="relative p-4 sm:p-5 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shrink-0 shadow-md overflow-hidden">
@@ -1148,6 +1156,24 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({ isOpen, onCl
             </div>
           </div>
         )}
+    </>
+  );
+
+  if (standalone) {
+    return (
+      <div className="w-full space-y-4">
+        {panelBody}
+        <OrderInvoiceModal order={invoiceOrder} isOpen={!!invoiceOrder} onClose={() => setInvoiceOrder(null)} />
+        <OrderBordereauModal order={bordereauOrder} isOpen={!!bordereauOrder} onClose={() => setBordereauOrder(null)} />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[70] flex items-start sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+        {panelBody}
       </div>
 
       <OrderInvoiceModal order={invoiceOrder} isOpen={!!invoiceOrder} onClose={() => setInvoiceOrder(null)} />

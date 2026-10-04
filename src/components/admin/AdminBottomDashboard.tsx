@@ -19,28 +19,24 @@ import {
 import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
 import { clearCachedAdminPin, updateAdminPassword } from '../../services/supabaseService';
 import {
-  AdminOrdersPanel,
-  FinancePanel,
-  AdminDocumentsModal,
-  AdminSocialPublisherModal,
   ChangePinModal,
   AdminErrorBoundary,
 } from './index';
 
+export type AdminRoute = 'orders' | 'finance' | 'documents' | 'marketing';
+
 interface AdminBottomDashboardProps {
   isAdmin: boolean;
   onLogout: () => void;
+  onNavigateAdmin?: (route: AdminRoute) => void;
   onChangePinSuccess?: (msg: string) => void;
 }
 
 export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
   isAdmin,
   onLogout,
+  onNavigateAdmin,
 }) => {
-  const [isOrdersOpen, setIsOrdersOpen] = useState(false);
-  const [isFinanceOpen, setIsFinanceOpen] = useState(false);
-  const [isDocsOpen, setIsDocsOpen] = useState(false);
-  const [isSocialOpen, setIsSocialOpen] = useState(false);
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const [dashboardNotice, setDashboardNotice] = useState<string | null>(null);
 
@@ -69,21 +65,17 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
     });
   }, []);
 
-  const handleOpenOrders = () => {
-    markAsSeen();
-    setIsOrdersOpen(true);
-  };
-
-  const handleCloseOrders = () => {
-    setIsOrdersOpen(false);
-    try {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-      document.body.style.pointerEvents = '';
-    } catch {}
-    try {
-      refreshOrders();
-    } catch {}
+  const handleNavigate = (e: React.MouseEvent, route: AdminRoute) => {
+    if (!e.metaKey && !e.ctrlKey && !e.shiftKey) {
+      e.preventDefault();
+      if (route === 'orders') markAsSeen();
+      if (onNavigateAdmin) {
+        onNavigateAdmin(route);
+      } else {
+        window.history.pushState({ admin: route }, '', `/admin/${route}`);
+        window.dispatchEvent(new CustomEvent('khodra_admin_route_changed', { detail: route }));
+      }
+    }
   };
 
   const handleChangePinSubmit = async (newPin: string) => {
@@ -96,21 +88,6 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
     }
     return { success: false, message: res.message || 'فشل تحديث الرمز السري' };
   };
-
-  // الاستماع للأحداث الخارجية
-  useEffect(() => {
-    const handleOpenFinanceEvent = () => setIsFinanceOpen(true);
-    const handleOpenOrdersEvent = () => {
-      markAsSeen();
-      setIsOrdersOpen(true);
-    };
-    window.addEventListener('khodra_open_finance_panel', handleOpenFinanceEvent);
-    window.addEventListener('khodra_open_admin_orders', handleOpenOrdersEvent);
-    return () => {
-      window.removeEventListener('khodra_open_finance_panel', handleOpenFinanceEvent);
-      window.removeEventListener('khodra_open_admin_orders', handleOpenOrdersEvent);
-    };
-  }, [markAsSeen]);
 
   if (!isAdmin) return null;
 
@@ -204,13 +181,13 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
           </div>
         )}
 
-        {/* ═══════ شبكة البطاقات 2×2 (المطلوبة بالتحديد) ═══════ */}
+        {/* ═══════ شبكة البطاقات 2×2 بروابط HTML مخصصة ═══════ */}
         <div className="grid grid-cols-2 gap-3 sm:gap-5">
 
           {/* ─── البطاقة 1: إدارة الطلبات والتجهيز ─── */}
-          <button
-            type="button"
-            onClick={handleOpenOrders}
+          <a
+            href="/admin/orders"
+            onClick={(e) => handleNavigate(e, 'orders')}
             className="group relative bg-gradient-to-br from-[#163920] to-[#0E2615] hover:from-[#1E4D2B] hover:to-[#163920] border-2 border-[#2D6A3F]/50 hover:border-[#EAB308]/70 rounded-2xl p-3.5 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(45,106,63,0.35)] active:scale-[0.98] flex flex-col justify-between min-h-[160px] sm:min-h-[175px]"
           >
             <div className="flex items-start justify-between gap-2 w-full">
@@ -244,12 +221,12 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
                 متابعة وتجهيز الطلبات، وطباعة بوليصة الشحن (Bordereau 80mm).
               </p>
             </div>
-          </button>
+          </a>
 
           {/* ─── البطاقة 2: اللوحة المالية والتوقعات ─── */}
-          <button
-            type="button"
-            onClick={() => setIsFinanceOpen(true)}
+          <a
+            href="/admin/finance"
+            onClick={(e) => handleNavigate(e, 'finance')}
             className="group relative bg-gradient-to-br from-[#2a1708] to-[#120a03] hover:from-[#3a200b] hover:to-[#2a1708] border-2 border-amber-600/40 hover:border-[#F5D76E]/70 rounded-2xl p-3.5 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(234,88,12,0.25)] active:scale-[0.98] flex flex-col justify-between min-h-[160px] sm:min-h-[175px]"
           >
             <div className="flex items-start justify-between gap-2 w-full">
@@ -274,12 +251,12 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
                 CA, Seuil de rentabilité et prévisions de trésorerie sur 12 mois.
               </p>
             </div>
-          </button>
+          </a>
 
           {/* ─── البطاقة 3: وثائق وعقود المشروع (SARL) ─── */}
-          <button
-            type="button"
-            onClick={() => setIsDocsOpen(true)}
+          <a
+            href="/admin/documents"
+            onClick={(e) => handleNavigate(e, 'documents')}
             className="group relative bg-gradient-to-br from-[#122A1A] to-[#0A1A0F] hover:from-[#1A3D24] hover:to-[#122A1A] border-2 border-emerald-600/40 hover:border-[#EAB308]/70 rounded-2xl p-3.5 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(16,185,129,0.25)] active:scale-[0.98] flex flex-col justify-between min-h-[160px] sm:min-h-[175px]"
           >
             <div className="flex items-start justify-between gap-2 w-full">
@@ -304,12 +281,12 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
                 ملف التمويل، Pitch Deck، وعقود السائق والتوريد والشراكة.
               </p>
             </div>
-          </button>
+          </a>
 
           {/* ─── البطاقة 4: النشر والتسويق الاجتماعي ─── */}
-          <button
-            type="button"
-            onClick={() => setIsSocialOpen(true)}
+          <a
+            href="/admin/marketing"
+            onClick={(e) => handleNavigate(e, 'marketing')}
             className="group relative bg-gradient-to-br from-[#0C2D48] to-[#071E30] hover:from-[#113B5E] hover:to-[#0C2D48] border-2 border-[#0284C7]/40 hover:border-[#F5D76E]/70 rounded-2xl p-3.5 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(2,132,199,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[160px] sm:min-h-[175px]"
           >
             <div className="flex items-start justify-between gap-2 w-full">
@@ -334,43 +311,20 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
                 توليد وإرسال عروض اليوم آلياً إلى واتساب وشبكات التواصل.
               </p>
             </div>
-          </button>
+          </a>
 
         </div>
 
       </div>
 
-      {/* ═══════ النوافذ المنبثقة المرتبطة بالقسم ═══════ */}
-      {isOrdersOpen && (
-        <AdminErrorBoundary onClose={handleCloseOrders}>
-          <AdminOrdersPanel
-            isOpen={isOrdersOpen}
-            onClose={handleCloseOrders}
-            onOrdersChange={refreshOrders}
-          />
-        </AdminErrorBoundary>
+      {/* ═══════ نافذة تغيير الرمز السري ═══════ */}
+      {isChangePinOpen && (
+        <ChangePinModal
+          isOpen={isChangePinOpen}
+          onClose={() => setIsChangePinOpen(false)}
+          onSubmit={handleChangePinSubmit}
+        />
       )}
-
-      <FinancePanel
-        isOpen={isFinanceOpen}
-        onClose={() => setIsFinanceOpen(false)}
-      />
-
-      <AdminDocumentsModal
-        isOpen={isDocsOpen}
-        onClose={() => setIsDocsOpen(false)}
-      />
-
-      <AdminSocialPublisherModal
-        isOpen={isSocialOpen}
-        onClose={() => setIsSocialOpen(false)}
-      />
-
-      <ChangePinModal
-        isOpen={isChangePinOpen}
-        onClose={() => setIsChangePinOpen(false)}
-        onSubmit={handleChangePinSubmit}
-      />
     </section>
   );
 };
