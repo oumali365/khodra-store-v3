@@ -74,129 +74,86 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
           </div>
         </div>
 
-        {/* ════════ القسم الأوسط: معلومات الخدمة والتغطية في بطاقتين متوازنتين ════════ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5 pt-1">
-
-          {/* ─── بطاقة أ: روابط وخدمات المتجر ─── */}
-          <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 sm:p-5 text-center space-y-3 shadow-md">
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm sm:text-base font-black text-white">
-                  معلومات وخدمات المتجر
-                </h3>
-              </div>
-              <span className="text-[10px] font-bold text-stone-400">
-                روابط سريعة
-              </span>
+        {/* ─── بطاقة : معلومات وخدمات المتجر ─── */}
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-5 sm:p-6 text-center space-y-4 shadow-md flex flex-col justify-between">
+            {/* عنوان نظيف بدون أي أيقونة (حذف الأيقونة حسب التوجيهات) */}
+            <div className="pb-3 border-b border-zinc-800 text-center">
+              <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                معلومات وخدمات المتجر
+              </h3>
             </div>
 
-            {/* شبكة البطاقات 2×2 */}
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
+            {/* شبكة البطاقات 2×2 – محتوى متمركز بهوامش وحشوات مناسبة */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {/* بطاقة: من نحن */}
               <button
                 type="button"
                 onClick={() => onOpenPage('about')}
-                className="group bg-gradient-to-br from-zinc-900/90 to-[#0e1f13] border border-emerald-500/30 hover:border-[#EAB308]/60 rounded-xl p-3 text-center transition-all duration-200 shadow-md hover:shadow-emerald-950/50 flex flex-col items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
+                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 text-center transition-all duration-200 shadow-sm flex flex-col items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2D6A3F] to-[#183921] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-sm">
-                  <BookOpen className="w-4 h-4 text-[#F5D76E]" strokeWidth={2.5} />
+                <div className="w-11 h-11 rounded-xl bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E] shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <BookOpen className="w-5 h-5" />
                 </div>
-                <h4 className="text-[11px] sm:text-xs font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
-                  من نحن ورسالتنا
-                </h4>
+                <div className="space-y-1 text-center">
+                  <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                    من نحن ورسالتنا
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">قصتنا وقيمنا</p>
+                </div>
               </button>
 
               {/* بطاقة: سياسة التوصيل */}
               <button
                 type="button"
                 onClick={() => onOpenPage('policy')}
-                className="group bg-gradient-to-br from-zinc-900/90 to-[#0e1f13] border border-emerald-500/30 hover:border-[#EAB308]/60 rounded-xl p-3 text-center transition-all duration-200 shadow-md hover:shadow-emerald-950/50 flex flex-col items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
+                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 text-center transition-all duration-200 shadow-sm flex flex-col items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2D6A3F] to-[#183921] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-sm">
-                  <Truck className="w-4 h-4 text-[#F5D76E]" strokeWidth={2.5} />
+                <div className="w-11 h-11 rounded-xl bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E] shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <Truck className="w-5 h-5" />
                 </div>
-                <h4 className="text-[11px] sm:text-xs font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
-                  سياسة التوصيل والإرجاع
-                </h4>
+                <div className="space-y-1 text-center">
+                  <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                    التوصيل والإرجاع
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">المواعيد والشروط</p>
+                </div>
               </button>
 
               {/* بطاقة: سياسة الخصوصية */}
               <button
                 type="button"
                 onClick={() => onOpenPage('privacy')}
-                className="group bg-gradient-to-br from-zinc-900/90 to-[#0e1f13] border border-emerald-500/30 hover:border-[#EAB308]/60 rounded-xl p-3 text-center transition-all duration-200 shadow-md hover:shadow-emerald-950/50 flex flex-col items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
+                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 text-center transition-all duration-200 shadow-sm flex flex-col items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2D6A3F] to-[#183921] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-sm">
-                  <Lock className="w-4 h-4 text-[#F5D76E]" strokeWidth={2.5} />
+                <div className="w-11 h-11 rounded-xl bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E] shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <Lock className="w-5 h-5" />
                 </div>
-                <h4 className="text-[11px] sm:text-xs font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
-                  سياسة الخصوصية
-                </h4>
+                <div className="space-y-1 text-center">
+                  <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                    سياسة الخصوصية
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">أمان وسرية بياناتك</p>
+                </div>
               </button>
 
-              {/* بطاقة: آراء الزبناء */}
+              {/* بطاقة: تقييمات الزبناء */}
               <button
                 type="button"
                 onClick={() => scrollToSection('customer-reviews-section')}
-                className="group bg-gradient-to-br from-zinc-900/90 to-[#0e1f13] border border-emerald-500/30 hover:border-[#EAB308]/60 rounded-xl p-3 text-center transition-all duration-200 shadow-md hover:shadow-emerald-950/50 flex flex-col items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
+                className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 text-center transition-all duration-200 shadow-sm flex flex-col items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2D6A3F] to-[#183921] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-sm">
-                  <Star className="w-4 h-4 text-[#F5D76E]" strokeWidth={2.5} />
+                <div className="w-11 h-11 rounded-xl bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E] shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                  <Star className="w-5 h-5" />
                 </div>
-                <h4 className="text-[11px] sm:text-xs font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
-                  آراء زبنائنا بفاس
-                </h4>
+                <div className="space-y-1 text-center">
+                  <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                    تقييمات الزبناء
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">آراء أهل فاس</p>
+                </div>
               </button>
             </div>
           </div>
-
-          {/* ─── بطاقة ب: أوقات العمل والتغطية ─── */}
-          <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 sm:p-5 text-center space-y-3 shadow-md">
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm sm:text-base font-black text-white">
-                  المواعيد ونطاق التوصيل
-                </h3>
-              </div>
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                متاح يومياً
-              </span>
-            </div>
-
-            <div className="space-y-2.5 text-[11px] text-stone-300">
-              <div className="flex flex-col items-center gap-1.5 bg-zinc-800/40 p-3 rounded-xl border border-zinc-800 text-center">
-                <Clock className="w-4 h-4 text-[#F5D76E]" />
-                <div>
-                  <strong className="text-white block font-black text-[11px] sm:text-xs mb-0.5">
-                    أوقات استقبال الطلبات والتوصيل:
-                  </strong>
-                  <span className="text-stone-300 text-[10px] sm:text-[11px] leading-snug">
-                    يومياً وطيلة أيام الأسبوع من 08:00 صباحاً حتى 20:00 مساءً.
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center gap-1.5 bg-zinc-800/40 p-3 rounded-xl border border-zinc-800 text-center">
-                <MapPin className="w-4 h-4 text-[#EA580C]" />
-                <div>
-                  <strong className="text-white block font-black text-[11px] sm:text-xs mb-0.5">
-                    أحياء مدينة فاس المغطاة:
-                  </strong>
-                  <span className="text-stone-300 text-[10px] sm:text-[11px] leading-snug">
-                    طريق إيموزار، الأطلس، النرجس، عين الشقف، المدينة الجديدة، زواغة، وبنسودة...
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
 
         {/* ════════ مركز خدمة الزبناء والواتساب ════════ */}
         <div className="bg-gradient-to-br from-[#122A18] via-[#0b1c10] to-[#07130a] border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-6 text-center shadow-xl relative overflow-hidden">
