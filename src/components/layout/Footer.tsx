@@ -292,13 +292,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
                 <Lock className="w-3 h-3" />
               </button>
             </div>
-
-            {/* سطر ثانوي: حقوق إضافية */}
-            <div className="mt-3 pt-3 border-t border-zinc-800/70 flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 text-[10px] sm:text-[11px] text-zinc-500 font-medium text-center">
-              <span>صُنع بحب في المغرب 🇲🇦</span>
-              <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-zinc-700" aria-hidden="true" />
-              <span>جميع العلامات التجارية مملوكة لأصحابها</span>
-            </div>
           </div>
         </div>
 
