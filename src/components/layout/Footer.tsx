@@ -155,74 +155,77 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
             </div>
           </div>
 
-        {/* ════════ مركز خدمة الزبناء والواتساب ════════ */}
-        <div className="bg-gradient-to-br from-[#122A18] via-[#0b1c10] to-[#07130a] border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-6 text-center shadow-xl relative overflow-hidden">
+        {/* ════════ مركز خدمة الزبناء والواتساب المطور (مُوسَّط) ════════ */}
+        <div className="bg-gradient-to-br from-[#102715] via-[#09170d] to-[#050e08] border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-6 text-center shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-1/3 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="relative max-w-xl mx-auto space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>• En ligne</span>
+              <span>خدمة الزبناء والطلبات الخاصة • فاس</span>
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-sm sm:text-lg font-black text-white">
-                هل تحتاج مساعدة أو لديك طلب خاص؟
+              <h3 className="text-base sm:text-xl font-black text-white">
+                هل تحتاج مساعدة أو تفضل الطلب عبر الواتساب؟
               </h3>
-              <p className="text-[11px] sm:text-xs text-emerald-100/80 font-medium leading-relaxed">
-                فريقنا رهن إشارتكم لتلقي استفساراتكم أو استلام قائمة مشترياتكم الصوتية والمكتوبة.
+              <p className="text-xs sm:text-sm text-emerald-100/80 font-medium leading-relaxed">
+                نستقبل رسائلكم وقوائم مشترياتكم المكتوبة والتسجيلات الصوتية مباشرة طيلة اليوم.
               </p>
             </div>
 
-            <div className="pt-1 flex justify-center">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
                 href={`https://wa.me/${STORE_CONFIG.whatsappCleanNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-500 via-[#22C55E] to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white px-6 py-2.5 sm:py-3 rounded-2xl font-black text-[11px] sm:text-xs transition-all duration-200 shadow-[0_6px_22px_rgba(34,197,94,0.35)] hover:shadow-[0_8px_28px_rgba(34,197,94,0.50)] hover:-translate-y-0.5 active:scale-95 cursor-pointer border border-emerald-300/40 w-auto min-w-[220px] sm:min-w-[260px]"
+                className="group relative inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-500 via-[#22C55E] to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-xs sm:text-sm transition-all duration-200 shadow-[0_6px_22px_rgba(34,197,94,0.35)] hover:shadow-[0_8px_28px_rgba(34,197,94,0.50)] hover:-translate-y-0.5 active:scale-95 cursor-pointer border border-emerald-300/40 min-w-[240px]"
               >
                 <div className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center shrink-0">
                   <MessageCircle className="w-3.5 h-3.5 fill-white text-emerald-600" />
                 </div>
                 <span>تواصل فوري عبر الواتساب</span>
               </a>
+
+              <a
+                href={`tel:${STORE_CONFIG.whatsappNumber}`}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-stone-200 hover:text-white text-xs font-black transition-colors"
+              >
+                <Phone className="w-3.5 h-3.5 text-[#F5D76E]" />
+                <span dir="ltr">{STORE_CONFIG.whatsappNumber}</span>
+              </a>
             </div>
 
-            <div className="flex items-center justify-center gap-1.5 text-[10px] text-emerald-200/70 font-semibold pt-0.5">
-              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-              <span>استجابة ومتابعة سريعة مع مندوب التوصيل</span>
+            <div className="flex items-center justify-center gap-2 text-[11px] text-emerald-200/80 font-semibold pt-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>استجابة ومتابعة سريعة مع مندوب التوصيل في فاس</span>
             </div>
           </div>
         </div>
 
-        {/* ════════ التذييل السفلي وحقوق الملكية وزر إدارة المتجر ════════ */}
-        <div className="pt-4 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between text-[11px] text-stone-300 gap-3 text-center sm:text-right">
-          <div className="flex items-center justify-center sm:justify-start gap-2 font-bold">
+        {/* ════════ التذييل السفلي وحقوق الملكية وزر إدارة المتجر (بدون أيقونة شعار) ════════ */}
+        <div className="pt-4 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-300 gap-3 text-center sm:text-right">
+          <div className="flex items-center justify-center sm:justify-start gap-2.5 font-bold">
             <button
               type="button"
               onClick={handleAdminTrigger}
               title="دخول لوحة تحكم وإدارة المتجر (PIN)"
               aria-label="دخول إدارة المتجر"
-              className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-stone-400 hover:text-[#F5D76E] border border-zinc-700 hover:border-amber-400/50 transition-all cursor-pointer select-none shadow-xs group"
+              className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-stone-400 hover:text-[#F5D76E] border border-zinc-700/80 hover:border-amber-400/50 transition-all cursor-pointer select-none shadow-xs group"
             >
-              <Lock className="w-3 h-3 text-stone-400 group-hover:text-[#F5D76E] transition-colors" />
+              <Lock className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#F5D76E] transition-colors" />
             </button>
-            <p className="text-stone-200">
+            <p className="text-stone-300">
               جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
               <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>{' '}
-              <span className="text-stone-400 text-[10px] hidden sm:inline">(شركة خُضرة للتجارة الإلكترونية SARL)</span>
+              <span className="text-stone-400 text-[11px] hidden sm:inline">(سوق بنسودة • فاس)</span>
             </p>
           </div>
-        </div>
 
-        {/* ════════════════════════════════════════════════════════════
-            مساحة سفلية محجوزة لشريط السلة العائم (Cart Bar)
-            تم إزالة الخلفية والحدود وتقليص الحشو لتناسب الشريط العائم
-            ════════════════════════════════════════════════════════════ */}
-        <div
-          aria-hidden="true"
-          className="w-full h-[120px] sm:h-[110px] pointer-events-none"
-        />
+          <div className="flex items-center gap-2 text-[11px] text-stone-400">
+            <span>🇲🇦 صُنع في فاس، المملكة المغربية</span>
+          </div>
+        </div>
 
       </div>
     </footer>
