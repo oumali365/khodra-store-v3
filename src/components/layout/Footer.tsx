@@ -155,8 +155,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
             </div>
           </div>
 
-        </div>
-
         {/* ════════ مركز خدمة الزبناء والواتساب ════════ */}
         <div className="bg-gradient-to-br from-[#122A18] via-[#0b1c10] to-[#07130a] border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-6 text-center shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-1/3 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
