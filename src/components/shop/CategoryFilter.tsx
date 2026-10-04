@@ -1,7 +1,6 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 7.3
-// تصميم موحد مع TrustBadges + أسهم تمرير مستقرة بدون تعارض
-// حذف نقاط التنقل + الاعتماد على scrollTo مع offsetLeft
+// الملف: CategoryFilter.tsx – الإصدار 8.0
+// تصميم بطاقات الفئات مطابق لبطاقات شارات الثقة (TrustBadges) مع زيادة في الارتفاع
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -124,17 +123,17 @@ const CategoryCardButton: React.FC<{
       ariaSelected={isSelected}
       onClick={onSelect}
       rippleColor={hasBackgroundImage ? 'rgba(234,179,8,0.40)' : 'rgba(45,106,63,0.28)'}
-      className={`category-fade-in-right group relative flex flex-col justify-end p-3 sm:p-3.5 rounded-2xl sm:rounded-[22px] border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.97] shrink-0
+      className={`category-fade-in-right group relative flex flex-col justify-between p-2.5 sm:p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.97] shrink-0
         w-[130px] min-w-[130px]
         xs:w-[138px] xs:min-w-[138px]
         sm:w-[152px] sm:min-w-[152px]
         md:w-auto md:min-w-0
-        min-h-[148px]
-        xs:min-h-[158px]
-        sm:min-h-[168px]
-        md:min-h-[176px]
-        lg:min-h-[188px]
-        xl:min-h-[198px]
+        min-h-[180px]  /* زيادة الارتفاع لتناسب الصور */
+        xs:min-h-[190px]
+        sm:min-h-[200px]
+        md:min-h-[210px]
+        lg:min-h-[220px]
+        xl:min-h-[230px]
         ${isSelected
           ? 'border-[#2D6A3F] -translate-y-1 shadow-[0_8px_20px_rgba(45,106,63,0.25)] ring-2 ring-[#EAB308]/60'
           : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:-translate-y-0.5 shadow-sm hover:shadow-md'
@@ -148,8 +147,9 @@ const CategoryCardButton: React.FC<{
       // @ts-ignore
       style={{ animationDelay: `${animationDelay}ms` }}
     >
+      {/* ─── صورة الخلفية (إن وجدت) ─── */}
       {currentSrc && !hasError && (
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-[14px] sm:rounded-[18px]">
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-[12px] sm:rounded-[14px]">
           <img
             src={currentSrc}
             alt={category.name}
@@ -163,6 +163,7 @@ const CategoryCardButton: React.FC<{
             onError={handleImgError}
           />
 
+          {/* تدرج لوني لضمان وضوح النص */}
           <div
             className={`absolute inset-0 transition-opacity duration-300 ${
               isSelected
@@ -177,6 +178,7 @@ const CategoryCardButton: React.FC<{
         </div>
       )}
 
+      {/* ─── أيقونة احتياطية (في حال عدم وجود صورة) ─── */}
       {!hasBackgroundImage && (
         <div className="relative z-10 flex-1 flex items-center justify-center py-1.5">
           <span
@@ -189,6 +191,7 @@ const CategoryCardButton: React.FC<{
         </div>
       )}
 
+      {/* ─── المحتوى السفلي: اسم الفئة والشريط ─── */}
       <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-1.5">
         <span
           className={`text-[14px] sm:text-[15px] lg:text-[16px] font-black leading-tight transition-colors duration-300 ${
@@ -217,9 +220,16 @@ const CategoryCardButton: React.FC<{
         )}
       </div>
 
+      {/* ─── شريط سفلي صغير (مطابق لشارات الثقة) ─── */}
+      <div className="relative z-10 w-full pt-2 mt-2 border-t border-white/20 flex items-center justify-center gap-1 text-[9px] sm:text-[10px] font-black text-white/80">
+        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400 shrink-0" strokeWidth={3} />
+        <span>متوفر</span>
+      </div>
+
+      {/* ─── تأثير الوميض عند التحديد ─── */}
       {isPulsing && (
         <div
-          className="category-focus-pulse absolute inset-0 rounded-[14px] sm:rounded-[18px] bg-[#EAB308]/20 pointer-events-none"
+          className="category-focus-pulse absolute inset-0 rounded-[12px] sm:rounded-[14px] bg-[#EAB308]/20 pointer-events-none"
           aria-hidden="true"
         />
       )}
@@ -274,7 +284,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollRaf = useRef<number | null>(null);
 
-  // ─── تتبع حالة التمرير (لتحديد ظهور الأسهم) ───
   const updateScrollState = useCallback(() => {
     if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
     scrollRaf.current = requestAnimationFrame(() => {
@@ -308,7 +317,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     };
   }, [categories.length, updateScrollState]);
 
-  // ─── التمرير بواسطة الأسهم باستخدام scrollTo (مستقر ولا يتعارض) ───
   const scrollByAmount = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
@@ -360,16 +368,15 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
       `}</style>
 
-      {/* ════════ الحاوية الموحدة المتطابقة تماماً مع شارات الثقة ════════ */}
+      {/* ════════ الحاوية الموحدة ════════ */}
       <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
 
-        {/* إضاءات محيطية ناعمة للهوية البصرية */}
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#2D6A3F]/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
 
-          {/* ═══════ 1. رأس القسم الموحد: عنوان متمركز وأدوات تصفية متناسقة ═══════ */}
+          {/* ═══════ 1. رأس القسم ═══════ */}
           <div className="relative flex flex-col items-center text-center gap-4 pb-5 border-b border-[#2D6A3F]/10">
             <div className="text-center space-y-2 max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
@@ -382,7 +389,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </p>
             </div>
 
-            {/* أدوات التصفية والفرز (متمركزة وتصميم موحد) */}
             <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 w-full mt-2">
               {isSearchMode && onClearSearch && (
                 <button
@@ -438,9 +444,8 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             </div>
           </div>
 
-          {/* ═══════ 2. شريط وبطاقات الفئات (مع هوامش مريحة وأسهم فقط) ═══════ */}
+          {/* ═══════ 2. بطاقات الفئات ═══════ */}
           <div className="relative pt-8 pb-2">
-            {/* أسهم التمرير (Desktop) */}
             {canScrollRight && (
               <button
                 type="button"
@@ -463,7 +468,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
-            {/* شبكة الفئات */}
             <div
               ref={scrollRef}
               className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch"
@@ -482,7 +486,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               ))}
             </div>
 
-            {/* ═══════ أسهم التمرير للجوال (بدون نقاط) ═══════ */}
+            {/* ═══════ أسهم التمرير للجوال ═══════ */}
             <div className="flex md:hidden items-center justify-end pt-5 px-1">
               <div className="flex items-center gap-2">
                 <button
@@ -507,7 +511,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             </div>
           </div>
 
-          {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة (مُوسَّط) ═══════ */}
+          {/* ═══════ 3. الشريط السفلي ═══════ */}
           <div className="mt-6 pt-5 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs sm:text-sm text-[#1F2937] font-black text-center">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
             <span>جميع المنتجات تخضع للمعاينة والفرز الدقيق قبل التجهيز والتوصيل لباب منزلك.</span>
