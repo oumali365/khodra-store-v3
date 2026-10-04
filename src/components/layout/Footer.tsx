@@ -38,7 +38,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
 
   return (
     <footer
-      className="relative overflow-hidden bg-[#070b09] text-white pt-8 pb-4 sm:pb-3 border-t-2 border-[#EAB308]/40 shadow-2xl select-none"
+      className="relative overflow-hidden bg-[#070b09] text-white pt-6 pb-0 border-t-2 border-[#EAB308]/40 shadow-2xl select-none"
       dir="rtl"
     >
       {/* ═══════ خط التوهج الذهبي في أعلى الفوتر ═══════ */}
@@ -49,7 +49,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
       <div className="absolute top-1/3 left-10 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-5 lg:px-8 space-y-6">
+      {/* تم تقليص المسافة الرأسية هنا من space-y-6 إلى space-y-5 */}
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-5 lg:px-8 space-y-5">
 
         {/* ════════ رأس الفوتر: هوية المتجر والعلامة التجارية ════════ */}
         <div className="flex flex-col items-center text-center space-y-2 max-w-2xl mx-auto">
@@ -238,8 +239,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
         </div>
 
         {/* ════════ التذييل السفلي وحقوق الملكية وزر إدارة المتجر ════════ */}
-        <div className="pt-4 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between text-[11px] text-stone-400 gap-3 text-center sm:text-right">
-
+        <div className="pt-4 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between text-[11px] text-stone-300 gap-3 text-center sm:text-right">
           <div className="flex items-center justify-center sm:justify-start gap-2 font-bold">
             <button
               type="button"
@@ -250,28 +250,22 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
             >
               <Lock className="w-3 h-3 text-stone-400 group-hover:text-[#F5D76E] transition-colors" />
             </button>
-            <p>
+            <p className="text-stone-200">
               جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
               <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>{' '}
-              <span className="text-stone-500 text-[10px] hidden sm:inline">(شركة خُضرة للتجارة الإلكترونية SARL)</span>
+              <span className="text-stone-400 text-[10px] hidden sm:inline">(شركة خُضرة للتجارة الإلكترونية SARL)</span>
             </p>
           </div>
         </div>
 
         {/* ════════════════════════════════════════════════════════════
             مساحة سفلية محجوزة لشريط السلة العائم (Cart Bar)
-            مُصمَّمة بنفس هوية بطاقة "المواعيد ونطاق التوصيل":
-            خلفية zinc-900/80 + حدود zinc-800 + زوايا دائرية
+            تم إزالة الخلفية والحدود وتقليص الحشو لتناسب الشريط العائم
             ════════════════════════════════════════════════════════════ */}
         <div
           aria-hidden="true"
-          className="relative w-full h-[112px] sm:h-[100px] rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-md overflow-hidden"
-        >
-          {/* خط توهج علوي ناعم ينسجم مع باقي البطاقات */}
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent pointer-events-none" />
-          {/* إضاءة محيطية خفيفة أسفل المساحة */}
-          <div className="absolute -bottom-8 right-1/4 w-48 h-48 bg-emerald-600/5 rounded-full blur-3xl pointer-events-none" />
-        </div>
+          className="w-full h-[120px] sm:h-[110px] pointer-events-none"
+        />
 
       </div>
     </footer>
