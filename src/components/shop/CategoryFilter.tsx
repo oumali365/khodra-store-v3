@@ -1,7 +1,7 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 6.0
+// الملف: CategoryFilter.tsx – الإصدار 7.0
 // تصميم موحد ومتوافق تماماً مع أقسام المتجر (TrustBadges & CustomerReviews)
-// حاوية رئيسية واحدة جامعة + رأس متكامل مع أزرار الفرز + شبكة بطاقات فاخرة
+// حاوية موحدة + رأس متمركز + أدوات فرز متناسقة + شبكة بطاقات فاخرة
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -402,8 +402,8 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
       `}</style>
 
-      {/* ════════ الحاوية الموحدة المتوافقة تماماً مع شارات الثقة والتقييمات ════════ */}
-      <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
+      {/* ════════ الحاوية الموحدة المتطابقة تماماً مع شارات الثقة ════════ */}
+      <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-4 sm:p-6 lg:p-8 overflow-hidden">
 
         {/* إضاءات محيطية ناعمة للهوية البصرية */}
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
@@ -411,24 +411,21 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
         <div className="relative">
 
-          {/* ═══════ 1. رأس القسم الموحد: العنوان + أدوات التصفية (مُوسَّط) ═══════ */}
-          <div className="relative flex flex-col items-center text-center gap-5 pb-6 border-b border-[#2D6A3F]/10">
-
-            {/* الجانب الأيمن: العنوان والوصف */}
+          {/* ═══════ 1. رأس القسم الموحد: عنوان متمركز وأدوات تصفية متناسقة ═══════ */}
+          <div className="relative flex flex-col items-center text-center gap-4 pb-5 border-b border-[#2D6A3F]/10">
             <div className="text-center space-y-2 max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
                 <span>تسوق حسب الفئات والأقسام</span>
                 <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] inline-block shrink-0" />
               </h2>
 
-              <p className="text-xs sm:text-sm text-[#4A5D4F] font-bold leading-relaxed">
+              <p className="text-sm sm:text-base text-[#3E4F43] font-bold leading-relaxed">
                 خضار وفواكه طازجة، تمور، أجبان وألبان، وبقالة يومية مختارة بعناية فائقة من أسواق الجملة بفاس.
               </p>
             </div>
 
-            {/* الجانب الأيسر: زر التصفية والفرز والأزرار التفاعلية (مُوسَّط) */}
-            <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 shrink-0 w-full">
-
+            {/* أدوات التصفية والفرز (متمركزة وتصميم موحد) */}
+            <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 w-full mt-2">
               {/* إلغاء البحث إذا كان مفعل */}
               {isSearchMode && onClearSearch && (
                 <button
@@ -455,7 +452,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 </button>
               )}
 
-              {/* زر الفرز والتصفية الرئيسي بتصميم مميز */}
+              {/* زر الفرز والتصفية الرئيسي */}
               <button
                 type="button"
                 id="category-filter-sort-btn"
@@ -471,7 +468,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 )}
               </button>
 
-              {/* زر "الكل" السريع للرجوع لكافة الأقسام */}
+              {/* زر "الكل" السريع */}
               <button
                 type="button"
                 onClick={() => onSelectCategory('all')}
@@ -484,15 +481,11 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 <Layers className="w-3.5 h-3.5" />
                 <span>جميع الأقسام</span>
               </button>
-
             </div>
-
           </div>
 
           {/* ═══════ 2. شريط وبطاقات الفئات ═══════ */}
-          <div className="relative pt-6">
-
-            {/* أزرار التمرير الدائرية (Desktop) */}
+          <div className="relative pt-5">
             {canScrollRight && (
               <button
                 type="button"
@@ -515,7 +508,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
-            {/* شبكة الفئات المتجاوبة: شبكة 6 أعمدة على الحاسوب وشريط انسيابي للجوال */}
             <div
               ref={scrollRef}
               className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch"
@@ -534,7 +526,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               ))}
             </div>
 
-            {/* مؤشر التمرير على الهاتف */}
             {showScrollHint && (
               <div
                 className="md:hidden flex flex-col items-center select-none pointer-events-none mt-3"
@@ -563,11 +554,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 </div>
               </div>
             )}
-
           </div>
 
-          {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة (مُوسَّط) ═══════ */}
-          <div className="mt-6 pt-5 border-t border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs text-[#4A5D4F] font-bold text-center">
+          {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة (مُوسَّط ومطابق للـ TrustBadges) ═══════ */}
+          <div className="mt-6 pt-5 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs sm:text-sm text-[#1F2937] font-black text-center">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
             <span>جميع المنتجات تخضع للمعاينة والفرز الدقيق قبل التجهيز والتوصيل لباب منزلك.</span>
           </div>
