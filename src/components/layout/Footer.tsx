@@ -1,6 +1,6 @@
 // ============================================================
 // Footer.tsx – تذييل المتجر المتطور بالمعايير الفاخرة الموحدة
-// تصميم احترافي متناسق مع لوحة إدارة المتجر: خلفية داكنة عميقة + بطاقات تفاعلية + شارات جودة + زر واتساب 
+// تصميم احترافي متناسق مع لوحة إدارة المتجر: خلفية داكنة عميقة + بطاقات تفاعلية + شارات جودة + زر واتساب
 // ============================================================
 import React from 'react';
 import {
@@ -38,7 +38,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
 
   return (
     <footer
-      className="relative overflow-hidden bg-[#070b09] text-white pt-8 pb-16 sm:pb-10 border-t-2 border-[#EAB308]/40 shadow-2xl select-none"
+      className="relative overflow-hidden bg-[#070b09] text-white pt-8 pb-4 sm:pb-3 border-t-2 border-[#EAB308]/40 shadow-2xl select-none"
       dir="rtl"
     >
       {/* ═══════ خط التوهج الذهبي في أعلى الفوتر ═══════ */}
@@ -53,7 +53,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
 
         {/* ════════ رأس الفوتر: هوية المتجر والعلامة التجارية ════════ */}
         <div className="flex flex-col items-center text-center space-y-2 max-w-2xl mx-auto">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border-1 border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0">
             <span className="text-xl sm:text-2xl">🌿</span>
           </div>
 
@@ -257,6 +257,22 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
             </p>
           </div>
         </div>
+
+        {/* ════════════════════════════════════════════════════════════
+            مساحة سفلية محجوزة لشريط السلة العائم (Cart Bar)
+            مُصمَّمة بنفس هوية بطاقة "المواعيد ونطاق التوصيل":
+            خلفية zinc-900/80 + حدود zinc-800 + زوايا دائرية
+            ════════════════════════════════════════════════════════════ */}
+        <div
+          aria-hidden="true"
+          className="relative w-full h-[112px] sm:h-[100px] rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-md overflow-hidden"
+        >
+          {/* خط توهج علوي ناعم ينسجم مع باقي البطاقات */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent pointer-events-none" />
+          {/* إضاءة محيطية خفيفة أسفل المساحة */}
+          <div className="absolute -bottom-8 right-1/4 w-48 h-48 bg-emerald-600/5 rounded-full blur-3xl pointer-events-none" />
+        </div>
+
       </div>
     </footer>
   );
