@@ -27,19 +27,6 @@ interface FooterProps {
   hasStickyBar?: boolean;
 }
 
-const FEZ_NEIGHBORHOODS = [
-  'طريق إيموزار',
-  'حي النرجس',
-  'حي الأطلس',
-  'عين الشقف',
-  'المدينة الجديدة',
-  'حي زواغة',
-  'حي بنسودة',
-  'حي السعادة',
-  'طريق صفرو',
-  'حي طارق',
-];
-
 export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false }) => {
   const handleAdminTrigger = () => {
     window.dispatchEvent(new CustomEvent('khodra_trigger_admin_modal'));
@@ -196,68 +183,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
             </div>
           </div>
 
-          {/* ─── بطاقة ب: أوقات العمل والتغطية ─── */}
-          <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-4 sm:p-5 text-right space-y-3.5 shadow-md flex flex-col justify-between">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                  <Clock className="w-4 h-4 text-[#F5D76E]" />
-                </div>
-                <h3 className="text-sm sm:text-base font-black text-white">
-                  المواعيد ونطاق التوصيل
-                </h3>
-              </div>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-emerald-300 bg-emerald-950/70 px-2.5 py-1 rounded-full border border-emerald-700/50">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                مفتوح يومياً
-              </span>
-            </div>
-
-            <div className="space-y-3 text-xs text-stone-300">
-              {/* صندوق المواعيد */}
-              <div className="bg-zinc-950/70 p-3 rounded-2xl border border-zinc-800 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#2D6A3F]/20 border border-[#EAB308]/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <Clock className="w-4 h-4 text-[#F5D76E]" />
-                </div>
-                <div>
-                  <strong className="text-white block font-black text-xs sm:text-sm">
-                    أوقات استقبال وتوصيل الطلبات:
-                  </strong>
-                  <p className="text-stone-300 text-xs mt-0.5 leading-relaxed font-medium">
-                    طيلة أيام الأسبوع من <span className="font-bold text-emerald-300 tabular-nums">08:00 صباحاً</span> إلى <span className="font-bold text-emerald-300 tabular-nums">20:00 مساءً</span> بدون انقطاع.
-                  </p>
-                </div>
-              </div>
-
-              {/* صندوق أحياء فاس المغطاة */}
-              <div className="bg-zinc-950/70 p-3 rounded-2xl border border-zinc-800 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <MapPin className="w-4 h-4 text-[#EA580C]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <strong className="text-white block font-black text-xs sm:text-sm mb-1.5">
-                    أحياء مدينة فاس المغطاة بالتوصيل:
-                  </strong>
-                  <div className="flex flex-wrap gap-1.5">
-                    {FEZ_NEIGHBORHOODS.map((zone) => (
-                      <span
-                        key={zone}
-                        className="px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-700/70 text-[10px] font-bold text-stone-300"
-                      >
-                        {zone}
-                      </span>
-                    ))}
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-950/60 border border-emerald-700/50 text-[10px] font-bold text-emerald-300">
-                      + جميع النواحي
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
         {/* ════════ مركز خدمة الزبناء والواتساب المطور ════════ */}
         <div className="bg-gradient-to-br from-[#102715] via-[#09170d] to-[#050e08] border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-6 text-center shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-1/3 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -270,11 +195,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
 
             <div className="space-y-1">
               <h3 className="text-base sm:text-xl font-black text-white">
-                هل تحتاج مساعدة أو تفضل الطلب عبر الواتساب؟
+                هل تحتاج إلى مساعدة ؟
               </h3>
-              <p className="text-xs sm:text-sm text-emerald-100/80 font-medium leading-relaxed">
-                نستقبل رسائلكم وقوائم مشترياتكم المكتوبة والتسجيلات الصوتية مباشرة طيلة اليوم.
-              </p>
             </div>
 
             <div className="pt-1.5 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -287,7 +209,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
                 <div className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center shrink-0">
                   <MessageCircle className="w-3.5 h-3.5 fill-white text-emerald-600" />
                 </div>
-                <span>تواصل فوري عبر الواتساب</span>
+                <span>تواصل معنا عبر الواتساب</span>
               </a>
 
               <a
@@ -297,11 +219,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar = false
                 <Phone className="w-3.5 h-3.5 text-[#F5D76E]" />
                 <span dir="ltr">{STORE_CONFIG.whatsappNumber}</span>
               </a>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 text-[11px] text-emerald-200/80 font-semibold pt-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>استجابة ومتابعة سريعة مع مندوب التوصيل في فاس</span>
             </div>
           </div>
         </div>
