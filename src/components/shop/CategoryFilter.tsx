@@ -1,8 +1,7 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 7.1
+// الملف: CategoryFilter.tsx – الإصدار 7.2
 // تصميم موحد ومتوافق تماماً مع أقسام المتجر (TrustBadges & CustomerReviews)
-// حاوية موحدة + رأس متمركز + أدوات فرز متناسقة + شبكة بطاقات فاخرة
-// إصلاح مشكل التمرير + إضافة نقاط وأسهم تنقل مطابقة للتصميم
+// استرجاع آلية التمرير الأصلية + إزالة مكون السحب + إضافة نقاط وأسهم تنقل
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -271,38 +270,31 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   };
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const scrollRaf = useRef<number | null>(null);
 
+  // ─── تتبع حالة التمرير (النسخة الأصلية) ───
   const updateScrollState = useCallback(() => {
     if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
     scrollRaf.current = requestAnimationFrame(() => {
       const el = scrollRef.current;
       if (!el) return;
-
-      // تحديد البطاقة النشطة بناءً على المركز
-      const cards = el.querySelectorAll('button[data-category-id]');
-      const containerRect = el.getBoundingClientRect();
-      const containerCenter = containerRect.left + containerRect.width / 2;
-
-      let closestIdx = 0;
-      let minDiff = Infinity;
-
-      cards.forEach((card, idx) => {
-        const cardRect = card.getBoundingClientRect();
-        const cardCenter = cardRect.left + cardRect.width / 2;
-        const diff = Math.abs(cardCenter - containerCenter);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIdx = idx;
-        }
-      });
-
-      if (closestIdx < categories.length) {
-        setActiveCategoryIndex(closestIdx);
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      const maxScroll = scrollWidth - clientWidth;
+      if (maxScroll <= 6) {
+        setCanScrollLeft(false);
+        setCanScrollRight(false);
+        return;
       }
+      const absLeft = Math.abs(scrollLeft);
+      const hasMoreLeft = absLeft < maxScroll - 8;
+      const hasMoreRight = absLeft > 8;
+      setCanScrollLeft((prev) => (prev !== hasMoreLeft ? hasMoreLeft : prev));
+      setCanScrollRight((prev) => (prev !== hasMoreRight ? hasMoreRight : prev));
     });
-  }, [categories.length]);
+  }, []);
 
   useEffect(() => {
     updateScrollState();
@@ -317,21 +309,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     };
   }, [categories.length, updateScrollState]);
 
-  // التمرير إلى فئة محددة عند النقر على النقاط أو الأسهم
-  const scrollToCategory = (index: number) => {
-    if (!scrollRef.current) return;
-    const container = scrollRef.current;
-    const cards = container.querySelectorAll('button[data-category-id]');
-    if (cards[index]) {
-      const targetCard = cards[index] as HTMLElement;
-      // حساب الموضع المطلق للتمرير بدقة
-      const scrollLeft = targetCard.offsetLeft - (container.clientWidth - targetCard.clientWidth) / 2;
-      container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-      setActiveCategoryIndex(index);
-    }
-  };
-
-  // عند تغيير الفئة المحددة من الأعلى، نقوم بالتمرير إليها
+  // ─── التمرير إلى الفئة المحددة عند تغيير selectedCategory (النسخة الأصلية) ───
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
@@ -346,15 +324,46 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       `[data-category-id="${selectedCategory}"]`
     );
     if (targetCard) {
-      const scrollLeft = targetCard.offsetLeft - (container.clientWidth - targetCard.clientWidth) / 2;
-      // التمرير فقط إذا كان الموضع الحالي بعيداً عن الهدف لتجنب القفزات غير الضرورية
-      if (Math.abs(container.scrollLeft - scrollLeft) > 10) {
-        container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = targetCard.getBoundingClientRect();
+      const deltaX =
+        cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
+
+      if (Math.abs(deltaX) > 4) {
+        container.scrollBy({ left: deltaX, behavior: 'smooth' });
       }
-      const idx = categories.findIndex(c => c.id === selectedCategory);
+
+      const idx = categories.findIndex((c) => c.id === selectedCategory);
       if (idx !== -1) setActiveCategoryIndex(idx);
     }
   }, [selectedCategory, categories]);
+
+  // ─── التمرير بواسطة الأسهم (النسخة الأصلية) ───
+  const scrollByAmount = (dir: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const amount = el.clientWidth * 0.75;
+    el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
+  };
+
+  // ─── الانتقال إلى فئة محددة عبر النقاط (للجوال) ───
+  const scrollToCategory = (index: number) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const cards = container.querySelectorAll('button[data-category-id]');
+    if (cards[index]) {
+      const targetCard = cards[index] as HTMLElement;
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = targetCard.getBoundingClientRect();
+      const deltaX =
+        cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
+
+      if (Math.abs(deltaX) > 4) {
+        container.scrollBy({ left: deltaX, behavior: 'smooth' });
+      }
+      setActiveCategoryIndex(index);
+    }
+  };
 
   return (
     <div
@@ -479,31 +488,33 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
           {/* ═══════ 2. شريط وبطاقات الفئات (مع هوامش مريحة) ═══════ */}
           <div className="relative pt-8 pb-2">
-            {/* أسهم التمرير (Desktop) */}
-            <button
-              type="button"
-              onClick={() => scrollToCategory(Math.max(0, activeCategoryIndex - 1))}
-              disabled={activeCategoryIndex === 0}
-              aria-label="تمرير لليمين"
-              className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 disabled:opacity-0 disabled:pointer-events-none cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            {/* أسهم التمرير (Desktop) – النسخة الأصلية */}
+            {canScrollRight && (
+              <button
+                type="button"
+                onClick={() => scrollByAmount('right')}
+                aria-label="تمرير لليمين"
+                className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
 
-            <button
-              type="button"
-              onClick={() => scrollToCategory(Math.min(categories.length - 1, activeCategoryIndex + 1))}
-              disabled={activeCategoryIndex >= categories.length - 1}
-              aria-label="تمرير لليسار"
-              className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 disabled:opacity-0 disabled:pointer-events-none cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+            {canScrollLeft && (
+              <button
+                type="button"
+                onClick={() => scrollByAmount('left')}
+                aria-label="تمرير لليسار"
+                className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
 
-            {/* شبكة الفئات */}
+            {/* شبكة الفئات – النسخة الأصلية */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch scroll-smooth touch-pan-x w-full"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
