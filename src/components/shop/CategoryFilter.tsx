@@ -270,8 +270,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   };
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const scrollRaf = useRef<number | null>(null);
 
   const updateScrollState = useCallback(() => {
@@ -279,20 +278,30 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     scrollRaf.current = requestAnimationFrame(() => {
       const el = scrollRef.current;
       if (!el) return;
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      const maxScroll = scrollWidth - clientWidth;
-      if (maxScroll <= 6) {
-        setCanScrollLeft(false);
-        setCanScrollRight(false);
-        return;
+
+      // تحديد البطاقة النشطة بناءً على المركز
+      const cards = el.querySelectorAll('button[data-category-id]');
+      const containerRect = el.getBoundingClientRect();
+      const containerCenter = containerRect.left + containerRect.width / 2;
+
+      let closestIdx = 0;
+      let minDiff = Infinity;
+
+      cards.forEach((card, idx) => {
+        const cardRect = card.getBoundingClientRect();
+        const cardCenter = cardRect.left + cardRect.width / 2;
+        const diff = Math.abs(cardCenter - containerCenter);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIdx = idx;
+        }
+      });
+
+      if (closestIdx < categories.length) {
+        setActiveCategoryIndex(closestIdx);
       }
-      const absLeft = Math.abs(scrollLeft);
-      const hasMoreLeft = absLeft < maxScroll - 8;
-      const hasMoreRight = absLeft > 8;
-      setCanScrollLeft((prev) => (prev !== hasMoreLeft ? hasMoreLeft : prev));
-      setCanScrollRight((prev) => (prev !== hasMoreRight ? hasMoreRight : prev));
     });
-  }, []);
+  }, [categories.length]);
 
   useEffect(() => {
     updateScrollState();
@@ -307,12 +316,30 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     };
   }, [categories.length, updateScrollState]);
 
+  // التمرير إلى فئة محددة عند النقر على النقاط أو الأسهم
+  const scrollToCategory = (index: number) => {
+    if (!scrollRef.current) return;
+    const container = scrollRef.current;
+    const cards = container.querySelectorAll('button[data-category-id]');
+    if (cards[index]) {
+      const targetCard = cards[index] as HTMLElement;
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = targetCard.getBoundingClientRect();
+      const deltaX = cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
+
+      container.scrollBy({ left: deltaX, behavior: 'smooth' });
+      setActiveCategoryIndex(index);
+    }
+  };
+
+  // عند تغيير الفئة المحددة من الأعلى، نقوم بالتمرير إليها
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
 
     if (selectedCategory === 'all') {
       container.scrollTo({ left: 0, behavior: 'smooth' });
+      setActiveCategoryIndex(0);
       return;
     }
 
@@ -322,23 +349,16 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     if (targetCard) {
       const containerRect = container.getBoundingClientRect();
       const cardRect = targetCard.getBoundingClientRect();
-      const deltaX =
-        cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
+      const deltaX = cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
 
       if (Math.abs(deltaX) > 4) {
         container.scrollBy({ left: deltaX, behavior: 'smooth' });
       }
+      
+      const idx = categories.findIndex(c => c.id === selectedCategory);
+      if (idx !== -1) setActiveCategoryIndex(idx);
     }
-  }, [selectedCategory]);
-
-  const scrollByAmount = (dir: 'left' | 'right') => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const amount = el.clientWidth * 0.75;
-    el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
-  };
-
-  const showScrollHint = canScrollLeft || canScrollRight;
+  }, [selectedCategory, categories]);
 
   return (
     <div
@@ -376,34 +396,15 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
           will-change: transform, opacity;
         }
 
-        @keyframes categoryScrollHintLeft {
-          0%, 100% { transform: translateX(0)    scale(1);    opacity: 0.65; }
-          50%      { transform: translateX(-5px) scale(1.08); opacity: 1; }
-        }
-        @keyframes categoryScrollHintRight {
-          0%, 100% { transform: translateX(0)   scale(1);    opacity: 0.65; }
-          50%      { transform: translateX(5px) scale(1.08); opacity: 1; }
-        }
-        .category-scroll-hint-left {
-          animation: categoryScrollHintLeft 1.8s ease-in-out infinite;
-          will-change: transform, opacity;
-        }
-        .category-scroll-hint-right {
-          animation: categoryScrollHintRight 1.8s ease-in-out infinite;
-          will-change: transform, opacity;
-        }
-
         @media (prefers-reduced-motion: reduce) {
           .category-fade-in-right,
           .category-focus-pulse,
-          .category-ripple,
-          .category-scroll-hint-left,
-          .category-scroll-hint-right { animation: none; }
+          .category-ripple { animation: none; }
         }
       `}</style>
 
       {/* ════════ الحاوية الموحدة المتطابقة تماماً مع شارات الثقة ════════ */}
-      <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-4 sm:p-6 lg:p-8 overflow-hidden">
+      <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
 
         {/* إضاءات محيطية ناعمة للهوية البصرية */}
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
@@ -426,7 +427,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
             {/* أدوات التصفية والفرز (متمركزة وتصميم موحد) */}
             <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-3 w-full mt-2">
-              {/* إلغاء البحث إذا كان مفعل */}
               {isSearchMode && onClearSearch && (
                 <button
                   type="button"
@@ -440,7 +440,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 </button>
               )}
 
-              {/* شارة التصفية النشطة */}
               {hasActiveFilters && (
                 <button
                   type="button"
@@ -452,7 +451,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 </button>
               )}
 
-              {/* زر الفرز والتصفية الرئيسي */}
               <button
                 type="button"
                 id="category-filter-sort-btn"
@@ -468,7 +466,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 )}
               </button>
 
-              {/* زر "الكل" السريع */}
               <button
                 type="button"
                 onClick={() => onSelectCategory('all')}
@@ -484,33 +481,33 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             </div>
           </div>
 
-          {/* ═══════ 2. شريط وبطاقات الفئات ═══════ */}
-          <div className="relative pt-5">
-            {canScrollRight && (
-              <button
-                type="button"
-                onClick={() => scrollByAmount('right')}
-                aria-label="تمرير لليمين"
-                className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
+          {/* ═══════ 2. شريط وبطاقات الفئات (مع هوامش مريحة) ═══════ */}
+          <div className="relative pt-8 pb-2">
+            {/* أسهم التمرير (Desktop) */}
+            <button
+              type="button"
+              onClick={() => scrollToCategory(Math.max(0, activeCategoryIndex - 1))}
+              disabled={activeCategoryIndex === 0}
+              aria-label="تمرير لليمين"
+              className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 disabled:opacity-0 disabled:pointer-events-none cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
 
-            {canScrollLeft && (
-              <button
-                type="button"
-                onClick={() => scrollByAmount('left')}
-                aria-label="تمرير لليسار"
-                className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => scrollToCategory(Math.min(categories.length - 1, activeCategoryIndex + 1))}
+              disabled={activeCategoryIndex >= categories.length - 1}
+              aria-label="تمرير لليسار"
+              className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur-md border border-[#2D6A3F]/20 shadow-md text-[#2D6A3F] items-center justify-center hover:bg-[#2D6A3F] hover:text-[#EAB308] transition-all active:scale-90 disabled:opacity-0 disabled:pointer-events-none cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
 
+            {/* شبكة الفئات */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible pb-2 px-1 overscroll-x-contain no-scrollbar items-stretch scroll-smooth"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
@@ -526,37 +523,50 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               ))}
             </div>
 
-            {showScrollHint && (
-              <div
-                className="md:hidden flex flex-col items-center select-none pointer-events-none mt-3"
-                aria-hidden="true"
-              >
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 backdrop-blur-xs border border-[#2D6A3F]/15 shadow-sm">
-                  <span
-                    className={`inline-flex transition-opacity duration-300 ${
-                      canScrollLeft ? 'category-scroll-hint-left opacity-100' : 'opacity-25'
+            {/* ═══════ مؤشرات التنقل وأسهم التوجيه الموحدة (للجوال) ═══════ */}
+            <div className="flex md:hidden items-center justify-between pt-5 px-1">
+              {/* نقاط التنقل */}
+              <div className="flex items-center gap-1.5">
+                {categories.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => scrollToCategory(i)}
+                    className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
+                      activeCategoryIndex === i
+                        ? 'w-7 bg-[#2D6A3F]'
+                        : 'w-2 bg-[#2D6A3F]/25 hover:bg-[#2D6A3F]/50'
                     }`}
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={3} />
-                  </span>
-
-                  <span className="text-[11px] font-black text-[#1A3D24] tracking-wide whitespace-nowrap">
-                    اسحب لتصفح باقي الفئات
-                  </span>
-
-                  <span
-                    className={`inline-flex transition-opacity duration-300 ${
-                      canScrollRight ? 'category-scroll-hint-right opacity-100' : 'opacity-25'
-                    }`}
-                  >
-                    <ChevronRight className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={3} />
-                  </span>
-                </div>
+                    aria-label={`الفئة ${i + 1}`}
+                  />
+                ))}
               </div>
-            )}
+
+              {/* أسهم التمرير المكبرة الموحدة */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => scrollToCategory(Math.max(0, activeCategoryIndex - 1))}
+                  disabled={activeCategoryIndex === 0}
+                  className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                  aria-label="السابق"
+                >
+                  <ChevronRight className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToCategory(Math.min(categories.length - 1, activeCategoryIndex + 1))}
+                  disabled={activeCategoryIndex >= categories.length - 1}
+                  className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                  aria-label="التالي"
+                >
+                  <ChevronLeft className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة (مُوسَّط ومطابق للـ TrustBadges) ═══════ */}
+          {/* ═══════ 3. الشريط السفلي المدمج: التزام الجودة (مُوسَّط) ═══════ */}
           <div className="mt-6 pt-5 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs sm:text-sm text-[#1F2937] font-black text-center">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
             <span>جميع المنتجات تخضع للمعاينة والفرز الدقيق قبل التجهيز والتوصيل لباب منزلك.</span>
