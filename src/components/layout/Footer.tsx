@@ -204,7 +204,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
           <div className="relative max-w-xl mx-auto space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>خدمة الزبناء والمساعدة الفورية • En ligne</span>
+              <span>• En ligne</span>
             </div>
 
             <div className="space-y-1">
