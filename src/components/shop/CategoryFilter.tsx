@@ -1,6 +1,7 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 8.2
-// إصلاح تشوه الفئة عند التحديد + هوامش سفلية وعلوية آمنة
+// الملف: CategoryFilter.tsx – الإصدار 9.0
+// تصميم مطابق تماماً لشارات الثقة (TrustBadges)
+// حذف التأثيرات الحالية + حذف مكون "متوفر" + تكبير البطاقات
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -24,77 +25,15 @@ const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = 
   cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.jpg' },
 };
 
-const FOCUS_PULSE_MS = 700;
-
-const RippleButton: React.FC<{
-  onClick?: () => void;
-  className: string;
-  children: React.ReactNode;
-  rippleColor?: string;
-  ariaLabel?: string;
-  role?: string;
-  dataCategoryId?: string;
-  ariaSelected?: boolean;
-}> = ({
-  onClick,
-  className,
-  children,
-  rippleColor = 'rgba(234,179,8,0.35)',
-  ariaLabel,
-  role,
-  dataCategoryId,
-  ariaSelected,
-}) => {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const btn = buttonRef.current;
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height) * 1.6;
-      const x = e.clientX - rect.left - size / 2;
-      const y = e.clientY - rect.top - size / 2;
-
-      const ripple = document.createElement('span');
-      ripple.className = 'category-ripple';
-      ripple.style.width = ripple.style.height = `${size}px`;
-      ripple.style.left = `${x}px`;
-      ripple.style.top = `${y}px`;
-      ripple.style.background = rippleColor;
-      btn.appendChild(ripple);
-
-      window.setTimeout(() => ripple.remove(), 650);
-    }
-    onClick?.();
-  };
-
-  return (
-    <button
-      ref={buttonRef}
-      type="button"
-      role={role}
-      aria-label={ariaLabel}
-      aria-selected={ariaSelected}
-      data-category-id={dataCategoryId}
-      onClick={handleClick}
-      className={`relative overflow-hidden ${className}`}
-    >
-      {children}
-    </button>
-  );
-};
-
 const CategoryCardButton: React.FC<{
   category: { id: ProductCategory; name: string; icon: string };
   isSelected: boolean;
   onSelect: () => void;
-  animationDelay?: number;
-}> = ({ category, isSelected, onSelect, animationDelay = 0 }) => {
+}> = ({ category, isSelected, onSelect }) => {
   const imageConfig = CATEGORY_IMAGES[category.id];
   const [currentSrc, setCurrentSrc] = useState<string | null>(imageConfig?.primary || null);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isPulsing, setIsPulsing] = useState(false);
 
   const handleImgError = () => {
     if (currentSrc === imageConfig?.primary && imageConfig?.fallback && currentSrc !== imageConfig.fallback) {
@@ -106,36 +45,26 @@ const CategoryCardButton: React.FC<{
 
   const hasBackgroundImage = Boolean(currentSrc && !hasError);
 
-  useEffect(() => {
-    if (isSelected) {
-      setIsPulsing(true);
-      const t = window.setTimeout(() => setIsPulsing(false), FOCUS_PULSE_MS);
-      return () => window.clearTimeout(t);
-    }
-    setIsPulsing(false);
-  }, [isSelected]);
-
   return (
-    <RippleButton
+    <button
+      type="button"
       role="tab"
-      dataCategoryId={category.id}
-      ariaSelected={isSelected}
+      aria-selected={isSelected}
       onClick={onSelect}
-      rippleColor={hasBackgroundImage ? 'rgba(234,179,8,0.40)' : 'rgba(45,106,63,0.28)'}
-      className={`category-fade-in-right group relative flex flex-col justify-between p-2.5 sm:p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer touch-manipulation select-none active:scale-[0.97] shrink-0
-        w-[130px] min-w-[130px]
-        xs:w-[138px] xs:min-w-[138px]
-        sm:w-[152px] sm:min-w-[152px]
+      className={`group relative flex flex-col justify-between p-2.5 sm:p-3 rounded-2xl border-2 transition-all duration-200 cursor-pointer select-none shrink-0
+        w-[145px] min-w-[145px]
+        xs:w-[155px] xs:min-w-[155px]
+        sm:w-[170px] sm:min-w-[170px]
         md:w-auto md:min-w-0
-        min-h-[180px]
-        xs:min-h-[190px]
-        sm:min-h-[200px]
-        md:min-h-[210px]
-        lg:min-h-[220px]
-        xl:min-h-[230px]
+        min-h-[200px]
+        xs:min-h-[210px]
+        sm:min-h-[220px]
+        md:min-h-[230px]
+        lg:min-h-[240px]
+        xl:min-h-[250px]
         ${isSelected
-          ? 'border-[#2D6A3F] -translate-y-0.5 shadow-[0_8px_20px_rgba(45,106,63,0.25)] ring-2 ring-[#EAB308]/60 ring-offset-0'
-          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:-translate-y-0.5 shadow-sm hover:shadow-md'
+          ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.16)] ring-2 ring-[#2D6A3F]/30'
+          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 shadow-xs hover:shadow-[0_10px_24px_rgba(45,106,63,0.12)]'
         } ${
         !hasBackgroundImage
           ? isSelected
@@ -143,15 +72,14 @@ const CategoryCardButton: React.FC<{
             : 'bg-white hover:bg-[#FAF8F3] text-[#1A3D24]'
           : 'bg-[#1A3D24]'
       }`}
-      // @ts-ignore
-      style={{ animationDelay: `${animationDelay}ms` }}
     >
+      {/* ─── صورة الخلفية ─── */}
       {currentSrc && !hasError && (
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-[12px] sm:rounded-[14px]">
           <img
             src={currentSrc}
             alt={category.name}
-            className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-108 ${
+            className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${
               isLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             loading="lazy"
@@ -175,6 +103,7 @@ const CategoryCardButton: React.FC<{
         </div>
       )}
 
+      {/* ─── أيقونة احتياطية ─── */}
       {!hasBackgroundImage && (
         <div className="relative z-10 flex-1 flex items-center justify-center py-1.5">
           <span
@@ -187,6 +116,7 @@ const CategoryCardButton: React.FC<{
         </div>
       )}
 
+      {/* ─── المحتوى السفلي ─── */}
       <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-1.5">
         <span
           className={`text-[14px] sm:text-[15px] lg:text-[16px] font-black leading-tight transition-colors duration-300 ${
@@ -215,18 +145,12 @@ const CategoryCardButton: React.FC<{
         )}
       </div>
 
+      {/* ─── الشريط السفلي (مطابق لشارات الثقة) ─── */}
       <div className="relative z-10 w-full pt-2 mt-2 border-t border-white/20 flex items-center justify-center gap-1 text-[9px] sm:text-[10px] font-black text-white/80">
         <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400 shrink-0" strokeWidth={3} />
-        <span>متوفر</span>
+        <span>معتمد لزبناء فاس</span>
       </div>
-
-      {isPulsing && (
-        <div
-          className="category-focus-pulse absolute inset-0 rounded-[12px] sm:rounded-[14px] bg-[#EAB308]/20 pointer-events-none"
-          aria-hidden="true"
-        />
-      )}
-    </RippleButton>
+    </button>
   );
 };
 
@@ -323,44 +247,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-2 sm:mt-4 mb-10 sm:my-14 ${className}`}
       dir="rtl"
     >
-      <style>{`
-        @keyframes categoryFadeInRight {
-          0%   { opacity: 0; transform: translateX(40px); }
-          100% { opacity: 1; transform: translateX(0); }
-        }
-        .category-fade-in-right {
-          animation: categoryFadeInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-          will-change: opacity, transform;
-        }
-
-        @keyframes categoryFocusPulse {
-          0%   { opacity: 0.5; }
-          100% { opacity: 0; }
-        }
-        .category-focus-pulse {
-          animation: categoryFocusPulse ${FOCUS_PULSE_MS}ms cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        @keyframes categoryRippleExpand {
-          0%   { transform: scale(0); opacity: 0.55; }
-          100% { transform: scale(2.6); opacity: 0; }
-        }
-        .category-ripple {
-          position: absolute;
-          border-radius: 9999px;
-          pointer-events: none;
-          transform: scale(0);
-          animation: categoryRippleExpand 0.65s cubic-bezier(0.4, 0, 0.2, 1);
-          will-change: transform, opacity;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .category-fade-in-right,
-          .category-focus-pulse,
-          .category-ripple { animation: none; }
-        }
-      `}</style>
-
       <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
 
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
@@ -410,8 +296,8 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             )}
           </div>
 
-          {/* ═══════ 2. بطاقات الفئات (مع هوامش آمنة لمنع التشوه) ═══════ */}
-          <div className="relative pt-8 pb-8"> {/* زيادة pb إلى 8 */}
+          {/* ═══════ 2. بطاقات الفئات ═══════ */}
+          <div className="relative pt-6 pb-2">
             {canScrollRight && (
               <button
                 type="button"
@@ -434,27 +320,25 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
-            {/* حاوية التمرير مع هوامش داخلية py-4 لمنع قطع الحلقة الذهبية */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible py-4 px-1 overscroll-x-contain no-scrollbar items-stretch"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible py-3 px-1 overscroll-x-contain no-scrollbar items-stretch"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
             >
-              {categories.map((cat, index) => (
+              {categories.map((cat) => (
                 <CategoryCardButton
                   key={cat.id}
                   category={cat}
                   isSelected={selectedCategory === cat.id}
                   onSelect={() => onSelectCategory(cat.id)}
-                  animationDelay={index * 60}
                 />
               ))}
             </div>
 
-            {/* ═══════ الصف السفلي ═══════ */}
-            <div className="flex md:hidden items-center justify-between pt-5 px-1">
+            {/* ═══════ الصف السفلي (تصفية + أسهم) ═══════ */}
+            <div className="flex md:hidden items-center justify-between pt-2 px-1">
               
               <button
                 type="button"
