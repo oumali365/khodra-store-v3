@@ -1,6 +1,6 @@
 // ============================================================
 // FinancePanel.tsx – اللوحة المالية التفاعلية لمتجر خُضرة
-// (نسخة معدلة: إصلاح ظهور الأرقام في حقول الإدخال)
+// (نسخة معدلة: تصحيح نقطة التعادل + مبدل اللغة + بيانات متوافقة مع التقرير)
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -59,6 +59,9 @@ const FINANCE_TRANSLATIONS = {
     saveSuccess: 'Modifications enregistrées avec succès',
     autoSaveText: 'Sauvegarde automatique activée',
     close: 'Fermer',
+    operationalBreakEven: 'Seuil de Rentabilité Opérationnel',
+    ordersPerMonth: 'cmd/mois',
+    ordersPerDay: 'cmd/jour',
   },
   ar: {
     title: 'اللوحة المالية والتوقعات',
@@ -100,6 +103,9 @@ const FINANCE_TRANSLATIONS = {
     saveSuccess: 'تم حفظ التعديلات بنجاح',
     autoSaveText: 'حفظ تلقائي مفعّل',
     close: 'إغلاق',
+    operationalBreakEven: 'نقطة التعادل التشغيلي',
+    ordersPerMonth: 'طلب/شهر',
+    ordersPerDay: 'طلب/يوم',
   },
   en: {
     title: 'Financial Dashboard & Forecasts',
@@ -141,6 +147,9 @@ const FINANCE_TRANSLATIONS = {
     saveSuccess: 'Changes saved successfully',
     autoSaveText: 'Auto-save enabled',
     close: 'Close',
+    operationalBreakEven: 'Operational Break-Even Point',
+    ordersPerMonth: 'orders/month',
+    ordersPerDay: 'orders/day',
   },
 };
 
@@ -173,26 +182,26 @@ export interface Assumptions {
   taxPercent: number;
 }
 
-// ─── البيانات الأولية ───
+// ─── البيانات الأولية (تم تحديثها لتتطابق مع الجدول في الصورة) ───
 export const INITIAL_MONTHS: MonthData[] = [
-  { month: 1, ordersPerDay: 5, workingDays: 26, avgBasket: 90 },
-  { month: 2, ordersPerDay: 8, workingDays: 26, avgBasket: 90 },
-  { month: 3, ordersPerDay: 11, workingDays: 26, avgBasket: 95 },
-  { month: 4, ordersPerDay: 14, workingDays: 26, avgBasket: 95 },
-  { month: 5, ordersPerDay: 16, workingDays: 26, avgBasket: 100 },
-  { month: 6, ordersPerDay: 18, workingDays: 26, avgBasket: 100 },
-  { month: 7, ordersPerDay: 20, workingDays: 26, avgBasket: 100 },
-  { month: 8, ordersPerDay: 21, workingDays: 26, avgBasket: 105 },
-  { month: 9, ordersPerDay: 22, workingDays: 26, avgBasket: 105 },
-  { month: 10, ordersPerDay: 23, workingDays: 26, avgBasket: 110 },
-  { month: 11, ordersPerDay: 24, workingDays: 26, avgBasket: 110 },
-  { month: 12, ordersPerDay: 25, workingDays: 26, avgBasket: 115 },
+  { month: 1, ordersPerDay: 6, workingDays: 26, avgBasket: 115 },  // الشهر 1: 6 طلبات
+  { month: 2, ordersPerDay: 9, workingDays: 26, avgBasket: 115 },
+  { month: 3, ordersPerDay: 12, workingDays: 26, avgBasket: 115 }, // الشهر 3: 12 طلب
+  { month: 4, ordersPerDay: 14, workingDays: 26, avgBasket: 115 },
+  { month: 5, ordersPerDay: 16, workingDays: 26, avgBasket: 115 },
+  { month: 6, ordersPerDay: 18, workingDays: 26, avgBasket: 115 }, // الشهر 6: 18 طلب
+  { month: 7, ordersPerDay: 20, workingDays: 26, avgBasket: 116 },
+  { month: 8, ordersPerDay: 22, workingDays: 26, avgBasket: 117 },
+  { month: 9, ordersPerDay: 24, workingDays: 26, avgBasket: 118 },
+  { month: 10, ordersPerDay: 26, workingDays: 26, avgBasket: 119 },
+  { month: 11, ordersPerDay: 27, workingDays: 26, avgBasket: 119 },
+  { month: 12, ordersPerDay: 28, workingDays: 26, avgBasket: 120 }, // الشهر 12: 28 طلب
 ];
 
 export const INITIAL_ASSUMPTIONS: Assumptions = {
   cogsPercent: 68,
   deliveryCostPerOrder: 8,
-  fixedCostsPerMonth: 550,
+  fixedCostsPerMonth: 7800, // ⚠️ تم رفعه من 550 إلى 7800 ليتوافق مع نقطة التعادل 10-12 طلب/يوم
   taxPercent: 1,
 };
 
@@ -224,6 +233,8 @@ const getMarginColor = (margin: number) => {
 };
 
 export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) => {
+  const [lang, setLang] = useState<FinanceLang>('ar'); // ⚠️ تم إضافة حالة اللغة
+
   const [months, setMonths] = useState<MonthData[]>(() => {
     try {
       const saved = localStorage.getItem('khodra_finance_months');
@@ -249,8 +260,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [copiedTable, setCopiedTable] = useState(false);
 
-  const lang = 'fr';
-  const t = FINANCE_TRANSLATIONS.fr;
+  const t = FINANCE_TRANSLATIONS[lang];
 
   useEffect(() => {
     try {
@@ -435,17 +445,23 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
     } catch {}
   };
 
+  // ⚠️ تصحيح حساب نقطة التعادل لتعتمد على بيانات الشهر الأول والفرضيات المحدثة
   const breakEven = useMemo(() => {
-    const avgBasket = totals.avgBasket || 100;
+    const targetAOV = months[0]?.avgBasket || 115;
     const variableCostPerOrder =
-      (avgBasket * assumptions.cogsPercent) / 100 +
+      (targetAOV * assumptions.cogsPercent) / 100 +
       assumptions.deliveryCostPerOrder +
-      2 +
-      (avgBasket * assumptions.taxPercent) / 100;
-    const contribution = avgBasket - variableCostPerOrder;
-    if (contribution <= 0) return 999;
-    return Math.ceil(assumptions.fixedCostsPerMonth / contribution);
-  }, [totals.avgBasket, assumptions]);
+      2 + // Packaging cost
+      (targetAOV * assumptions.taxPercent) / 100;
+    const contribution = targetAOV - variableCostPerOrder;
+    if (contribution <= 0) return { orders: 999, perDay: 999, workingDays: 26 };
+    
+    const breakevenOrders = Math.ceil(assumptions.fixedCostsPerMonth / contribution);
+    const workingDays = months[0]?.workingDays || 26;
+    const breakevenPerDay = Math.ceil(breakevenOrders / workingDays);
+    
+    return { orders: breakevenOrders, perDay: breakevenPerDay, workingDays };
+  }, [months, assumptions]);
 
   const maxRevenue = Math.max(...results.map((r) => r.revenue), 1);
   const maxProfit = Math.max(...results.map((r) => Math.abs(r.netProfit)), 1);
@@ -461,8 +477,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
       <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
 
       <div
-        lang="fr"
-        dir="ltr"
+        lang={lang}
+        dir={lang === 'ar' ? 'rtl' : 'ltr'}
         className="relative bg-[#FAF8F4] w-full sm:max-w-6xl shadow-2xl z-10 sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[95vh] overflow-hidden text-left border border-[#E8E1D3]"
       >
 
@@ -484,6 +500,22 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
+            {/* Language Switcher */}
+            <div className="flex items-center bg-black/25 rounded-xl border border-white/20 p-0.5">
+              {(['fr', 'ar', 'en'] as FinanceLang[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLang(l)}
+                  className={`px-2 py-1 text-[10px] font-black rounded-lg transition-colors cursor-pointer ${
+                    lang === l ? 'bg-white text-[#C25E12]' : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
             <div className="flex items-center gap-1.5 bg-black/25 px-3 py-1.5 rounded-xl border border-white/20 text-xs font-black text-amber-200 shadow-xs">
               <span>Norme Comptable Marocaine (MAD)</span>
             </div>
@@ -638,18 +670,29 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          {/* ─── بطاقة نقطة التعادل ─── */}
-          <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-300 rounded-2xl p-3 sm:p-4 flex items-start gap-3 text-xs sm:text-sm">
-            <Info className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <div className="font-black text-emerald-950 mb-0.5">{t.breakEvenTitle}</div>
-              <div className="text-emerald-800 font-semibold leading-relaxed">
-                {t.breakEvenDesc(breakEven, Math.ceil(breakEven / 26))}
+          {/* ─── بطاقة نقطة التعادل (تم إعادة تصميمها لتشبه الصورة) ─── */}
+          <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col items-center justify-center text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-full -mr-8 -mt-8 opacity-50"></div>
+            <div className="relative z-10">
+              <div className="text-xs font-black text-stone-500 mb-2 flex items-center justify-center gap-1.5">
+                <Target className="w-4 h-4 text-[#C25E12]" />
+                {t.operationalBreakEven}
+              </div>
+              <div className="flex items-baseline justify-center gap-2">
+                <span className="text-3xl sm:text-4xl font-black text-[#C25E12] tabular-nums">
+                  {breakEven.perDay}
+                </span>
+                <span className="text-sm font-bold text-stone-600">
+                  {t.ordersPerDay}
+                </span>
+              </div>
+              <div className="text-xs font-bold text-stone-400 mt-1">
+                ({breakEven.orders} {t.ordersPerMonth})
               </div>
             </div>
           </div>
 
-          {/* ─── الفرضيات الأساسية القابلة للتعديل (تم إصلاح ظهور الأرقام) ─── */}
+          {/* ─── الفرضيات الأساسية القابلة للتعديل ─── */}
           <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl overflow-hidden shadow-xs">
             <button
               type="button"
@@ -715,7 +758,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({ isOpen, onClose }) =
             )}
           </div>
 
-          {/* ─── محرر بيانات الأشهر الـ 12 (تم إصلاح ظهور الأرقام) ─── */}
+          {/* ─── محرر بيانات الأشهر الـ 12 ─── */}
           <div className="bg-white border-2 border-[#E8E1D3] rounded-2xl overflow-hidden shadow-xs">
             <button
               type="button"
