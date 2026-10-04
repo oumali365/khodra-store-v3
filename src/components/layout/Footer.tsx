@@ -184,26 +184,33 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
         </div>
 
         {/* ════════ التذييل السفلي وحقوق الملكية (عرض أوضح) ════════ */}
-        <div className="pt-5 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm text-stone-300 gap-4 text-center sm:text-right">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 font-bold w-full">
-            <button
-              type="button"
-              onClick={handleAdminTrigger}
-              title="دخول لوحة تحكم وإدارة المتجر (PIN)"
-              aria-label="دخول إدارة المتجر"
-              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-stone-400 hover:text-[#F5D76E] border border-zinc-700 hover:border-amber-400/50 transition-all cursor-pointer select-none shadow-xs group shrink-0"
-            >
-              <Lock className="w-4 h-4 text-stone-400 group-hover:text-[#F5D76E] transition-colors" />
-            </button>
-            <p className="text-stone-200 leading-relaxed">
-              جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
-              <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>{' '}
-              <span className="text-stone-400 text-[11px] block sm:inline sm:mt-0 mt-1">
-                (شركة خُضرة للتجارة الإلكترونية SARL)
-              </span>
-            </p>
-          </div>
-        </div>
+<div className="pt-5 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-center text-xs sm:text-sm text-stone-300 gap-4 text-center">
+
+  {/* ✅ القفل الآن على يمين نص الحقوق في نفس السطر + بدون إطار + بلون خلفية الفوتر */}
+  <div className="flex flex-row-reverse items-center justify-center gap-2 font-bold flex-wrap">
+
+    {/* 🔒 قفل المدير – مخفي بلون خلفية الفوتر الليلي */}
+    <button
+      type="button"
+      onClick={handleAdminTrigger}
+      title=""
+      aria-label=""
+      className="admin-lock p-0 m-0 bg-transparent border-0 shadow-none outline-none text-[#070b09] hover:text-[#F5D76E] transition-colors cursor-pointer select-none shrink-0 leading-none"
+      style={{ background: 'transparent', border: 'none' }}
+    >
+      <Lock className="w-3.5 h-3.5" />
+    </button>
+
+    {/* 📝 نص حقوق الملكية */}
+    <p className="text-stone-200 leading-relaxed">
+      جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
+      <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>{' '}
+      <span className="text-stone-400 text-[11px] block sm:inline sm:mt-0 mt-1">
+        (شركة خُضرة للتجارة الإلكترونية SARL)
+      </span>
+    </p>
+  </div>
+</div>
 
         {/* ════════════════════════════════════════════════════════════
             مساحة سفلية محجوزة لشريط السلة العائم (Cart Bar) - تم تقليصها
