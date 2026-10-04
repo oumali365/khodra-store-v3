@@ -1,6 +1,6 @@
 // ============================================================
 // Footer.tsx – تذييل المتجر المتطور
-// إصلاح الهامش الزائد + تحسين عرض بطاقة الواتساب + وضوح حقوق الملكية
+// إصلاح الهامش + تحسين رأس الفوتر + حذف خلفية التذييل السفلي
 // + قفل مخفي + فتح اللوحة بـ 3 ضغطات على الشعار + تأثير نبضي
 // ============================================================
 import React, { useRef, useState } from 'react';
@@ -19,11 +19,8 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
-  // ═══════ عداد الضغطات على الشعار (3 ضغطات = فتح لوحة التحكم) ═══════
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<number | null>(null);
-
-  // ═══════ حالة التأثير النبضي البصري ═══════
   const [pulseCount, setPulseCount] = useState(0);
 
   const handleAdminTrigger = () => {
@@ -31,24 +28,16 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
   };
 
   const handleLogoClick = () => {
-    // تصفير العداد إذا مرّ وقت طويل بين الضغطات (1.5 ثانية)
-    if (clickTimerRef.current) {
-      window.clearTimeout(clickTimerRef.current);
-    }
-
+    if (clickTimerRef.current) window.clearTimeout(clickTimerRef.current);
     clickCountRef.current += 1;
-
-    // ═══ التأثير البصري النبضي عند كل ضغطة ═══
     setPulseCount((c) => c + 1);
 
-    // عند الوصول إلى 3 ضغطات → فتح لوحة التحكم
     if (clickCountRef.current >= 3) {
       clickCountRef.current = 0;
       handleAdminTrigger();
       return;
     }
 
-    // إعادة تعيين العداد بعد 1.5 ثانية من آخر ضغطة
     clickTimerRef.current = window.setTimeout(() => {
       clickCountRef.current = 0;
     }, 1500);
@@ -57,9 +46,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
   const scrollToSection = (id: string) => {
     try {
       const el = document.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch {}
   };
 
@@ -68,79 +55,69 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
       className="relative overflow-hidden bg-[#070b09] text-white pt-6 pb-0 border-t-2 border-[#EAB308]/40 shadow-2xl select-none"
       dir="rtl"
     >
-      {/* ═══════ خط التوهج الذهبي في أعلى الفوتر ═══════ */}
+      {/* ═══════ خط التوهج الذهبي ═══════ */}
       <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#EAB308]/70 to-transparent pointer-events-none" />
 
-      {/* ═══════ إضاءات محيطية ناعمة تحاكي لوحة الإدارة ═══════ */}
+      {/* ═══════ إضاءات محيطية ═══════ */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-1/3 left-10 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* ═══════ أنماط التأثير النبضي (تُحقن مرة واحدة) ═══════ */}
+      {/* ═══════ أنماط التأثير النبضي ═══════ */}
       <style>{`
         @keyframes khodra-logo-pulse {
-          0% {
-            transform: scale(1);
-            box-shadow: 0 6px 22px rgba(234, 179, 8, 0.28),
-                        0 0 0 0 rgba(234, 179, 8, 0.55);
-          }
-          50% {
-            transform: scale(1.12);
-            box-shadow: 0 6px 22px rgba(234, 179, 8, 0.55),
-                        0 0 0 10px rgba(234, 179, 8, 0);
-          }
-          100% {
-            transform: scale(1);
-            box-shadow: 0 6px 22px rgba(234, 179, 8, 0.28),
-                        0 0 0 0 rgba(234, 179, 8, 0);
-          }
+          0%   { transform: scale(1);    box-shadow: 0 6px 22px rgba(234,179,8,0.28), 0 0 0 0 rgba(234,179,8,0.55); }
+          50%  { transform: scale(1.12); box-shadow: 0 6px 22px rgba(234,179,8,0.55), 0 0 0 10px rgba(234,179,8,0); }
+          100% { transform: scale(1);    box-shadow: 0 6px 22px rgba(234,179,8,0.28), 0 0 0 0 rgba(234,179,8,0); }
         }
-        .khodra-logo-pulse {
-          animation: khodra-logo-pulse 0.45s ease-out;
-        }
+        .khodra-logo-pulse { animation: khodra-logo-pulse 0.45s ease-out; }
 
         @keyframes khodra-logo-success {
-          0%   { transform: scale(1);   box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.8); }
-          40%  { transform: scale(1.22); box-shadow: 0 0 0 14px rgba(34, 197, 94, 0); }
-          100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+          0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(34,197,94,0.8); }
+          40%  { transform: scale(1.22); box-shadow: 0 0 0 14px rgba(34,197,94,0); }
+          100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(34,197,94,0); }
         }
         .khodra-logo-success {
           animation: khodra-logo-success 0.6s ease-out;
-          border-color: rgba(34, 197, 94, 0.9) !important;
+          border-color: rgba(34,197,94,0.9) !important;
         }
       `}</style>
 
       <div className="relative max-w-6xl mx-auto px-3 sm:px-5 lg:px-8 space-y-5">
 
-        {/* ════════ رأس الفوتر: هوية المتجر والعلامة التجارية ════════ */}
-        <div className="flex flex-col items-center text-center space-y-2 max-w-2xl mx-auto">
+        {/* ════════════════════════════════════════════════════════════
+            ═══ رأس الفوتر: هوية المتجر – هوامش محسّنة وعرض أوضح ═══
+            ════════════════════════════════════════════════════════════ */}
+        <div className="flex flex-col items-center text-center max-w-2xl mx-auto pt-2 pb-1">
+
           {/* 🌿 الشعار – اضغط 3 مرات لفتح لوحة التحكم */}
           <button
             type="button"
             onClick={handleLogoClick}
             aria-label="شعار المتجر"
-            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0 cursor-pointer transition-transform ${
+            className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0 cursor-pointer transition-transform mb-4 ${
               pulseCount >= 3 ? 'khodra-logo-success' : 'khodra-logo-pulse'
             }`}
-            key={pulseCount} /* ← إعادة تشغيل الأنيميشن في كل ضغطة */
+            key={pulseCount}
           >
-            <span className="text-xl sm:text-2xl">🌿</span>
+            <span className="text-2xl sm:text-3xl">🌿</span>
           </button>
 
-          <div>
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                متجر <span className="text-[#F5D76E]">{STORE_CONFIG.storeName}</span>
-              </h2>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                FES
-              </span>
-            </div>
-            <p className="text-[11px] sm:text-xs text-stone-300 font-medium mt-1.5 leading-relaxed">
-              نختار لكم كل صباح أجود الخضار، الفواكه، ومنتجات البقالة والألبان بعناية فائقة من أسواق الجملة بفاس مع توصيل سريع وموثوق لباب دارك.
-            </p>
+          {/* 📛 العنوان + شارة FES */}
+          <div className="flex items-center justify-center gap-3 flex-wrap mb-3">
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              متجر <span className="text-[#F5D76E]">{STORE_CONFIG.storeName}</span>
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              FES
+            </span>
           </div>
+
+          {/* 📝 النص الوصفي – بهامش علوي واضح وسطر مريح */}
+          <p className="text-xs sm:text-sm text-stone-300 font-medium leading-loose max-w-xl px-2">
+            نختار لكم كل صباح أجود الخضار، الفواكه، ومنتجات البقالة والألبان بعناية فائقة من أسواق الجملة بفاس مع توصيل سريع وموثوق لباب دارك.
+          </p>
         </div>
 
         {/* ─── بطاقة: معلومات وخدمات المتجر ─── */}
@@ -259,45 +236,51 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
         </div>
 
         {/* ════════════════════════════════════════════════════════════
-            التذييل السفلي: حقوق الملكية – عرض أوضح ومحسّن
+            التذييل السفلي: حقوق الملكية
+            ✅ بدون خلفية سوداء
+            ✅ حشو علوي/سفلي مُقلَّص
+            ✅ القفل بجانب النص مباشرة (يمين "جميع الحقوق")
             ════════════════════════════════════════════════════════════ */}
-        <div className="pt-6 border-t border-zinc-800">
-          <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl px-5 py-4 sm:px-6 sm:py-5">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-center">
+        <div className="pt-4 border-t border-zinc-800/60">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center py-1">
 
-              {/* النص */}
-              <p className="text-sm sm:text-base text-stone-200 font-bold leading-relaxed">
-                جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
-                <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>
-              </p>
+            {/* 🔒 القفل – على يمين النص (يظهر أولًا في RTL) */}
+            <button
+              type="button"
+              onClick={handleAdminTrigger}
+              title=""
+              aria-label=""
+              tabIndex={-1}
+              className="admin-lock p-0 m-0 bg-transparent border-0 shadow-none outline-none text-[#070b09] hover:text-[#F5D76E] transition-colors cursor-pointer select-none shrink-0 leading-none order-1"
+              style={{ background: 'transparent', border: 'none' }}
+            >
+              <Lock className="w-3 h-3" />
+            </button>
 
-              {/* الفاصل – يظهر فقط على الشاشات الكبيرة */}
-              <span className="hidden sm:inline-block w-px h-5 bg-zinc-700" aria-hidden="true" />
+            {/* 📝 النص الرئيسي */}
+            <p className="text-sm sm:text-base text-stone-200 font-bold leading-tight order-2">
+              جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
+              <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>
+            </p>
 
-              {/* الشركة */}
-              <p className="text-[11px] sm:text-xs text-stone-400 font-semibold">
-                شركة خُضرة للتجارة الإلكترونية SARL
-              </p>
+            {/* الفاصل */}
+            <span className="hidden sm:inline-block w-px h-4 bg-zinc-700/80 order-3" aria-hidden="true" />
 
-              {/* 🔒 قفل المدير – مخفي تمامًا بلون خلفية الفوتر الليلي */}
-              <button
-                type="button"
-                onClick={handleAdminTrigger}
-                title=""
-                aria-label=""
-                tabIndex={-1}
-                className="admin-lock p-0 m-0 bg-transparent border-0 shadow-none outline-none text-[#070b09] hover:text-[#F5D76E] transition-colors cursor-pointer select-none shrink-0 leading-none"
-                style={{ background: 'transparent', border: 'none' }}
-              >
-                <Lock className="w-3 h-3" />
-              </button>
-            </div>
+            {/* 🏢 اسم الشركة */}
+            <p className="text-[11px] sm:text-xs text-stone-400 font-semibold order-4">
+              شركة خُضرة للتجارة الإلكترونية SARL
+            </p>
+          </div>
+
+          {/* سطر ثانوي: حقوق إضافية – حشو مُقلَّص */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-[10px] sm:text-[11px] text-zinc-500 font-medium text-center">
+            <span>صُنع بحب في المغرب 🇲🇦</span>
+            <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-zinc-700" aria-hidden="true" />
+            <span>جميع العلامات التجارية مملوكة لأصحابها</span>
           </div>
         </div>
 
-        {/* ════════════════════════════════════════════════════════════
-            مساحة سفلية محجوزة لشريط السلة العائم (Cart Bar)
-            ════════════════════════════════════════════════════════════ */}
+        {/* ════════ مساحة سفلية محجوزة لشريط السلة العائم ════════ */}
         <div
           aria-hidden="true"
           className="w-full h-[80px] sm:h-[70px] pointer-events-none"
