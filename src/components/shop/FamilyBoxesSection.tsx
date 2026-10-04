@@ -674,17 +674,17 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
           })}
         </div>
 
-        {/* مؤشرات التنقل وأسهم التوجيه على الهاتف */}
-        <div className="flex md:hidden items-center justify-between pt-3 px-1">
+        {/* مؤشرات التنقل وأسهم التوجيه الموحدة المكبرة */}
+        <div className="flex md:hidden items-center justify-between pt-4 px-1">
           <div className="flex items-center gap-1.5">
             {FAMILY_BOXES.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => scrollToBox(i)}
-                className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
                   activeBoxIndex === i
-                    ? 'w-6 bg-[#2D6A3F]'
+                    ? 'w-7 bg-[#2D6A3F]'
                     : 'w-2 bg-[#2D6A3F]/25 hover:bg-[#2D6A3F]/50'
                 }`}
                 aria-label={`الانتقال إلى الصندوق ${i + 1}`}
@@ -692,24 +692,24 @@ export const FamilyBoxesSection: React.FC<FamilyBoxesSectionProps> = ({
             ))}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={scrollPrev}
               disabled={activeBoxIndex === 0}
-              className="p-2 rounded-lg bg-white border-2 border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
+              className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#FAF8F3] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
               aria-label="السابق"
             >
-              <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
+              <ChevronRight className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
             </button>
             <button
               type="button"
               onClick={scrollNext}
               disabled={activeBoxIndex >= FAMILY_BOXES.length - 1}
-              className="p-2 rounded-lg bg-white border-2 border-[#2D6A3F]/20 text-[#1A3D24] disabled:opacity-40 cursor-pointer"
+              className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#FAF8F3] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
               aria-label="التالي"
             >
-              <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
+              <ChevronLeft className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
             </button>
           </div>
         </div>
