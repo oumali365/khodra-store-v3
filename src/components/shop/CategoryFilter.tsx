@@ -297,22 +297,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     return idx !== -1 ? idx : 0;
   }, [categories, selectedCategory]);
 
-  // حساب النقطة النشطة (0 أو 1 أو 2) من بين الفئات الست
-  const activeDotIndex = Math.min(2, Math.max(0, Math.floor(selectedCategoryIndex / 2)));
-
-  // دالة النقر على إحدى النقاط الثلاث لتدور حول الفئات
-  const handleDotClick = (dotIdx: number) => {
-    let targetIdx = dotIdx * 2;
-    if (selectedCategoryIndex === dotIdx * 2 && categories[dotIdx * 2 + 1]) {
-      targetIdx = dotIdx * 2 + 1;
-    }
-    const targetCat = categories[targetIdx];
-    if (targetCat) {
-      onSelectCategory(targetCat.id);
-      scrollToIndex(targetIdx);
-    }
-  };
-
   // توسيط البطاقة المختارة تلقائياً عند تغيير الفئة
   useEffect(() => {
     const idx = categories.findIndex((c) => c.id === selectedCategory);
@@ -453,72 +437,44 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             </div>
 
             {/* ═══════ مؤشرات التنقل وأسهم التوجيه الموحدة للهاتف ═══════ */}
-            <div className="flex md:hidden items-center justify-between pt-4 px-1">
-              {/* ثلاث نقاط تنقل فقط تدور حول الفئات */}
-              <div className="flex items-center gap-1.5" role="tablist" aria-label="مؤشرات الفئات الثلاثة">
-                {[0, 1, 2].map((dotIdx) => {
-                  const isActive = activeDotIndex === dotIdx;
-                  const groupNames =
-                    dotIdx === 0
-                      ? 'الخضار والفواكه'
-                      : dotIdx === 1
-                      ? 'الألبان والبقالة'
-                      : 'المشروبات والنظافة';
-
-                  return (
-                    <button
-                      key={dotIdx}
-                      type="button"
-                      onClick={() => handleDotClick(dotIdx)}
-                      aria-label={`الانتقال إلى مجموعة ${groupNames}`}
-                      title={groupNames}
-                      className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                        isActive
-                          ? 'w-7 bg-[#2D6A3F] shadow-xs'
-                          : 'w-2.5 bg-[#2D6A3F]/25 hover:bg-[#2D6A3F]/50'
-                      }`}
-                    />
-                  );
-                })}
-              </div>
-
-              {/* زر التصفية وأسهم التمرير الموحدة */}
+            {/* تم حذف النقاط، تكبير الأسهم، إزالة كلمة تصفية، وتبديل الأماكن */}
+            <div className="flex md:hidden items-center justify-center gap-4 pt-4 px-1">
+              
+              {/* أسهم التنقل (أصبحت في الجهة اليمنى) */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={onOpenSort}
-                  className="group relative inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer border border-[#EAB308]/50"
-                  title="تصفية وترتيب المنتجات"
-                  aria-label="تصفية وترتيب المنتجات"
+                  onClick={() => scrollByAmount('right')}
+                  disabled={!canScrollRight}
+                  className="w-12 h-12 rounded-2xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] shadow-xs flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                  aria-label="السابق"
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#F5D76E] transition-transform duration-300 group-hover:scale-110" />
-                  <span>تصفية</span>
-                  {hasActiveFilters && (
-                    <span className="w-2 h-2 rounded-full bg-[#EA580C] border border-white animate-pulse" />
-                  )}
+                  <ChevronRight className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
                 </button>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => scrollByAmount('right')}
-                    disabled={!canScrollRight}
-                    className="w-10 h-10 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] shadow-xs flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
-                    aria-label="السابق"
-                  >
-                    <ChevronRight className="w-4 h-4 text-[#1A3D24]" strokeWidth={2.6} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollByAmount('left')}
-                    disabled={!canScrollLeft}
-                    className="w-10 h-10 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] shadow-xs flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
-                    aria-label="التالي"
-                  >
-                    <ChevronLeft className="w-4 h-4 text-[#1A3D24]" strokeWidth={2.6} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => scrollByAmount('left')}
+                  disabled={!canScrollLeft}
+                  className="w-12 h-12 rounded-2xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] shadow-xs flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                  aria-label="التالي"
+                >
+                  <ChevronLeft className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
+                </button>
               </div>
+
+              {/* زر التصفية (أصبح في الجهة اليسرى) - بدون كلمة تصفية */}
+              <button
+                type="button"
+                onClick={onOpenSort}
+                className="group relative inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] text-white shadow-md active:scale-95 transition-all cursor-pointer border border-[#EAB308]/50"
+                title="تصفية وترتيب المنتجات"
+                aria-label="تصفية وترتيب المنتجات"
+              >
+                <SlidersHorizontal className="w-5 h-5 text-[#F5D76E] transition-transform duration-300 group-hover:scale-110" />
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#EA580C] border-2 border-white animate-pulse" />
+                )}
+              </button>
             </div>
           </div>
 
