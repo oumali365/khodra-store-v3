@@ -1,7 +1,7 @@
 // ============================================================
-// CategoryFilter.tsx – الإصدار 11.0
+// CategoryFilter.tsx – الإصدار 12.0
 // تصميم مطابق تماماً لشارات الثقة (TrustBadges) وتقييمات الزبائن (CustomerReviews)
-// بطاقات بخلفية صور ممتدة + إصلاح التمرير اليدوي + إزالة العناصر الصفراء
+// بطاقات بخلفية صور ممتدة + إصلاح التمرير اليدوي + إزالة العناصر الصفراء والشارات البيضاء
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -25,50 +25,36 @@ const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = 
   cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.jpg' },
 };
 
-// شارات وألوان فريدة لكل فئة (تم إزالة الألوان الصفراء واستبدالها بالأخضر والبرتقالي)
+// شارات وألوان فريدة لكل فئة
 const CATEGORY_META: Record<
   string,
-  { badge: string; tagColor: string; subtitle: string; iconBg: string }
+  { subtitle: string; iconBg: string }
 > = {
   veg: {
-    badge: 'طازج يومياً',
-    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     subtitle: 'خضار الحقول المغربية',
     iconBg: 'bg-emerald-500/15 border-emerald-500/35',
   },
   fruit: {
-    badge: 'موسمي وحلو',
-    tagColor: 'bg-orange-100 text-orange-800 border-orange-300',
     subtitle: 'فواكه طازجة ومجففة',
     iconBg: 'bg-orange-500/15 border-orange-500/35',
   },
   dairy: {
-    badge: 'بلدي 100%',
-    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     subtitle: 'حليب، أجبان، زبدة وبيض',
     iconBg: 'bg-emerald-500/15 border-emerald-500/35',
   },
   grocery: {
-    badge: 'مونة ممتازة',
-    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     subtitle: 'زيت، عسل، قطاني وتوابل',
     iconBg: 'bg-emerald-500/15 border-emerald-500/35',
   },
   drinks: {
-    badge: 'انتعاش طبيعي',
-    tagColor: 'bg-orange-100 text-orange-800 border-orange-300',
     subtitle: 'عصائر طازجة ومياه',
     iconBg: 'bg-orange-500/15 border-orange-500/35',
   },
   cleaning: {
-    badge: 'نظافة وعناية',
-    tagColor: 'bg-orange-100 text-orange-800 border-orange-300',
     subtitle: 'منظفات وصابون بلدي',
     iconBg: 'bg-orange-500/15 border-orange-500/35',
   },
   all: {
-    badge: 'شامل كل المتجر',
-    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     subtitle: 'جميع تشكيلات فاس',
     iconBg: 'bg-emerald-500/15 border-emerald-500/35',
   },
@@ -86,8 +72,6 @@ const CategoryCardButton: React.FC<{
   const [isLoaded, setIsLoaded] = useState(false);
 
   const meta = CATEGORY_META[category.id] || {
-    badge: 'جودة مضمونة',
-    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     subtitle: 'منتجات مختارة بعناية',
     iconBg: 'bg-emerald-500/15 border-emerald-500/35',
   };
@@ -142,12 +126,7 @@ const CategoryCardButton: React.FC<{
 
       {/* ─── المحتوى ─── */}
       <div className="relative z-10 w-full h-full flex flex-col justify-end items-center p-3 sm:p-4 text-center">
-        {/* شارة التميز (Pill Badge) */}
-        <span
-          className={`text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full border-2 ${meta.tagColor} mb-2 shadow-xs backdrop-blur-sm bg-white/90`}
-        >
-          {meta.badge}
-        </span>
+        {/* تم حذف شارة التميز (Pill Badge) البيضاء من هنا */}
 
         {/* العنوان */}
         <h3 className="text-sm sm:text-base font-black leading-snug mb-1 text-white drop-shadow-md">
@@ -400,7 +379,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             )}
 
             {/* الحاوية المتجاوبة مع توسيط الفئات على كل الشاشات */}
-            {/* تم تغيير snap-mandatory إلى snap-proximity للسماح بالتمرير اليدوي بسلاسة */}
             <div
               ref={scrollRef}
               className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-4 overflow-x-auto md:overflow-visible py-3 px-2 sm:px-4 md:px-0 overscroll-x-contain no-scrollbar items-stretch snap-x snap-proximity md:snap-none justify-start sm:justify-center max-w-6xl mx-auto"
@@ -423,10 +401,9 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             </div>
 
             {/* ═══════ مؤشرات التنقل وأسهم التوجيه الموحدة للهاتف ═══════ */}
-            {/* تم حذف النقاط، تكبير الأسهم، إزالة كلمة تصفية، وتبديل الأماكن */}
             <div className="flex md:hidden items-center justify-center gap-4 pt-4 px-1">
               
-              {/* أسهم التنقل (أصبحت في الجهة اليمنى) */}
+              {/* أسهم التنقل */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -448,7 +425,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 </button>
               </div>
 
-              {/* زر التصفية (أصبح في الجهة اليسرى) - بدون كلمة تصفية */}
+              {/* زر التصفية */}
               <button
                 type="button"
                 onClick={onOpenSort}
