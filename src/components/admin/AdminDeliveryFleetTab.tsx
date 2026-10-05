@@ -42,6 +42,7 @@ import {
   saveStoreDrivers,
   addStoreDriver,
   updateStoreDriver,
+  updateOrderStatus,
   deleteStoreDriver,
   detectFezZone,
 } from '../../services/supabaseService';
@@ -110,6 +111,7 @@ function cleanPhoneForWhatsApp(phone: string): string {
 export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   orders,
   showToast,
+  onRefreshOrders,
 }) => {
   // ─── سائقو الفريق الداخلي ───
   const [drivers, setDrivers] = useState<StoreDriver[]>([]);
@@ -455,6 +457,47 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       );
     }
     showToast('success', `تم فتح واتساب لإرسال الجولة إلى ${driver?.name || 'السائق'}`);
+  };
+
+  // ─── إغلاق الجولة وتأكيد تسليم جميع طلباتها ───
+  const [closingZone, setClosingZone] = useState<FezZoneId | null>(null);
+
+  const handleCloseTour = async (zoneKey: FezZoneId) => {
+    const zoneOrders = zoneGroups[zoneKey].filter(
+      (order) => order.status === 'pending' || order.status === 'prepared'
+    );
+    if (zoneOrders.length === 0) {
+      showToast('error', 'لا توجد طلبات نشطة لإغلاق هذه الجولة');
+      return;
+    }
+
+    const driverId = selectedDriverForZone[zoneKey];
+    const driver = drivers.find((item) => item.id === driverId);
+    if (!driverId || !driver) {
+      showToast('error', 'يرجى تعيين سائق للجولة قبل تأكيد التسليم');
+      return;
+    }
+
+    setClosingZone(zoneKey);
+    try {
+      const results = [];
+      for (const order of zoneOrders) {
+        results.push(await updateOrderStatus(order.id, 'delivered'));
+      }
+      const failed = results.filter((result) => !result.success).length;
+      if (failed > 0) {
+        showToast('error', `تعذر تحديث ${failed} طلبات؛ لم تُغلق الجولة بالكامل`);
+        return;
+      }
+
+      await updateStoreDriver(driver.id, { status: 'available' });
+      showToast('success', `تم تسليم ${zoneOrders.length} طلباً ونقلها إلى أرشيف الطلبات`);
+      await onRefreshOrders?.();
+    } catch {
+      showToast('error', 'تعذر إغلاق الجولة بسبب خطأ في الاتصال');
+    } finally {
+      setClosingZone(null);
+    }
   };
 
   // ─── أتمتة 2: فتح مسار Google Maps المجمّع ───
@@ -880,6 +923,21 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                       <span>مانيفست A4</span>
                     </button>
                   </div>
+
+                  {/* إغلاق الجولة وتأكيد التسليم */}
+                  <button
+                    type="button"
+                    disabled={count === 0 || closingZone === zoneKey}
+                    onClick={() => handleCloseTour(zoneKey)}
+                    className="w-full py-2 px-3 rounded-xl bg-[#163920] hover:bg-[#0E2615] disabled:opacity-50 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    {closingZone === zoneKey ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-200" />
+                    )}
+                    <span>{closingZone === zoneKey ? 'جاري إغلاق الجولة...' : 'إغلاق الجولة وتأكيد التسليم'}</span>
+                  </button>
 
                   {/* زر خيارات النسخ المتعددة */}
                   <button
