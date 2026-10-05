@@ -7,8 +7,7 @@ import {
   X, Package, Clock, CheckCircle2, XCircle, Search, Loader2,
   Phone, MapPin, MessageCircle, RefreshCw, ShoppingBag, ExternalLink,
   User, TrendingUp, Calendar, AlertCircle, Inbox, Copy, Trash2, Check,
-  Printer, Sparkles, ShieldCheck, Bike, Navigation,
-  ChevronDown, ChevronUp, Send, Save, Percent,
+  Printer, ShieldCheck, Bike, ChevronDown, ChevronUp, Send, Save, Percent,
 } from 'lucide-react';
 import {
   fetchOrders,
@@ -130,7 +129,6 @@ function cleanNote(note: string): string {
     .filter((part) => {
       const p = part.trim();
       if (!p) return false;
-      // حذف وقت التسليم وطريقة الدفع ورابط الخريطة والمنتجات والتوصيل
       if (/وقت\s*التسليم/.test(p)) return false;
       if (/طريقة\s*الدفع/.test(p)) return false;
       if (/رابط\s*الخريطة/.test(p)) return false;
@@ -307,7 +305,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   const [dispatchDrafts, setDispatchDrafts] = useState<Record<string, DeliveryDispatchInfo>>({});
   const [savingDispatchId, setSavingDispatchId] = useState<string | number | null>(null);
 
-  // حماية من التكرار اللانهائي لإعادة التصير (Infinite Loop Prevention)
   const lastNotifiedRef = useRef<{ total: number; pending: number } | null>(null);
 
   useEffect(() => {
@@ -383,7 +380,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     };
   }, [isOpen, standalone]);
 
-  // تأمين التمرير للصفحة الرئيسية ومنع تجميدها بعد الخروج
   useEffect(() => {
     if (standalone) return;
     if (isOpen) {
@@ -406,7 +402,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     };
   }, [isOpen, standalone]);
 
-  // إغلاق النوافذ الفرعية أو اللوحة عند الضغط على Escape
   useEffect(() => {
     if (!isOpen) return;
 
@@ -615,31 +610,55 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
           : 'sm:max-w-4xl shadow-2xl sm:rounded-[28px] max-h-screen sm:max-h-[92vh]'
       } flex flex-col overflow-hidden text-right border border-[#E8E1D3]`}>
 
-          {/* ═══════════ Header ═══════════ */}
-          <div className="relative p-4 sm:p-5 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shrink-0 shadow-md overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,215,110,0.15),transparent_60%)] pointer-events-none" />
-            <div className="relative flex items-center gap-3 min-w-0">
-              <div className="relative w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-5 h-5 text-[#F5D76E]" />
-                {stats.pending > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-[#0E2615] shadow-md animate-pulse">
-                    {stats.pending > 99 ? '99+' : stats.pending}
-                  </span>
-                )}
-              </div>
-              <div className="min-w-0">
-                <h2 className="font-black text-base sm:text-lg flex items-center gap-2">
-                  <span>إدارة الطلبات</span>
-                  <Sparkles className="w-4 h-4 text-[#F5D76E]" />
-                </h2>
-                <p className="text-[11px] sm:text-xs text-emerald-100/90 font-bold">
-                  {orders.length} طلب مسجل • {stats.pending} قيد الإنشاء
-                </p>
-              </div>
+          {/* ═══════════ Modern Header with Tabs ═══════════ */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 bg-white border-b border-[#E8E1D3] shrink-0 text-right">
+            {/* Tabs Container */}
+            <div className="flex w-full sm:w-auto bg-[#F7F4EC] p-1.5 rounded-2xl border border-[#E8E1D3]">
+              <button
+                type="button"
+                onClick={() => setActiveTab('orders')}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  activeTab === 'orders'
+                    ? 'bg-white text-[#163920] shadow-sm border border-[#E8E1D3]'
+                    : 'text-[#787163] hover:text-[#112616] hover:bg-white/50'
+                }`}
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>إدارة الطلبات</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+                  activeTab === 'orders'
+                    ? 'bg-[#163920]/10 text-[#163920]'
+                    : 'bg-[#E8E1D3] text-[#787163]'
+                }`}>
+                  {stats.pending > 0 ? `${stats.pending} جديدة` : orders.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('fleet')}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  activeTab === 'fleet'
+                    ? 'bg-white text-[#C25E12] shadow-sm border border-[#E8E1D3]'
+                    : 'text-[#787163] hover:text-[#112616] hover:bg-white/50'
+                }`}
+              >
+                <Bike className="w-4 h-4" />
+                <span>مسارات التوصيل</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+                  activeTab === 'fleet'
+                    ? 'bg-[#C25E12]/10 text-[#C25E12]'
+                    : 'bg-[#E8E1D3] text-[#787163]'
+                }`}>
+                  inDrive + فاس
+                </span>
+              </button>
             </div>
-            <div className="relative flex items-center gap-2 shrink-0">
+
+            {/* Action Buttons & Realtime Indicator */}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               {isRealtimeActive && (
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 text-[10px] font-black backdrop-blur-xs" title="الاستقبال اللحظي مفعّل">
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black" title="الاستقبال اللحظي مفعّل">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
@@ -647,12 +666,23 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                   <span>مباشر</span>
                 </span>
               )}
-              <button type="button" onClick={handleRefresh} disabled={isRefreshing}
-                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 border border-white/15" title="تحديث">
+
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="w-10 h-10 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] border border-[#E8E1D3] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 text-[#112616]"
+                title="تحديث"
+              >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
-              <button type="button" onClick={onClose}
-                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer border border-white/15" aria-label="إغلاق">
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-10 h-10 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 flex items-center justify-center transition-colors cursor-pointer text-red-600"
+                aria-label="إغلاق"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -669,30 +699,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
               <span>{toast.message}</span>
             </div>
           )}
-
-          {/* ═══════════ Tab Switcher (تسمية جديدة) ═══════════ */}
-          <div className="flex border-b border-[#E8E1D3] bg-white text-xs font-black shrink-0">
-            <button type="button" onClick={() => setActiveTab('orders')}
-              className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
-                activeTab === 'orders'
-                  ? 'border-[#163920] text-[#163920] bg-emerald-50/40'
-                  : 'border-transparent text-[#787163] hover:text-[#112616] hover:bg-[#F7F4EC]'
-              }`}>
-              <ShoppingBag className="w-4 h-4" />
-              <span>إدارة الطلبات</span>
-              <span className="px-2 py-0.5 rounded-full bg-[#163920]/10 text-[#163920] text-[10px]">{orders.length}</span>
-            </button>
-            <button type="button" onClick={() => setActiveTab('fleet')}
-              className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
-                activeTab === 'fleet'
-                  ? 'border-[#C25E12] text-[#C25E12] bg-amber-50/40'
-                  : 'border-transparent text-[#787163] hover:text-[#112616] hover:bg-[#F7F4EC]'
-              }`}>
-              <Bike className="w-4 h-4 text-[#C25E12]" />
-              <span>مسارات التوصيل</span>
-              <span className="px-2 py-0.5 rounded-full bg-[#C25E12]/15 text-[#C25E12] text-[10px]">inDrive + فاس</span>
-            </button>
-          </div>
 
           {activeTab === 'fleet' ? (
             <div className="flex-1 overflow-y-auto p-3 sm:p-5">
