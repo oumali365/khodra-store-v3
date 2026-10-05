@@ -626,17 +626,8 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
           : 'sm:max-w-4xl shadow-2xl sm:rounded-[28px] max-h-screen sm:max-h-[92vh]'
       } flex flex-col overflow-hidden text-right border border-[#E8E1D3]`}>
 
-          {/* ═══════════ شريط علوي مع الاحتفاظ بزر التحديث ═══════════ */}
-          <div className="relative px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-end gap-2 shrink-0 shadow-xs">
-            {isRealtimeActive && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 text-[10px] font-black backdrop-blur-xs" title="الاستقبال اللحظي مفعّل">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                </span>
-                <span>مباشر</span>
-              </span>
-            )}
+          {/* ═══════════ شريط علوي مع الاحتفاظ بزر التحديث فقط ═══════════ */}
+          <div className="relative px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-end shrink-0 shadow-xs">
             <button
               type="button"
               onClick={handleRefresh}

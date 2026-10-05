@@ -26,7 +26,6 @@ export type AdminRoute = 'orders' | 'finance' | 'documents' | 'marketing';
 interface AdminPageLayoutProps {
   currentRoute: AdminRoute;
   isAdmin: boolean;
-  onLoginSuccess?: () => void;
   onLogout?: () => void;
   onNavigate: (route: AdminRoute) => void;
   onReturnToStore: () => void;
@@ -81,7 +80,6 @@ const NAV_ITEMS: NavItem[] = [
 export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
   currentRoute,
   isAdmin,
-  onLoginSuccess,
   onLogout,
   onNavigate,
   onReturnToStore,
@@ -99,19 +97,6 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
       onReturnToStore();
     }
   }, [onExitToDashboard, onReturnToStore]);
-
-  // ─── حماية زر الرجوع في الهاتف لمنع إغلاق التطبيق والتوجيه تلقائياً للوحة الإدارة السفلية ───
-  useEffect(() => {
-    window.history.pushState({ page: 'admin_layout' }, '', window.location.pathname);
-
-    const handlePopState = (e: PopStateEvent) => {
-      e.preventDefault();
-      handleExit();
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [handleExit]);
 
   // حالة الصوت
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {

@@ -75,58 +75,10 @@ const PinModal = React.lazy(() =>
   import('./components/admin/AdminReviewModals').then((m) => ({ default: m.PinModal }))
 );
 
-// ─── تحميل مؤجل للصفحات الإضافية والخريطة ───
+// ─── تحميل مؤجل للصفحات الإضافية ───
 const InfoPages = React.lazy(() =>
   import('./components/common/InfoPages').then((module) => ({ default: module.InfoPages }))
 );
-const StoreCoverageMap = React.lazy(() =>
-  import('./components/shop/StoreCoverageMap')
-    .catch((err) => {
-      console.warn('First attempt to load StoreCoverageMap failed, retrying...', err);
-      return import('./components/shop/StoreCoverageMap');
-    })
-    .then((module) => ({ default: module.default || module.StoreCoverageMap }))
-);
-
-// ─── صمام أمان للخريطة ───
-class MapErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false };
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  componentDidCatch(error: any) {
-    console.warn('StoreCoverageMap dynamic load error caught safely:', error);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-8 sm:my-12">
-          <div className="bg-white border border-[#E8E1D3] rounded-[24px] p-6 sm:p-8 text-center space-y-3 shadow-sm">
-            <span className="text-3xl select-none">🗺️</span>
-            <h3 className="text-base font-black text-[#112616] font-['Almarai']">
-              موقع المتجر ونطاق التوصيل بمدينة فاس
-            </h3>
-            <p className="text-xs sm:text-sm text-[#524B3E] font-medium max-w-md mx-auto">
-              توصيل يومي لكافة أحياء فاس (طريق إيموزار، الأطلس، النرجس، عين الشقف، المدينة الجديدة).
-            </p>
-            <button
-              type="button"
-              onClick={() => this.setState({ hasError: false })}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] text-white text-xs sm:text-sm font-black hover:shadow-lg cursor-pointer transition-all shadow-md active:scale-95 border-2 border-[#0E2615]"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-[#F5D76E]" />
-              <span>إعادة تحميل الخريطة</span>
-            </button>
-          </div>
-        </section>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 import { Product, CartItem, ProductCategory, OrderSubmission } from './types';
 import { fetchProducts, submitOrder } from './services/supabaseService';
@@ -263,6 +215,8 @@ export default function App() {
   });
 
   const [activeAdminRoute, setActiveAdminRoute] = useState<AdminRoute | null>(parseAdminRoute);
+  const activeAdminRouteRef = useRef<AdminRoute | null>(activeAdminRoute);
+  activeAdminRouteRef.current = activeAdminRoute;
 
   const handleNavigateAdmin = useCallback((route: AdminRoute) => {
     setActiveAdminRoute(route);
@@ -509,12 +463,7 @@ export default function App() {
 
     const handlePopState = () => {
       // 0. إذا كان مسار الإدارة مفتوحاً: الرجوع يغلق الإدارة ويعود للمتجر إلى لوحة المدير السفلية بدون خروج من التطبيق
-      const currentAdmin = parseAdminRoute();
-      if (currentAdmin !== activeAdminRoute) {
-        setActiveAdminRoute(currentAdmin);
-        if (currentAdmin) return;
-      }
-      if (activeAdminRoute) {
+      if (activeAdminRouteRef.current || parseAdminRoute()) {
         handleExitToBottomDashboard();
         return;
       }
@@ -591,6 +540,7 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [
+    activeAdminRoute,
     isAdminOrdersOpen,
     isExitConfirmOpen,
     selectedFamilyBox,
@@ -909,12 +859,6 @@ export default function App() {
         <AdminPageLayout
           currentRoute={activeAdminRoute}
           isAdmin={isAdmin}
-          onLoginSuccess={() => {
-            setIsAdmin(true);
-            try {
-              sessionStorage.setItem('khodra_admin_auth', 'true');
-            } catch {}
-          }}
           onLogout={handleExitToBottomDashboard}
           onNavigate={handleNavigateAdmin}
           onReturnToStore={handleReturnToStore}
@@ -1138,24 +1082,6 @@ export default function App() {
 
             {/* ─── Trust Badges ─── */}
             <TrustBadges />
-
-            {/* ─── Store Coverage Map ─── */}
-            <MapErrorBoundary>
-              <Suspense
-                fallback={
-                  <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-8 sm:my-12">
-                    <div className="bg-white border border-[#E8E1D3] rounded-[24px] p-4 sm:p-7 shadow-sm text-center animate-pulse space-y-4">
-                      <div className="h-6 w-48 bg-stone-200 rounded-lg mx-auto"></div>
-                      <div className="h-[310px] sm:h-[400px] md:h-[460px] bg-[#F7F4EC] rounded-2xl flex items-center justify-center text-xs text-stone-400 font-black">
-                        جاري تحميل خريطة التغطية...
-                      </div>
-                    </div>
-                  </section>
-                }
-              >
-                <StoreCoverageMap />
-              </Suspense>
-            </MapErrorBoundary>
 
             {/* ─── Customer Reviews ─── */}
             <Suspense

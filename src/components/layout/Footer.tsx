@@ -1,7 +1,6 @@
 // ============================================================
 // Footer.tsx – تذييل المتجر المتطور
-// إصلاح الهامش + تحسين رأس الفوتر + حذف خلفية التذييل السفلي
-// + قفل مخفي + فتح اللوحة بـ 3 ضغطات على الشعار + تأثير نبضي
+// دمج خريطة نطاق التوصيل في أعلى الفوتر + فتح الإدارة بـ 3 نقرات على الشعار
 // ============================================================
 import React, { useRef, useState } from 'react';
 import {
@@ -13,6 +12,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
+import { StoreCoverageMap } from '../shop/StoreCoverageMap';
 
 interface FooterProps {
   onOpenPage: (page: 'about' | 'policy' | 'privacy' | null) => void;
@@ -84,19 +84,19 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
         }
       `}</style>
 
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-5 lg:px-8 space-y-5">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-5 lg:px-8 space-y-6 sm:space-y-8">
 
         {/* ════════════════════════════════════════════════════════════
-            ═══ رأس الفوتر: هوية المتجر – هوامش محسّنة وعرض أوضح ═══
+            ═══ رأس الفوتر: هوية المتجر (فوق شارات النطاق والخريطة) ═══
             ════════════════════════════════════════════════════════════ */}
-        <div className="flex flex-col items-center text-center max-w-2xl mx-auto pt-2 pb-1">
+        <div className="flex flex-col items-center text-center max-w-2xl mx-auto pt-3 sm:pt-5 pb-1">
 
           {/* 🌿 الشعار – اضغط 3 مرات لفتح لوحة التحكم */}
           <button
             type="button"
             onClick={handleLogoClick}
             aria-label="شعار المتجر"
-            className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0 cursor-pointer transition-transform mb-4 ${
+            className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0 cursor-pointer transition-transform mb-3.5 ${
               pulseCount >= 3 ? 'khodra-logo-success' : 'khodra-logo-pulse'
             }`}
             key={pulseCount}
@@ -105,7 +105,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
           </button>
 
           {/* 📛 العنوان + شارة FES */}
-          <div className="flex items-center justify-center gap-3 flex-wrap mb-3">
+          <div className="flex items-center justify-center gap-3 flex-wrap mb-2.5">
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               متجر <span className="text-[#F5D76E]">{STORE_CONFIG.storeName}</span>
             </h2>
@@ -115,15 +115,24 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
             </span>
           </div>
 
-          {/* 📝 النص الوصفي – بهامش علوي واضح وسطر مريح */}
-          <p className="text-xs sm:text-sm text-stone-300 font-medium leading-loose max-w-xl px-2">
+          {/* 📝 النص الوصفي – بهامش مريح وسطر أنيق */}
+          <p className="text-xs sm:text-sm text-stone-300 font-medium leading-relaxed max-w-xl px-2">
             نختار لكم كل صباح أجود الخضار، الفواكه، ومنتجات البقالة والألبان بعناية فائقة من أسواق الجملة بفاس مع توصيل سريع وموثوق لباب دارك.
           </p>
         </div>
 
-        {/* ─── بطاقة: معلومات وخدمات المتجر ─── */}
-        <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-5 sm:p-6 text-center space-y-4 shadow-md flex flex-col justify-between">
-          <div className="pb-3 border-b border-zinc-800 text-center">
+        {/* ════════════════════════════════════════════════════════════
+            شارات النطاق + خريطة التغطية الممتدة (بهوامش مريحة)
+            ════════════════════════════════════════════════════════════ */}
+        <StoreCoverageMap inFooter={true} />
+
+        {/* ─── بطاقة: معلومات وخدمات المتجر (مع إضاءة رمادية أنيقة للحواف) ─── */}
+        <div className="bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 border-2 border-zinc-500/60 sm:border-zinc-400/60 rounded-3xl p-5 sm:p-6 text-center space-y-4 shadow-[0_0_25px_rgba(161,161,170,0.18),0_10px_35px_rgba(0,0,0,0.5)] flex flex-col justify-between relative overflow-hidden backdrop-blur-sm">
+          {/* إضاءة رمادية علوية ناعمة */}
+          <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-zinc-400/70 to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-1/3 w-64 h-64 bg-zinc-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="pb-3 border-b border-zinc-700/80 text-center relative">
             <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
               معلومات وخدمات المتجر
             </h3>
@@ -238,9 +247,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
 
         {/* ════════════════════════════════════════════════════════════
             التذييل السفلي: حقوق الملكية
-            ✅ بدون خلفية سوداء
-            ✅ حشو علوي/سفلي مُقلَّص
-            ✅ القفل بجانب النص مباشرة (يمين "جميع الحقوق")
             ════════════════════════════════════════════════════════════ */}
         <div className="pt-4 border-t border-zinc-800/60">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center py-1">

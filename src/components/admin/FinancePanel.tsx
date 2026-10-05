@@ -615,7 +615,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
           <div className="bg-amber-50 border-b border-amber-300 p-3 sm:px-5 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-amber-950">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Voulez-vous vraiment réinitialiser les prévisions aux valeurs d’origine ?</span>
+              <span>Voulez-vous réinitialiser les prévisions aux valeurs d’origine ?</span>
             </div>
             <div className="flex items-center gap-2 mr-auto">
               <button
@@ -624,13 +624,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
                 className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-black text-xs cursor-pointer active:scale-95"
               >
                 Oui, réinitialiser
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmingReset(false)}
-                className="px-3 py-1.5 rounded-lg bg-white border border-stone-300 text-stone-700 font-bold text-xs cursor-pointer hover:bg-stone-50"
-              >
-                Annuler
               </button>
             </div>
           </div>
@@ -975,15 +968,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
               <>{t.autoSaveText}</>
             )}
           </div>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 rounded-xl bg-[#C25E12] hover:bg-[#9C4505] text-white text-xs font-black cursor-pointer active:scale-95 transition-all shadow-sm"
-            >
-              {t.close}
-            </button>
-          )}
         </div>
 
       </div>

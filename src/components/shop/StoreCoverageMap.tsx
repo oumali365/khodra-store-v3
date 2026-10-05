@@ -78,7 +78,11 @@ const RippleButton: React.FC<{
   );
 };
 
-export const StoreCoverageMap: React.FC = () => {
+export interface StoreCoverageMapProps {
+  inFooter?: boolean;
+}
+
+export const StoreCoverageMap: React.FC<StoreCoverageMapProps> = ({ inFooter = true }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
@@ -252,9 +256,9 @@ export const StoreCoverageMap: React.FC = () => {
     }
   }, [isMobileDraggingActive]);
 
-  return (
-    <section
-      className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-16 relative isolate z-10"
+  const content = (
+    <div
+      className={inFooter ? "w-full relative isolate z-10" : "max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-16 relative isolate z-10"}
       id="store-coverage-map-section"
     >
       {/* ═══════ الأنماط الحركية ═══════ */}
@@ -277,52 +281,39 @@ export const StoreCoverageMap: React.FC = () => {
         }
       `}</style>
 
-      {/* ═══════ الحاوية الرئيسية ═══════ */}
-      <div className="relative bg-gradient-to-b from-white via-[#FEFEFC] to-[#FAF8F3] border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-[36px] p-4 sm:p-8 shadow-[0_2px_12px_rgba(45,106,63,0.06)] text-center overflow-hidden">
+      {/* ═══════ شبكة الشارات منفصلة تماماً فوق بطاقة الخريطة (grid-cols-2) بهوامش مريحة ═══════ */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-5 w-full">
+        <div className="inline-flex items-center justify-center gap-1.5 text-xs sm:text-sm font-black text-emerald-300 bg-zinc-900/90 border-2 border-emerald-500/40 py-2.5 px-3 sm:px-4 rounded-2xl shadow-[0_0_15px_rgba(16,185,129,0.12)] text-center transition-all">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white shadow-sm shrink-0"></span>
+          <span className="truncate">توصيل سريع (4.5 كم)</span>
+        </div>
+        <div className="inline-flex items-center justify-center gap-1.5 text-xs sm:text-sm font-black text-amber-300 bg-zinc-900/90 border-2 border-amber-500/40 py-2.5 px-3 sm:px-4 rounded-2xl shadow-[0_0_15px_rgba(245,158,11,0.12)] text-center transition-all">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white shadow-sm shrink-0"></span>
+          <span className="truncate">تغطية شاملة (8.5 كم)</span>
+        </div>
+      </div>
 
-        {/* دوائر ضوئية */}
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#EAB308]/12 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#2D6A3F]/10 rounded-full blur-3xl pointer-events-none" />
+      {/* ═══════ بطاقة الخريطة ممتدة في الخلفية بالكامل مع إضاءة بيضاء فاخرة ═══════ */}
+      <div className={`relative ${
+        inFooter
+          ? 'bg-zinc-950 border-2 border-white/25 sm:border-white/35 rounded-3xl shadow-[0_0_30px_rgba(255,255,255,0.09),0_10px_35px_rgba(0,0,0,0.6)]'
+          : 'bg-white border border-[#2D6A3F]/12 rounded-[24px] sm:rounded-[36px] shadow-[0_2px_12px_rgba(45,106,63,0.06)]'
+      } overflow-hidden backdrop-blur-sm isolate w-full h-[320px] sm:h-[400px] md:h-[460px]`}>
 
-        <div className="relative">
+        {/* إضاءات محيطية بيضاء وخط إضاءة علوي مثل بطاقة الواتساب */}
+        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none z-20" />
+        <div className="absolute top-0 right-1/4 w-72 h-72 bg-white/5 rounded-full blur-3xl pointer-events-none z-10" />
 
-          {/* ════════ الرأس ════════ */}
-          <div className="text-center mb-6 sm:mb-8 max-w-2xl mx-auto">
-            {/* العنوان */}
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#1A3D24] mb-3 leading-tight font-['Almarai'] flex items-center justify-center gap-2 flex-wrap">
-              موقع المتجر ونطاق التوصيل بفاس
-              <span className="inline-block w-2 h-2 rounded-full bg-[#EAB308]" />
-            </h2>
+        {/* الخريطة تملأ كامل البطاقة كخلفية مباشرة (تمديد كامل لعرض أوضح) */}
+        <div
+          ref={mapContainerRef}
+          className="w-full h-full z-0"
+          style={{
+            touchAction: !isMobileDraggingActive && isTouchDevice ? 'pan-y' : 'auto',
+          }}
+        />
 
-            {/* الوصف */}
-            <p className="text-xs sm:text-sm text-[#5A6B5F] font-bold max-w-lg mx-auto leading-relaxed">
-              انطلاقاً مباشراً من مركزنا اللوجستي بطريق إيموزار، نوصل لجميع أحياء فاس بجودة وطراوة مضمونة.
-            </p>
-
-            {/* شارات النطاق */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#1A3D24] bg-[#2D6A3F]/10 px-3 py-1.5 rounded-full border border-[#2D6A3F]/25 shadow-sm">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#2D6A3F] border-2 border-white shadow-sm"></span>
-                <span>توصيل سريع (4.5 كم)</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#EA580C] bg-[#EA580C]/10 px-3 py-1.5 rounded-full border border-[#EA580C]/25 shadow-sm">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#EA580C] border-2 border-white shadow-sm"></span>
-                <span>تغطية شاملة (8.5 كم)</span>
-              </span>
-            </div>
-          </div>
-
-          {/* ════════ الخريطة ════════ */}
-          <div className="relative w-full h-[310px] sm:h-[400px] md:h-[460px] rounded-2xl overflow-hidden border-2 border-[#2D6A3F]/20 shadow-[inset_0_2px_10px_rgba(45,106,63,0.06)] bg-stone-100 isolate">
-            <div
-              ref={mapContainerRef}
-              className="w-full h-full z-0"
-              style={{
-                touchAction: !isMobileDraggingActive && isTouchDevice ? 'pan-y' : 'auto',
-              }}
-            />
-
-            {/* ─── أزرار التحكم ─── */}
+        {/* ─── أزرار التحكم ─── */}
             <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 bg-white/95 backdrop-blur-sm p-1.5 rounded-2xl border border-[#2D6A3F]/15 shadow-[0_4px_14px_rgba(45,106,63,0.15)]">
               <RippleButton
                 onClick={() => mapInstanceRef.current?.zoomIn()}
@@ -391,12 +382,11 @@ export const StoreCoverageMap: React.FC = () => {
                 </RippleButton>
               </div>
             )}
-          </div>
-
-        </div>
       </div>
-    </section>
+    </div>
   );
+
+  return content;
 };
 
 export default StoreCoverageMap;

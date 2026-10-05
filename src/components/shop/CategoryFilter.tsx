@@ -1,9 +1,9 @@
 // ============================================================
-// الملف: CategoryFilter.tsx – الإصدار 9.0
-// تصميم مطابق تماماً لشارات الثقة (TrustBadges)
-// حذف التأثيرات الحالية + حذف مكون "متوفر" + تكبير البطاقات
+// CategoryFilter.tsx – الإصدار 10.0
+// تصميم مطابق تماماً لشارات الثقة (TrustBadges) وتقييمات الزبائن (CustomerReviews)
+// بطاقات متناسقة بإضاءة ناعمة وخلفية متباينة + توسيط احترافي للفئات
 // ============================================================
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   SlidersHorizontal,
   Sparkles,
@@ -25,15 +25,72 @@ const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = 
   cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.jpg' },
 };
 
+// شارات وألوان فريدة لكل فئة مطابقة للغة التصميم في شارات الثقة
+const CATEGORY_META: Record<
+  string,
+  { badge: string; tagColor: string; subtitle: string; iconBg: string }
+> = {
+  veg: {
+    badge: 'طازج يومياً',
+    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    subtitle: 'خضار الحقول المغربية',
+    iconBg: 'bg-emerald-500/15 border-emerald-500/35',
+  },
+  fruit: {
+    badge: 'موسمي وحلو',
+    tagColor: 'bg-orange-100 text-orange-800 border-orange-300',
+    subtitle: 'فواكه طازجة ومجففة',
+    iconBg: 'bg-orange-500/15 border-orange-500/35',
+  },
+  dairy: {
+    badge: 'بلدي 100%',
+    tagColor: 'bg-amber-100 text-amber-800 border-amber-300',
+    subtitle: 'حليب، أجبان، زبدة وبيض',
+    iconBg: 'bg-amber-500/15 border-amber-500/35',
+  },
+  grocery: {
+    badge: 'مونة ممتازة',
+    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    subtitle: 'زيت، عسل، قطاني وتوابل',
+    iconBg: 'bg-emerald-500/15 border-emerald-500/35',
+  },
+  drinks: {
+    badge: 'انتعاش طبيعي',
+    tagColor: 'bg-orange-100 text-orange-800 border-orange-300',
+    subtitle: 'عصائر طازجة ومياه',
+    iconBg: 'bg-orange-500/15 border-orange-500/35',
+  },
+  cleaning: {
+    badge: 'نظافة وعناية',
+    tagColor: 'bg-amber-100 text-amber-800 border-amber-300',
+    subtitle: 'منظفات وصابون بلدي',
+    iconBg: 'bg-amber-500/15 border-amber-500/35',
+  },
+  all: {
+    badge: 'شامل كل المتجر',
+    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    subtitle: 'جميع تشكيلات فاس',
+    iconBg: 'bg-emerald-500/15 border-emerald-500/35',
+  },
+};
+
 const CategoryCardButton: React.FC<{
   category: { id: ProductCategory; name: string; icon: string };
   isSelected: boolean;
   onSelect: () => void;
-}> = ({ category, isSelected, onSelect }) => {
+  count?: number;
+}> = ({ category, isSelected, onSelect, count }) => {
   const imageConfig = CATEGORY_IMAGES[category.id];
   const [currentSrc, setCurrentSrc] = useState<string | null>(imageConfig?.primary || null);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const meta = CATEGORY_META[category.id] || {
+    badge: 'جودة مضمونة',
+    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    subtitle: 'منتجات مختارة بعناية',
+    iconBg: 'bg-emerald-500/15 border-emerald-500/35',
+  };
 
   const handleImgError = () => {
     if (currentSrc === imageConfig?.primary && imageConfig?.fallback && currentSrc !== imageConfig.fallback) {
@@ -43,114 +100,86 @@ const CategoryCardButton: React.FC<{
     }
   };
 
-  const hasBackgroundImage = Boolean(currentSrc && !hasError);
+  const hasImage = Boolean(currentSrc && !hasError);
 
   return (
-    <button
-      type="button"
+    <article
       role="tab"
       aria-selected={isSelected}
       onClick={onSelect}
-      className={`group relative flex flex-col justify-between p-2.5 sm:p-3 rounded-2xl border-2 transition-all duration-200 cursor-pointer select-none shrink-0
-        w-[145px] min-w-[145px]
-        xs:w-[155px] xs:min-w-[155px]
-        sm:w-[170px] sm:min-w-[170px]
-        md:w-auto md:min-w-0
-        min-h-[200px]
-        xs:min-h-[210px]
-        sm:min-h-[220px]
-        md:min-h-[230px]
-        lg:min-h-[240px]
-        xl:min-h-[250px]
-        ${isSelected
-          ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.16)] ring-2 ring-[#2D6A3F]/30'
-          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 shadow-xs hover:shadow-[0_10px_24px_rgba(45,106,63,0.12)]'
-        } ${
-        !hasBackgroundImage
-          ? isSelected
-            ? 'bg-gradient-to-b from-[#2D6A3F] to-[#1A3D24] text-white'
-            : 'bg-white hover:bg-[#FAF8F3] text-[#1A3D24]'
-          : 'bg-[#1A3D24]'
+      className={`group/cat relative w-[70vw] max-w-[210px] xs:w-[170px] sm:w-[185px] md:w-auto md:max-w-none shrink-0 snap-center rounded-2xl border-2 transition-all duration-300 md:hover:-translate-y-1 p-3.5 sm:p-4 text-center flex flex-col justify-between overflow-hidden cursor-pointer select-none active:scale-[0.98] ${
+        isSelected
+          ? 'bg-white border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.18)] ring-2 ring-[#2D6A3F]/25'
+          : 'bg-[#F4FAF6] border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:bg-white shadow-xs md:hover:shadow-[0_10px_24px_rgba(45,106,63,0.12)]'
       }`}
     >
-      {/* ─── صورة الخلفية ─── */}
-      {currentSrc && !hasError && (
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-[12px] sm:rounded-[14px]">
-          <img
-            src={currentSrc}
-            alt={category.name}
-            className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${
-              isLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            onLoad={() => setIsLoaded(true)}
-            onError={handleImgError}
-          />
+      {/* ─── وميض بصري عند التحويم والمس مطابق لشارات الثقة ─── */}
+      <div className="cat-sheen-sweep pointer-events-none" />
 
-          <div
-            className={`absolute inset-0 transition-opacity duration-300 ${
-              isSelected
-                ? 'bg-gradient-to-t from-[#0B1C10]/85 via-[#0B1C10]/25 to-transparent'
-                : 'bg-gradient-to-t from-[#0B1C10]/70 via-[#0B1C10]/15 to-transparent group-hover:from-[#0B1C10]/75 group-hover:via-[#0B1C10]/20'
-            }`}
-          />
-
-          {isSelected && (
-            <div className="absolute inset-0 bg-[#EAB308]/10 pointer-events-none" />
+      <div className="w-full flex flex-col items-center relative z-10">
+        {/* ─── الأيقونة / الصورة داخل إطار أنيق موحد ─── */}
+        <div
+          className={`w-13 h-13 sm:w-15 sm:h-15 rounded-2xl ${meta.iconBg} border-2 overflow-hidden flex items-center justify-center shadow-xs shrink-0 group-hover/cat:scale-105 transition-transform mb-2.5 bg-white relative`}
+        >
+          {hasImage ? (
+            <img
+              src={currentSrc!}
+              alt={category.name}
+              className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover/cat:scale-110 ${
+                isLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              onLoad={() => setIsLoaded(true)}
+              onError={handleImgError}
+            />
+          ) : (
+            <span className="text-3xl sm:text-4xl">{category.icon}</span>
           )}
         </div>
-      )}
 
-      {/* ─── أيقونة احتياطية ─── */}
-      {!hasBackgroundImage && (
-        <div className="relative z-10 flex-1 flex items-center justify-center py-1.5">
-          <span
-            className={`text-4xl sm:text-5xl transition-all duration-300 ${
-              isSelected ? 'scale-110' : 'group-hover:scale-110'
-            }`}
-          >
-            {category.icon}
-          </span>
-        </div>
-      )}
-
-      {/* ─── المحتوى السفلي ─── */}
-      <div className="relative z-10 w-full flex flex-col items-center text-center mt-auto pt-1.5">
+        {/* ─── شارة التميز (Pill Badge) ─── */}
         <span
-          className={`text-[14px] sm:text-[15px] lg:text-[16px] font-black leading-tight transition-colors duration-300 ${
-            hasBackgroundImage
-              ? isSelected
-                ? 'text-[#FACC15] drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]'
-                : 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]'
-              : isSelected
-              ? 'text-white'
-              : 'text-[#1A3D24]'
+          className={`text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full border-2 ${meta.tagColor} mb-2 shadow-xs`}
+        >
+          {meta.badge}
+        </span>
+
+        {/* ─── العنوان ─── */}
+        <h3
+          className={`text-sm sm:text-base font-black leading-snug mb-1 transition-colors ${
+            isSelected ? 'text-[#163920]' : 'text-[#1A3D24]'
           }`}
         >
           {category.name}
+        </h3>
+
+        {/* ─── الوصف المختصر ─── */}
+        <p className="text-[11px] sm:text-xs text-[#3E4F43] font-medium leading-relaxed px-1 line-clamp-1">
+          {meta.subtitle}
+        </p>
+      </div>
+
+      {/* ─── خط سفلي موحد للموثوقية مطابق لشارات الثقة ─── */}
+      <div className="w-full pt-2.5 mt-2.5 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black relative z-10">
+        <CheckCircle2
+          className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-[#2D6A3F]' : 'text-emerald-600'}`}
+          strokeWidth={2.5}
+        />
+        <span className={isSelected ? 'text-[#2D6A3F] font-black' : 'text-emerald-800'}>
+          {isSelected ? 'الفئة المعروضة' : (count ? `${count} منتج متوفر` : 'معتمد لزبناء فاس')}
         </span>
-
-        {isSelected ? (
-          <span className="w-8 sm:w-9 h-1 rounded-full bg-[#EAB308] mt-1.5 shadow-xs" />
-        ) : (
-          <span
-            className={`h-0.5 rounded-full mt-1.5 transition-all duration-300 ${
-              hasBackgroundImage
-                ? 'w-5 bg-white/40 group-hover:w-8 group-hover:bg-[#FB923C]'
-                : 'w-5 bg-[#2D6A3F]/25 group-hover:w-8 group-hover:bg-[#FB923C]'
-            }`}
-          />
-        )}
       </div>
 
-      {/* ─── الشريط السفلي (مطابق لشارات الثقة) ─── */}
-      <div className="relative z-10 w-full pt-2 mt-2 border-t border-white/20 flex items-center justify-center gap-1 text-[9px] sm:text-[10px] font-black text-white/80">
-        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400 shrink-0" strokeWidth={3} />
-        <span>معتمد لزبناء فاس</span>
-      </div>
-    </button>
+      {/* ─── مؤشر الفئة المختارة ─── */}
+      {isSelected && (
+        <div
+          className="absolute inset-x-0 bottom-0 h-1 bg-[#2D6A3F]"
+          aria-hidden="true"
+        />
+      )}
+    </article>
   );
 };
 
@@ -178,6 +207,7 @@ interface CategoryFilterProps {
 export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   selectedCategory,
   onSelectCategory,
+  products = [],
   className = '',
   sortBy,
   onlyInStock,
@@ -186,6 +216,14 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   onClearSearch,
 }) => {
   const categories = CATEGORIES_CONFIG.filter((cat) => cat.id !== 'all');
+
+  const productCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    products.forEach((p) => {
+      counts[p.category] = (counts[p.category] || 0) + 1;
+    });
+    return counts;
+  }, [products]);
 
   const hasActiveFilters = sortBy !== 'default' || onlyInStock;
   const isSearchMode = searchQuery.trim().length > 0;
@@ -221,6 +259,25 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     });
   }, []);
 
+  // دالة توسيط البطاقة المختارة داخل الحاوية بدقة
+  const scrollToIndex = useCallback((index: number) => {
+    if (!scrollRef.current) return;
+    const container = scrollRef.current;
+    const cards = container.querySelectorAll('article');
+    if (cards[index]) {
+      const card = cards[index] as HTMLElement;
+      const cardLeft = card.offsetLeft;
+      const cardWidth = card.offsetWidth;
+      const containerWidth = container.offsetWidth;
+      const scrollPosition = cardLeft - (containerWidth - cardWidth) / 2;
+
+      container.scrollTo({
+        left: scrollPosition,
+        behavior: 'smooth',
+      });
+    }
+  }, []);
+
   useEffect(() => {
     updateScrollState();
     const el = scrollRef.current;
@@ -234,6 +291,36 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     };
   }, [categories.length, updateScrollState]);
 
+  // مؤشر الفئة الحالية لحساب النقطة النشطة من بين النقاط الثلاث
+  const selectedCategoryIndex = useMemo(() => {
+    const idx = categories.findIndex((c) => c.id === selectedCategory);
+    return idx !== -1 ? idx : 0;
+  }, [categories, selectedCategory]);
+
+  // حساب النقطة النشطة (0 أو 1 أو 2) من بين الفئات الست
+  const activeDotIndex = Math.min(2, Math.max(0, Math.floor(selectedCategoryIndex / 2)));
+
+  // دالة النقر على إحدى النقاط الثلاث لتدور حول الفئات
+  const handleDotClick = (dotIdx: number) => {
+    let targetIdx = dotIdx * 2;
+    if (selectedCategoryIndex === dotIdx * 2 && categories[dotIdx * 2 + 1]) {
+      targetIdx = dotIdx * 2 + 1;
+    }
+    const targetCat = categories[targetIdx];
+    if (targetCat) {
+      onSelectCategory(targetCat.id);
+      scrollToIndex(targetIdx);
+    }
+  };
+
+  // توسيط البطاقة المختارة تلقائياً عند تغيير الفئة
+  useEffect(() => {
+    const idx = categories.findIndex((c) => c.id === selectedCategory);
+    if (idx !== -1) {
+      scrollToIndex(idx);
+    }
+  }, [selectedCategory, categories, scrollToIndex]);
+
   const scrollByAmount = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
@@ -243,10 +330,33 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   };
 
   return (
-    <div
+    <section
+      id="category-filter-section"
       className={`max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-2 sm:mt-4 mb-10 sm:my-14 ${className}`}
+      aria-label="تسوق حسب الفئات"
       dir="rtl"
     >
+      {/* ═══════ الأنماط الحركية والوميض البصري المماثل لشارات الثقة ═══════ */}
+      <style>{`
+        @keyframes catSheenSwipe {
+          0%   { transform: translateX(180%) skewX(-20deg); opacity: 0; }
+          15%  { opacity: 0.8; }
+          100% { transform: translateX(-180%) skewX(-20deg); opacity: 0; }
+        }
+        .cat-sheen-sweep {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.85) 50%, transparent 100%);
+          transform: translateX(180%) skewX(-20deg);
+          pointer-events: none;
+          z-index: 15;
+        }
+        .group\\/cat:hover .cat-sheen-sweep {
+          animation: catSheenSwipe 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+      `}</style>
+
+      {/* ═══════ الحاوية الرئيسية (نفس تباين وبناء شارات الثقة والتقييمات) ═══════ */}
       <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
 
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
@@ -254,7 +364,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
         <div className="relative">
 
-          {/* ═══════ 1. رأس القسم ═══════ */}
+          {/* ═══════ 1. رأس القسم الموحد (مُوسَّط مع النقطة الذهبية) ═══════ */}
           <div className="relative flex flex-col items-center text-center gap-4 pb-5 border-b border-[#2D6A3F]/10">
             <div className="text-center space-y-2 max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
@@ -296,7 +406,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             )}
           </div>
 
-          {/* ═══════ 2. بطاقات الفئات ═══════ */}
+          {/* ═══════ 2. شبكة وبطاقات الفئات (توسيط ممتاز وتناسق كامل) ═══════ */}
           <div className="relative pt-6 pb-2">
             {canScrollRight && (
               <button
@@ -320,64 +430,99 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
+            {/* الحاوية المتجاوبة مع توسيط الفئات على كل الشاشات */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto md:overflow-visible py-3 px-1 overscroll-x-contain no-scrollbar items-stretch"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-4 overflow-x-auto md:overflow-visible py-3 px-2 sm:px-4 md:px-0 overscroll-x-contain no-scrollbar items-stretch snap-x snap-mandatory md:snap-none justify-start sm:justify-center max-w-6xl mx-auto"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
             >
-              {categories.map((cat) => (
+              {categories.map((cat, idx) => (
                 <CategoryCardButton
                   key={cat.id}
                   category={cat}
+                  count={productCounts[cat.id]}
                   isSelected={selectedCategory === cat.id}
-                  onSelect={() => onSelectCategory(cat.id)}
+                  onSelect={() => {
+                    onSelectCategory(cat.id);
+                    scrollToIndex(idx);
+                  }}
                 />
               ))}
             </div>
 
-            {/* ═══════ الصف السفلي (تصفية + أسهم) ═══════ */}
-            <div className="flex md:hidden items-center justify-between pt-2 px-1">
-              
-              <button
-                type="button"
-                onClick={onOpenSort}
-                className="group relative inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#377A4C] hover:to-[#22502F] text-white font-black text-xs shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border border-[#EAB308]/50"
-                title="تصفية وترتيب المنتجات"
-                aria-label="تصفية وترتيب المنتجات"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-[#F5D76E] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90" />
-                <span>تصفية</span>
-                {hasActiveFilters && (
-                  <span className="w-2 h-2 rounded-full bg-[#EA580C] border border-white animate-pulse" />
-                )}
-              </button>
+            {/* ═══════ مؤشرات التنقل وأسهم التوجيه الموحدة للهاتف ═══════ */}
+            <div className="flex md:hidden items-center justify-between pt-4 px-1">
+              {/* ثلاث نقاط تنقل فقط تدور حول الفئات */}
+              <div className="flex items-center gap-1.5" role="tablist" aria-label="مؤشرات الفئات الثلاثة">
+                {[0, 1, 2].map((dotIdx) => {
+                  const isActive = activeDotIndex === dotIdx;
+                  const groupNames =
+                    dotIdx === 0
+                      ? 'الخضار والفواكه'
+                      : dotIdx === 1
+                      ? 'الألبان والبقالة'
+                      : 'المشروبات والنظافة';
 
+                  return (
+                    <button
+                      key={dotIdx}
+                      type="button"
+                      onClick={() => handleDotClick(dotIdx)}
+                      aria-label={`الانتقال إلى مجموعة ${groupNames}`}
+                      title={groupNames}
+                      className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                        isActive
+                          ? 'w-7 bg-[#2D6A3F] shadow-xs'
+                          : 'w-2.5 bg-[#2D6A3F]/25 hover:bg-[#2D6A3F]/50'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* زر التصفية وأسهم التمرير الموحدة */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => scrollByAmount('right')}
-                  disabled={!canScrollRight}
-                  className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
-                  aria-label="السابق"
+                  onClick={onOpenSort}
+                  className="group relative inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer border border-[#EAB308]/50"
+                  title="تصفية وترتيب المنتجات"
+                  aria-label="تصفية وترتيب المنتجات"
                 >
-                  <ChevronRight className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#F5D76E] transition-transform duration-300 group-hover:scale-110" />
+                  <span>تصفية</span>
+                  {hasActiveFilters && (
+                    <span className="w-2 h-2 rounded-full bg-[#EA580C] border border-white animate-pulse" />
+                  )}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => scrollByAmount('left')}
-                  disabled={!canScrollLeft}
-                  className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
-                  aria-label="التالي"
-                >
-                  <ChevronLeft className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
-                </button>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => scrollByAmount('right')}
+                    disabled={!canScrollRight}
+                    className="w-10 h-10 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] shadow-xs flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                    aria-label="السابق"
+                  >
+                    <ChevronRight className="w-4 h-4 text-[#1A3D24]" strokeWidth={2.6} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollByAmount('left')}
+                    disabled={!canScrollLeft}
+                    className="w-10 h-10 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#F4FAF6] shadow-xs flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                    aria-label="التالي"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-[#1A3D24]" strokeWidth={2.6} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* ═══════ 3. الشريط السفلي ═══════ */}
+          {/* ═══════ 3. الشريط السفلي للموثوقية ═══════ */}
           <div className="mt-6 pt-5 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs sm:text-sm text-[#1F2937] font-black text-center">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
             <span>جميع المنتجات تخضع للمعاينة والفرز الدقيق قبل التجهيز والتوصيل لباب منزلك.</span>
@@ -385,7 +530,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
