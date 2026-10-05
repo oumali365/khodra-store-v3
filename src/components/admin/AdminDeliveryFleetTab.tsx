@@ -64,6 +64,7 @@ interface AdminDeliveryFleetTabProps {
   onSelectOrderForBordereau: (order: DbOrder) => void;
   onOpenOrderInvoice: (order: DbOrder) => void;
   showToast: (type: 'success' | 'error', message: string) => void;
+  onRefreshOrders?: () => Promise<void>;
 }
 
 const VEHICLE_CONFIG: Record<
@@ -430,7 +431,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     }
   };
 
-  // ─── أتمتة 1: إرسال الجولة المباشر للسائق عبر واتساب ───
+  // ─── أتمتة 1: إرسال ال��ولة المباشر للسائق عبر واتساب ───
   const handleSendToDriverWhatsApp = (zoneKey: FezZoneId) => {
     const driverId = selectedDriverForZone[zoneKey];
     const driver = drivers.find((d) => d.id === driverId) || drivers[0];
