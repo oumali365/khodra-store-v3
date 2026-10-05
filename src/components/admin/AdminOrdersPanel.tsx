@@ -622,8 +622,8 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     <>
       <div className={`relative bg-[#FBF9F5] w-full ${
         standalone
-          ? 'max-w-7xl mx-auto shadow-md rounded-3xl min-h-[650px]'
-          : 'sm:max-w-4xl shadow-2xl sm:rounded-[28px] max-h-screen sm:max-h-[92vh]'
+          ? 'max-w-[1480px] mx-auto shadow-xl rounded-[28px] min-h-[760px]'
+          : 'sm:max-w-[1180px] shadow-2xl sm:rounded-[28px] max-h-screen sm:max-h-[94vh]'
       } flex flex-col overflow-hidden text-right border border-[#E8E1D3]`}>
 
           {/* ═══════════ شريط علوي مع الاحتفاظ بزر التحديث فقط ═══════════ */}
@@ -652,7 +652,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
           )}
 
           {/* ═══════════ Tab Switcher (تسمية جديدة) ═══════════ */}
-          <div className="flex border-b border-[#E8E1D3] bg-white text-xs font-black shrink-0">
+          <div className="flex border-b border-[#E8E1D3] bg-white text-sm font-black shrink-0 shadow-sm">
             <button type="button" onClick={() => setActiveTab('orders')}
               className={`flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
                 activeTab === 'orders'
@@ -732,8 +732,8 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                 )}
               </div>
 
-              {/* ═══════════ Orders List ═══════════ */}
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+              {/* ═══════════ Orders List ═════��═════ */}
+              <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 bg-[#F7F4EC]/60">
                 {isLoading ? (
                   <div className="py-16 text-center">
                     <Loader2 className="w-8 h-8 text-[#163920] animate-spin mx-auto mb-3" />
@@ -767,7 +767,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
 
                     return (
                       <article key={order.id}
-                        className={`bg-white rounded-2xl border-2 p-3.5 sm:p-4 transition-all ${
+                        className={`bg-white rounded-[22px] border-2 p-4 sm:p-5 transition-all shadow-sm ${
                           isUpdating || isBeingDeleted
                             ? 'border-amber-400 shadow-md'
                             : 'border-[#E8E1D3] hover:border-[#C25E12]/40 hover:shadow-sm'

@@ -421,7 +421,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     return msg;
   };
 
-  // ─── نسخ النص ───
+  // ─── نسخ ��لنص ───
   const handleCopyText = async (text: string, zoneKey: FezZoneId, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -513,10 +513,10 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   };
 
   return (
-    <div className="space-y-6 text-right">
+    <div className="space-y-8 text-right max-w-[1420px] mx-auto">
       {/* ═══════════ KPIs ═══════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
-        <div className="bg-white border-2 border-emerald-200 rounded-2xl p-3 sm:p-4 shadow-xs">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+        <div className="bg-white border-2 border-emerald-200 rounded-[22px] p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between text-xs text-emerald-800 font-bold mb-1">
             <span>رحلات اليوم</span>
             <Bike className="w-4 h-4 text-emerald-600" />
@@ -529,7 +529,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           </p>
         </div>
 
-        <div className="bg-white border-2 border-amber-200 rounded-2xl p-3 sm:p-4 shadow-xs">
+        <div className="bg-white border-2 border-amber-200 rounded-[22px] p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between text-xs text-amber-800 font-bold mb-1">
             <span>وقت التوصيل</span>
             <Clock className="w-4 h-4 text-amber-600" />
@@ -540,7 +540,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           <p className="text-[11px] text-stone-500 mt-1">الهدف: أقل من 60 دقيقة</p>
         </div>
 
-        <div className="bg-white border-2 border-blue-200 rounded-2xl p-3 sm:p-4 shadow-xs">
+        <div className="bg-white border-2 border-blue-200 rounded-[22px] p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between text-xs text-blue-800 font-bold mb-1">
             <span>تكلفة السائقين</span>
             <Coins className="w-4 h-4 text-blue-600" />
@@ -551,7 +551,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           <p className="text-[11px] text-stone-500 mt-1">حسب كل طلب</p>
         </div>
 
-        <div className="bg-white border-2 border-stone-200 rounded-2xl p-3 sm:p-4 shadow-xs">
+        <div className="bg-white border-2 border-stone-200 rounded-[22px] p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between text-xs text-stone-700 font-bold mb-1">
             <span>صافي التوصيل</span>
             <TrendingUp className="w-4 h-4 text-emerald-600" />
@@ -569,7 +569,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       </div>
 
       {/* ═══════════ فريق التوصيل الداخلي للمتجر ═══════════ */}
-      <div className="bg-white border-2 border-[#163920]/20 rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white border-2 border-[#163920]/20 rounded-[26px] p-5 sm:p-7 shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-stone-200">
           <div>
             <div className="flex items-center gap-2">
@@ -646,7 +646,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-5">
             {drivers.map((driver) => {
               const vehicle = VEHICLE_CONFIG[driver.vehicleType] || VEHICLE_CONFIG.moto;
               const status = STATUS_CONFIG[driver.status] || STATUS_CONFIG.available;
