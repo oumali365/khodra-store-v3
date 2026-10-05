@@ -625,13 +625,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
               >
                 <ShoppingBag className="w-4 h-4" />
                 <span>إدارة الطلبات</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                  activeTab === 'orders'
-                    ? 'bg-[#163920]/10 text-[#163920]'
-                    : 'bg-[#E8E1D3] text-[#787163]'
-                }`}>
-                  {stats.pending > 0 ? `${stats.pending} جديدة` : orders.length}
-                </span>
               </button>
 
               <button
@@ -645,13 +638,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
               >
                 <Bike className="w-4 h-4" />
                 <span>مسارات التوصيل</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                  activeTab === 'fleet'
-                    ? 'bg-[#C25E12]/10 text-[#C25E12]'
-                    : 'bg-[#E8E1D3] text-[#787163]'
-                }`}>
-                  inDrive + فاس
-                </span>
               </button>
             </div>
 
@@ -666,25 +652,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                   <span>مباشر</span>
                 </span>
               )}
-
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="w-10 h-10 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] border border-[#E8E1D3] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 text-[#112616]"
-                title="تحديث"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-10 h-10 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 flex items-center justify-center transition-colors cursor-pointer text-red-600"
-                aria-label="إغلاق"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
           </div>
 
@@ -1102,10 +1069,21 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                 <p className="text-[11px] text-[#787163] font-black">
                   عرض <span className="text-[#112616]">{filteredOrders.length}</span> من أصل <span className="text-[#112616]">{orders.length}</span> طلب
                 </p>
-                <button type="button" onClick={onClose}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white text-xs font-black cursor-pointer active:scale-95 transition-all border-2 border-[#0E2615] shadow-sm">
-                  إغلاق
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="w-10 h-10 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] border border-[#E8E1D3] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 text-[#112616]"
+                    title="تحديث"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button type="button" onClick={onClose}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#0E2615] hover:to-[#071A0C] text-white text-xs font-black cursor-pointer active:scale-95 transition-all border-2 border-[#0E2615] shadow-sm">
+                    إغلاق
+                  </button>
+                </div>
               </div>
             </>
           )}
