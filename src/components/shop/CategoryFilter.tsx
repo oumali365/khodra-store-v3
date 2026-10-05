@@ -1,7 +1,7 @@
 // ============================================================
-// CategoryFilter.tsx – الإصدار 10.0
+// CategoryFilter.tsx – الإصدار 11.0
 // تصميم مطابق تماماً لشارات الثقة (TrustBadges) وتقييمات الزبائن (CustomerReviews)
-// بطاقات متناسقة بإضاءة ناعمة وخلفية متباينة + توسيط احترافي للفئات
+// بطاقات بخلفية صور ممتدة + إصلاح التمرير اليدوي + إزالة العناصر الصفراء
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -25,7 +25,7 @@ const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = 
   cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.jpg' },
 };
 
-// شارات وألوان فريدة لكل فئة مطابقة للغة التصميم في شارات الثقة
+// شارات وألوان فريدة لكل فئة (تم إزالة الألوان الصفراء/الamber واستبدالها بالأخضر والبرتقالي)
 const CATEGORY_META: Record<
   string,
   { badge: string; tagColor: string; subtitle: string; iconBg: string }
@@ -44,9 +44,9 @@ const CATEGORY_META: Record<
   },
   dairy: {
     badge: 'بلدي 100%',
-    tagColor: 'bg-amber-100 text-amber-800 border-amber-300',
+    tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     subtitle: 'حليب، أجبان، زبدة وبيض',
-    iconBg: 'bg-amber-500/15 border-amber-500/35',
+    iconBg: 'bg-emerald-500/15 border-emerald-500/35',
   },
   grocery: {
     badge: 'مونة ممتازة',
@@ -62,9 +62,9 @@ const CATEGORY_META: Record<
   },
   cleaning: {
     badge: 'نظافة وعناية',
-    tagColor: 'bg-amber-100 text-amber-800 border-amber-300',
+    tagColor: 'bg-orange-100 text-orange-800 border-orange-300',
     subtitle: 'منظفات وصابون بلدي',
-    iconBg: 'bg-amber-500/15 border-amber-500/35',
+    iconBg: 'bg-orange-500/15 border-orange-500/35',
   },
   all: {
     badge: 'شامل كل المتجر',
@@ -107,75 +107,74 @@ const CategoryCardButton: React.FC<{
       role="tab"
       aria-selected={isSelected}
       onClick={onSelect}
-      className={`group/cat relative w-[70vw] max-w-[210px] xs:w-[170px] sm:w-[185px] md:w-auto md:max-w-none shrink-0 snap-center rounded-2xl border-2 transition-all duration-300 md:hover:-translate-y-1 p-3.5 sm:p-4 text-center flex flex-col justify-between overflow-hidden cursor-pointer select-none active:scale-[0.98] ${
+      className={`group/cat relative w-[70vw] max-w-[210px] xs:w-[170px] sm:w-[185px] md:w-auto md:max-w-none shrink-0 snap-center rounded-2xl border-2 transition-all duration-300 md:hover:-translate-y-1 overflow-hidden cursor-pointer select-none active:scale-[0.98] h-[230px] sm:h-[250px] ${
         isSelected
-          ? 'bg-white border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.18)] ring-2 ring-[#2D6A3F]/25'
-          : 'bg-[#F4FAF6] border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 hover:bg-white shadow-xs md:hover:shadow-[0_10px_24px_rgba(45,106,63,0.12)]'
+          ? 'border-[#2D6A3F] shadow-[0_8px_24px_rgba(45,106,63,0.18)] ring-2 ring-[#2D6A3F]/25'
+          : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 shadow-xs md:hover:shadow-[0_10px_24px_rgba(45,106,63,0.12)]'
       }`}
     >
-      {/* ─── وميض بصري عند التحويم والمس مطابق لشارات الثقة ─── */}
+      {/* ─── خلفية الصورة الممتدة ─── */}
+      <div className="absolute inset-0 z-0">
+        {hasImage ? (
+          <img
+            src={currentSrc!}
+            alt={category.name}
+            className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover/cat:scale-110 ${
+              isLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onLoad={() => setIsLoaded(true)}
+            onError={handleImgError}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] flex items-center justify-center">
+            <span className="text-5xl">{category.icon}</span>
+          </div>
+        )}
+        {/* تدرج داكن لضمان وضوح النصوص */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+      </div>
+
+      {/* ─── وميض بصري عند التحويم ─── */}
       <div className="cat-sheen-sweep pointer-events-none" />
 
-      <div className="w-full flex flex-col items-center relative z-10">
-        {/* ─── الأيقونة / الصورة داخل إطار أنيق موحد ─── */}
-        <div
-          className={`w-13 h-13 sm:w-15 sm:h-15 rounded-2xl ${meta.iconBg} border-2 overflow-hidden flex items-center justify-center shadow-xs shrink-0 group-hover/cat:scale-105 transition-transform mb-2.5 bg-white relative`}
-        >
-          {hasImage ? (
-            <img
-              src={currentSrc!}
-              alt={category.name}
-              className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover/cat:scale-110 ${
-                isLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
-              loading="lazy"
-              decoding="async"
-              referrerPolicy="no-referrer"
-              onLoad={() => setIsLoaded(true)}
-              onError={handleImgError}
-            />
-          ) : (
-            <span className="text-3xl sm:text-4xl">{category.icon}</span>
-          )}
-        </div>
-
-        {/* ─── شارة التميز (Pill Badge) ─── */}
+      {/* ─── المحتوى ─── */}
+      <div className="relative z-10 w-full h-full flex flex-col justify-end items-center p-3 sm:p-4 text-center">
+        {/* شارة التميز (Pill Badge) */}
         <span
-          className={`text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full border-2 ${meta.tagColor} mb-2 shadow-xs`}
+          className={`text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full border-2 ${meta.tagColor} mb-2 shadow-xs backdrop-blur-sm bg-white/90`}
         >
           {meta.badge}
         </span>
 
-        {/* ─── العنوان ─── */}
-        <h3
-          className={`text-sm sm:text-base font-black leading-snug mb-1 transition-colors ${
-            isSelected ? 'text-[#163920]' : 'text-[#1A3D24]'
-          }`}
-        >
+        {/* العنوان */}
+        <h3 className="text-sm sm:text-base font-black leading-snug mb-1 text-white drop-shadow-md">
           {category.name}
         </h3>
 
-        {/* ─── الوصف المختصر ─── */}
-        <p className="text-[11px] sm:text-xs text-[#3E4F43] font-medium leading-relaxed px-1 line-clamp-1">
+        {/* الوصف المختصر */}
+        <p className="text-[10px] sm:text-[11px] text-white/80 font-medium leading-relaxed px-1 line-clamp-2 drop-shadow-sm">
           {meta.subtitle}
         </p>
+
+        {/* خط سفلي موحد للموثوقية */}
+        <div className="w-full pt-2 mt-2 border-t border-white/20 flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black">
+          <CheckCircle2
+            className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-[#EAB308]' : 'text-emerald-400'}`}
+            strokeWidth={2.5}
+          />
+          <span className={isSelected ? 'text-[#EAB308]' : 'text-emerald-300'}>
+            {isSelected ? 'الفئة المعروضة' : (count ? `${count} منتج متوفر` : 'معتمد لزبناء فاس')}
+          </span>
+        </div>
       </div>
 
-      {/* ─── خط سفلي موحد للموثوقية مطابق لشارات الثقة ─── */}
-      <div className="w-full pt-2.5 mt-2.5 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black relative z-10">
-        <CheckCircle2
-          className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-[#2D6A3F]' : 'text-emerald-600'}`}
-          strokeWidth={2.5}
-        />
-        <span className={isSelected ? 'text-[#2D6A3F] font-black' : 'text-emerald-800'}>
-          {isSelected ? 'الفئة المعروضة' : (count ? `${count} منتج متوفر` : 'معتمد لزبناء فاس')}
-        </span>
-      </div>
-
-      {/* ─── مؤشر الفئة المختارة ─── */}
+      {/* مؤشر الفئة المختارة */}
       {isSelected && (
         <div
-          className="absolute inset-x-0 bottom-0 h-1 bg-[#2D6A3F]"
+          className="absolute inset-x-0 bottom-0 h-1.5 bg-[#2D6A3F] z-20"
           aria-hidden="true"
         />
       )}
@@ -291,19 +290,14 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     };
   }, [categories.length, updateScrollState]);
 
-  // مؤشر الفئة الحالية لحساب النقطة النشطة من بين النقاط الثلاث
+  // مؤشر الفئة الحالية لحساب النقطة النشطة (تم حذف النقاط، لكن هذا المؤشر يبقى للاستخدام الداخلي إن لزم)
   const selectedCategoryIndex = useMemo(() => {
     const idx = categories.findIndex((c) => c.id === selectedCategory);
     return idx !== -1 ? idx : 0;
   }, [categories, selectedCategory]);
 
-  // توسيط البطاقة المختارة تلقائياً عند تغيير الفئة
-  useEffect(() => {
-    const idx = categories.findIndex((c) => c.id === selectedCategory);
-    if (idx !== -1) {
-      scrollToIndex(idx);
-    }
-  }, [selectedCategory, categories, scrollToIndex]);
+  // تم إزالة useEffect الذي كان يقوم بالتمرير التلقائي عند تغيير الفئة
+  // لضمان عدم تعارض التمرير اليدوي مع التمرير التلقائي
 
   const scrollByAmount = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
@@ -330,7 +324,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         .cat-sheen-sweep {
           position: absolute;
           inset: 0;
-          background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.85) 50%, transparent 100%);
+          background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%);
           transform: translateX(180%) skewX(-20deg);
           pointer-events: none;
           z-index: 15;
@@ -415,9 +409,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             )}
 
             {/* الحاوية المتجاوبة مع توسيط الفئات على كل الشاشات */}
+            {/* تم تغيير snap-mandatory إلى snap-proximity للسماح بالتمرير اليدوي بسلاسة */}
             <div
               ref={scrollRef}
-              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-4 overflow-x-auto md:overflow-visible py-3 px-2 sm:px-4 md:px-0 overscroll-x-contain no-scrollbar items-stretch snap-x snap-mandatory md:snap-none justify-start sm:justify-center max-w-6xl mx-auto"
+              className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-4 overflow-x-auto md:overflow-visible py-3 px-2 sm:px-4 md:px-0 overscroll-x-contain no-scrollbar items-stretch snap-x snap-proximity md:snap-none justify-start sm:justify-center max-w-6xl mx-auto"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               role="tablist"
               aria-label="فئات المنتجات"
