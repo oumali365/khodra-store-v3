@@ -281,14 +281,15 @@ export const StoreCoverageMap: React.FC<StoreCoverageMapProps> = ({ inFooter = t
         }
       `}</style>
 
-      {/* ═══════ شبكة الشارات منفصلة تماماً فوق بطاقة الخريطة (grid-cols-2) بهوامش مريحة ═══════ */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-5 w-full">
-        <div className="inline-flex items-center justify-center gap-1.5 text-xs sm:text-sm font-black text-emerald-300 bg-zinc-900/90 border-2 border-emerald-500/40 py-2.5 px-3 sm:px-4 rounded-2xl shadow-[0_0_15px_rgba(16,185,129,0.12)] text-center transition-all">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white shadow-sm shrink-0"></span>
+      {/* ═══════ شبكة الشارات منفصلة تماماً فوق بطاقة الخريطة (grid-cols-2) ═══════ */}
+      {/* تم تقليص حجم النصوص والحشو، وإضافة هامش سفلي مريح (mb-5 sm:mb-6) */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-5 sm:mb-6 w-full">
+        <div className="inline-flex items-center justify-center gap-1 text-[11px] sm:text-xs font-black text-emerald-300 bg-zinc-900/90 border-2 border-emerald-500/40 py-2 px-2.5 sm:px-3 rounded-2xl shadow-[0_0_15px_rgba(16,185,129,0.12)] text-center transition-all">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 border-2 border-white shadow-sm shrink-0"></span>
           <span className="truncate">توصيل سريع (4.5 كم)</span>
         </div>
-        <div className="inline-flex items-center justify-center gap-1.5 text-xs sm:text-sm font-black text-amber-300 bg-zinc-900/90 border-2 border-amber-500/40 py-2.5 px-3 sm:px-4 rounded-2xl shadow-[0_0_15px_rgba(245,158,11,0.12)] text-center transition-all">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white shadow-sm shrink-0"></span>
+        <div className="inline-flex items-center justify-center gap-1 text-[11px] sm:text-xs font-black text-amber-300 bg-zinc-900/90 border-2 border-amber-500/40 py-2 px-2.5 sm:px-3 rounded-2xl shadow-[0_0_15px_rgba(245,158,11,0.12)] text-center transition-all">
+          <span className="w-2 h-2 rounded-full bg-amber-400 border-2 border-white shadow-sm shrink-0"></span>
           <span className="truncate">تغطية شاملة (8.5 كم)</span>
         </div>
       </div>
