@@ -191,7 +191,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
               <ShieldCheck className="w-5 h-5 text-[#EAB308]" />
             </div>
             <span className="font-black text-sm tracking-tight text-white font-['Almarai']">
-              خُضرة فاس • بوابة الإدارة
+              إدارة المتجر •
             </span>
           </div>
 
