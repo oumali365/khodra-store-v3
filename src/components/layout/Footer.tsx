@@ -7,18 +7,19 @@ import React, { useRef, useState } from 'react';
 import {
   Truck,
   MessageCircle,
-  Lock,
   Star,
   CheckCircle2,
   BookOpen,
+  ShieldCheck,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
 
 interface FooterProps {
   onOpenPage: (page: 'about' | 'policy' | 'privacy' | null) => void;
+  hasStickyBar?: boolean;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
+export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<number | null>(null);
   const [pulseCount, setPulseCount] = useState(0);
@@ -167,7 +168,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
               className="group bg-zinc-950/70 hover:bg-[#122A18] border border-zinc-800 hover:border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 text-center transition-all duration-200 shadow-sm flex flex-col items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer"
             >
               <div className="w-11 h-11 rounded-xl bg-[#2D6A3F]/30 border border-[#EAB308]/30 flex items-center justify-center text-[#F5D76E] shadow-xs group-hover:scale-105 transition-transform shrink-0">
-                <Lock className="w-5 h-5" />
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="space-y-1 text-center">
                 <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
@@ -244,30 +245,17 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage }) => {
         <div className="pt-4 border-t border-zinc-800/60">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center py-1">
 
-            {/* 🔒 القفل – على يمين النص (يظهر أولًا في RTL) */}
-            <button
-              type="button"
-              onClick={handleAdminTrigger}
-              title=""
-              aria-label=""
-              tabIndex={-1}
-              className="admin-lock p-0 m-0 bg-transparent border-0 shadow-none outline-none text-[#070b09] hover:text-[#F5D76E] transition-colors cursor-pointer select-none shrink-0 leading-none order-1"
-              style={{ background: 'transparent', border: 'none' }}
-            >
-              <Lock className="w-3 h-3" />
-            </button>
-
             {/* 📝 النص الرئيسي */}
-            <p className="text-sm sm:text-base text-stone-200 font-bold leading-tight order-2">
+            <p className="text-sm sm:text-base text-stone-200 font-bold leading-tight">
               جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
               <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>
             </p>
 
             {/* الفاصل */}
-            <span className="hidden sm:inline-block w-px h-4 bg-zinc-700/80 order-3" aria-hidden="true" />
+            <span className="hidden sm:inline-block w-px h-4 bg-zinc-700/80" aria-hidden="true" />
 
             {/* 🏢 اسم الشركة */}
-            <p className="text-[11px] sm:text-xs text-stone-400 font-semibold order-4">
+            <p className="text-[11px] sm:text-xs text-stone-400 font-semibold">
               شركة خُضرة للتجارة الإلكترونية SARL
             </p>
           </div>

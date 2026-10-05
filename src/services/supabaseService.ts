@@ -3,7 +3,15 @@
 // مُصحَّح: تنظيف items + RLS + RPC للطلبات
 // ============================================================
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Product, OrderSubmission, DeliveryDispatchInfo, FezZoneId } from '../types';
+import {
+  Product,
+  OrderSubmission,
+  DeliveryDispatchInfo,
+  FezZoneId,
+  StoreDriver,
+  DriverStatus,
+  DriverVehicleType,
+} from '../types';
 import { STORE_CONFIG } from '../data/config';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
 import { recordOrderSuccess, sanitizeInput } from './securityService';
@@ -1137,6 +1145,335 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   delivered: 'تم التسليم',
   cancelled: 'ملغى',
 };
+
+// ═══════════════════════════════════════════════════════════════
+// ─── إدارة فريق التوصيل الداخلي (Store Drivers Management) ───
+// ═══════════════════════════════════════════════════════════════
+
+const STORE_DRIVERS_STORAGE_KEY = 'khodra_store_drivers_v1';
+const STORE_DRIVERS_SETTING_KEY = 'store_drivers';
+
+export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
+  {
+    id: 'drv-1',
+    name: 'يوسف العلمي',
+    phone: '0661234567',
+    vehicleType: 'moto',
+    zonePreference: 'north',
+    status: 'available',
+    commissionPerOrder: 25,
+    vehiclePlate: '12-A-3456',
+    notes: 'خبير بشوارع فاس وشارع الجيش الملكي وطريق مكناس',
+    activeOrdersCount: 0,
+    totalDeliveredCount: 142,
+    createdAt: new Date(Date.now() - 30 * 86400000).toISOString(),
+  },
+  {
+    id: 'drv-2',
+    name: 'رشيد بنجلون',
+    phone: '0672345678',
+    vehicleType: 'moto',
+    zonePreference: 'central',
+    status: 'available',
+    commissionPerOrder: 25,
+    vehiclePlate: '18-B-7890',
+    notes: 'متخصص بأحياء الأطلس، الدكارات، والمدينة الجديدة',
+    activeOrdersCount: 0,
+    totalDeliveredCount: 98,
+    createdAt: new Date(Date.now() - 20 * 86400000).toISOString(),
+  },
+  {
+    id: 'drv-3',
+    name: 'طارق الفاسي',
+    phone: '0663456789',
+    vehicleType: 'car',
+    zonePreference: 'south',
+    status: 'on_delivery',
+    commissionPerOrder: 30,
+    vehiclePlate: '22-C-1122',
+    notes: 'سيارة مجهزة لصناديق الخضار العائلية الكبيرة (طريق إيموزار وعين الشقف)',
+    activeOrdersCount: 2,
+    totalDeliveredCount: 215,
+    createdAt: new Date(Date.now() - 45 * 86400000).toISOString(),
+  },
+  {
+    id: 'drv-4',
+    name: 'أمين الوزاني',
+    phone: '0664567890',
+    vehicleType: 'van',
+    zonePreference: 'all',
+    status: 'available',
+    commissionPerOrder: 35,
+    vehiclePlate: '15-D-9988',
+    notes: 'فان نقل مبرد للجولات الكبرى والطلبات المجمعة',
+    activeOrdersCount: 0,
+    totalDeliveredCount: 310,
+    createdAt: new Date(Date.now() - 60 * 86400000).toISOString(),
+  },
+];
+
+function readLocalDrivers(): StoreDriver[] {
+  try {
+    const raw = localStorage.getItem(STORE_DRIVERS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed reading local drivers:', e);
+  }
+  return INITIAL_STORE_DRIVERS;
+}
+
+function writeLocalDrivers(drivers: StoreDriver[]): void {
+  try {
+    localStorage.setItem(STORE_DRIVERS_STORAGE_KEY, JSON.stringify(drivers));
+  } catch (e) {
+    console.warn('Failed saving local drivers:', e);
+  }
+}
+
+/**
+ * جلب قائمة سائقي الفريق الداخلي مع مزامنة ذكية بين Supabase والتخزين المحلي
+ */
+export async function fetchStoreDrivers(): Promise<{ drivers: StoreDriver[]; synced: boolean }> {
+  const localList = readLocalDrivers();
+  const client = getSupabase();
+
+  if (!client) {
+    return { drivers: localList, synced: false };
+  }
+
+  try {
+    // 1. محاولة الجلب من جدول store_settings
+    const { data: settingData, error: settingError } = await client
+      .from('store_settings')
+      .select('value')
+      .eq('key', STORE_DRIVERS_SETTING_KEY)
+      .maybeSingle();
+
+    if (!settingError && settingData && settingData.value) {
+      try {
+        const parsed = JSON.parse(settingData.value);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          writeLocalDrivers(parsed);
+          return { drivers: parsed, synced: true };
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
+
+    // 2. إذا لم تكن البيانات موجودة في السيرفر بعد، نحفظ القائمة المحلية الحالية في السيرفر لتأسيسها
+    if (localList.length > 0) {
+      await saveStoreDriversRemote(localList);
+    }
+
+    return { drivers: localList, synced: true };
+  } catch (err) {
+    console.warn('Network error while fetching drivers:', err);
+    return { drivers: localList, synced: false };
+  }
+}
+
+async function saveStoreDriversRemote(drivers: StoreDriver[]): Promise<boolean> {
+  const client = getSupabase();
+  if (!client) return false;
+
+  const jsonValue = JSON.stringify(drivers);
+  const currentPin = getAdminPin();
+
+  try {
+    // محاولة الحفظ عبر RPC الآمن
+    const { error: rpcErr } = await client.rpc('update_store_setting_secure', {
+      p_key: STORE_DRIVERS_SETTING_KEY,
+      p_value: jsonValue,
+      p_admin_pin: currentPin,
+    });
+
+    if (!rpcErr) return true;
+
+    // محاولة احتياطية ثانية في حال اسم المعامل p_pin
+    const retry = await client.rpc('update_store_setting_secure', {
+      p_key: STORE_DRIVERS_SETTING_KEY,
+      p_value: jsonValue,
+      p_pin: currentPin,
+    });
+    if (!retry.error) return true;
+
+    // محاولة الحفظ المباشر في store_settings
+    const { error: upsertErr } = await client
+      .from('store_settings')
+      .upsert(
+        {
+          key: STORE_DRIVERS_SETTING_KEY,
+          value: jsonValue,
+          description: 'فريق التوصيل الداخلي لمتجر خُضرة',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+
+    return !upsertErr;
+  } catch (err) {
+    console.warn('saveStoreDriversRemote error:', err);
+    return false;
+  }
+}
+
+/**
+ * حفظ قائمة السائقين بالكامل (محلياً وفي السيرفر)
+ */
+export async function saveStoreDrivers(
+  drivers: StoreDriver[]
+): Promise<{ success: boolean; synced: boolean; message?: string }> {
+  writeLocalDrivers(drivers);
+  const synced = await saveStoreDriversRemote(drivers);
+  return {
+    success: true,
+    synced,
+    message: synced ? 'تم الحفظ والمزامنة السحابية بنجاح' : 'تم الحفظ محلياً (وضع عدم الاتصال)',
+  };
+}
+
+/**
+ * إضافة سائق جديد إلى الفريق الداخلي
+ */
+export async function addStoreDriver(
+  driverData: Omit<StoreDriver, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<{ success: boolean; driver: StoreDriver; synced: boolean; message?: string }> {
+  const current = readLocalDrivers();
+  const newDriver: StoreDriver = {
+    ...driverData,
+    id: `drv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: sanitizeInput(driverData.name.trim()),
+    phone: sanitizeInput(driverData.phone.trim()),
+    activeOrdersCount: 0,
+    totalDeliveredCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const updated = [newDriver, ...current];
+  writeLocalDrivers(updated);
+  const synced = await saveStoreDriversRemote(updated);
+
+  return {
+    success: true,
+    driver: newDriver,
+    synced,
+    message: synced ? 'تمت إضافة السائق ومزامنته سحابياً بنجاح' : 'تمت إضافة السائق محلياً بنجاح',
+  };
+}
+
+/**
+ * تحديث بيانات سائق أو تغيير حالته
+ */
+export async function updateStoreDriver(
+  driverId: string,
+  updates: Partial<StoreDriver>
+): Promise<{ success: boolean; driver?: StoreDriver; synced: boolean; message?: string }> {
+  const current = readLocalDrivers();
+  let targetDriver: StoreDriver | undefined;
+
+  const updated = current.map((d) => {
+    if (d.id === driverId) {
+      targetDriver = {
+        ...d,
+        ...updates,
+        name: updates.name ? sanitizeInput(updates.name.trim()) : d.name,
+        phone: updates.phone ? sanitizeInput(updates.phone.trim()) : d.phone,
+        updatedAt: new Date().toISOString(),
+      };
+      return targetDriver;
+    }
+    return d;
+  });
+
+  if (!targetDriver) {
+    return { success: false, synced: false, message: 'السائق غير موجود' };
+  }
+
+  writeLocalDrivers(updated);
+  const synced = await saveStoreDriversRemote(updated);
+
+  return {
+    success: true,
+    driver: targetDriver,
+    synced,
+    message: synced ? 'تم تحديث بيانات السائق بنجاح' : 'تم التحديث محلياً',
+  };
+}
+
+/**
+ * حذف سائق من الفريق الداخلي
+ */
+export async function deleteStoreDriver(
+  driverId: string
+): Promise<{ success: boolean; synced: boolean; message?: string }> {
+  const current = readLocalDrivers();
+  const filtered = current.filter((d) => d.id !== driverId);
+
+  writeLocalDrivers(filtered);
+  const synced = await saveStoreDriversRemote(filtered);
+
+  return {
+    success: true,
+    synced,
+    message: synced ? 'تم حذف السائق ومزامنة التحديث' : 'تم حذف السائق محلياً',
+  };
+}
+
+/**
+ * اعتماد جولة كاملة: تعيين السائق لجميع طلبات المنطقة وتحديث حالتهم دفعة واحدة
+ */
+export async function batchAssignZoneOrders(params: {
+  orders: DbOrder[];
+  driver: StoreDriver;
+  newStatus?: OrderStatus;
+}): Promise<{ success: boolean; updatedCount: number; message?: string }> {
+  const { orders, driver, newStatus = 'prepared' } = params;
+  if (!orders || orders.length === 0) {
+    return { success: false, updatedCount: 0, message: 'لا توجد طلبات في هذه الجولة' };
+  }
+
+  let count = 0;
+  for (const ord of orders) {
+    const dispatchInfo: DeliveryDispatchInfo = {
+      provider: 'custom',
+      driverName: driver.name,
+      driverPhone: driver.phone,
+      deliveryCost: driver.commissionPerOrder || 25,
+      dispatchStatus: 'in_transit',
+      dispatchedAt: new Date().toISOString(),
+      zone: ord.delivery_zone || 'north',
+      notes: `جولة توصيل داخلية مع ${driver.name}`,
+    };
+
+    // 1. تحديث بيانات التوصيل والسائق
+    await updateOrderDispatch(ord.id, ord.order_code, dispatchInfo);
+
+    // 2. تحديث حالة الطلب إن لزم
+    if (newStatus && ord.status !== newStatus) {
+      await updateOrderStatus(ord.id, newStatus);
+    }
+    count++;
+  }
+
+  // تحديث حالة السائق إلى "في جولة"
+  await updateStoreDriver(driver.id, {
+    status: 'on_delivery',
+    activeOrdersCount: (driver.activeOrdersCount || 0) + count,
+  });
+
+  return {
+    success: true,
+    updatedCount: count,
+    message: `تم اعتماد الجولة وتعيين ${count} طلبات للسائق ${driver.name} بنجاح!`,
+  };
+}
 
 // ═══════════════════════════════════════════════════════════════
 // ─── Realtime: الاستماع الفوري لتحديثات الطلبات ───

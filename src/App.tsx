@@ -276,6 +276,21 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  const handleExitToBottomDashboard = useCallback(() => {
+    setActiveAdminRoute(null);
+    window.history.pushState({ page: 'main' }, '', '/');
+    setIsAdmin(true);
+    try {
+      sessionStorage.setItem('khodra_admin_auth', 'true');
+    } catch {}
+    setTimeout(() => {
+      const el = document.getElementById('admin-dashboard-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 250);
+  }, []);
+
   // ─── تحديث عنوان الصفحة والوصف والروابط تلقائياً لتحسين SEO ───
   useEffect(() => {
     try {
@@ -493,15 +508,14 @@ export default function App() {
     window.history.pushState({ page: 'main' }, '');
 
     const handlePopState = () => {
-      // 0. إذا كان مسار الإدارة مفتوحاً: الرجوع يغلق الإدارة ويعود للمتجر
+      // 0. إذا كان مسار الإدارة مفتوحاً: الرجوع يغلق الإدارة ويعود للمتجر إلى لوحة المدير السفلية بدون خروج من التطبيق
       const currentAdmin = parseAdminRoute();
       if (currentAdmin !== activeAdminRoute) {
         setActiveAdminRoute(currentAdmin);
         if (currentAdmin) return;
       }
       if (activeAdminRoute) {
-        setActiveAdminRoute(null);
-        window.history.pushState({ page: 'main' }, '', '/');
+        handleExitToBottomDashboard();
         return;
       }
 
@@ -901,9 +915,10 @@ export default function App() {
               sessionStorage.setItem('khodra_admin_auth', 'true');
             } catch {}
           }}
-          onLogout={handleAdminLogout}
+          onLogout={handleExitToBottomDashboard}
           onNavigate={handleNavigateAdmin}
           onReturnToStore={handleReturnToStore}
+          onExitToDashboard={handleExitToBottomDashboard}
         >
           <AdminErrorBoundary onClose={handleReturnToStore}>
             {activeAdminRoute === 'orders' && (

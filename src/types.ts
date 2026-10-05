@@ -76,6 +76,27 @@ export type DeliveryDispatchStatus =
 
 export type FezZoneId = 'north' | 'central' | 'south' | 'east';
 
+// ─── سائقو الفريق الداخلي للمتجر ───
+export type DriverVehicleType = 'moto' | 'car' | 'van' | 'scooter' | 'bicycle';
+
+export type DriverStatus = 'available' | 'on_delivery' | 'off_duty';
+
+export interface StoreDriver {
+  id: string;
+  name: string;
+  phone: string;
+  vehicleType: DriverVehicleType;
+  zonePreference: FezZoneId | 'all';
+  status: DriverStatus;
+  commissionPerOrder: number; // مثلاً 20 أو 25 درهم
+  vehiclePlate?: string;
+  notes?: string;
+  activeOrdersCount?: number;
+  totalDeliveredCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface DeliveryDispatchInfo {
   provider: DeliveryProvider;
   driverName?: string;

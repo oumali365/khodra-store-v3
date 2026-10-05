@@ -527,7 +527,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
             <div>
               <h2 className="font-black text-base sm:text-lg flex items-center gap-2">
                 <span>{t.title}</span>
-                <Sparkles className="w-4 h-4 text-[#F5D76E]" />
               </h2>
               <p className="text-[11px] sm:text-xs text-orange-100/90 font-medium">
                 {t.subtitle}
@@ -550,10 +549,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
                   {l.toUpperCase()}
                 </button>
               ))}
-            </div>
-
-            <div className="flex items-center gap-1.5 bg-black/25 px-3 py-1.5 rounded-xl border border-white/20 text-xs font-black text-amber-200 shadow-xs">
-              <span>Norme Comptable Marocaine (MAD)</span>
             </div>
 
             {savedFlash && (
@@ -598,15 +593,6 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
               title="Réinitialiser"
             >
               <RotateCcw className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
-              aria-label="Fermer"
-            >
-              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

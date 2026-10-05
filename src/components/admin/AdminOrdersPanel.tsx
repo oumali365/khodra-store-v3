@@ -18,6 +18,7 @@ import {
   unsubscribeFromOrdersChanges,
   updateOrderDispatch,
   detectFezZone,
+  fetchStoreDrivers,
   DbOrder,
   OrderStatus,
 } from '../../services/supabaseService';
@@ -35,6 +36,7 @@ import {
   DeliveryDispatchStatus,
   DeliveryDispatchInfo,
   FezZoneId,
+  StoreDriver,
 } from '../../types';
 
 export interface AdminOrdersPanelProps {
@@ -306,6 +308,15 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   const [expandedDispatchId, setExpandedDispatchId] = useState<string | number | null>(null);
   const [dispatchDrafts, setDispatchDrafts] = useState<Record<string, DeliveryDispatchInfo>>({});
   const [savingDispatchId, setSavingDispatchId] = useState<string | number | null>(null);
+  const [storeDrivers, setStoreDrivers] = useState<StoreDriver[]>([]);
+
+  useEffect(() => {
+    if (isOpen || standalone) {
+      fetchStoreDrivers()
+        .then((res) => setStoreDrivers(res.drivers))
+        .catch(() => {});
+    }
+  }, [isOpen, standalone]);
 
   // حماية من التكرار اللانهائي لإعادة التصير (Infinite Loop Prevention)
   const lastNotifiedRef = useRef<{ total: number; pending: number } | null>(null);
@@ -615,47 +626,26 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
           : 'sm:max-w-4xl shadow-2xl sm:rounded-[28px] max-h-screen sm:max-h-[92vh]'
       } flex flex-col overflow-hidden text-right border border-[#E8E1D3]`}>
 
-          {/* ═══════════ Header ═══════════ */}
-          <div className="relative p-4 sm:p-5 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between shrink-0 shadow-md overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,215,110,0.15),transparent_60%)] pointer-events-none" />
-            <div className="relative flex items-center gap-3 min-w-0">
-              <div className="relative w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-5 h-5 text-[#F5D76E]" />
-                {stats.pending > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-[#0E2615] shadow-md animate-pulse">
-                    {stats.pending > 99 ? '99+' : stats.pending}
-                  </span>
-                )}
-              </div>
-              <div className="min-w-0">
-                <h2 className="font-black text-base sm:text-lg flex items-center gap-2">
-                  <span>إدارة الطلبات</span>
-                  <Sparkles className="w-4 h-4 text-[#F5D76E]" />
-                </h2>
-                <p className="text-[11px] sm:text-xs text-emerald-100/90 font-bold">
-                  {orders.length} طلب مسجل • {stats.pending} قيد الإنشاء
-                </p>
-              </div>
-            </div>
-            <div className="relative flex items-center gap-2 shrink-0">
-              {isRealtimeActive && (
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 text-[10px] font-black backdrop-blur-xs" title="الاستقبال اللحظي مفعّل">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                  </span>
-                  <span>مباشر</span>
+          {/* ═══════════ شريط علوي مع الاحتفاظ بزر التحديث ═══════════ */}
+          <div className="relative px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-end gap-2 shrink-0 shadow-xs">
+            {isRealtimeActive && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 text-[10px] font-black backdrop-blur-xs" title="الاستقبال اللحظي مفعّل">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                 </span>
-              )}
-              <button type="button" onClick={handleRefresh} disabled={isRefreshing}
-                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 border border-white/15" title="تحديث">
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-              <button type="button" onClick={onClose}
-                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer border border-white/15" aria-label="إغلاق">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+                <span>مباشر</span>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 border border-white/15"
+              title="تحديث الطلبات"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
           </div>
 
           {/* ═══════════ Toast ═══════════ */}
@@ -701,6 +691,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                 onSelectOrderForBordereau={(o) => setBordereauOrder(o)}
                 onOpenOrderInvoice={(o) => setInvoiceOrder(o)}
                 showToast={showToast}
+                onRefreshOrders={handleRefresh}
               />
             </div>
           ) : (
@@ -897,6 +888,38 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
 
                               {isExpanded && (
                                 <div className="p-3 bg-white border-b border-emerald-200 space-y-2.5">
+                                  {/* اختيار سريع من سائقي الفريق الداخلي */}
+                                  {storeDrivers.length > 0 && (
+                                    <div className="bg-emerald-50/70 p-2 rounded-xl border border-emerald-200">
+                                      <label className="block text-[10px] font-black text-emerald-900 mb-1 flex items-center justify-between">
+                                        <span>🛵 اختيار سريع من فريق السائقين الداخلي:</span>
+                                        <span className="text-[9px] text-emerald-700 font-bold">تعبئة تلقائية للاسم والهاتف والأجرة</span>
+                                      </label>
+                                      <select
+                                        defaultValue=""
+                                        onChange={(e) => {
+                                          const sel = storeDrivers.find((d) => d.id === e.target.value);
+                                          if (sel) {
+                                            handleUpdateDispatchDraft(order.id, {
+                                              provider: 'custom',
+                                              driverName: sel.name,
+                                              driverPhone: sel.phone,
+                                              deliveryCost: sel.commissionPerOrder || 25,
+                                            });
+                                          }
+                                        }}
+                                        className="w-full p-1.5 text-xs rounded-lg border border-emerald-300 bg-white font-bold text-stone-900 focus:outline-emerald-600"
+                                      >
+                                        <option value="" disabled>-- اضغط لاختيار سائق من الفريق --</option>
+                                        {storeDrivers.map((d) => (
+                                          <option key={d.id} value={d.id}>
+                                            {d.name} ({d.phone}) • {d.commissionPerOrder} د.م ({d.status === 'available' ? 'متاح 🟢' : 'في جولة 🟡'})
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  )}
+
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div>
                                       <label className="block text-[10px] font-black text-stone-600 mb-1">شركة التوصيل:</label>

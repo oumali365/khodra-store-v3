@@ -15,21 +15,10 @@ import {
   Bell,
   BellOff,
   Home,
-  Sparkles,
-  ArrowRight,
-  Lock,
-  Unlock,
   CheckCircle2,
-  AlertCircle,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
-import {
-  verifyAdminPinRemote,
-  clearCachedAdminPin,
-  updateAdminPassword,
-} from '../../services/supabaseService';
+import { updateAdminPassword } from '../../services/supabaseService';
 import { ChangePinModal } from './AdminReviewModals';
 
 export type AdminRoute = 'orders' | 'finance' | 'documents' | 'marketing';
@@ -37,10 +26,11 @@ export type AdminRoute = 'orders' | 'finance' | 'documents' | 'marketing';
 interface AdminPageLayoutProps {
   currentRoute: AdminRoute;
   isAdmin: boolean;
-  onLoginSuccess: () => void;
-  onLogout: () => void;
+  onLoginSuccess?: () => void;
+  onLogout?: () => void;
   onNavigate: (route: AdminRoute) => void;
   onReturnToStore: () => void;
+  onExitToDashboard?: () => void;
   children: React.ReactNode;
 }
 
@@ -95,10 +85,33 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
   onLogout,
   onNavigate,
   onReturnToStore,
+  onExitToDashboard,
   children,
 }) => {
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // الخروج والعودة التلقائية إلى لوحة الإدارة السفلية
+  const handleExit = useCallback(() => {
+    if (onExitToDashboard) {
+      onExitToDashboard();
+    } else {
+      onReturnToStore();
+    }
+  }, [onExitToDashboard, onReturnToStore]);
+
+  // ─── حماية زر الرجوع في الهاتف لمنع إغلاق التطبيق والتوجيه تلقائياً للوحة الإدارة السفلية ───
+  useEffect(() => {
+    window.history.pushState({ page: 'admin_layout' }, '', window.location.pathname);
+
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      handleExit();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [handleExit]);
 
   // حالة الصوت
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
@@ -108,12 +121,6 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
       return true;
     }
   });
-
-  // نموذج تسجيل الدخول المدمج في حال لم يكن مسجلاً
-  const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [showPinText, setShowPinText] = useState(false);
 
   // إشعار الطلبات الجديدة
   const { totalPending } = useNewOrdersNotifier({
@@ -144,28 +151,6 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
     return { success: false, message: res.message || 'فشل تحديث الرمز السري' };
   };
 
-  const handlePinSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!pinInput.trim()) {
-      setPinError('يرجى إدخال الرمز السري');
-      return;
-    }
-    setIsVerifying(true);
-    setPinError(null);
-    try {
-      const res = await verifyAdminPinRemote(pinInput.trim());
-      if (res.valid) {
-        onLoginSuccess();
-      } else {
-        setPinError('الرمز السري غير صحيح، حاول مجدداً');
-      }
-    } catch {
-      setPinError('تعذر الاتصال للتحقق، يرجى المحاولة لاحقاً');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
   const handleNavClick = (e: React.MouseEvent, route: AdminRoute) => {
     if (!e.metaKey && !e.ctrlKey && !e.shiftKey) {
       e.preventDefault();
@@ -176,109 +161,18 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
   const handleReturnClick = (e: React.MouseEvent) => {
     if (!e.metaKey && !e.ctrlKey && !e.shiftKey) {
       e.preventDefault();
-      onReturnToStore();
+      handleExit();
     }
   };
 
-  // شاشة تسجيل الدخول المدمجة عند عدم وجود صلاحية
+  useEffect(() => {
+    if (!isAdmin) {
+      handleExit();
+    }
+  }, [isAdmin, handleExit]);
+
   if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-[#0C120E] text-white flex flex-col justify-between" dir="rtl">
-        {/* شريط علوي مبسط */}
-        <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-[#EAB308]/50 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-[#EAB308]" />
-            </div>
-            <span className="font-black text-sm tracking-tight text-white font-['Almarai']">
-              إدارة المتجر •
-            </span>
-          </div>
-
-          <a
-            href="/"
-            onClick={handleReturnClick}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-bold text-zinc-300 transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5" />
-            <span>العودة للمتجر</span>
-          </a>
-        </header>
-
-        {/* صندوق تسجيل الدخول */}
-        <main className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-900/90 border-2 border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md text-center space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#163920] to-[#0E2615] border-2 border-[#EAB308]/60 flex items-center justify-center mx-auto shadow-lg">
-              <Lock className="w-8 h-8 text-[#EAB308]" />
-            </div>
-
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white font-['Almarai']">
-                تسجيل الدخول لإدارة المتجر
-              </h1>
-              <p className="text-xs sm:text-sm text-zinc-400 mt-1 font-medium">
-                يرجى إدخال الرمز السري المخصص للوصول إلى أدوات التحكم
-              </p>
-            </div>
-
-            <form onSubmit={handlePinSubmit} className="space-y-4">
-              <div className="relative">
-                <input
-                  type={showPinText ? 'text' : 'password'}
-                  inputMode="numeric"
-                  value={pinInput}
-                  onChange={(e) => {
-                    setPinInput(e.target.value);
-                    if (pinError) setPinError(null);
-                  }}
-                  placeholder="أدخل الرمز السري (PIN)..."
-                  className="w-full py-3.5 px-12 text-center text-lg sm:text-xl font-mono tracking-widest bg-zinc-950 border-2 border-zinc-700 rounded-2xl text-white outline-none focus:border-[#EAB308] focus:ring-4 focus:ring-[#EAB308]/15 transition-all"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPinText(!showPinText)}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 p-1 cursor-pointer transition-colors"
-                  title={showPinText ? 'إخفاء الرمز' : 'إظهار الرمز'}
-                >
-                  {showPinText ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-
-              {pinError && (
-                <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs font-bold flex items-center justify-center gap-1.5 animate-in fade-in">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{pinError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isVerifying || !pinInput.trim()}
-                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-l from-[#EAB308] to-[#CA8A04] hover:from-[#FACC15] hover:to-[#EAB308] text-zinc-950 font-black text-sm transition-all cursor-pointer shadow-lg active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isVerifying ? (
-                  <span>جارٍ التحقق...</span>
-                ) : (
-                  <>
-                    <Unlock className="w-4 h-4" />
-                    <span>تأكيد والدخول للوحة التحكم</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="pt-4 border-t border-zinc-800/80 text-[11px] text-zinc-500 font-medium">
-              محمي بنظام التشفير والتحقق السحابي • خُضرة فاس
-            </div>
-          </div>
-        </main>
-
-        <footer className="text-center py-4 text-xs text-zinc-600 font-medium">
-          © {new Date().getFullYear()} خُضرة للتجارة الإلكترونية (SARL) — فاس
-        </footer>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -398,12 +292,12 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
                 <span>المتجر</span>
               </a>
 
-              {/* زر تسجيل الخروج */}
+              {/* زر الخروج الأحمر -> توجه تلقائي لـ admin bottom dashboard */}
               <button
                 type="button"
-                onClick={onLogout}
+                onClick={handleExit}
                 className="p-2 sm:px-3 sm:py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 hover:text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1 active:scale-95 shadow-xs"
-                title="تسجيل الخروج من لوحة الإدارة"
+                title="الخروج إلى لوحة تحكم المتجر السفلية"
               >
                 <LogOut className="w-4 h-4 text-rose-400" />
                 <span className="hidden md:inline">خروج</span>
