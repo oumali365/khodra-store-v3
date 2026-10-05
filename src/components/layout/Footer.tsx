@@ -64,46 +64,33 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
       <div className="absolute top-1/3 left-10 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* ═══════ أنماط التأثير النبضي ═══════ */}
-      <style>{`
-        @keyframes khodra-logo-pulse {
-          0%   { transform: scale(1);    box-shadow: 0 6px 22px rgba(234,179,8,0.28), 0 0 0 0 rgba(234,179,8,0.55); }
-          50%  { transform: scale(1.12); box-shadow: 0 6px 22px rgba(234,179,8,0.55), 0 0 0 10px rgba(234,179,8,0); }
-          100% { transform: scale(1);    box-shadow: 0 6px 22px rgba(234,179,8,0.28), 0 0 0 0 rgba(234,179,8,0); }
-        }
-        .khodra-logo-pulse { animation: khodra-logo-pulse 0.45s ease-out; }
-
-        @keyframes khodra-logo-success {
-          0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(34,197,94,0.8); }
-          40%  { transform: scale(1.22); box-shadow: 0 0 0 14px rgba(34,197,94,0); }
-          100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(34,197,94,0); }
-        }
-        .khodra-logo-success {
-          animation: khodra-logo-success 0.6s ease-out;
-          border-color: rgba(34,197,94,0.9) !important;
-        }
-      `}</style>
-
       <div className="relative max-w-6xl mx-auto px-3 sm:px-5 lg:px-8 space-y-6 sm:space-y-8">
 
         {/* ════════════════════════════════════════════════════════════
-            ═══ رأس الفوتر: هوية المتجر (فوق شارات النطاق والخريطة) ═══
+            ═══ 1. أيقونة الشعار (بدون خلفية أو حواف صفراء) ═══
             ════════════════════════════════════════════════════════════ */}
-        <div className="flex flex-col items-center text-center max-w-2xl mx-auto pt-3 sm:pt-5 pb-1">
-
-          {/* 🌿 الشعار – اضغط 3 مرات لفتح لوحة التحكم */}
+        <div className="flex justify-center pt-3 sm:pt-5 pb-1">
           <button
             type="button"
             onClick={handleLogoClick}
             aria-label="شعار المتجر"
-            className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#122A18] border border-[#EAB308]/60 flex items-center justify-center shadow-[0_6px_22px_rgba(234,179,8,0.28)] shrink-0 cursor-pointer transition-transform mb-3.5 ${
-              pulseCount >= 3 ? 'khodra-logo-success' : 'khodra-logo-pulse'
-            }`}
+            className="flex items-center justify-center shrink-0 cursor-pointer transition-transform hover:scale-110 active:scale-95"
             key={pulseCount}
           >
-            <span className="text-2xl sm:text-3xl">🌿</span>
+            <span className="text-4xl sm:text-5xl">🌿</span>
           </button>
+        </div>
 
+        {/* ════════════════════════════════════════════════════════════
+            ═══ 2. شارات النطاق + خريطة التغطية (تصغير الشارات يتم داخلياً) ═══
+            ════════════════════════════════════════════════════════════ */}
+        {/* ملاحظة: لتطبيق "تصغير قليل لشارات نطاق الخريطة"، يُرجى تعديل أحجام الشارات داخل مكون StoreCoverageMap */}
+        <StoreCoverageMap inFooter={true} />
+
+        {/* ════════════════════════════════════════════════════════════
+            ═══ 3. اسم المتجر + شارة FES + الوصف ═══
+            ════════════════════════════════════════════════════════════ */}
+        <div className="flex flex-col items-center text-center max-w-2xl mx-auto pb-1">
           {/* 📛 العنوان + شارة FES */}
           <div className="flex items-center justify-center gap-3 flex-wrap mb-2.5">
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
@@ -115,20 +102,18 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
             </span>
           </div>
 
-          {/* 📝 النص الوصفي – بهامش مريح وسطر أنيق */}
+          {/* 📝 النص الوصفي */}
           <p className="text-xs sm:text-sm text-stone-300 font-medium leading-relaxed max-w-xl px-2">
             نختار لكم كل صباح أجود الخضار، الفواكه، ومنتجات البقالة والألبان بعناية فائقة من أسواق الجملة بفاس مع توصيل سريع وموثوق لباب دارك.
           </p>
         </div>
 
         {/* ════════════════════════════════════════════════════════════
-            شارات النطاق + خريطة التغطية الممتدة (بهوامش مريحة)
+            ═══ باقي الأقسام كما هي (معلومات وخدمات، واتساب، حقوق) ═══
             ════════════════════════════════════════════════════════════ */}
-        <StoreCoverageMap inFooter={true} />
 
-        {/* ─── بطاقة: معلومات وخدمات المتجر (مع إضاءة رمادية أنيقة للحواف) ─── */}
+        {/* ─── بطاقة: معلومات وخدمات المتجر ─── */}
         <div className="bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 border-2 border-zinc-500/60 sm:border-zinc-400/60 rounded-3xl p-5 sm:p-6 text-center space-y-4 shadow-[0_0_25px_rgba(161,161,170,0.18),0_10px_35px_rgba(0,0,0,0.5)] flex flex-col justify-between relative overflow-hidden backdrop-blur-sm">
-          {/* إضاءة رمادية علوية ناعمة */}
           <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-zinc-400/70 to-transparent pointer-events-none" />
           <div className="absolute top-0 left-1/3 w-64 h-64 bg-zinc-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -250,23 +235,18 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
             ════════════════════════════════════════════════════════════ */}
         <div className="pt-4 border-t border-zinc-800/60">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center py-1">
-
-            {/* 📝 النص الرئيسي */}
             <p className="text-sm sm:text-base text-stone-200 font-bold leading-tight">
               جميع الحقوق محفوظة © {new Date().getFullYear()}{' '}
               <strong className="text-[#F5D76E] font-black">{STORE_CONFIG.storeName}</strong>
             </p>
 
-            {/* الفاصل */}
             <span className="hidden sm:inline-block w-px h-4 bg-zinc-700/80" aria-hidden="true" />
 
-            {/* 🏢 اسم الشركة */}
             <p className="text-[11px] sm:text-xs text-stone-400 font-semibold">
               شركة خُضرة للتجارة الإلكترونية SARL
             </p>
           </div>
 
-          {/* سطر ثانوي: حقوق إضافية – حشو مُقلَّص */}
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 text-[10px] sm:text-[11px] text-zinc-500 font-medium text-center">
             <span>صُنع بحب في المغرب 🇲🇦</span>
             <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-zinc-700" aria-hidden="true" />
