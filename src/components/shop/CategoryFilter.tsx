@@ -1,7 +1,6 @@
 // ============================================================
-// CategoryFilter.tsx – الإصدار 12.0
-// تصميم مطابق تماماً لشارات الثقة (TrustBadges) وتقييمات الزبائن (CustomerReviews)
-// بطاقات بخلفية صور ممتدة + إصلاح التمرير اليدوي + إزالة العناصر الصفراء والشارات البيضاء
+// CategoryFilter.tsx – الإصدار 12.0 (نسخة مستقرة ومصححة بالكامل)
+// تم التحقق من البنية والوسوم والاستيرادات لضمان عدم تعطل التطبيق
 // ============================================================
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -25,7 +24,6 @@ const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = 
   cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.jpg' },
 };
 
-// شارات وألوان فريدة لكل فئة
 const CATEGORY_META: Record<
   string,
   { subtitle: string; iconBg: string }
@@ -97,7 +95,6 @@ const CategoryCardButton: React.FC<{
           : 'border-[#2D6A3F]/20 hover:border-[#2D6A3F]/50 shadow-xs md:hover:shadow-[0_10px_24px_rgba(45,106,63,0.12)]'
       }`}
     >
-      {/* ─── خلفية الصورة الممتدة ─── */}
       <div className="absolute inset-0 z-0">
         {hasImage ? (
           <img
@@ -117,28 +114,20 @@ const CategoryCardButton: React.FC<{
             <span className="text-5xl">{category.icon}</span>
           </div>
         )}
-        {/* تدرج داكن لضمان وضوح النصوص */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
       </div>
 
-      {/* ─── وميض بصري عند التحويم ─── */}
       <div className="cat-sheen-sweep pointer-events-none" />
 
-      {/* ─── المحتوى ─── */}
       <div className="relative z-10 w-full h-full flex flex-col justify-end items-center p-3 sm:p-4 text-center">
-        {/* تم حذف شارة التميز (Pill Badge) البيضاء من هنا */}
-
-        {/* العنوان */}
         <h3 className="text-sm sm:text-base font-black leading-snug mb-1 text-white drop-shadow-md">
           {category.name}
         </h3>
 
-        {/* الوصف المختصر */}
         <p className="text-[10px] sm:text-[11px] text-white/80 font-medium leading-relaxed px-1 line-clamp-2 drop-shadow-sm">
           {meta.subtitle}
         </p>
 
-        {/* خط سفلي موحد للموثوقية */}
         <div className="w-full pt-2 mt-2 border-t border-white/20 flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black">
           <CheckCircle2
             className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-[#EAB308]' : 'text-emerald-400'}`}
@@ -150,7 +139,6 @@ const CategoryCardButton: React.FC<{
         </div>
       </div>
 
-      {/* مؤشر الفئة المختارة */}
       {isSelected && (
         <div
           className="absolute inset-x-0 bottom-0 h-1.5 bg-[#2D6A3F] z-20"
@@ -173,7 +161,6 @@ interface CategoryFilterProps {
   onSelectCategory: (cat: ProductCategory) => void;
   products: Product[];
   className?: string;
-
   categoryInfo?: CategoryHeaderInfo;
   sortBy: SortOption;
   onlyInStock: boolean;
@@ -237,7 +224,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     });
   }, []);
 
-  // دالة توسيط البطاقة المختارة داخل الحاوية بدقة
   const scrollToIndex = useCallback((index: number) => {
     if (!scrollRef.current) return;
     const container = scrollRef.current;
@@ -248,7 +234,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       const cardWidth = card.offsetWidth;
       const containerWidth = container.offsetWidth;
       const scrollPosition = cardLeft - (containerWidth - cardWidth) / 2;
-
       container.scrollTo({
         left: scrollPosition,
         behavior: 'smooth',
@@ -284,7 +269,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       aria-label="تسوق حسب الفئات"
       dir="rtl"
     >
-      {/* ═══════ الأنماط الحركية والوميض البصري المماثل لشارات الثقة ═══════ */}
       <style>{`
         @keyframes catSheenSwipe {
           0%   { transform: translateX(180%) skewX(-20deg); opacity: 0; }
@@ -304,7 +288,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         }
       `}</style>
 
-      {/* ═══════ الحاوية الرئيسية (نفس تباين وبناء شارات الثقة والتقييمات) ═══════ */}
       <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-5 sm:p-8 lg:p-10 overflow-hidden">
 
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-[#EAB308]/8 rounded-full blur-3xl pointer-events-none" />
@@ -312,7 +295,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
         <div className="relative">
 
-          {/* ═══════ 1. رأس القسم الموحد (مُوسَّط مع النقطة الذهبية) ═══════ */}
           <div className="relative flex flex-col items-center text-center gap-4 pb-5 border-b border-[#2D6A3F]/10">
             <div className="text-center space-y-2 max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
@@ -354,7 +336,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             )}
           </div>
 
-          {/* ═══════ 2. شبكة وبطاقات الفئات (توسيط ممتاز وتناسق كامل) ═══════ */}
           <div className="relative pt-6 pb-2">
             {canScrollRight && (
               <button
@@ -378,7 +359,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               </button>
             )}
 
-            {/* الحاوية المتجاوبة مع توسيط الفئات على كل الشاشات */}
             <div
               ref={scrollRef}
               className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 lg:gap-4 overflow-x-auto md:overflow-visible py-3 px-2 sm:px-4 md:px-0 overscroll-x-contain no-scrollbar items-stretch snap-x snap-proximity md:snap-none justify-start sm:justify-center max-w-6xl mx-auto"
@@ -400,10 +380,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               ))}
             </div>
 
-            {/* ═══════ مؤشرات التنقل وأسهم التوجيه الموحدة للهاتف ═══════ */}
             <div className="flex md:hidden items-center justify-center gap-4 pt-4 px-1">
-              
-              {/* أسهم التنقل */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -425,7 +402,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 </button>
               </div>
 
-              {/* زر التصفية */}
               <button
                 type="button"
                 onClick={onOpenSort}
@@ -441,7 +417,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             </div>
           </div>
 
-          {/* ═══════ 3. الشريط السفلي للموثوقية ═══════ */}
           <div className="mt-6 pt-5 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center gap-2 text-xs sm:text-sm text-[#1F2937] font-black text-center">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
             <span>جميع المنتجات تخضع للمعاينة والفرز الدقيق قبل التجهيز والتوصيل لباب منزلك.</span>
