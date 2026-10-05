@@ -22,7 +22,6 @@ import {
   Phone,
   MessageCircle,
   RefreshCw,
-  CheckCircle2,
   AlertTriangle,
   Send,
   Share2,
@@ -44,7 +43,6 @@ import {
   addStoreDriver,
   updateStoreDriver,
   deleteStoreDriver,
-  batchAssignZoneOrders,
   detectFezZone,
 } from '../../services/supabaseService';
 import {
@@ -66,7 +64,6 @@ interface AdminDeliveryFleetTabProps {
   onSelectOrderForBordereau: (order: DbOrder) => void;
   onOpenOrderInvoice: (order: DbOrder) => void;
   showToast: (type: 'success' | 'error', message: string) => void;
-  onRefreshOrders?: () => void;
 }
 
 const VEHICLE_CONFIG: Record<
@@ -112,7 +109,6 @@ function cleanPhoneForWhatsApp(phone: string): string {
 export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   orders,
   showToast,
-  onRefreshOrders,
 }) => {
   // ─── سائقو الفريق الداخلي ───
   const [drivers, setDrivers] = useState<StoreDriver[]>([]);
@@ -142,15 +138,13 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   const [manifestZone, setManifestZone] = useState<FezZoneId | null>(null);
   const [selectedDriverForManifest, setSelectedDriverForManifest] = useState<StoreDriver | null>(null);
 
-  // أتمتة إرسال الجولة للسائق أو الاعتماد السريع
-  const [tourActionZone, setTourActionZone] = useState<FezZoneId | null>(null);
+  // أتمتة إرسال الجولة للسائق
   const [selectedDriverForZone, setSelectedDriverForZone] = useState<Record<FezZoneId, string>>({
     north: '',
     central: '',
     south: '',
     east: '',
   });
-  const [isBatchAssigning, setIsBatchAssigning] = useState(false);
   const [copyFormatModalZone, setCopyFormatModalZone] = useState<FezZoneId | null>(null);
 
   // ─── جلب السائقين ومزامنتهم عند التحميل ───
@@ -419,7 +413,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     let msg = `📢 *إشعار خروج الجولة لزبائن ${zoneInfo.name}:*\n`;
     zoneOrders.forEach((o) => {
       msg += `\n• زبون: ${o.customer_name} (${o.order_code}) - الهاتف: ${o.phone}\n`;
-      msg += `  الرسالة: مرحباً بك، طلبك من خُضرة خرج الآن في جولة التوصيل مع مندوبنا وسيكون عندك خلال 30-45 دقيقة. المبلغ المطلوب: ${o.total.toFixed(2)} درهم.\n`;
+      msg += `  الرسالة: مرحباً بك، طلبك من خُضرة خرج الآن في جولة التوصيل ��ع مندوبنا وسيكون عندك خلال 30-45 دقيقة. المبلغ المطلوب: ${o.total.toFixed(2)} درهم.\n`;
     });
     return msg;
   };
@@ -472,56 +466,6 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     const url = generateGoogleMapsMultiStopUrl(zoneOrders);
     window.open(url, '_blank');
     showToast('success', `تم فتح مسار الملاحة المتعدد (${zoneOrders.length} محطات)`);
-  };
-
-  // ─── أتمتة 3: اعتماد الجولة ونقل الطلبات للتوصيل دفعة واحدة ───
-  const handleBatchAssignOrders = async (zoneKey: FezZoneId) => {
-    const zoneOrders = zoneGroups[zoneKey];
-    if (zoneOrders.length === 0) {
-      showToast('error', 'لا توجد طلبات في هذه المنطقة للاعتماد');
-      return;
-    }
-
-    const driverId = selectedDriverForZone[zoneKey];
-    const driver = drivers.find((d) => d.id === driverId) || drivers[0];
-
-    if (!driver) {
-      showToast('error', 'يرجى اختيار سائق للجولة أولاً من القائمة');
-      return;
-    }
-
-    setIsBatchAssigning(true);
-    try {
-      const res = await batchAssignZoneOrders({
-        orders: zoneOrders,
-        driver,
-        newStatus: 'prepared',
-      });
-
-      if (res.success) {
-        showToast('success', res.message || 'تم اعتماد الجولة وتعيين السائق بنجاح!');
-        if (onRefreshOrders) onRefreshOrders();
-        // تحديث حالة السائق محلياً
-        setDrivers((prev) =>
-          prev.map((d) =>
-            d.id === driver.id
-              ? {
-                  ...d,
-                  status: 'on_delivery',
-                  activeOrdersCount: (d.activeOrdersCount || 0) + zoneOrders.length,
-                }
-              : d
-          )
-        );
-      } else {
-        showToast('error', res.message || 'فشل اعتماد الجولة');
-      }
-    } catch {
-      showToast('error', 'حدث خطأ أثناء اعتماد الجولة');
-    } finally {
-      setIsBatchAssigning(false);
-      setTourActionZone(null);
-    }
   };
 
   return (
@@ -817,7 +761,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
               <span>المسارات الذكية وأتمتة جولات فاس</span>
             </h3>
             <p className="text-[11px] text-stone-500 mt-0.5">
-              إرسال مباشر عبر واتساب للسائقين • خرائط جوجل المجمعة • مانيفست ورقي • اعتماد فوري بنقرة واحدة
+              إرسال مباشر عبر واتساب للسائقين • خرائط جوجل المجمعة • مانيفست ورقي • نسخ ذكي للقوالب
             </p>
           </div>
           <div className="flex items-center gap-1.5 text-xs font-bold text-stone-500">
@@ -883,7 +827,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                       >
                         <option value="">-- اختر سائقاً من الفريق --</option>
                         {drivers.map((d) => (
-                          <option key={d.id} value={d.id}>
+                          <option key={d.id} value={d.id} disabled={d.status !== 'available'}>
                             {d.name} ({VEHICLE_CONFIG[d.vehicleType]?.icon} {STATUS_CONFIG[d.status]?.label})
                           </option>
                         ))}
@@ -917,20 +861,8 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                     <span>مسار خرائط Google 🗺️</span>
                   </button>
 
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {/* زر أتمتة 3: اعتماد الجولة وتحويل الحالات */}
-                    <button
-                      type="button"
-                      disabled={count === 0 || isBatchAssigning}
-                      onClick={() => handleBatchAssignOrders(zoneKey)}
-                      className="py-1.5 px-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
-                      title="تعيين السائق وتحويل جميع طلبات الجولة لحالة جاهزة للتوصيل"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>اعتماد الجولة 🚀</span>
-                    </button>
-
-                    {/* زر أتمتة 4: طباعة المانيفست */}
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {/* زر طباعة المانيفست */}
                     <button
                       type="button"
                       disabled={count === 0}
