@@ -25,7 +25,7 @@ const CATEGORY_IMAGES: Record<string, { primary: string; fallback?: string }> = 
   cleaning: { primary: '/images/categories/cleaning.jpg', fallback: '/images/categories/cleaning.jpg' },
 };
 
-// شارات وألوان فريدة لكل فئة (تم إزالة الألوان الصفراء/الamber واستبدالها بالأخضر والبرتقالي)
+// شارات وألوان فريدة لكل فئة (تم إزالة الألوان الصفراء واستبدالها بالأخضر والبرتقالي)
 const CATEGORY_META: Record<
   string,
   { badge: string; tagColor: string; subtitle: string; iconBg: string }
@@ -290,15 +290,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     };
   }, [categories.length, updateScrollState]);
 
-  // مؤشر الفئة الحالية لحساب النقطة النشطة (تم حذف النقاط، لكن هذا المؤشر يبقى للاستخدام الداخلي إن لزم)
-  const selectedCategoryIndex = useMemo(() => {
-    const idx = categories.findIndex((c) => c.id === selectedCategory);
-    return idx !== -1 ? idx : 0;
-  }, [categories, selectedCategory]);
-
-  // تم إزالة useEffect الذي كان يقوم بالتمرير التلقائي عند تغيير الفئة
-  // لضمان عدم تعارض التمرير اليدوي مع التمرير التلقائي
-
   const scrollByAmount = (dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
@@ -324,7 +315,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         .cat-sheen-sweep {
           position: absolute;
           inset: 0;
-          background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%);
+          background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.85) 50%, transparent 100%);
           transform: translateX(180%) skewX(-20deg);
           pointer-events: none;
           z-index: 15;
