@@ -67,7 +67,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
       <div className="relative max-w-6xl mx-auto px-3 sm:px-5 lg:px-8 space-y-6 sm:space-y-8">
 
         {/* ════════════════════════════════════════════════════════════
-            ═══ 1. أيقونة الشعار (بدون خلفية أو حواف صفراء) ═══
+            ═══ 1. أيقونة الشعار (تم تقليص الحجم قليلاً) ═══
             ════════════════════════════════════════════════════════════ */}
         <div className="flex justify-center pt-3 sm:pt-5 pb-1">
           <button
@@ -77,29 +77,33 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
             className="flex items-center justify-center shrink-0 cursor-pointer transition-transform hover:scale-110 active:scale-95"
             key={pulseCount}
           >
-            <span className="text-4xl sm:text-5xl">🌿</span>
+            {/* تم تقليص الحجم من text-4xl sm:text-5xl إلى text-3xl sm:text-4xl */}
+            <span className="text-3xl sm:text-4xl">🌿</span>
           </button>
         </div>
 
         {/* ════════════════════════════════════════════════════════════
-            ═══ 2. شارات النطاق + خريطة التغطية (تصغير الشارات يتم داخلياً) ═══
+            ═══ 2. شارات النطاق + خريطة التغطية ═══
             ════════════════════════════════════════════════════════════ */}
-        {/* ملاحظة: لتطبيق "تصغير قليل لشارات نطاق الخريطة"، يُرجى تعديل أحجام الشارات داخل مكون StoreCoverageMap */}
-        <StoreCoverageMap inFooter={true} />
+        {/* 
+          ملاحظة: لتقليص حجم نصوص الشارات وإضافة هامش بينها وبين الخريطة، 
+          يُفضل تعديل ذلك داخل مكون StoreCoverageMap.tsx نفسه.
+          هذا الـ div يضمن تقليص حجم الخط بشكل عام وإضافة هامش مريح.
+        */}
+        <div className="space-y-5 text-[11px] sm:text-xs">
+          <StoreCoverageMap inFooter={true} />
+        </div>
 
         {/* ════════════════════════════════════════════════════════════
-            ═══ 3. اسم المتجر + شارة FES + الوصف ═══
+            ═══ 3. اسم المتجر + الوصف (تم حذف شارة FES) ═══
             ════════════════════════════════════════════════════════════ */}
         <div className="flex flex-col items-center text-center max-w-2xl mx-auto pb-1">
-          {/* 📛 العنوان + شارة FES */}
+          {/* 📛 العنوان */}
           <div className="flex items-center justify-center gap-3 flex-wrap mb-2.5">
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               متجر <span className="text-[#F5D76E]">{STORE_CONFIG.storeName}</span>
             </h2>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              FES
-            </span>
+            {/* تم حذف شارة FES من هنا */}
           </div>
 
           {/* 📝 النص الوصفي */}
