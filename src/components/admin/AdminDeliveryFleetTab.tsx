@@ -7,7 +7,7 @@
 // 4. منطق تعيين السائقين: فرز المفضلة أولاً، وتعطيل المشغولين وخارج الخدمة
 // 5. حساب مبالغ التحصيل (COD) ومودال تفاصيل المحاسبة
 // 6. قوالب النسخ الذكي (سائق داخلي، inDrive، إشعار الزبائن)
-// 7. إغلاق الجولة وتأكيد التسليم ونقل الطلبات تلقائياً لأرشيف الطلبات
+// 7. إغلاق الجولة وتأكيد التسليم ونقل الطلبات لحالة تم التسليم مباشرة
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -51,6 +51,7 @@ import {
   updateStoreDriver,
   deleteStoreDriver,
   closeAndDeliverZoneTour,
+  updateOrderDispatch,
   detectFezZone,
 } from '../../services/supabaseService';
 import {
@@ -172,6 +173,54 @@ export function calculateZoneCOD(zoneOrders: DbOrder[]) {
   };
 }
 
+/**
+ * حساب تكلفة التوصيل المقدرة بناءً على تسعيرة خُضرة وفاس:
+ * - سائق فريق المتجر (داخلي): 9 إلى 13 درهم للطلب الواحد
+ * - سائقو تطبيقات النقل / inDrive: 20 إلى 25 درهم للطلب الواحد
+ * - تجميع 3 طلبيات إرسال دفعة واحدة:
+ *   - داخل نظام خضرة: 30 إلى 35 درهم
+ *   - خارج النظام (inDrive): 45 إلى 60 درهم
+ */
+export function calculateDeliveryBatchPricing(ordersCount: number) {
+  if (ordersCount <= 0) {
+    return {
+      internalMin: 0,
+      internalMax: 0,
+      indriveMin: 0,
+      indriveMax: 0,
+      summaryText: 'لا توجد طلبات حالياً',
+    };
+  }
+
+  const batches = Math.floor(ordersCount / 3);
+  const remainder = ordersCount % 3;
+
+  const internalMin = batches * 30 + remainder * 9;
+  const internalMax = batches * 35 + remainder * 13;
+
+  const indriveMin = batches * 45 + remainder * 20;
+  const indriveMax = batches * 60 + remainder * 25;
+
+  let summaryText = '';
+  if (ordersCount === 3) {
+    summaryText = `دفعة 3 طلبيات: خضرة (30-35 د.م) • inDrive (45-60 د.م)`;
+  } else if (ordersCount === 1) {
+    summaryText = `طلب فردي: خضرة (9-13 د.م) • inDrive (20-25 د.م)`;
+  } else if (ordersCount === 2) {
+    summaryText = `طلبيتان: خضرة (18-26 د.م) • inDrive (40-50 د.م)`;
+  } else {
+    summaryText = `${ordersCount} طلبات: خضرة (${internalMin}-${internalMax} د.م) • inDrive (${indriveMin}-${indriveMax} د.م)`;
+  }
+
+  return {
+    internalMin,
+    internalMax,
+    indriveMin,
+    indriveMax,
+    summaryText,
+  };
+}
+
 export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   orders,
   showToast,
@@ -195,7 +244,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     vehicleType: 'moto' as DriverVehicleType,
     zonePreference: 'all' as FezZoneId | 'all',
     status: 'available' as DriverStatus,
-    commissionPerOrder: 25,
+    commissionPerOrder: 11, // السعر المقدر المعتمد: 9 إلى 13 د.م للطلب
     vehiclePlate: '',
     address: '', // حقل العنوان
     notes: '',
@@ -206,12 +255,22 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   const [manifestZone, setManifestZone] = useState<FezZoneId | null>(null);
   const [selectedDriverForManifest, setSelectedDriverForManifest] = useState<StoreDriver | null>(null);
 
-  // السائق المختار لكل منطقة من القائمة المنسدلة
+  // السائق المختار لكل منطقة من القائمة المنسدلة (المستوى الأول - الفريق الداخلي)
   const [selectedDriverForZone, setSelectedDriverForZone] = useState<Record<FezZoneId, string>>({
     east: '',
     central: '',
     south: '',
     north: '',
+  });
+
+  // خانة إضافية لتخصيص سائقي المستوى الثاني (inDrive - الخيار الاحتياطي)
+  const [inDriveDriversByZone, setInDriveDriversByZone] = useState<
+    Record<FezZoneId, { name: string; phone: string }>
+  >({
+    east: { name: '', phone: '' },
+    central: { name: '', phone: '' },
+    south: { name: '', phone: '' },
+    north: { name: '', phone: '' },
   });
 
   // مودالات الأسئلة 5 و 6 و 7
@@ -287,7 +346,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       vehicleType: 'moto',
       zonePreference: 'all',
       status: 'available',
-      commissionPerOrder: 25,
+      commissionPerOrder: 11,
       vehiclePlate: '',
       address: '',
       notes: '',
@@ -339,7 +398,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   );
   const deliveredOrders = orders.filter((o) => o.status === 'delivered');
   const totalDriverCost = nonCancelledOrders.reduce(
-    (sum, o) => sum + (o.delivery_dispatch?.deliveryCost ?? 25),
+    (sum, o) => sum + (o.delivery_dispatch?.deliveryCost ?? 11),
     0
   );
   const totalDeliveryRevenue = nonCancelledOrders.reduce((sum, o) => sum + o.delivery_fee, 0);
@@ -484,20 +543,29 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       return msg;
     }
 
-    // 2. قالب InDrive / تطبيقات النقل
+    // 2. قالب InDrive / تطبيقات النقل (المستوى الثاني - احتياطي)
     if (format === 'indrive') {
-      let msg = `السلام عليكم 🚴\n`;
-      msg += `جولة توصيل - ${zoneInfo.name} (${zoneOrders.length} محطات) لمتجر خُضرة 🌿\n\n`;
-      msg += `📍 نقطة الانطلاق:\n${STORE_PICKUP_HUB.name}\n${STORE_PICKUP_HUB.address}\n\n`;
-      msg += `📦 المحطات المتتابعة:\n`;
+      const pricing = calculateDeliveryBatchPricing(zoneOrders.length);
+      let msg = `السلام عليكم كابتن inDrive 🚗🌿\n`;
+      msg += `طلب جولة توصيل متجر خُضرة بفاس (${zoneOrders.length} محطات)\n`;
+      msg += `🧭 المنطقة: ${zoneInfo.name}\n`;
+      msg += `💰 السعر المقترح للجولة: ${pricing.indriveMin} إلى ${pricing.indriveMax} درهم\n\n`;
+      msg += `📍 نقطة الانطلاق (استلام الصناديق):\n`;
+      msg += `🏪 ${STORE_PICKUP_HUB.name}\n`;
+      msg += `🏠 ${STORE_PICKUP_HUB.address}\n\n`;
+      msg += `📦 محطات التسليم المتتالية:\n`;
       zoneOrders.forEach((o, idx) => {
         msg += `\n───────────────\n`;
         msg += `محطة #${idx + 1} (${o.order_code}):\n`;
-        msg += `👤 ${o.customer_name}\n📞 ${o.phone}\n🏠 ${o.address}\n`;
-        if (o.maps_link) msg += `🗺️ GPS: ${o.maps_link}\n`;
-        msg += `💵 COD: ${o.total.toFixed(2)} د.م\n`;
+        msg += `👤 الزبون: ${o.customer_name}\n`;
+        msg += `📞 الهاتف: ${o.phone}\n`;
+        msg += `🏠 العنوان: ${o.address}\n`;
+        if (o.maps_link) msg += `🗺️ رابط GPS: ${o.maps_link}\n`;
+        msg += `💵 تحصيل COD: ${Number(o.total ?? 0).toFixed(2)} د.م\n`;
       });
-      msg += `\n───────────────\n💰 إجمالي COD للجولة: ${totalCOD.toFixed(2)} د.م`;
+      msg += `\n───────────────\n`;
+      msg += `💰 إجمالي مبالغ التحصيل (COD): ${totalCOD.toFixed(2)} د.م\n`;
+      msg += `يرجى التواصل للتأكيد والانطلاق الفوري. شكراً لك! 🌿`;
       return msg;
     }
 
@@ -524,7 +592,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     }
   };
 
-  // ─── إرسال الجولة للسائق عبر WhatsApp ───
+  // ─── إرسال الجولة للسائق الداخلي عبر WhatsApp ───
   const handleSendToDriverWhatsApp = (zoneKey: FezZoneId) => {
     const driverId = selectedDriverForZone[zoneKey];
     const driver = drivers.find((d) => d.id === driverId);
@@ -549,6 +617,86 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     showToast('success', `تم فتح واتساب لإرسال الجولة إلى ${driver?.name || 'السائق'}`);
   };
 
+  // ─── إرسال الجولة لسائق inDrive (المستوى الثاني - احتياطي) وربط الأحداث ───
+  const handleSendToInDriveWhatsApp = async (zoneKey: FezZoneId) => {
+    const zoneOrders = zoneGroups[zoneKey];
+    if (zoneOrders.length === 0) {
+      showToast('error', 'لا توجد طلبات في هذه المنطقة لإرسالها');
+      return;
+    }
+
+    const inDriveData = inDriveDriversByZone[zoneKey] || { name: '', phone: '' };
+    const pricing = calculateDeliveryBatchPricing(zoneOrders.length);
+    const message = buildTourMessage(zoneKey, 'indrive');
+    const targetPhone = cleanPhoneForWhatsApp(inDriveData.phone);
+
+    // ربط الأحداث منطقياً: تحديث بيانات التوصيل للطلبات وتعيين inDrive
+    try {
+      for (const ord of zoneOrders) {
+        const currentDispatch = ord.delivery_dispatch || {
+          provider: 'indrive',
+          dispatchStatus: 'in_transit',
+        };
+        await updateOrderDispatch(ord.id, ord.order_code, {
+          ...currentDispatch,
+          provider: 'indrive',
+          dispatchStatus: 'in_transit',
+          driverName: inDriveData.name.trim() || 'كابتن inDrive (احتياطي)',
+          driverPhone: inDriveData.phone.trim(),
+          deliveryCost: Math.round((pricing.indriveMin + pricing.indriveMax) / (zoneOrders.length * 2)),
+          zone: zoneKey,
+        });
+      }
+      if (onRefreshOrders) {
+        onRefreshOrders();
+      }
+    } catch (err) {
+      console.warn('Failed to update dispatch for inDrive assignment:', err);
+    }
+
+    if (targetPhone) {
+      window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`, '_blank');
+      showToast('success', `تم فتح واتساب لإرسال الجولة لكابتن inDrive وتحديث الطلبات!`);
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+      showToast('success', 'تم فتح واتساب وإسناد طلبات الجولة إلى inDrive كخيار احتياطي!');
+    }
+  };
+
+  // ─── تعيين السائق الداخلي للطلبات وربط الأحداث مع إدارة الطلبات ───
+  const handleSelectStoreDriverForZone = async (zoneKey: FezZoneId, driverId: string) => {
+    setSelectedDriverForZone((prev) => ({ ...prev, [zoneKey]: driverId }));
+    const driver = drivers.find((d) => d.id === driverId);
+    if (!driver) return;
+
+    const zoneOrders = zoneGroups[zoneKey];
+    if (zoneOrders.length === 0) return;
+
+    try {
+      for (const ord of zoneOrders) {
+        const currentDispatch = ord.delivery_dispatch || {
+          provider: 'custom',
+          dispatchStatus: 'in_transit',
+        };
+        await updateOrderDispatch(ord.id, ord.order_code, {
+          ...currentDispatch,
+          provider: 'custom',
+          dispatchStatus: 'in_transit',
+          driverName: driver.name,
+          driverPhone: driver.phone,
+          deliveryCost: driver.commissionPerOrder || 11,
+          zone: zoneKey,
+        });
+      }
+      if (onRefreshOrders) {
+        onRefreshOrders();
+      }
+      showToast('success', `تم تعيين السائق ${driver.name} لجولة ${FEZ_DELIVERY_ZONES[zoneKey].name} بنجاح`);
+    } catch (err) {
+      console.warn('Failed to dispatch internal driver to zone orders:', err);
+    }
+  };
+
   // ─── فتح مسار خرائط جوجل ───
   const handleOpenGoogleMapsRoute = (zoneKey: FezZoneId) => {
     const zoneOrders = zoneGroups[zoneKey];
@@ -562,7 +710,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   };
 
   // ═══════════════════════════════════════════════════════════════
-  // ─── السؤال 7: تنفيذ إغلاق الجولة وتأكيد التسليم ونقل الطلبات للأرشيف ───
+  // ─── السؤال 7: تنفيذ إغلاق الجولة وتأكيد التسليم ونقل الطلبات ───
   // ═══════════════════════════════════════════════════════════════
   const handleConfirmCloseTour = async () => {
     if (!closeTourZone) return;
@@ -586,7 +734,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       });
 
       if (res.success) {
-        showToast('success', res.message || 'تم إغلاق الجولة وتأكيد التسليم ونقل الطلبات للأرشيف!');
+        showToast('success', 'تم إغلاق الجولة وتأكيد تسليم الطلبات بنجاح!');
         // تحديث حالة السائق محلياً
         if (driver) {
           setDrivers((prev) =>
@@ -602,7 +750,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
             )
           );
         }
-        // تحديث الطلبات في الأداة الأولى
+        // تحديث الطلبات في أداة إدارة الطلبات
         if (onRefreshOrders) {
           onRefreshOrders();
         }
@@ -653,7 +801,9 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           <div className="text-xl sm:text-2xl font-black text-blue-950 tabular-nums">
             {totalDriverCost.toFixed(0)} <span className="text-sm font-normal">د.م</span>
           </div>
-          <p className="text-[11px] text-stone-500 mt-1">أجرة محددة لكل طلب</p>
+          <p className="text-[11px] text-stone-500 mt-1">
+            داخلي: 9-13 د.م • تطبيقات: 20-25 د.م
+          </p>
         </div>
 
         <div className="bg-white border-2 border-stone-200 rounded-2xl p-3 sm:p-4 shadow-xs">
@@ -685,7 +835,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
               <span>إدارة مسارات التوصيل والجولات • مدينة فاس</span>
             </h3>
             <p className="text-[11px] text-stone-500 mt-0.5">
-              4 مناطق جغرافية (الشرقية، الوسطى، الجنوبية، الشمالية) • تعيين السائقين الذكي • حساب COD • إغلاق الجولات للأرشيف
+              4 مناطق جغرافية (الشرقية، الوسطى، الجنوبية، الشمالية) • تعيين السائقين الذكي • حساب COD • تسليم الطلبات الفوري
             </p>
           </div>
           <div className="flex items-center gap-1.5 text-xs font-bold text-stone-600 bg-stone-100 px-3 py-1.5 rounded-xl border border-stone-200">
@@ -762,19 +912,14 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                     {/* السؤال 4: قائمة منسدلة لاختيار سائق من الفريق */}
                     <div className="pt-2 border-t border-stone-100">
                       <label className="block text-[11px] font-black text-stone-700 mb-1">
-                        تعيين سائق الجولة:
+                        تعيين سائق الجولة (فريق المتجر الداخلي):
                       </label>
                       <select
                         value={selectedDriverForZone[zoneKey] || ''}
-                        onChange={(e) =>
-                          setSelectedDriverForZone((prev) => ({
-                            ...prev,
-                            [zoneKey]: e.target.value,
-                          }))
-                        }
+                        onChange={(e) => handleSelectStoreDriverForZone(zoneKey, e.target.value)}
                         className="w-full p-2 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600"
                       >
-                        <option value="">-- اختر سائقاً من الفريق --</option>
+                        <option value="">-- اختر سائقاً من الفريق الداخلي --</option>
                         {sortedDrivers.map(({ driver, isPreferred, isDisabled, disabledReason }) => (
                           <option
                             key={driver.id}
@@ -792,11 +937,89 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                             {driver.name}
                             {isPreferred ? ` (المفضلة: ${info.name})` : ''}
                             {isDisabled
-                              ? ` ⛔ [غير متاح - ${disabledReason}]`
-                              : ` ✅ [متاح - ${driver.commissionPerOrder} د.م]`}
+                              ? ` ⛔ غير متاح (${disabledReason})`
+                              : ` متاح (${driver.commissionPerOrder} د.م)`}
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    {/* ─── خانة إضافية لتخصيص سائقين من المستوى الثاني (inDrive - الخيار الاحتياطي) ─── */}
+                    <div className="pt-2.5 mt-2 border-t border-amber-200 bg-amber-50/70 rounded-xl p-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-black text-amber-950 flex items-center gap-1.5">
+                          <Car className="w-3.5 h-3.5 text-amber-700" />
+                          <span>سائق المستوى الثاني (inDrive - احتياطي):</span>
+                        </label>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/90 text-amber-950 border border-amber-300">
+                          احتياطي
+                        </span>
+                      </div>
+
+                      {/* شريط ومؤشر تسعير الأجور المعتمدة */}
+                      <div className="bg-white/90 border border-amber-200 rounded-lg p-2 text-[10px] space-y-1">
+                        <div className="flex justify-between items-center text-stone-700 font-bold">
+                          <span>فريق خضرة (داخلي):</span>
+                          <span className="text-emerald-700 font-black">9 - 13 د.م / طلب</span>
+                        </div>
+                        <div className="flex justify-between items-center text-stone-700 font-bold">
+                          <span>سائقو inDrive (تطبيقات):</span>
+                          <span className="text-amber-800 font-black">20 - 25 د.م / طلب</span>
+                        </div>
+                        <div className="pt-1 border-t border-amber-100 flex justify-between items-center font-black text-[10px]">
+                          <span className="text-stone-800">تجميع 3 طلبيات دفعة واحدة:</span>
+                          <span className="text-stone-900">
+                            خضرة <span className="text-emerald-700">30-35 د.م</span> • inDrive <span className="text-amber-800">45-60 د.م</span>
+                          </span>
+                        </div>
+                        {ordersCount > 0 && (
+                          <div className="pt-1 border-t border-amber-100 text-[10px] font-black text-[#163920] bg-amber-100/70 p-1 rounded flex justify-between items-center">
+                            <span>تقدير الجولة ({ordersCount} طلبات):</span>
+                            <span>{calculateDeliveryBatchPricing(ordersCount).summaryText}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* حقول إدخال بيانات كابتن inDrive وزر الإرسال الفوري عبر واتساب */}
+                      <div className="space-y-1.5">
+                        <input
+                          type="text"
+                          placeholder="اسم كابتن inDrive (اختياري)"
+                          value={inDriveDriversByZone[zoneKey]?.name || ''}
+                          onChange={(e) =>
+                            setInDriveDriversByZone((prev) => ({
+                              ...prev,
+                              [zoneKey]: { ...(prev[zoneKey] || { name: '', phone: '' }), name: e.target.value },
+                            }))
+                          }
+                          className="w-full p-1.5 text-xs rounded-lg border border-amber-300 bg-white font-bold text-stone-800 focus:outline-amber-600 placeholder:text-stone-400"
+                        />
+                        <div className="flex gap-1.5">
+                          <input
+                            type="tel"
+                            placeholder="هاتف كابتن inDrive (06XXXXXXXX)"
+                            value={inDriveDriversByZone[zoneKey]?.phone || ''}
+                            onChange={(e) =>
+                              setInDriveDriversByZone((prev) => ({
+                                ...prev,
+                                [zoneKey]: { ...(prev[zoneKey] || { name: '', phone: '' }), phone: e.target.value },
+                              }))
+                            }
+                            className="flex-1 p-1.5 text-xs rounded-lg border border-amber-300 bg-white font-bold text-stone-800 focus:outline-amber-600 placeholder:text-stone-400"
+                            dir="ltr"
+                          />
+                          <button
+                            type="button"
+                            disabled={ordersCount === 0}
+                            onClick={() => handleSendToInDriveWhatsApp(zoneKey)}
+                            className="py-1.5 px-2.5 rounded-lg bg-stone-900 hover:bg-black text-[#F5D76E] font-black text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-40"
+                            title="إرسال تفاصيل الجولة والمحطات لكابتن inDrive عبر واتساب وتحديث الطلبات"
+                          >
+                            <Car className="w-3.5 h-3.5 text-amber-400" />
+                            <span>طلب inDrive</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -810,7 +1033,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                       disabled={ordersCount === 0}
                       onClick={() => handleSendToDriverWhatsApp(zoneKey)}
                       className="py-2 px-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-98"
-                      title="إرسال تفاصيل الجولة والمحطات للسائق عبر واتساب"
+                      title="إرسال تفاصيل الجولة والمحطات للسائق الداخلي عبر واتساب"
                     >
                       <Send className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">إرسال (WhatsApp)</span>
@@ -834,7 +1057,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                     disabled={ordersCount === 0}
                     onClick={() => setCloseTourZone(zoneKey)}
                     className="w-full py-2 px-3 rounded-xl border-2 border-stone-300 hover:border-emerald-600 bg-stone-100 hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                    title="تأكيد تسليم طلبات هذه الجولة وتحديثها إلى 'تم التسليم' ونقلها للأرشيف"
+                    title="تأكيد تسليم طلبات هذه الجولة وتحديثها إلى 'تم التسليم'"
                   >
                     <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
                     <span>إغلاق الجولة وتأكيد التسليم</span>
@@ -1429,7 +1652,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          السؤال 7: مودال تأكيد إغلاق الجولة وتأكيد التسليم ونقل الطلبات للأرشيف
+          السؤال 7: مودال تأكيد إغلاق الجولة وإتمام تسليم الطلبات
       ═══════════════════════════════════════════════════════════════ */}
       {closeTourZone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
@@ -1444,8 +1667,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
               </h4>
               <p className="text-xs text-stone-600 mt-1 leading-relaxed">
                 سيتم تحديث جميع الطلبات المرتبطة بهذه الجولة ({zoneGroups[closeTourZone].length} طلبات)
-                إلى حالة <strong>"تم التسليم"</strong> ونقلها تلقائياً إلى <strong>أرشيف الطلبات</strong> في
-                أداة إدارة الطلبات.
+                إلى حالة <strong>"تم التسليم"</strong> في أداة إدارة الطلبات لتأكيد الدفع ومراسلة الزبائن للتقييم.
               </p>
             </div>
 
@@ -1472,7 +1694,8 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                 <span>السائق المعين:</span>
                 <span className="font-bold text-stone-900">
                   {drivers.find((d) => d.id === selectedDriverForZone[closeTourZone])?.name ||
-                    'فريق خُضرة الداخلي'}
+                    inDriveDriversByZone[closeTourZone]?.name ||
+                    'فريق خُضرة / inDrive'}
                 </span>
               </div>
             </div>
@@ -1495,12 +1718,12 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                 {isClosingTour ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>جاري الإغلاق والأرشفة...</span>
+                    <span>جاري تأكيد التسليم وإغلاق الجولة...</span>
                   </>
                 ) : (
                   <>
-                    <Archive className="w-3.5 h-3.5" />
-                    <span>تأكيد الإغلاق والأرشفة</span>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>تأكيد إغلاق الجولة وإتمام التسليم</span>
                   </>
                 )}
               </button>

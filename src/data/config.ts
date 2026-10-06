@@ -118,17 +118,17 @@ export const DELIVERY_SLOTS: DeliverySlot[] = [
   }
 ];
 
-// ─── شركات وتطبيقات التوصيل الفوري بفاس ───
+// ─── شركات وتطبيقات التوصيل الفوري بفاس (المستوى الثاني الاحتياطي) ───
 export const DELIVERY_PROVIDERS = [
   {
     id: 'indrive' as const,
     name: 'inDrive Delivery',
-    tagline: 'الأساسي (90%) - تفاوض مباشر وتكلفة مناسبة',
+    tagline: 'الخيار الاحتياطي الأول (المستوى الثاني) - تفاوض مباشر وسريع',
     badgeClass: 'bg-emerald-600 text-white',
     icon: '🚴',
     appUrl: 'https://indrive.com',
     recommended: true,
-    avgCost: '20-30 د.م',
+    avgCost: '20-25 د.م (طلب واحد) • 45-60 د.م (3 طلبيات)',
   },
   {
     id: 'done' as const,
@@ -138,7 +138,7 @@ export const DELIVERY_PROVIDERS = [
     icon: '⚡',
     appUrl: 'https://done.ma',
     recommended: false,
-    avgCost: '25-35 د.م',
+    avgCost: '20-25 د.م للطلب',
   },
   {
     id: 'yassir' as const,
@@ -148,7 +148,7 @@ export const DELIVERY_PROVIDERS = [
     icon: '🛵',
     appUrl: 'https://yassir.com',
     recommended: false,
-    avgCost: '25-35 د.م',
+    avgCost: '20-25 د.م للطلب',
   },
   {
     id: 'glovo' as const,
@@ -158,17 +158,7 @@ export const DELIVERY_PROVIDERS = [
     icon: '🟡',
     appUrl: 'https://glovoapp.com',
     recommended: false,
-    avgCost: '30-45 د.م',
-  },
-  {
-    id: 'custom' as const,
-    name: 'كابتن خُضرة (مندوب خاص)',
-    tagline: 'سائق المتجر الدائم بالدراجة النارية',
-    badgeClass: 'bg-teal-700 text-white',
-    icon: '🌿',
-    appUrl: '',
-    recommended: false,
-    avgCost: 'داخلي',
+    avgCost: '20-25 د.م للطلب',
   },
 ];
 
