@@ -1,6 +1,13 @@
 // ============================================================
-// AdminDeliveryFleetTab.tsx – الإصدار 5.0
-// إدارة أسطول التوصيل الداخلي + المسارات الذكية وأتمتة جولات فاس
+// AdminDeliveryFleetTab.tsx – الإصدار 6.0
+// أداة مسارات التوصيل وفريق السائقين الذكية لمتجر خُضرة - فاس
+// 1. الهيكل العام: 4 أعمدة بالمناطق (الشرقية، الوسطى، الجنوبية، الشمالية)
+// 2. بطاقة الجولة: تفاصيل، أزرار واتساب وخرائط جوجل، وإغلاق الجولة
+// 3. بطاقة السائق: الاسم، الحالة، الهاتف، الأجرة، المنطقة، اللوحة، العنوان، و4 أزرار
+// 4. منطق تعيين السائقين: فرز المفضلة أولاً، وتعطيل المشغولين وخارج الخدمة
+// 5. حساب مبالغ التحصيل (COD) ومودال تفاصيل المحاسبة
+// 6. قوالب النسخ الذكي (سائق داخلي، inDrive، إشعار الزبائن)
+// 7. إغلاق الجولة وتأكيد التسليم ونقل الطلبات تلقائياً لأرشيف الطلبات
 // ============================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -13,7 +20,6 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Calendar,
   FileText,
   Printer,
   Plus,
@@ -25,17 +31,17 @@ import {
   CheckCircle2,
   AlertTriangle,
   Send,
-  Share2,
   Compass,
   ShieldCheck,
   Car,
   Truck,
-  UserCheck,
-  UserX,
   X,
   Sparkles,
+  Calculator,
+  Eye,
+  Archive,
   ArrowRight,
-  Layers,
+  Info,
 } from 'lucide-react';
 import {
   DbOrder,
@@ -44,7 +50,7 @@ import {
   addStoreDriver,
   updateStoreDriver,
   deleteStoreDriver,
-  batchAssignZoneOrders,
+  closeAndDeliverZoneTour,
   detectFezZone,
 } from '../../services/supabaseService';
 import {
@@ -63,8 +69,8 @@ import { TourManifestModal } from './TourManifestModal';
 
 interface AdminDeliveryFleetTabProps {
   orders: DbOrder[];
-  onSelectOrderForBordereau: (order: DbOrder) => void;
-  onOpenOrderInvoice: (order: DbOrder) => void;
+  onSelectOrderForBordereau?: (order: DbOrder) => void;
+  onOpenOrderInvoice?: (order: DbOrder) => void;
   showToast: (type: 'success' | 'error', message: string) => void;
   onRefreshOrders?: () => void;
 }
@@ -109,6 +115,63 @@ function cleanPhoneForWhatsApp(phone: string): string {
   return digits;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ─── السؤال 4: منطق تصفية وفرز السائقين الذكي (Driver Assignment Logic) ───
+// ═══════════════════════════════════════════════════════════════
+export function getSortedDriversForZone(zoneKey: FezZoneId, drivers: StoreDriver[]) {
+  return [...drivers]
+    .sort((a, b) => {
+      // السائق الذي منطقته المفضلة تطابق منطقة الجولة يأتي أولاً
+      const aMatchesZone = a.zonePreference === zoneKey ? 2 : a.zonePreference === 'all' ? 1 : 0;
+      const bMatchesZone = b.zonePreference === zoneKey ? 2 : b.zonePreference === 'all' ? 1 : 0;
+      if (aMatchesZone !== bMatchesZone) {
+        return bMatchesZone - aMatchesZone;
+      }
+      // ثم فرز المتاحين قبل غير المتاحين
+      const aAvailable = a.status === 'available' ? 1 : 0;
+      const bAvailable = b.status === 'available' ? 1 : 0;
+      if (aAvailable !== bAvailable) {
+        return bAvailable - aAvailable;
+      }
+      return a.name.localeCompare(b.name, 'ar');
+    })
+    .map((driver) => {
+      const isPreferred = driver.zonePreference === zoneKey;
+      const isDisabled = driver.status === 'on_delivery' || driver.status === 'off_duty';
+      const disabledReason =
+        driver.status === 'on_delivery'
+          ? 'في جولة حالياً'
+          : driver.status === 'off_duty'
+          ? 'خارج الخدمة'
+          : undefined;
+
+      return {
+        driver,
+        isPreferred,
+        isDisabled,
+        disabledReason,
+      };
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ─── السؤال 5: حساب مبالغ التحصيل النقدي (COD Calculation) ───
+// ═══════════════════════════════════════════════════════════════
+export function calculateZoneCOD(zoneOrders: DbOrder[]) {
+  const activeOrders = zoneOrders.filter((o) => o.status !== 'cancelled');
+  const totalCOD = activeOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const totalDeliveryFees = activeOrders.reduce((sum, o) => sum + (Number(o.delivery_fee) || 0), 0);
+  const totalSubtotal = activeOrders.reduce((sum, o) => sum + (Number(o.subtotal) || 0), 0);
+
+  return {
+    totalCOD,
+    totalDeliveryFees,
+    totalSubtotal,
+    ordersCount: activeOrders.length,
+    orders: activeOrders,
+  };
+}
+
 export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   orders,
   showToast,
@@ -125,7 +188,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   const [editingDriver, setEditingDriver] = useState<StoreDriver | null>(null);
   const [deletingDriver, setDeletingDriver] = useState<StoreDriver | null>(null);
 
-  // ─── بيانات نموذج السائق الجديد / المعدل ───
+  // ─── بيانات نموذج السائق الجديد / المعدل (تشمل حقل العنوان - السؤال 3) ───
   const [driverForm, setDriverForm] = useState({
     name: '',
     phone: '',
@@ -134,24 +197,28 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     status: 'available' as DriverStatus,
     commissionPerOrder: 25,
     vehiclePlate: '',
+    address: '', // حقل العنوان
     notes: '',
   });
 
   // ─── أتمتة المسارات والنسخ والجولات ───
-  const [copiedBatchZone, setCopiedBatchZone] = useState<string | null>(null);
+  const [copiedTemplateName, setCopiedTemplateName] = useState<string | null>(null);
   const [manifestZone, setManifestZone] = useState<FezZoneId | null>(null);
   const [selectedDriverForManifest, setSelectedDriverForManifest] = useState<StoreDriver | null>(null);
 
-  // أتمتة إرسال الجولة للسائق أو الاعتماد السريع
-  const [tourActionZone, setTourActionZone] = useState<FezZoneId | null>(null);
+  // السائق المختار لكل منطقة من القائمة المنسدلة
   const [selectedDriverForZone, setSelectedDriverForZone] = useState<Record<FezZoneId, string>>({
-    north: '',
+    east: '',
     central: '',
     south: '',
-    east: '',
+    north: '',
   });
-  const [isBatchAssigning, setIsBatchAssigning] = useState(false);
+
+  // مودالات الأسئلة 5 و 6 و 7
+  const [codDetailsZone, setCodDetailsZone] = useState<FezZoneId | null>(null);
   const [copyFormatModalZone, setCopyFormatModalZone] = useState<FezZoneId | null>(null);
+  const [closeTourZone, setCloseTourZone] = useState<FezZoneId | null>(null);
+  const [isClosingTour, setIsClosingTour] = useState(false);
 
   // ─── جلب السائقين ومزامنتهم عند التحميل ───
   const loadDrivers = async () => {
@@ -184,7 +251,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     }
   };
 
-  // ─── إضافة سائق جديد ───
+  // ─── إضافة / تعديل سائق ───
   const handleSaveDriver = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!driverForm.name.trim() || !driverForm.phone.trim()) {
@@ -193,7 +260,6 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     }
 
     if (editingDriver) {
-      // تعديل
       const res = await updateStoreDriver(editingDriver.id, driverForm);
       if (res.success && res.driver) {
         setDrivers((prev) => prev.map((d) => (d.id === editingDriver.id ? res.driver! : d)));
@@ -204,7 +270,6 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       }
       setEditingDriver(null);
     } else {
-      // إضافة
       const res = await addStoreDriver(driverForm);
       if (res.success && res.driver) {
         setDrivers((prev) => [res.driver, ...prev]);
@@ -216,7 +281,6 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       setIsAddDriverOpen(false);
     }
 
-    // إعادة تعيين النموذج
     setDriverForm({
       name: '',
       phone: '',
@@ -225,6 +289,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       status: 'available',
       commissionPerOrder: 25,
       vehiclePlate: '',
+      address: '',
       notes: '',
     });
   };
@@ -239,6 +304,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       status: driver.status,
       commissionPerOrder: driver.commissionPerOrder,
       vehiclePlate: driver.vehiclePlate || '',
+      address: driver.address || '',
       notes: driver.notes || '',
     });
   };
@@ -266,7 +332,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     }
   };
 
-  // ─── KPIs والطلبات ───
+  // ─── تجميع الطلبات غير الملغاة حسب مناطق فاس ───
   const nonCancelledOrders = orders.filter((o) => o.status !== 'cancelled');
   const activeDeliveryOrders = orders.filter(
     (o) => o.status === 'pending' || o.status === 'prepared'
@@ -279,10 +345,14 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   const totalDeliveryRevenue = nonCancelledOrders.reduce((sum, o) => sum + o.delivery_fee, 0);
   const netDeliveryProfit = totalDeliveryRevenue - totalDriverCost;
 
-  // ─── تجميع الطلبات حسب مناطق فاس الذكية ───
+  // ═══════════════════════════════════════════════════════════════
+  // ─── السؤال 1: الهيكل العام للمناطق (4 أعمدة: الشرقية، الوسطى، الجنوبية، الشمالية) ───
+  // ═══════════════════════════════════════════════════════════════
+  const zones: FezZoneId[] = ['east', 'central', 'south', 'north'];
+
   const zoneGroups: Record<FezZoneId, DbOrder[]> = {
-    north: nonCancelledOrders.filter(
-      (o) => (o.delivery_zone || o.delivery_dispatch?.zone || 'north') === 'north'
+    east: nonCancelledOrders.filter(
+      (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'east'
     ),
     central: nonCancelledOrders.filter(
       (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'central'
@@ -290,44 +360,54 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     south: nonCancelledOrders.filter(
       (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'south'
     ),
-    east: nonCancelledOrders.filter(
-      (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'east'
+    north: nonCancelledOrders.filter(
+      (o) => (o.delivery_zone || o.delivery_dispatch?.zone || 'north') === 'north'
     ),
   };
 
-  const zones: FezZoneId[] = ['north', 'central', 'south', 'east'];
-
+  // ألوان مميزة لكل منطقة (بنفسجي، أصفر/كهرماني، برتقالي، أخضر)
   const zoneStyles: Record<
     FezZoneId,
-    { border: string; bg: string; badge: string; btn: string; icon: string }
+    {
+      border: string;
+      bg: string;
+      badge: string;
+      headerBg: string;
+      accentText: string;
+      tagColor: string;
+    }
   > = {
-    north: {
-      border: 'border-emerald-200',
-      bg: 'bg-emerald-50/40',
-      badge: 'bg-emerald-200 text-emerald-900',
-      btn: 'bg-emerald-700 hover:bg-emerald-800',
-      icon: 'text-emerald-300',
+    east: {
+      border: 'border-purple-300 hover:border-purple-500',
+      bg: 'bg-purple-50/60',
+      badge: 'bg-purple-100 text-purple-900 border-purple-300',
+      headerBg: 'bg-purple-600',
+      accentText: 'text-purple-800',
+      tagColor: 'text-purple-600',
     },
     central: {
-      border: 'border-amber-200',
-      bg: 'bg-amber-50/40',
-      badge: 'bg-amber-200 text-amber-900',
-      btn: 'bg-amber-700 hover:bg-amber-800',
-      icon: 'text-amber-300',
+      border: 'border-amber-300 hover:border-amber-500',
+      bg: 'bg-amber-50/60',
+      badge: 'bg-amber-100 text-amber-900 border-amber-300',
+      headerBg: 'bg-amber-600',
+      accentText: 'text-amber-800',
+      tagColor: 'text-amber-600',
     },
     south: {
-      border: 'border-orange-200',
-      bg: 'bg-orange-50/40',
-      badge: 'bg-orange-200 text-orange-900',
-      btn: 'bg-orange-700 hover:bg-orange-800',
-      icon: 'text-orange-300',
+      border: 'border-orange-300 hover:border-orange-500',
+      bg: 'bg-orange-50/60',
+      badge: 'bg-orange-100 text-orange-900 border-orange-300',
+      headerBg: 'bg-orange-600',
+      accentText: 'text-orange-800',
+      tagColor: 'text-orange-600',
     },
-    east: {
-      border: 'border-purple-200',
-      bg: 'bg-purple-50/40',
-      badge: 'bg-purple-200 text-purple-900',
-      btn: 'bg-purple-700 hover:bg-purple-800',
-      icon: 'text-purple-300',
+    north: {
+      border: 'border-emerald-300 hover:border-emerald-500',
+      bg: 'bg-emerald-50/60',
+      badge: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+      headerBg: 'bg-emerald-600',
+      accentText: 'text-emerald-800',
+      tagColor: 'text-emerald-600',
     },
   };
 
@@ -345,7 +425,6 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
     }
 
-    // باقي المحطات كـ waypoints
     const waypoints = zoneOrders
       .slice(0, zoneOrders.length - 1)
       .map((o) => encodeURIComponent(`${o.address}, فاس`))
@@ -354,33 +433,20 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`;
   };
 
-  // ─── إنشاء نصوص الجولة حسب القالب ───
+  // ═══════════════════════════════════════════════════════════════
+  // ─── السؤال 6: بناء قوالب النسخ الذكي (3 قوالب ديناميكية) ───
+  // ═══════════════════════════════════════════════════════════════
   const buildTourMessage = (
     zoneKey: FezZoneId,
-    format: 'indrive' | 'driver_whatsapp' | 'customers_sms',
+    format: 'driver_whatsapp' | 'indrive' | 'customers_sms',
     driver?: StoreDriver
   ): string => {
     const zoneOrders = zoneGroups[zoneKey];
     const zoneInfo = FEZ_DELIVERY_ZONES[zoneKey];
-    const totalCOD = zoneOrders.reduce((sum, o) => sum + o.total, 0);
+    const { totalCOD } = calculateZoneCOD(zoneOrders);
     const mapsRoute = generateGoogleMapsMultiStopUrl(zoneOrders);
 
-    if (format === 'indrive') {
-      let msg = `السلام عليكم 🚴\n`;
-      msg += `جولة توصيل - ${zoneInfo.name} (${zoneOrders.length} محطات) لمتجر خُضرة 🌿\n\n`;
-      msg += `📍 نقطة الانطلاق:\n${STORE_PICKUP_HUB.name}\n${STORE_PICKUP_HUB.address}\n\n`;
-      msg += `📦 المحطات:\n`;
-      zoneOrders.forEach((o, idx) => {
-        msg += `\n───────────────\n`;
-        msg += `محطة #${idx + 1} (${o.order_code}):\n`;
-        msg += `👤 ${o.customer_name}\n📞 ${o.phone}\n🏠 ${o.address}\n`;
-        if (o.maps_link) msg += `🗺️ ${o.maps_link}\n`;
-        msg += `💵 COD: ${o.total.toFixed(2)} درهم\n`;
-      });
-      msg += `\n───────────────\n💰 إجمالي COD للجولة: ${totalCOD.toFixed(2)} درهم`;
-      return msg;
-    }
-
+    // 1. قالب السائق الداخلي (WhatsApp)
     if (format === 'driver_whatsapp') {
       const driverName = driver ? driver.name : 'كابتن التوصيل';
       let msg = `السلام عليكم كابتن *${driverName}* 🛵\n`;
@@ -395,51 +461,73 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       msg += `📋 *تفاصيل المحطات والزبائن:*\n`;
 
       zoneOrders.forEach((o, idx) => {
-        msg += `\n*محطة ${idx + 1} | طلب ${o.order_code}*\n`;
+        msg += `\n*محطة #${idx + 1} | طلب ${o.order_code}*\n`;
         msg += `👤 الزبون: ${o.customer_name}\n`;
         msg += `📞 الهاتف: ${o.phone}\n`;
         msg += `🏠 العنوان: ${o.address}\n`;
         if (o.maps_link) msg += `📍 موقع GPS: ${o.maps_link}\n`;
-        msg += `💵 المبلغ للتحصيل (COD): *${o.total.toFixed(2)} درهم*\n`;
-        msg += `📦 المحتويات: ${o.items.length} أصناف (${o.items.map((i) => i.name).slice(0, 3).join('، ')}${o.items.length > 3 ? '...' : ''})\n`;
+        msg += `💵 المبلغ للتحصيل (COD): *${o.total.toFixed(2)} د.م*\n`;
+        msg += `📦 المحتويات: ${o.items.length} أصناف (${o.items
+          .map((i) => i.name)
+          .slice(0, 3)
+          .join('، ')}${o.items.length > 3 ? '...' : ''})\n`;
       });
 
       msg += `\n════════════════════\n`;
-      msg += `💰 *إجمالي المبلغ المطلوب تحصيله (COD):* *${totalCOD.toFixed(2)} درهم*\n`;
+      msg += `💰 *إجمالي مبلغ التحصيل (COD):* *${totalCOD.toFixed(2)} د.م*\n`;
       if (driver?.commissionPerOrder) {
         const wage = zoneOrders.length * driver.commissionPerOrder;
-        msg += `🛵 *أجرة الجولة المستحقة لك:* ${wage.toFixed(2)} درهم\n`;
-        msg += `🏦 *الصافي للتوريد لصندوق المتجر:* ${(totalCOD - wage).toFixed(2)} درهم\n`;
+        msg += `🛵 *أجرة الجولة المستحقة لك:* ${wage.toFixed(2)} د.م\n`;
+        msg += `🏦 *الصافي لتوريده لصندوق المتجر:* ${(totalCOD - wage).toFixed(2)} د.م\n`;
       }
       msg += `\nطريق السلامة والتوفيق! 🌟🌿`;
       return msg;
     }
 
-    // format === 'customers_sms'
+    // 2. قالب InDrive / تطبيقات النقل
+    if (format === 'indrive') {
+      let msg = `السلام عليكم 🚴\n`;
+      msg += `جولة توصيل - ${zoneInfo.name} (${zoneOrders.length} محطات) لمتجر خُضرة 🌿\n\n`;
+      msg += `📍 نقطة الانطلاق:\n${STORE_PICKUP_HUB.name}\n${STORE_PICKUP_HUB.address}\n\n`;
+      msg += `📦 المحطات المتتابعة:\n`;
+      zoneOrders.forEach((o, idx) => {
+        msg += `\n───────────────\n`;
+        msg += `محطة #${idx + 1} (${o.order_code}):\n`;
+        msg += `👤 ${o.customer_name}\n📞 ${o.phone}\n🏠 ${o.address}\n`;
+        if (o.maps_link) msg += `🗺️ GPS: ${o.maps_link}\n`;
+        msg += `💵 COD: ${o.total.toFixed(2)} د.م\n`;
+      });
+      msg += `\n───────────────\n💰 إجمالي COD للجولة: ${totalCOD.toFixed(2)} د.م`;
+      return msg;
+    }
+
+    // 3. قالب إشعار الزبائن
     let msg = `📢 *إشعار خروج الجولة لزبائن ${zoneInfo.name}:*\n`;
-    zoneOrders.forEach((o) => {
-      msg += `\n• زبون: ${o.customer_name} (${o.order_code}) - الهاتف: ${o.phone}\n`;
-      msg += `  الرسالة: مرحباً بك، طلبك من خُضرة خرج الآن في جولة التوصيل مع مندوبنا وسيكون عندك خلال 30-45 دقيقة. المبلغ المطلوب: ${o.total.toFixed(2)} درهم.\n`;
+    zoneOrders.forEach((o, idx) => {
+      msg += `\n${idx + 1}. الزبون: ${o.customer_name} (${o.order_code})\n`;
+      msg += `   📞 الهاتف: ${o.phone}\n`;
+      msg += `   💬 الرسالة:\n`;
+      msg += `   "مرحباً بك، طلبك من خُضرة (${o.order_code}) خرج الآن في جولة التوصيل وسيكون عندك خلال ${zoneInfo.targetTime}. المبلغ المطلوب عند الاستلام: ${o.total.toFixed(2)} د.م. شكراً لثقتك بنا 🌿"\n`;
     });
     return msg;
   };
 
-  // ─── نسخ النص ───
-  const handleCopyText = async (text: string, zoneKey: FezZoneId, label: string) => {
+  // ─── نسخ النص إلى الحافظة مع رسالة "تم النسخ بنجاح" ───
+  const handleCopyTemplate = async (text: string, templateKey: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedBatchZone(zoneKey);
-      showToast('success', `تم نسخ ${label} بنجاح`);
-      setTimeout(() => setCopiedBatchZone(null), 3000);
+      setCopiedTemplateName(templateKey);
+      showToast('success', 'تم النسخ بنجاح');
+      setTimeout(() => setCopiedTemplateName(null), 2500);
     } catch {
-      showToast('error', 'تعذر النسخ');
+      showToast('error', 'تعذر النسخ، يرجى المحاولة يدوياً');
     }
   };
 
-  // ─── أتمتة 1: إرسال الجولة المباشر للسائق عبر واتساب ───
+  // ─── إرسال الجولة للسائق عبر WhatsApp ───
   const handleSendToDriverWhatsApp = (zoneKey: FezZoneId) => {
     const driverId = selectedDriverForZone[zoneKey];
-    const driver = drivers.find((d) => d.id === driverId) || drivers[0];
+    const driver = drivers.find((d) => d.id === driverId);
     const zoneOrders = zoneGroups[zoneKey];
 
     if (zoneOrders.length === 0) {
@@ -451,7 +539,6 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     const targetPhone = driver ? cleanPhoneForWhatsApp(driver.phone) : '';
 
     if (!targetPhone) {
-      // فتح واتساب مع الرسالة دون رقم محدد
       window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     } else {
       window.open(
@@ -462,7 +549,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     showToast('success', `تم فتح واتساب لإرسال الجولة إلى ${driver?.name || 'السائق'}`);
   };
 
-  // ─── أتمتة 2: فتح مسار Google Maps المجمّع ───
+  // ─── فتح مسار خرائط جوجل ───
   const handleOpenGoogleMapsRoute = (zoneKey: FezZoneId) => {
     const zoneOrders = zoneGroups[zoneKey];
     if (zoneOrders.length === 0) {
@@ -471,62 +558,68 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     }
     const url = generateGoogleMapsMultiStopUrl(zoneOrders);
     window.open(url, '_blank');
-    showToast('success', `تم فتح مسار الملاحة المتعدد (${zoneOrders.length} محطات)`);
+    showToast('success', `تم فتح مسار خرائط Google (${zoneOrders.length} محطات)`);
   };
 
-  // ─── أتمتة 3: اعتماد الجولة ونقل الطلبات للتوصيل دفعة واحدة ───
-  const handleBatchAssignOrders = async (zoneKey: FezZoneId) => {
+  // ═══════════════════════════════════════════════════════════════
+  // ─── السؤال 7: تنفيذ إغلاق الجولة وتأكيد التسليم ونقل الطلبات للأرشيف ───
+  // ═══════════════════════════════════════════════════════════════
+  const handleConfirmCloseTour = async () => {
+    if (!closeTourZone) return;
+    const zoneKey = closeTourZone;
     const zoneOrders = zoneGroups[zoneKey];
-    if (zoneOrders.length === 0) {
-      showToast('error', 'لا توجد طلبات في هذه المنطقة للاعتماد');
-      return;
-    }
-
     const driverId = selectedDriverForZone[zoneKey];
-    const driver = drivers.find((d) => d.id === driverId) || drivers[0];
+    const driver = drivers.find((d) => d.id === driverId) || null;
 
-    if (!driver) {
-      showToast('error', 'يرجى اختيار سائق للجولة أولاً من القائمة');
+    if (zoneOrders.length === 0) {
+      showToast('error', 'لا توجد طلبات في هذه المنطقة لإغلاقها');
+      setCloseTourZone(null);
       return;
     }
 
-    setIsBatchAssigning(true);
+    setIsClosingTour(true);
     try {
-      const res = await batchAssignZoneOrders({
+      const res = await closeAndDeliverZoneTour({
         orders: zoneOrders,
         driver,
-        newStatus: 'prepared',
+        zoneKey,
       });
 
       if (res.success) {
-        showToast('success', res.message || 'تم اعتماد الجولة وتعيين السائق بنجاح!');
-        if (onRefreshOrders) onRefreshOrders();
+        showToast('success', res.message || 'تم إغلاق الجولة وتأكيد التسليم ونقل الطلبات للأرشيف!');
         // تحديث حالة السائق محلياً
-        setDrivers((prev) =>
-          prev.map((d) =>
-            d.id === driver.id
-              ? {
-                  ...d,
-                  status: 'on_delivery',
-                  activeOrdersCount: (d.activeOrdersCount || 0) + zoneOrders.length,
-                }
-              : d
-          )
-        );
+        if (driver) {
+          setDrivers((prev) =>
+            prev.map((d) =>
+              d.id === driver.id
+                ? {
+                    ...d,
+                    status: 'available',
+                    totalDeliveredCount: (d.totalDeliveredCount || 0) + zoneOrders.length,
+                    activeOrdersCount: 0,
+                  }
+                : d
+            )
+          );
+        }
+        // تحديث الطلبات في الأداة الأولى
+        if (onRefreshOrders) {
+          onRefreshOrders();
+        }
       } else {
-        showToast('error', res.message || 'فشل اعتماد الجولة');
+        showToast('error', res.message || 'فشل إغلاق الجولة');
       }
-    } catch {
-      showToast('error', 'حدث خطأ أثناء اعتماد الجولة');
+    } catch (err: any) {
+      showToast('error', 'حدث خطأ أثناء إغلاق الجولة');
     } finally {
-      setIsBatchAssigning(false);
-      setTourActionZone(null);
+      setIsClosingTour(false);
+      setCloseTourZone(null);
     }
   };
 
   return (
     <div className="space-y-6 text-right">
-      {/* ═══════════ KPIs ═══════════ */}
+      {/* ═══════════ مؤشرات الأداء (KPIs) ═══════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
         <div className="bg-white border-2 border-emerald-200 rounded-2xl p-3 sm:p-4 shadow-xs">
           <div className="flex items-center justify-between text-xs text-emerald-800 font-bold mb-1">
@@ -543,29 +636,29 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
 
         <div className="bg-white border-2 border-amber-200 rounded-2xl p-3 sm:p-4 shadow-xs">
           <div className="flex items-center justify-between text-xs text-amber-800 font-bold mb-1">
-            <span>وقت التوصيل</span>
+            <span>وقت التوصيل المستهدف</span>
             <Clock className="w-4 h-4 text-amber-600" />
           </div>
           <div className="text-xl sm:text-2xl font-black text-amber-950 tabular-nums">
-            35 - 45 <span className="text-sm font-normal">د</span>
+            20 - 40 <span className="text-sm font-normal">دقيقة</span>
           </div>
-          <p className="text-[11px] text-stone-500 mt-1">الهدف: أقل من 60 دقيقة</p>
+          <p className="text-[11px] text-stone-500 mt-1">حسب المنطقة الجغرافية بفاس</p>
         </div>
 
         <div className="bg-white border-2 border-blue-200 rounded-2xl p-3 sm:p-4 shadow-xs">
           <div className="flex items-center justify-between text-xs text-blue-800 font-bold mb-1">
-            <span>تكلفة السائقين</span>
+            <span>تكلفة أجور السائقين</span>
             <Coins className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-xl sm:text-2xl font-black text-blue-950 tabular-nums">
             {totalDriverCost.toFixed(0)} <span className="text-sm font-normal">د.م</span>
           </div>
-          <p className="text-[11px] text-stone-500 mt-1">حسب كل طلب</p>
+          <p className="text-[11px] text-stone-500 mt-1">أجرة محددة لكل طلب</p>
         </div>
 
         <div className="bg-white border-2 border-stone-200 rounded-2xl p-3 sm:p-4 shadow-xs">
           <div className="flex items-center justify-between text-xs text-stone-700 font-bold mb-1">
-            <span>صافي التوصيل</span>
+            <span>صافي التوصيل للمتجر</span>
             <TrendingUp className="w-4 h-4 text-emerald-600" />
           </div>
           <div
@@ -576,34 +669,236 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
             {netDeliveryProfit >= 0 ? '+' : ''}
             {netDeliveryProfit.toFixed(0)} <span className="text-sm font-normal">د.م</span>
           </div>
-          <p className="text-[11px] text-stone-500 mt-1">يُعوّض عبر قيمة السلة</p>
+          <p className="text-[11px] text-stone-500 mt-1">عائد رسوم التوصيل المباشر</p>
         </div>
       </div>
 
-      {/* ═══════════ فريق التوصيل الداخلي للمتجر ═══════════ */}
+      {/* ═══════════════════════════════════════════════════════════════
+          السؤال 1 & السؤال 2: الهيكل العام للمناطق (4 أعمدة Grid Layout)
+          + بطاقة الجولة (Route Card)
+      ═══════════════════════════════════════════════════════════════ */}
+      <div className="bg-white border-2 border-stone-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3 pb-3 border-b border-stone-200">
+          <div>
+            <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
+              <Navigation className="w-5 h-5 text-emerald-700" />
+              <span>إدارة مسارات التوصيل والجولات • مدينة فاس</span>
+            </h3>
+            <p className="text-[11px] text-stone-500 mt-0.5">
+              4 مناطق جغرافية (الشرقية، الوسطى، الجنوبية، الشمالية) • تعيين السائقين الذكي • حساب COD • إغلاق الجولات للأرشيف
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-stone-600 bg-stone-100 px-3 py-1.5 rounded-xl border border-stone-200">
+            <MapPin className="w-4 h-4 text-emerald-600" />
+            <span>نقطة الانطلاق: مقر خُضرة / سوق الجملة بنسودة</span>
+          </div>
+        </div>
+
+        {/* ─── شبكة الـ 4 أعمدة المتجاوبة (Responsive Grid Layout) ─── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {zones.map((zoneKey) => {
+            const info = FEZ_DELIVERY_ZONES[zoneKey];
+            const styles = zoneStyles[zoneKey];
+            const zoneOrders = zoneGroups[zoneKey];
+            const { totalCOD, ordersCount } = calculateZoneCOD(zoneOrders);
+
+            // تطبيق دالة تصفية وفرز السائقين (السؤال 4)
+            const sortedDrivers = getSortedDriversForZone(zoneKey, drivers);
+
+            return (
+              <div
+                key={zoneKey}
+                className={`border-2 ${styles.border} rounded-2xl p-4 ${styles.bg} flex flex-col justify-between shadow-xs transition-all`}
+              >
+                <div>
+                  {/* ترويسة البطاقة: اسم المنطقة والوقت المتوقع */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-black px-2.5 py-1 rounded-full border ${styles.badge}`}>
+                      {info.name}
+                    </span>
+                    <span className="text-[11px] font-bold text-stone-700 flex items-center gap-1 bg-white/80 px-2 py-0.5 rounded-md border border-stone-200">
+                      <Clock className="w-3 h-3 text-stone-500" />
+                      <span>{info.targetTime}</span>
+                    </span>
+                  </div>
+
+                  {/* أحياء المنطقة */}
+                  <p className="text-xs text-stone-700 font-semibold mb-3 line-clamp-2 min-h-[32px]">
+                    {info.neighborhoods.slice(0, 4).join(' • ')}
+                  </p>
+
+                  {/* صندوق الإحصائيات: الطلبات الجاهزة و COD والقائمة المنسدلة */}
+                  <div className="bg-white border border-stone-200 rounded-xl p-3 mb-3 text-xs space-y-2.5 shadow-2xs">
+                    {/* عدد الطلبات الجاهزة */}
+                    <div className="flex justify-between items-center font-bold text-stone-800">
+                      <span>الطلبات الجاهزة للتوصيل:</span>
+                      <span className="font-black tabular-nums text-sm px-2 py-0.5 rounded-md bg-stone-100 text-stone-900 border border-stone-200">
+                        {ordersCount} طلبات
+                      </span>
+                    </div>
+
+                    {/* السؤال 5: مجموع التحصيل (COD) مع زر "عرض التفاصيل" */}
+                    <div className="flex justify-between items-center pt-1 border-t border-stone-100">
+                      <div className="flex items-center gap-1 text-[11px] text-stone-600">
+                        <span>مجموع التحصيل (COD):</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <strong className="text-stone-900 text-sm font-black tabular-nums">
+                          {totalCOD.toFixed(2)} د.م
+                        </strong>
+                        <button
+                          type="button"
+                          disabled={ordersCount === 0}
+                          onClick={() => setCodDetailsZone(zoneKey)}
+                          className="px-1.5 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-bold flex items-center gap-0.5 border border-stone-300 transition-colors cursor-pointer disabled:opacity-40"
+                          title="عرض تفاصيل التحصيل لكل طلب لتجنب الأخطاء المحاسبية"
+                        >
+                          <Eye className="w-3 h-3 text-stone-600" />
+                          <span>عرض التفاصيل</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* السؤال 4: قائمة منسدلة لاختيار سائق من الفريق */}
+                    <div className="pt-2 border-t border-stone-100">
+                      <label className="block text-[11px] font-black text-stone-700 mb-1">
+                        تعيين سائق الجولة:
+                      </label>
+                      <select
+                        value={selectedDriverForZone[zoneKey] || ''}
+                        onChange={(e) =>
+                          setSelectedDriverForZone((prev) => ({
+                            ...prev,
+                            [zoneKey]: e.target.value,
+                          }))
+                        }
+                        className="w-full p-2 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600"
+                      >
+                        <option value="">-- اختر سائقاً من الفريق --</option>
+                        {sortedDrivers.map(({ driver, isPreferred, isDisabled, disabledReason }) => (
+                          <option
+                            key={driver.id}
+                            value={driver.id}
+                            disabled={isDisabled}
+                            className={
+                              isDisabled
+                                ? 'text-stone-400 bg-stone-100'
+                                : isPreferred
+                                ? 'font-black text-purple-900 bg-purple-50'
+                                : 'text-stone-800'
+                            }
+                          >
+                            {isPreferred ? '⭐ ' : ''}
+                            {driver.name}
+                            {isPreferred ? ` (المفضلة: ${info.name})` : ''}
+                            {isDisabled
+                              ? ` ⛔ [غير متاح - ${disabledReason}]`
+                              : ` ✅ [متاح - ${driver.commissionPerOrder} د.م]`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ─── أزرار بطاقة الجولة (Question 2) ─── */}
+                <div className="space-y-2 pt-1">
+                  {/* أزرار في الأسفل (Grid cols 2): واتساب وخرائط جوجل */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={ordersCount === 0}
+                      onClick={() => handleSendToDriverWhatsApp(zoneKey)}
+                      className="py-2 px-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-98"
+                      title="إرسال تفاصيل الجولة والمحطات للسائق عبر واتساب"
+                    >
+                      <Send className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">إرسال (WhatsApp)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={ordersCount === 0}
+                      onClick={() => handleOpenGoogleMapsRoute(zoneKey)}
+                      className="py-2 px-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                      title="فتح مسار الملاحة متعدد المحطات في خرائط Google"
+                    >
+                      <Compass className="w-3.5 h-3.5 shrink-0 text-amber-200" />
+                      <span className="truncate">مسار خرائط Google</span>
+                    </button>
+                  </div>
+
+                  {/* ملاحظة السؤال 2: إلغاء زر اعتماد الجولة واستبداله بزر: "إغلاق الجولة وتأكيد التسليم" بتصميم ثانوي */}
+                  <button
+                    type="button"
+                    disabled={ordersCount === 0}
+                    onClick={() => setCloseTourZone(zoneKey)}
+                    className="w-full py-2 px-3 rounded-xl border-2 border-stone-300 hover:border-emerald-600 bg-stone-100 hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                    title="تأكيد تسليم طلبات هذه الجولة وتحديثها إلى 'تم التسليم' ونقلها للأرشيف"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>إغلاق الجولة وتأكيد التسليم</span>
+                  </button>
+
+                  {/* أزرار مساعدة إضافية: مانيفست A4 وقوالب النسخ الذكي */}
+                  <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    <button
+                      type="button"
+                      disabled={ordersCount === 0}
+                      onClick={() => {
+                        const driverId = selectedDriverForZone[zoneKey];
+                        const driver = drivers.find((d) => d.id === driverId) || null;
+                        setSelectedDriverForManifest(driver);
+                        setManifestZone(zoneKey);
+                      }}
+                      className="py-1.5 px-2 rounded-lg bg-stone-800 hover:bg-stone-900 disabled:opacity-40 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
+                      title="طباعة بوليصة ومانيفست A4 رسمي للتسليم"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-emerald-300" />
+                      <span>مانيفست A4</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={ordersCount === 0}
+                      onClick={() => setCopyFormatModalZone(zoneKey)}
+                      className="py-1.5 px-2 rounded-lg bg-white hover:bg-stone-100 disabled:opacity-40 border border-stone-300 text-stone-800 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
+                      title="فتح القوالب الذكية الثلاثة الجاهزة للنسخ"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-stone-600" />
+                      <span>قوالب النسخ 📋</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          السؤال 3: تصميم بطاقة السائق (Driver Card) وفريق التوصيل الداخلي
+      ═══════════════════════════════════════════════════════════════ */}
       <div className="bg-white border-2 border-[#163920]/20 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-stone-200">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800">
-                <Bike className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
-                  <span>فريق التوصيل الداخلي لمتجر خُضرة</span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                    {drivers.length} سائقين
-                  </span>
-                </h3>
-                <p className="text-[11px] text-stone-500">
-                  إدارة السائقين، تعيين الجولات، وحساب المستحقات مع مزامنة لحظية
-                </p>
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800">
+              <Bike className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
+                <span>أسطول سائقي خُضرة بفاس</span>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  {drivers.length} سائقين
+                </span>
+              </h3>
+              <p className="text-[11px] text-stone-500">
+                إدارة السائقين، مناطق العمل المفضلة، تفاصيل المركبة، والتواصل الفوري
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* حالة المزامنة */}
             <button
               type="button"
               onClick={handleManualSync}
@@ -619,7 +914,6 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
               <span>{isDriversSynced ? 'متزامن سحابياً' : 'مزامنة مع السيرفر'}</span>
             </button>
 
-            {/* زر إضافة سائق */}
             <button
               type="button"
               onClick={() => {
@@ -632,6 +926,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                   status: 'available',
                   commissionPerOrder: 25,
                   vehiclePlate: '',
+                  address: '',
                   notes: '',
                 });
                 setIsAddDriverOpen(true);
@@ -644,7 +939,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           </div>
         </div>
 
-        {/* بطاقات السائقين */}
+        {/* شبكة بطاقات السائقين (Driver Cards) */}
         {isDriversLoading ? (
           <div className="py-8 text-center text-xs text-stone-500">
             <RefreshCw className="w-5 h-5 animate-spin mx-auto text-emerald-600 mb-2" />
@@ -658,7 +953,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-3.5">
             {drivers.map((driver) => {
               const vehicle = VEHICLE_CONFIG[driver.vehicleType] || VEHICLE_CONFIG.moto;
               const status = STATUS_CONFIG[driver.status] || STATUS_CONFIG.available;
@@ -667,10 +962,10 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
               return (
                 <div
                   key={driver.id}
-                  className="border-2 border-stone-200 hover:border-emerald-300 rounded-xl p-3.5 bg-stone-50/60 hover:bg-white transition-all flex flex-col justify-between shadow-xs"
+                  className="border-2 border-stone-200 hover:border-emerald-300 rounded-xl p-3.5 bg-stone-50/70 hover:bg-white transition-all flex flex-col justify-between shadow-xs"
                 >
                   <div>
-                    {/* الترويسة والحالة */}
+                    {/* ترويسة بطاقة السائق: الاسم والحالة */}
                     <div className="flex items-center justify-between gap-1 mb-2">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xl" title={vehicle.label}>
@@ -686,32 +981,51 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                       </span>
                     </div>
 
-                    {/* معلومات التواصل والتفاصيل */}
-                    <div className="space-y-1 text-xs text-stone-600 mb-3 bg-white p-2.5 rounded-lg border border-stone-200">
-                      <div className="flex items-center justify-between font-mono" dir="ltr">
-                        <span className="text-[11px] font-bold text-stone-800">{driver.phone}</span>
-                        <span className="text-[10px] text-stone-500 font-sans">هاتف / واتساب</span>
+                    {/* تفاصيل بطاقة السائق المطلوبة في السؤال 3:
+                        الاسم، الحالة، رقم الهاتف، أجرة الطلب، المنطقة المفضلة، رقم اللوحة، والعنوان */}
+                    <div className="space-y-1.5 text-xs text-stone-600 mb-3 bg-white p-2.5 rounded-lg border border-stone-200">
+                      {/* رقم الهاتف */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-stone-500">رقم الهاتف:</span>
+                        <span className="font-mono font-bold text-stone-900 text-left" dir="ltr">
+                          {driver.phone}
+                        </span>
                       </div>
+
+                      {/* أجرة الطلب */}
                       <div className="flex items-center justify-between text-[11px]">
-                        <span>أجرة الطلب:</span>
+                        <span className="text-stone-500">أجرة الطلب:</span>
                         <strong className="text-emerald-800 tabular-nums">
                           {driver.commissionPerOrder} د.م
                         </strong>
                       </div>
+
+                      {/* المنطقة المفضلة */}
                       <div className="flex items-center justify-between text-[11px]">
-                        <span>المنطقة المفضلة:</span>
-                        <span className="font-bold text-stone-800">
+                        <span className="text-stone-500">المنطقة المفضلة:</span>
+                        <span className="font-bold text-stone-900">
                           {driver.zonePreference === 'all'
                             ? 'جميع أحياء فاس'
                             : FEZ_DELIVERY_ZONES[driver.zonePreference]?.name || 'عام'}
                         </span>
                       </div>
-                      {driver.vehiclePlate && (
-                        <div className="flex items-center justify-between text-[10px] text-stone-500">
-                          <span>اللوحة:</span>
-                          <span className="font-mono">{driver.vehiclePlate}</span>
-                        </div>
-                      )}
+
+                      {/* رقم اللوحة */}
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-stone-500">رقم اللوحة:</span>
+                        <span className="font-mono font-bold text-stone-800" dir="ltr">
+                          {driver.vehiclePlate || 'غير محدد'}
+                        </span>
+                      </div>
+
+                      {/* العنوان ومكان الإقامة بفاس */}
+                      <div className="flex items-start justify-between text-[11px] pt-1 border-t border-stone-100">
+                        <span className="text-stone-500 shrink-0">العنوان:</span>
+                        <span className="font-bold text-stone-800 text-left line-clamp-1 pr-1">
+                          {driver.address || 'فاس'}
+                        </span>
+                      </div>
+
                       {driver.notes && (
                         <p className="text-[10px] text-stone-500 italic mt-1 line-clamp-1 border-t border-stone-100 pt-1">
                           {driver.notes}
@@ -722,12 +1036,12 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
 
                   {/* إجراءات السائق */}
                   <div className="space-y-2 pt-1 border-t border-stone-200">
-                    {/* تغيير الحالة بنقرة سريعة */}
+                    {/* مفاتيح الحالة السريعة */}
                     <div className="flex items-center gap-1 text-[10px]">
                       <button
                         type="button"
                         onClick={() => handleToggleDriverStatus(driver, 'available')}
-                        className={`flex-1 py-1 rounded text-center font-bold transition-colors ${
+                        className={`flex-1 py-1 rounded text-center font-bold transition-colors cursor-pointer ${
                           driver.status === 'available'
                             ? 'bg-emerald-600 text-white'
                             : 'bg-stone-200 text-stone-700 hover:bg-emerald-100'
@@ -738,7 +1052,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                       <button
                         type="button"
                         onClick={() => handleToggleDriverStatus(driver, 'on_delivery')}
-                        className={`flex-1 py-1 rounded text-center font-bold transition-colors ${
+                        className={`flex-1 py-1 rounded text-center font-bold transition-colors cursor-pointer ${
                           driver.status === 'on_delivery'
                             ? 'bg-amber-600 text-white'
                             : 'bg-stone-200 text-stone-700 hover:bg-amber-100'
@@ -749,7 +1063,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                       <button
                         type="button"
                         onClick={() => handleToggleDriverStatus(driver, 'off_duty')}
-                        className={`flex-1 py-1 rounded text-center font-bold transition-colors ${
+                        className={`flex-1 py-1 rounded text-center font-bold transition-colors cursor-pointer ${
                           driver.status === 'off_duty'
                             ? 'bg-stone-700 text-white'
                             : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
@@ -759,43 +1073,44 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                       </button>
                     </div>
 
-                    {/* اتصال وواتساب وتعديل وحذف */}
-                    <div className="flex items-center gap-1.5 pt-1">
-                      {cleanPhone && (
-                        <>
-                          <a
-                            href={`https://wa.me/${cleanPhone}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 transition-colors"
-                            title="محادثة واتساب"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                          </a>
-                          <a
-                            href={`tel:${driver.phone}`}
-                            className="p-1.5 rounded-lg bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
-                            title="اتصال هاتفي"
-                          >
-                            <Phone className="w-3.5 h-3.5" />
-                          </a>
-                        </>
-                      )}
+                    {/* السؤال 3: 4 أزرار صغيرة في الأسفل (Grid cols 4): اتصال، واتساب، تعديل، حذف */}
+                    <div className="grid grid-cols-4 gap-1.5 pt-1">
+                      {/* 1. اتصال */}
+                      <a
+                        href={`tel:${driver.phone}`}
+                        className="py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 transition-colors flex items-center justify-center font-bold text-[11px]"
+                        title="اتصال هاتفي بالسائق"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                      </a>
 
+                      {/* 2. واتساب */}
+                      <a
+                        href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors flex items-center justify-center font-bold text-[11px]"
+                        title="محادثة واتساب مباشرة"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </a>
+
+                      {/* 3. تعديل */}
                       <button
                         type="button"
                         onClick={() => handleStartEditDriver(driver)}
-                        className="p-1.5 rounded-lg bg-stone-200 text-stone-700 hover:bg-stone-300 transition-colors cursor-pointer mr-auto"
+                        className="py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 transition-colors flex items-center justify-center font-bold text-[11px] cursor-pointer"
                         title="تعديل بيانات السائق"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
 
+                      {/* 4. حذف */}
                       <button
                         type="button"
                         onClick={() => setDeletingDriver(driver)}
-                        className="p-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors cursor-pointer"
-                        title="حذف السائق"
+                        className="py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors flex items-center justify-center font-bold text-[11px] cursor-pointer"
+                        title="حذف السائق من الفريق"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -808,177 +1123,11 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
         )}
       </div>
 
-      {/* ═══════════ مناطق فاس والمسارات الذكية وأتمتة الجولات ═══════════ */}
-      <div className="bg-white border-2 border-stone-200 rounded-2xl p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-3 pb-3 border-b border-stone-200">
-          <div>
-            <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
-              <Navigation className="w-5 h-5 text-emerald-700" />
-              <span>المسارات الذكية وأتمتة جولات فاس</span>
-            </h3>
-            <p className="text-[11px] text-stone-500 mt-0.5">
-              إرسال مباشر عبر واتساب للسائقين • خرائط جوجل المجمعة • مانيفست ورقي • اعتماد فوري بنقرة واحدة
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs font-bold text-stone-500">
-            <MapPin className="w-4 h-4 text-emerald-600" />
-            <span>مقر خُضرة / سوق الجملة بنسودة</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {zones.map((zoneKey) => {
-            const info = FEZ_DELIVERY_ZONES[zoneKey];
-            const styles = zoneStyles[zoneKey];
-            const zoneOrders = zoneGroups[zoneKey];
-            const count = zoneOrders.length;
-            const isCopied = copiedBatchZone === zoneKey;
-            const totalCOD = zoneOrders.reduce((sum, o) => sum + o.total, 0);
-
-            return (
-              <div
-                key={zoneKey}
-                className={`border-2 ${styles.border} rounded-2xl p-3.5 ${styles.bg} flex flex-col justify-between shadow-xs transition-all`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${styles.badge}`}>
-                      {info.name}
-                    </span>
-                    <span className="text-[11px] font-bold text-stone-700">{info.targetTime}</span>
-                  </div>
-
-                  <p className="text-xs text-stone-700 font-semibold mb-2 line-clamp-2">
-                    {info.neighborhoods.slice(0, 4).join(' • ')}
-                  </p>
-
-                  <div className="bg-white border border-stone-200 rounded-xl p-2.5 mb-3 text-xs space-y-1.5">
-                    <div className="flex justify-between font-bold text-stone-800">
-                      <span>جاهز للتوصيل:</span>
-                      <span className="font-black tabular-nums text-emerald-800">
-                        {count} طلبات
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-stone-600">
-                      <span>مجموع التحصيل (COD):</span>
-                      <strong className="text-stone-900 tabular-nums">
-                        {totalCOD.toFixed(2)} د.م
-                      </strong>
-                    </div>
-
-                    {/* قائمة منسدلة لاختيار سائق الجولة */}
-                    <div className="pt-1.5 border-t border-stone-100">
-                      <label className="block text-[10px] font-black text-stone-500 mb-1">
-                        تعيين سائق الجولة:
-                      </label>
-                      <select
-                        value={selectedDriverForZone[zoneKey] || ''}
-                        onChange={(e) =>
-                          setSelectedDriverForZone((prev) => ({
-                            ...prev,
-                            [zoneKey]: e.target.value,
-                          }))
-                        }
-                        className="w-full p-1.5 text-xs rounded-lg border border-stone-300 bg-white font-bold text-stone-800 focus:outline-emerald-600"
-                      >
-                        <option value="">-- اختر سائقاً من الفريق --</option>
-                        {drivers.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name} ({VEHICLE_CONFIG[d.vehicleType]?.icon} {STATUS_CONFIG[d.status]?.label})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ─── أزرار الأتمتة والنسخ والطباعة ─── */}
-                <div className="space-y-1.5 pt-1">
-                  {/* زر أتمتة 1: إرسال للسائق عبر واتساب مباشرة بنقرة واحدة */}
-                  <button
-                    type="button"
-                    disabled={count === 0}
-                    onClick={() => handleSendToDriverWhatsApp(zoneKey)}
-                    className="w-full py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-98"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>إرسال الجولة للسائق (WhatsApp)</span>
-                  </button>
-
-                  {/* زر أتمتة 2: فتح مسار خرائط جوجل المجمّع */}
-                  <button
-                    type="button"
-                    disabled={count === 0}
-                    onClick={() => handleOpenGoogleMapsRoute(zoneKey)}
-                    className="w-full py-1.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                    title="فتح مسار الملاحة الكامل المتعدد في خرائط Google"
-                  >
-                    <Compass className="w-3.5 h-3.5 text-amber-200" />
-                    <span>مسار خرائط Google 🗺️</span>
-                  </button>
-
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {/* زر أتمتة 3: اعتماد الجولة وتحويل الحالات */}
-                    <button
-                      type="button"
-                      disabled={count === 0 || isBatchAssigning}
-                      onClick={() => handleBatchAssignOrders(zoneKey)}
-                      className="py-1.5 px-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
-                      title="تعيين السائق وتحويل جميع طلبات الجولة لحالة جاهزة للتوصيل"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>اعتماد الجولة 🚀</span>
-                    </button>
-
-                    {/* زر أتمتة 4: طباعة المانيفست */}
-                    <button
-                      type="button"
-                      disabled={count === 0}
-                      onClick={() => {
-                        const driverId = selectedDriverForZone[zoneKey];
-                        const driver = drivers.find((d) => d.id === driverId) || null;
-                        setSelectedDriverForManifest(driver);
-                        setManifestZone(zoneKey);
-                      }}
-                      className="py-1.5 px-2 rounded-xl bg-stone-800 hover:bg-stone-900 disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
-                      title="طباعة ورقة تسليم رسمية لجميع محطات الجولة"
-                    >
-                      <Printer className="w-3.5 h-3.5 text-emerald-300" />
-                      <span>مانيفست A4</span>
-                    </button>
-                  </div>
-
-                  {/* زر خيارات النسخ المتعددة */}
-                  <button
-                    type="button"
-                    disabled={count === 0}
-                    onClick={() => setCopyFormatModalZone(zoneKey)}
-                    className="w-full py-1.5 px-3 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-stone-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    {isCopied ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-700 font-black">تم النسخ!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-stone-600" />
-                        <span>خيارات النسخ الذكي 📋</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ═══════════ شركات وتطبيقات التوصيل ═══════════ */}
+      {/* ═══════════ شركات وتطبيقات التوصيل الخارجي بفاس ═══════════ */}
       <div className="bg-white border-2 border-stone-200 rounded-2xl p-4 sm:p-5 shadow-sm">
         <h3 className="font-black text-base text-stone-900 mb-1 flex items-center gap-2">
           <Bike className="w-5 h-5 text-emerald-600" />
-          <span>شركات وتطبيقات التوصيل الخارجي بفاس</span>
+          <span>خيارات النقل والتوصيل السريع بفاس (inDrive + DONE + Yassir + Glovo)</span>
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
@@ -1028,7 +1177,339 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
         </div>
       </div>
 
-      {/* ═══════════ مودال إضافة / تعديل سائق ═══════════ */}
+      {/* ═══════════════════════════════════════════════════════════════
+          السؤال 5: نافذة منبثقة لتفاصيل التحصيل النقدي (COD Details Modal)
+      ═══════════════════════════════════════════════════════════════ */}
+      {codDetailsZone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden text-right">
+            <div className="p-4 bg-gradient-to-l from-emerald-800 to-emerald-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-5 h-5 text-amber-300" />
+                <div>
+                  <h3 className="font-black text-base">
+                    تفاصيل مبالغ التحصيل النقدي (COD) • {FEZ_DELIVERY_ZONES[codDetailsZone]?.name}
+                  </h3>
+                  <p className="text-[11px] text-emerald-200">
+                    كشف محاسبي دقيق لكل طلب على حدة لمنع أي خطأ مالي أثناء التسليم
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCodDetailsZone(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {(() => {
+                const zoneOrders = zoneGroups[codDetailsZone];
+                const { totalCOD, totalDeliveryFees, totalSubtotal, ordersCount } =
+                  calculateZoneCOD(zoneOrders);
+
+                if (ordersCount === 0) {
+                  return (
+                    <div className="py-8 text-center text-stone-500 bg-stone-50 rounded-xl">
+                      لا توجد طلبات في هذه المنطقة حالياً.
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="overflow-x-auto border border-stone-200 rounded-xl">
+                      <table className="w-full text-right text-xs">
+                        <thead className="bg-stone-100 text-stone-700 font-bold border-b border-stone-200">
+                          <tr>
+                            <th className="p-2.5">#</th>
+                            <th className="p-2.5">رقم الطلب</th>
+                            <th className="p-2.5">الزبون</th>
+                            <th className="p-2.5">العنوان / الحي</th>
+                            <th className="p-2.5">طريقة الدفع</th>
+                            <th className="p-2.5 text-left">مبلغ COD</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-100 font-medium text-stone-800">
+                          {zoneOrders.map((ord, idx) => (
+                            <tr key={ord.id} className="hover:bg-emerald-50/40">
+                              <td className="p-2.5 font-mono text-stone-400">{idx + 1}</td>
+                              <td className="p-2.5 font-mono font-bold text-stone-900">
+                                {ord.order_code}
+                              </td>
+                              <td className="p-2.5">
+                                <div className="font-bold text-stone-900">{ord.customer_name}</div>
+                                <div className="font-mono text-[10px] text-stone-500" dir="ltr">
+                                  {ord.phone}
+                                </div>
+                              </td>
+                              <td className="p-2.5 max-w-[160px] truncate" title={ord.address}>
+                                {ord.address}
+                              </td>
+                              <td className="p-2.5">
+                                <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                                  دفع عند الاستلام
+                                </span>
+                              </td>
+                              <td className="p-2.5 text-left font-black text-emerald-800 tabular-nums">
+                                {ord.total.toFixed(2)} د.م
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* الملخص المحاسبي الإجمالي */}
+                    <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-2 text-xs">
+                      <div className="flex justify-between text-stone-600">
+                        <span>إجمالي قيمة المنتجات (Subtotal):</span>
+                        <span className="font-bold tabular-nums">{totalSubtotal.toFixed(2)} د.م</span>
+                      </div>
+                      <div className="flex justify-between text-stone-600">
+                        <span>إجمالي رسوم التوصيل:</span>
+                        <span className="font-bold tabular-nums">
+                          {totalDeliveryFees.toFixed(2)} د.م
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-stone-200 font-black text-sm text-stone-900">
+                        <span>مجموع التحصيل النقدي المطلوب من السائق (COD):</span>
+                        <span className="text-base text-emerald-800 tabular-nums">
+                          {totalCOD.toFixed(2)} د.م
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className="p-4 bg-stone-100 border-t border-stone-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setCodDetailsZone(null)}
+                className="px-5 py-2 rounded-xl bg-stone-800 hover:bg-stone-900 text-white font-bold text-xs cursor-pointer"
+              >
+                إغلاق النافذة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          السؤال 6: نافذة منبثقة لقوالب النسخ الذكي (3 قوالب)
+      ═══════════════════════════════════════════════════════════════ */}
+      {copyFormatModalZone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl p-5 border border-stone-200 shadow-2xl text-right space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+              <div className="flex items-center gap-2">
+                <Copy className="w-5 h-5 text-emerald-700" />
+                <h4 className="font-black text-base text-stone-900">
+                  قوالب النسخ الذكية • {FEZ_DELIVERY_ZONES[copyFormatModalZone]?.name}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCopyFormatModalZone(null)}
+                className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-stone-600 leading-relaxed">
+              اختر القالب المطلوب وانسخه بنقرة واحدة للحافظة مع إشعار فوري:
+            </p>
+
+            <div className="space-y-3">
+              {/* 1. قالب السائق الداخلي */}
+              <div className="border-2 border-emerald-200 rounded-xl p-3.5 bg-emerald-50/50 hover:bg-emerald-50 transition-all flex flex-col justify-between gap-2">
+                <div>
+                  <strong className="text-xs font-black text-emerald-950 block">
+                    1. قالب السائق الداخلي (WhatsApp)
+                  </strong>
+                  <span className="text-[11px] text-stone-600 block mt-0.5">
+                    يشمل أسماء الزبائن، الهواتف، العناوين، رابط GPS، ومبالغ COD والإجمالي.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const driverId = selectedDriverForZone[copyFormatModalZone];
+                    const driver = drivers.find((d) => d.id === driverId);
+                    const txt = buildTourMessage(copyFormatModalZone, 'driver_whatsapp', driver);
+                    handleCopyTemplate(txt, 'driver_whatsapp');
+                  }}
+                  className="w-full py-2 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  {copiedTemplateName === 'driver_whatsapp' ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-200" />
+                      <span>تم النسخ بنجاح!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>نسخ قالب السائق الداخلي</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 2. قالب InDrive / تطبيقات النقل */}
+              <div className="border-2 border-amber-200 rounded-xl p-3.5 bg-amber-50/50 hover:bg-amber-50 transition-all flex flex-col justify-between gap-2">
+                <div>
+                  <strong className="text-xs font-black text-amber-950 block">
+                    2. قالب InDrive / تطبيقات النقل
+                  </strong>
+                  <span className="text-[11px] text-stone-600 block mt-0.5">
+                    مختصر لنقطة الانطلاق (سوق الجملة بنسودة) والمحطات المتتابعة ومجموع المبالغ.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const txt = buildTourMessage(copyFormatModalZone, 'indrive');
+                    handleCopyTemplate(txt, 'indrive');
+                  }}
+                  className="w-full py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  {copiedTemplateName === 'indrive' ? (
+                    <>
+                      <Check className="w-4 h-4 text-amber-200" />
+                      <span>تم النسخ بنجاح!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>نسخ قالب inDrive</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 3. قالب إشعار الزبائن */}
+              <div className="border-2 border-blue-200 rounded-xl p-3.5 bg-blue-50/50 hover:bg-blue-50 transition-all flex flex-col justify-between gap-2">
+                <div>
+                  <strong className="text-xs font-black text-blue-950 block">
+                    3. قالب إشعار الزبائن بخروج الجولة
+                  </strong>
+                  <span className="text-[11px] text-stone-600 block mt-0.5">
+                    رسائل جاهزة لإعلام الزبائن بخروج الجولة مع المبلغ والتوقيت المتوقع.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const txt = buildTourMessage(copyFormatModalZone, 'customers_sms');
+                    handleCopyTemplate(txt, 'customers_sms');
+                  }}
+                  className="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  {copiedTemplateName === 'customers_sms' ? (
+                    <>
+                      <Check className="w-4 h-4 text-blue-200" />
+                      <span>تم النسخ بنجاح!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>نسخ رسائل إشعار الزبائن</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          السؤال 7: مودال تأكيد إغلاق الجولة وتأكيد التسليم ونقل الطلبات للأرشيف
+      ═══════════════════════════════════════════════════════════════ */}
+      {closeTourZone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-md bg-white rounded-3xl p-5 text-right space-y-4 border border-stone-200 shadow-2xl">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center">
+              <h4 className="font-black text-base text-stone-900">
+                إغلاق جولة {FEZ_DELIVERY_ZONES[closeTourZone]?.name} وتأكيد التسليم؟
+              </h4>
+              <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+                سيتم تحديث جميع الطلبات المرتبطة بهذه الجولة ({zoneGroups[closeTourZone].length} طلبات)
+                إلى حالة <strong>"تم التسليم"</strong> ونقلها تلقائياً إلى <strong>أرشيف الطلبات</strong> في
+                أداة إدارة الطلبات.
+              </p>
+            </div>
+
+            <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span>المنطقة:</span>
+                <span className="font-bold text-stone-900">
+                  {FEZ_DELIVERY_ZONES[closeTourZone]?.name}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>عدد الطلبات:</span>
+                <span className="font-bold text-stone-900">
+                  {zoneGroups[closeTourZone].length} طلبات
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>مجموع التحصيل (COD):</span>
+                <strong className="text-emerald-800 tabular-nums">
+                  {calculateZoneCOD(zoneGroups[closeTourZone]).totalCOD.toFixed(2)} د.م
+                </strong>
+              </div>
+              <div className="flex justify-between">
+                <span>السائق المعين:</span>
+                <span className="font-bold text-stone-900">
+                  {drivers.find((d) => d.id === selectedDriverForZone[closeTourZone])?.name ||
+                    'فريق خُضرة الداخلي'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isClosingTour}
+                onClick={() => setCloseTourZone(null)}
+                className="px-4 py-2 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 font-bold text-xs cursor-pointer"
+              >
+                تراجع
+              </button>
+              <button
+                type="button"
+                disabled={isClosingTour}
+                onClick={handleConfirmCloseTour}
+                className="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs cursor-pointer shadow-md flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isClosingTour ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري الإغلاق والأرشفة...</span>
+                  </>
+                ) : (
+                  <>
+                    <Archive className="w-3.5 h-3.5" />
+                    <span>تأكيد الإغلاق والأرشفة</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ مودال إضافة / تعديل سائق (يشمل حقل العنوان) ═══════════ */}
       {(isAddDriverOpen || editingDriver) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden text-right">
@@ -1121,10 +1602,10 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                     className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-bold focus:outline-emerald-600 bg-white"
                   >
                     <option value="all">🌟 جميع أحياء فاس</option>
-                    <option value="north">شمال فاس (طريق مكناس)</option>
-                    <option value="central">وسط فاس (الأطلس/المدينة)</option>
-                    <option value="south">جنوب فاس (عين الشقف/إيموزار)</option>
-                    <option value="east">شرق فاس (الزهور/المرينيين)</option>
+                    <option value="east">🟣 المنطقة الشرقية (الزهور/فاس البالي)</option>
+                    <option value="central">🟡 المنطقة الوسطى (الأطلس/فلورنس)</option>
+                    <option value="south">🟠 المنطقة الجنوبية (بنسودة/زواغة)</option>
+                    <option value="north">🟢 المنطقة الشمالية (سايس/النرجس)</option>
                   </select>
                 </div>
 
@@ -1179,6 +1660,20 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                     dir="ltr"
                   />
                 </div>
+              </div>
+
+              {/* السؤال 3: حقل العنوان */}
+              <div>
+                <label className="block text-[11px] font-black text-stone-700 mb-1">
+                  عنوان السائق / الحي المقيم به في فاس:
+                </label>
+                <input
+                  type="text"
+                  value={driverForm.address}
+                  onChange={(e) => setDriverForm({ ...driverForm, address: e.target.value })}
+                  placeholder="مثال: حي الأطلس، قرب ساحة العلويين، فاس"
+                  className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 focus:outline-emerald-600 font-bold"
+                />
               </div>
 
               <div>
@@ -1246,95 +1741,6 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                 className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs cursor-pointer shadow-md"
               >
                 تأكيد الحذف
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════ مودال خيارات النسخ الذكي المتعددة ═══════════ */}
-      {copyFormatModalZone && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-white rounded-3xl p-5 border border-stone-200 shadow-2xl text-right space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
-              <div className="flex items-center gap-2">
-                <Copy className="w-5 h-5 text-emerald-700" />
-                <h4 className="font-black text-sm text-stone-900">
-                  قوالب النسخ الذكية • {FEZ_DELIVERY_ZONES[copyFormatModalZone]?.name}
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCopyFormatModalZone(null)}
-                className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-stone-600 leading-relaxed">
-              اختر صيغة النص المناسبة لطريقة الإرسال:
-            </p>
-
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const txt = buildTourMessage(copyFormatModalZone, 'driver_whatsapp');
-                  handleCopyText(txt, copyFormatModalZone, 'قالب السائق الداخلي');
-                  setCopyFormatModalZone(null);
-                }}
-                className="w-full p-3 rounded-xl border-2 border-emerald-200 hover:border-emerald-500 bg-emerald-50/50 hover:bg-emerald-50 text-right transition-all flex items-center justify-between cursor-pointer"
-              >
-                <div>
-                  <strong className="text-xs font-black text-emerald-950 block">
-                    قالب السائق الداخلي (WhatsApp مفصل)
-                  </strong>
-                  <span className="text-[11px] text-stone-600">
-                    يشمل أسماء الزبائن، الهواتف، العناوين، رابط GPS، ومبالغ COD
-                  </span>
-                </div>
-                <Copy className="w-4 h-4 text-emerald-700 shrink-0" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const txt = buildTourMessage(copyFormatModalZone, 'indrive');
-                  handleCopyText(txt, copyFormatModalZone, 'قالب inDrive / Careem');
-                  setCopyFormatModalZone(null);
-                }}
-                className="w-full p-3 rounded-xl border-2 border-amber-200 hover:border-amber-500 bg-amber-50/50 hover:bg-amber-50 text-right transition-all flex items-center justify-between cursor-pointer"
-              >
-                <div>
-                  <strong className="text-xs font-black text-amber-950 block">
-                    قالب inDrive / تطبيقات النقل
-                  </strong>
-                  <span className="text-[11px] text-stone-600">
-                    مختصر ومهيأ لنقطة الانطلاق والمحطات المتتابعة
-                  </span>
-                </div>
-                <Copy className="w-4 h-4 text-amber-700 shrink-0" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const txt = buildTourMessage(copyFormatModalZone, 'customers_sms');
-                  handleCopyText(txt, copyFormatModalZone, 'رسائل إشعار الزبائن');
-                  setCopyFormatModalZone(null);
-                }}
-                className="w-full p-3 rounded-xl border-2 border-blue-200 hover:border-blue-500 bg-blue-50/50 hover:bg-blue-50 text-right transition-all flex items-center justify-between cursor-pointer"
-              >
-                <div>
-                  <strong className="text-xs font-black text-blue-950 block">
-                    قالب إشعار الزبائن بخروج الجولة
-                  </strong>
-                  <span className="text-[11px] text-stone-600">
-                    رسائل جاهزة لإرسالها للزبائن لإعلامهم بوصول السائق قريباً
-                  </span>
-                </div>
-                <Copy className="w-4 h-4 text-blue-700 shrink-0" />
               </button>
             </div>
           </div>

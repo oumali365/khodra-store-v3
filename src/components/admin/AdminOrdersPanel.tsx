@@ -493,6 +493,10 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     setIsRefreshing(true);
     const data = await fetchOrders();
     setOrders(data);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ARCHIVED);
+      if (saved) setArchivedOrderCodes(new Set(JSON.parse(saved)));
+    } catch {}
     setIsRefreshing(false);
     showToast('success', `تم تحديث القائمة (${data.length} طلب)`);
   };

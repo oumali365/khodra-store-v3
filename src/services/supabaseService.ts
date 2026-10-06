@@ -1163,6 +1163,7 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
     status: 'available',
     commissionPerOrder: 25,
     vehiclePlate: '12-A-3456',
+    address: 'حي الأطلس، شارع النرجس، فاس',
     notes: 'خبير بشوارع فاس وشارع الجيش الملكي وطريق مكناس',
     activeOrdersCount: 0,
     totalDeliveredCount: 142,
@@ -1177,6 +1178,7 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
     status: 'available',
     commissionPerOrder: 25,
     vehiclePlate: '18-B-7890',
+    address: 'المدينة الجديدة، قرب ساحة فلورنس، فاس',
     notes: 'متخصص بأحياء الأطلس، الدكارات، والمدينة الجديدة',
     activeOrdersCount: 0,
     totalDeliveredCount: 98,
@@ -1191,6 +1193,7 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
     status: 'on_delivery',
     commissionPerOrder: 30,
     vehiclePlate: '22-C-1122',
+    address: 'حي بنسودة، تجزئة الأمل، فاس',
     notes: 'سيارة مجهزة لصناديق الخضار العائلية الكبيرة (طريق إيموزار وعين الشقف)',
     activeOrdersCount: 2,
     totalDeliveredCount: 215,
@@ -1205,10 +1208,26 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
     status: 'available',
     commissionPerOrder: 35,
     vehiclePlate: '15-D-9988',
+    address: 'طريق عين السمن، فاس',
     notes: 'فان نقل مبرد للجولات الكبرى والطلبات المجمعة',
     activeOrdersCount: 0,
     totalDeliveredCount: 310,
     createdAt: new Date(Date.now() - 60 * 86400000).toISOString(),
+  },
+  {
+    id: 'drv-5',
+    name: 'حمزة التازي',
+    phone: '0665123456',
+    vehicleType: 'moto',
+    zonePreference: 'east',
+    status: 'available',
+    commissionPerOrder: 25,
+    vehiclePlate: '30-A-5544',
+    address: 'حي الزهور 2، طريق صفرو، فاس',
+    notes: 'خبير بأحياء الزهور وفاس البالي والرصيف وباب الفتوح',
+    activeOrdersCount: 0,
+    totalDeliveredCount: 167,
+    createdAt: new Date(Date.now() - 15 * 86400000).toISOString(),
   },
 ];
 
@@ -1350,6 +1369,7 @@ export async function addStoreDriver(
     id: `drv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     name: sanitizeInput(driverData.name.trim()),
     phone: sanitizeInput(driverData.phone.trim()),
+    address: driverData.address ? sanitizeInput(driverData.address.trim()) : undefined,
     activeOrdersCount: 0,
     totalDeliveredCount: 0,
     createdAt: new Date().toISOString(),
@@ -1385,6 +1405,7 @@ export async function updateStoreDriver(
         ...updates,
         name: updates.name ? sanitizeInput(updates.name.trim()) : d.name,
         phone: updates.phone ? sanitizeInput(updates.phone.trim()) : d.phone,
+        address: updates.address !== undefined ? sanitizeInput(updates.address.trim()) : d.address,
         updatedAt: new Date().toISOString(),
       };
       return targetDriver;
@@ -1472,6 +1493,78 @@ export async function batchAssignZoneOrders(params: {
     success: true,
     updatedCount: count,
     message: `تم اعتماد الجولة وتعيين ${count} طلبات للسائق ${driver.name} بنجاح!`,
+  };
+}
+
+/**
+ * إغلاق الجولة وتأكيد التسليم ونقل الطلبات تلقائياً إلى الأرشيف:
+ * - تحديث حالة جميع طلبات هذه الجولة إلى "تم التسليم" (delivered)
+ * - تحديث dispatchStatus إلى "delivered"
+ * - أرشفة الطلبات تلقائياً في التخزين المحلي (khodra_archived_orders)
+ * - تحديث حالة السائق وإرجاعه إلى "متاح" (available) مع زيادة إجمالي الطلبات المنجزة
+ */
+export async function closeAndDeliverZoneTour(params: {
+  orders: DbOrder[];
+  driver?: StoreDriver | null;
+  zoneKey?: FezZoneId;
+}): Promise<{ success: boolean; deliveredCount: number; message?: string }> {
+  const { orders, driver } = params;
+  if (!orders || orders.length === 0) {
+    return { success: false, deliveredCount: 0, message: 'لا توجد طلبات في هذه الجولة للإغلاق' };
+  }
+
+  let count = 0;
+  const newlyArchivedCodes: string[] = [];
+
+  for (const ord of orders) {
+    // 1. تحديث حالة الطلب إلى تم التسليم
+    await updateOrderStatus(ord.id, 'delivered');
+
+    // 2. تحديث بيانات التوصيل إن كانت موجودة
+    const currentDispatch: DeliveryDispatchInfo = ord.delivery_dispatch || {
+      provider: 'custom',
+      dispatchStatus: 'delivered',
+      driverName: driver?.name,
+      driverPhone: driver?.phone,
+    };
+    await updateOrderDispatch(ord.id, ord.order_code, {
+      ...currentDispatch,
+      dispatchStatus: 'delivered',
+      driverName: driver?.name || currentDispatch.driverName,
+      driverPhone: driver?.phone || currentDispatch.driverPhone,
+    });
+
+    if (ord.order_code) {
+      newlyArchivedCodes.push(ord.order_code);
+    }
+    newlyArchivedCodes.push(String(ord.id));
+    count++;
+  }
+
+  // 3. أرشفة الطلبات تلقائياً في التخزين المحلي لظهورها في أرشيف الطلبات المسلمة بأداة الطلبات
+  try {
+    const STORAGE_KEY_ARCHIVED = 'khodra_archived_orders';
+    const saved = localStorage.getItem(STORAGE_KEY_ARCHIVED);
+    const existing = saved ? (JSON.parse(saved) as string[]) : [];
+    const merged = Array.from(new Set([...existing, ...newlyArchivedCodes]));
+    localStorage.setItem(STORAGE_KEY_ARCHIVED, JSON.stringify(merged));
+  } catch (storageErr) {
+    console.warn('Failed to auto-archive delivered orders to localStorage:', storageErr);
+  }
+
+  // 4. تحديث حالة السائق المعين إلى متاح وزيادة إجمالي التسليم
+  if (driver && driver.id) {
+    await updateStoreDriver(driver.id, {
+      status: 'available',
+      activeOrdersCount: Math.max(0, (driver.activeOrdersCount || 0) - count),
+      totalDeliveredCount: (driver.totalDeliveredCount || 0) + count,
+    });
+  }
+
+  return {
+    success: true,
+    deliveredCount: count,
+    message: `تم إغلاق الجولة وتأكيد تسليم ${count} طلبات بنجاح، ونقلها تلقائياً إلى الأرشيف!`,
   };
 }
 

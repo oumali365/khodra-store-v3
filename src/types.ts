@@ -90,6 +90,7 @@ export interface StoreDriver {
   status: DriverStatus;
   commissionPerOrder: number; // مثلاً 20 أو 25 درهم
   vehiclePlate?: string;
+  address?: string; // عنوان أو حي سكن السائق بفاس
   notes?: string;
   activeOrdersCount?: number;
   totalDeliveredCount?: number;
