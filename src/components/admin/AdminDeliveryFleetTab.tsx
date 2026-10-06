@@ -42,9 +42,13 @@ import {
   Archive,
   ArrowRight,
   Info,
+  Smartphone,
 } from 'lucide-react';
 import {
   DbOrder,
+  fetchOrders,
+  subscribeToOrdersChanges,
+  unsubscribeFromOrdersChanges,
   fetchStoreDrivers,
   saveStoreDrivers,
   addStoreDriver,
@@ -64,15 +68,20 @@ import {
   StoreDriver,
   DriverVehicleType,
   DriverStatus,
+  FastAppCourier,
+  FastDeliveryApp,
 } from '../../types';
 import { TourManifestModal } from './TourManifestModal';
+import { OrderInvoiceModal } from './OrderInvoiceModal';
+import { OrderBordereauModal } from './OrderBordereauModal';
 
-interface AdminDeliveryFleetTabProps {
-  orders: DbOrder[];
+export interface AdminDeliveryFleetTabProps {
+  orders?: DbOrder[];
   onSelectOrderForBordereau?: (order: DbOrder) => void;
   onOpenOrderInvoice?: (order: DbOrder) => void;
-  showToast: (type: 'success' | 'error', message: string) => void;
+  showToast?: (type: 'success' | 'error', message: string) => void;
   onRefreshOrders?: () => void;
+  standalone?: boolean;
 }
 
 const VEHICLE_CONFIG: Record<
@@ -172,16 +181,187 @@ export function calculateZoneCOD(zoneOrders: DbOrder[]) {
   };
 }
 
+const STORAGE_KEY_FAST_COURIERS = 'khodra_fast_app_couriers';
+
+const DEFAULT_FAST_COURIERS: FastAppCourier[] = [
+  {
+    id: 'fast-indrive-1',
+    name: 'ياسين الفاسي',
+    app: 'indrive',
+    phone: '0661234567',
+    vehicleType: 'moto',
+    zone: 'all',
+    typicalFare: 20,
+    notes: 'متواجد بانتظام بسوق بنسودة للتوصيل الفوري',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'fast-glovo-1',
+    name: 'عمر التازي',
+    app: 'glovo',
+    phone: '0672345678',
+    vehicleType: 'scooter',
+    zone: 'central',
+    typicalFare: 25,
+    notes: 'كابتن غلوفو - متواجد قرب الأطلس وفلورنس',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'fast-yassir-1',
+    name: 'رشيد المريني',
+    app: 'yassir',
+    phone: '0653456789',
+    vehicleType: 'car',
+    zone: 'north',
+    typicalFare: 25,
+    notes: 'سيارة مكيفة للصناديق الكبيرة سايس/النرجس',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'fast-careem-1',
+    name: 'حمزة السلاوي',
+    app: 'careem',
+    phone: '0665987412',
+    vehicleType: 'moto',
+    zone: 'south',
+    typicalFare: 20,
+    notes: 'دراجة نارية مع صندوق عازل زواغة/بنسودة',
+    createdAt: new Date().toISOString(),
+  },
+];
+
 export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   orders,
+  onSelectOrderForBordereau,
+  onOpenOrderInvoice,
   showToast,
   onRefreshOrders,
+  standalone = false,
 }) => {
+  // ─── إدارة الطلبات في الوضع المستقل ───
+  const [internalOrders, setInternalOrders] = useState<DbOrder[]>([]);
+  const [localToast, setLocalToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [localInvoiceOrder, setLocalInvoiceOrder] = useState<DbOrder | null>(null);
+  const [localBordereauOrder, setLocalBordereauOrder] = useState<DbOrder | null>(null);
+
+  const effectiveOrders = orders && orders.length > 0 ? orders : internalOrders;
+
+  const triggerToast = (type: 'success' | 'error', message: string) => {
+    if (showToast) {
+      showToast(type, message);
+    } else {
+      setLocalToast({ type, message });
+      setTimeout(() => setLocalToast(null), 3500);
+    }
+  };
+
+  useEffect(() => {
+    if (orders && orders.length > 0) return;
+    let mounted = true;
+    fetchOrders()
+      .then((data) => {
+        if (mounted) setInternalOrders(data);
+      })
+      .catch(() => {});
+
+    const channel = subscribeToOrdersChanges((payload) => {
+      if (!mounted) return;
+      fetchOrders()
+        .then((data) => {
+          if (mounted) setInternalOrders(data);
+        })
+        .catch(() => {});
+    });
+
+    return () => {
+      mounted = false;
+      if (channel) {
+        try {
+          unsubscribeFromOrdersChanges(channel);
+        } catch {}
+      }
+    };
+  }, [orders]);
+
   // ─── سائقو الفريق الداخلي ───
   const [drivers, setDrivers] = useState<StoreDriver[]>([]);
   const [isDriversLoading, setIsDriversLoading] = useState(true);
   const [isDriversSynced, setIsDriversSynced] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // ─── 1.3 بطاقة مستقلة: سائقو تطبيقات التوصيل السريع ───
+  const [fastCouriers, setFastCouriers] = useState<FastAppCourier[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_FAST_COURIERS);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_FAST_COURIERS;
+  });
+  const [isAddFastCourierOpen, setIsAddFastCourierOpen] = useState(false);
+  const [editingFastCourier, setEditingFastCourier] = useState<FastAppCourier | null>(null);
+  const [deletingFastCourier, setDeletingFastCourier] = useState<FastAppCourier | null>(null);
+  const [fastCourierForm, setFastCourierForm] = useState({
+    name: '',
+    app: 'indrive' as FastDeliveryApp,
+    appNameCustom: '',
+    phone: '',
+    vehicleType: 'moto' as DriverVehicleType,
+    zone: 'all' as FezZoneId | 'all',
+    typicalFare: 20,
+    notes: '',
+  });
+
+  const saveFastCouriersToStorage = (updated: FastAppCourier[]) => {
+    setFastCouriers(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_FAST_COURIERS, JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handleSaveFastCourier = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fastCourierForm.name.trim() || !fastCourierForm.phone.trim()) {
+      triggerToast('error', 'يرجى إدخال اسم الكابتن ورقم الهاتف');
+      return;
+    }
+
+    if (editingFastCourier) {
+      const updated = fastCouriers.map((c) =>
+        c.id === editingFastCourier.id ? { ...c, ...fastCourierForm } : c
+      );
+      saveFastCouriersToStorage(updated);
+      triggerToast('success', `تم تعديل بيانات الكابتن ${fastCourierForm.name}`);
+      setEditingFastCourier(null);
+    } else {
+      const newCourier: FastAppCourier = {
+        id: `fast-${Date.now()}`,
+        ...fastCourierForm,
+        createdAt: new Date().toISOString(),
+      };
+      saveFastCouriersToStorage([newCourier, ...fastCouriers]);
+      triggerToast('success', `تمت إضافة كابتن التطبيق ${newCourier.name} بنجاح`);
+      setIsAddFastCourierOpen(false);
+    }
+
+    setFastCourierForm({
+      name: '',
+      app: 'indrive',
+      appNameCustom: '',
+      phone: '',
+      vehicleType: 'moto',
+      zone: 'all',
+      typicalFare: 20,
+      notes: '',
+    });
+  };
+
+  const handleDeleteFastCourier = () => {
+    if (!deletingFastCourier) return;
+    const updated = fastCouriers.filter((c) => c.id !== deletingFastCourier.id);
+    saveFastCouriersToStorage(updated);
+    triggerToast('success', `تم حذف الكابتن ${deletingFastCourier.name}`);
+    setDeletingFastCourier(null);
+  };
 
   // ─── مودالات إدارة السائقين ───
   const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
@@ -228,7 +408,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       setDrivers(res.drivers);
       setIsDriversSynced(res.synced);
     } catch {
-      showToast('error', 'تعذر تحميل بيانات السائقين');
+      triggerToast('error', 'تعذر تحميل بيانات السائقين');
     } finally {
       setIsDriversLoading(false);
     }
@@ -243,9 +423,9 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     try {
       const res = await saveStoreDrivers(drivers);
       setIsDriversSynced(res.synced);
-      showToast(res.synced ? 'success' : 'error', res.message || 'تمت المزامنة');
+      triggerToast(res.synced ? 'success' : 'error', res.message || 'تمت المزامنة');
     } catch {
-      showToast('error', 'فشلت المزامنة');
+      triggerToast('error', 'فشلت المزامنة');
     } finally {
       setIsSyncing(false);
     }
@@ -255,7 +435,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   const handleSaveDriver = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!driverForm.name.trim() || !driverForm.phone.trim()) {
-      showToast('error', 'يرجى إدخال اسم السائق ورقم الهاتف');
+      triggerToast('error', 'يرجى إدخال اسم السائق ورقم الهاتف');
       return;
     }
 
@@ -264,9 +444,9 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       if (res.success && res.driver) {
         setDrivers((prev) => prev.map((d) => (d.id === editingDriver.id ? res.driver! : d)));
         setIsDriversSynced(res.synced);
-        showToast('success', 'تم تعديل بيانات السائق بنجاح');
+        triggerToast('success', 'تم تعديل بيانات السائق بنجاح');
       } else {
-        showToast('error', res.message || 'فشل التعديل');
+        triggerToast('error', res.message || 'فشل التعديل');
       }
       setEditingDriver(null);
     } else {
@@ -274,9 +454,9 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       if (res.success && res.driver) {
         setDrivers((prev) => [res.driver, ...prev]);
         setIsDriversSynced(res.synced);
-        showToast('success', `تمت إضافة السائق ${res.driver.name} بنجاح`);
+        triggerToast('success', `تمت إضافة السائق ${res.driver.name} بنجاح`);
       } else {
-        showToast('error', res.message || 'فشلت الإضافة');
+        triggerToast('error', res.message || 'فشلت الإضافة');
       }
       setIsAddDriverOpen(false);
     }
@@ -315,9 +495,9 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     if (res.success) {
       setDrivers((prev) => prev.filter((d) => d.id !== deletingDriver.id));
       setIsDriversSynced(res.synced);
-      showToast('success', `تم حذف السائق ${deletingDriver.name}`);
+      triggerToast('success', `تم حذف السائق ${deletingDriver.name}`);
     } else {
-      showToast('error', res.message || 'فشل الحذف');
+      triggerToast('error', res.message || 'فشل الحذف');
     }
     setDeletingDriver(null);
   };
@@ -328,16 +508,16 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       setDrivers((prev) =>
         prev.map((d) => (d.id === driver.id ? { ...d, status: newStatus } : d))
       );
-      showToast('success', `تم تحديث حالة ${driver.name} إلى: ${STATUS_CONFIG[newStatus].label}`);
+      triggerToast('success', `تم تحديث حالة ${driver.name} إلى: ${STATUS_CONFIG[newStatus].label}`);
     }
   };
 
   // ─── تجميع الطلبات غير الملغاة حسب مناطق فاس ───
-  const nonCancelledOrders = orders.filter((o) => o.status !== 'cancelled');
-  const activeDeliveryOrders = orders.filter(
+  const nonCancelledOrders = effectiveOrders.filter((o) => o.status !== 'cancelled');
+  const activeDeliveryOrders = effectiveOrders.filter(
     (o) => o.status === 'pending' || o.status === 'prepared'
   );
-  const deliveredOrders = orders.filter((o) => o.status === 'delivered');
+  const deliveredOrders = effectiveOrders.filter((o) => o.status === 'delivered');
   const totalDriverCost = nonCancelledOrders.reduce(
     (sum, o) => sum + (o.delivery_dispatch?.deliveryCost ?? 25),
     0
@@ -517,10 +697,10 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     try {
       await navigator.clipboard.writeText(text);
       setCopiedTemplateName(templateKey);
-      showToast('success', 'تم النسخ بنجاح');
+      triggerToast('success', 'تم النسخ بنجاح');
       setTimeout(() => setCopiedTemplateName(null), 2500);
     } catch {
-      showToast('error', 'تعذر النسخ، يرجى المحاولة يدوياً');
+      triggerToast('error', 'تعذر النسخ، يرجى المحاولة يدوياً');
     }
   };
 
@@ -531,7 +711,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     const zoneOrders = zoneGroups[zoneKey];
 
     if (zoneOrders.length === 0) {
-      showToast('error', 'لا توجد طلبات في هذه المنطقة');
+      triggerToast('error', 'لا توجد طلبات في هذه المنطقة');
       return;
     }
 
@@ -546,19 +726,19 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
         '_blank'
       );
     }
-    showToast('success', `تم فتح واتساب لإرسال الجولة إلى ${driver?.name || 'السائق'}`);
+    triggerToast('success', `تم فتح واتساب لإرسال الجولة إلى ${driver?.name || 'السائق'}`);
   };
 
   // ─── فتح مسار خرائط جوجل ───
   const handleOpenGoogleMapsRoute = (zoneKey: FezZoneId) => {
     const zoneOrders = zoneGroups[zoneKey];
     if (zoneOrders.length === 0) {
-      showToast('error', 'لا توجد طلبات لتوليد المسار');
+      triggerToast('error', 'لا توجد طلبات لتوليد المسار');
       return;
     }
     const url = generateGoogleMapsMultiStopUrl(zoneOrders);
     window.open(url, '_blank');
-    showToast('success', `تم فتح مسار خرائط Google (${zoneOrders.length} محطات)`);
+    triggerToast('success', `تم فتح مسار خرائط Google (${zoneOrders.length} محطات)`);
   };
 
   // ═══════════════════════════════════════════════════════════════
@@ -572,7 +752,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     const driver = drivers.find((d) => d.id === driverId) || null;
 
     if (zoneOrders.length === 0) {
-      showToast('error', 'لا توجد طلبات في هذه المنطقة لإغلاقها');
+      triggerToast('error', 'لا توجد طلبات في هذه المنطقة لإغلاقها');
       setCloseTourZone(null);
       return;
     }
@@ -586,7 +766,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       });
 
       if (res.success) {
-        showToast('success', res.message || 'تم إغلاق الجولة وتأكيد التسليم ونقل الطلبات للأرشيف!');
+        triggerToast('success', res.message || 'تم إغلاق الجولة وتأكيد التسليم ونقل الطلبات للأرشيف!');
         // تحديث حالة السائق محلياً
         if (driver) {
           setDrivers((prev) =>
@@ -607,10 +787,10 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           onRefreshOrders();
         }
       } else {
-        showToast('error', res.message || 'فشل إغلاق الجولة');
+        triggerToast('error', res.message || 'فشل إغلاق الجولة');
       }
     } catch (err: any) {
-      showToast('error', 'حدث خطأ أثناء إغلاق الجولة');
+      triggerToast('error', 'حدث خطأ أثناء إغلاق الجولة');
     } finally {
       setIsClosingTour(false);
       setCloseTourZone(null);
@@ -1115,6 +1295,179 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ═══════════ 1.3 بطاقة مستقلة: إضافة سائقون تطبيقات التوصيل السريع ═══════════ */}
+      <div className="bg-white border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-md shrink-0">
+              <Car className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-black text-base sm:text-lg text-stone-900">
+                  سائقو تطبيقات التوصيل السريع بفاس
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-900 border border-amber-300">
+                  {fastCouriers.length} كابتن مسجل
+                </span>
+              </div>
+              <p className="text-xs text-stone-500 font-medium">
+                بطاقة مستقلة لإدارة والتواصل السريع مع كباتن التطبيقات (inDrive • Glovo • Yassir • Careem) لتلبية الطلبات الفورية
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setEditingFastCourier(null);
+              setFastCourierForm({
+                name: '',
+                app: 'indrive',
+                appNameCustom: '',
+                phone: '',
+                vehicleType: 'moto',
+                zone: 'all',
+                typicalFare: 20,
+                notes: '',
+              });
+              setIsAddFastCourierOpen(true);
+            }}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-l from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>إضافة كابتن تطبيق جديد</span>
+          </button>
+        </div>
+
+        {fastCouriers.length === 0 ? (
+          <div className="py-8 text-center text-xs text-stone-500 bg-amber-50/50 rounded-xl border border-dashed border-amber-200">
+            <p className="font-bold text-stone-700">لم يتم إضافة كباتن تطبيقات حتى الآن.</p>
+            <p className="text-[11px] text-stone-500 mt-1">
+              انقر على "إضافة كابتن تطبيق جديد" لتسجيل كباتن inDrive أو Glovo أو Yassir للتواصل الفوري.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {fastCouriers.map((courier) => {
+              const vehicle = VEHICLE_CONFIG[courier.vehicleType] || VEHICLE_CONFIG.moto;
+              const cleanPhone = cleanPhoneForWhatsApp(courier.phone);
+
+              const appBadges: Record<FastDeliveryApp, { label: string; style: string }> = {
+                indrive: { label: 'inDrive', style: 'bg-emerald-900 text-emerald-100 border-emerald-700' },
+                glovo: { label: 'Glovo', style: 'bg-amber-400 text-amber-950 border-amber-500 font-black' },
+                yassir: { label: 'Yassir', style: 'bg-rose-700 text-white border-rose-800 font-black' },
+                careem: { label: 'Careem', style: 'bg-emerald-600 text-white border-emerald-700' },
+                other: { label: courier.appNameCustom || 'تطبيق آخر', style: 'bg-stone-700 text-stone-100 border-stone-800' },
+              };
+              const badge = appBadges[courier.app] || appBadges.other;
+
+              const whatsappTourText = `السلام عليكم كابتن *${courier.name}* (${badge.label}) 🛵🌿
+معك إدارة متجر خُضرة بفاس.
+هل أنت متاح حالياً لاستلام ونقل طلبية طازجة من سوق بنسودة؟
+الأجرة التقديرية: ${courier.typicalFare || 25} د.م.
+يرجى التأكيد فوراً للتنسيق والانطلاق. شكراً لك! 🌟`;
+
+              return (
+                <div
+                  key={courier.id}
+                  className="border-2 border-amber-200 hover:border-amber-400 rounded-xl p-3.5 bg-gradient-to-b from-amber-50/30 to-white transition-all flex flex-col justify-between shadow-xs"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xl">{vehicle.icon}</span>
+                        <span className="text-xs font-black text-stone-900">{courier.name}</span>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border ${badge.style}`}>
+                        {badge.label}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs text-stone-600 mb-3 bg-white p-2.5 rounded-lg border border-stone-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-stone-500">رقم الهاتف:</span>
+                        <span className="font-mono font-bold text-stone-900 text-left" dir="ltr">
+                          {courier.phone}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-stone-500">متوسط الأجرة:</span>
+                        <strong className="text-amber-800 tabular-nums">
+                          {courier.typicalFare || 25} د.م
+                        </strong>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-stone-500">النطاق / الحي:</span>
+                        <span className="font-bold text-stone-900">
+                          {courier.zone === 'all'
+                            ? 'جميع أحياء فاس'
+                            : FEZ_DELIVERY_ZONES[courier.zone]?.name || 'فاس'}
+                        </span>
+                      </div>
+                      {courier.notes && (
+                        <p className="text-[10px] text-stone-500 italic mt-1 line-clamp-1 border-t border-stone-100 pt-1">
+                          {courier.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4 أزرار سريعة: اتصال، واتساب، تعديل، حذف */}
+                  <div className="grid grid-cols-4 gap-1.5 pt-1 border-t border-stone-200">
+                    <a
+                      href={`tel:${courier.phone}`}
+                      className="py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 transition-colors flex items-center justify-center font-bold text-[11px]"
+                      title="اتصال هاتفي مباشر"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                      href={cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappTourText)}` : '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors flex items-center justify-center font-bold text-[11px]"
+                      title="محادثة واتساب واستدعاء سريع"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingFastCourier(courier);
+                        setFastCourierForm({
+                          name: courier.name,
+                          app: courier.app,
+                          appNameCustom: courier.appNameCustom || '',
+                          phone: courier.phone,
+                          vehicleType: courier.vehicleType,
+                          zone: courier.zone,
+                          typicalFare: courier.typicalFare || 20,
+                          notes: courier.notes || '',
+                        });
+                        setIsAddFastCourierOpen(true);
+                      }}
+                      className="py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors flex items-center justify-center font-bold text-[11px] cursor-pointer"
+                      title="تعديل بيانات الكابتن"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingFastCourier(courier)}
+                      className="py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors flex items-center justify-center font-bold text-[11px] cursor-pointer"
+                      title="حذف الكابتن"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               );
@@ -1747,6 +2100,226 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
         </div>
       )}
 
+      {/* ═══════════ مودال إضافة / تعديل كابتن تطبيق توصيل سريع ═══════════ */}
+      {(isAddFastCourierOpen || editingFastCourier) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden text-right">
+            <div className="p-4 bg-gradient-to-l from-amber-600 to-amber-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Car className="w-5 h-5 text-amber-200" />
+                <h3 className="font-black text-base">
+                  {editingFastCourier
+                    ? `تعديل بيانات كابتن: ${editingFastCourier.name}`
+                    : 'إضافة كابتن تطبيق جديد'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddFastCourierOpen(false);
+                  setEditingFastCourier(null);
+                }}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFastCourier} className="p-5 space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-black text-stone-700 mb-1">
+                    اسم الكابتن: *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={fastCourierForm.name}
+                    onChange={(e) =>
+                      setFastCourierForm({ ...fastCourierForm, name: e.target.value })
+                    }
+                    placeholder="مثال: حمزة السلاوي"
+                    className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 focus:outline-amber-600 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-stone-700 mb-1">
+                    رقم الهاتف / الواتساب: *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={fastCourierForm.phone}
+                    onChange={(e) =>
+                      setFastCourierForm({ ...fastCourierForm, phone: e.target.value })
+                    }
+                    placeholder="06XXXXXXXX"
+                    dir="ltr"
+                    className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 focus:outline-amber-600 font-mono text-left font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-black text-stone-700 mb-1">
+                    تطبيق التوصيل:
+                  </label>
+                  <select
+                    value={fastCourierForm.app}
+                    onChange={(e) =>
+                      setFastCourierForm({
+                        ...fastCourierForm,
+                        app: e.target.value as FastDeliveryApp,
+                      })
+                    }
+                    className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-bold focus:outline-amber-600 bg-white"
+                  >
+                    <option value="indrive">🟢 inDrive (إن درايف)</option>
+                    <option value="glovo">🟡 Glovo (غلوفو)</option>
+                    <option value="yassir">🔴 Yassir (يسير)</option>
+                    <option value="careem">🟢 Careem (كريم)</option>
+                    <option value="other">⚪ تطبيق آخر / كابتن حر</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-stone-700 mb-1">
+                    وسيلة النقل:
+                  </label>
+                  <select
+                    value={fastCourierForm.vehicleType}
+                    onChange={(e) =>
+                      setFastCourierForm({
+                        ...fastCourierForm,
+                        vehicleType: e.target.value as DriverVehicleType,
+                      })
+                    }
+                    className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-bold focus:outline-amber-600 bg-white"
+                  >
+                    <option value="moto">🏍️ دراجة نارية</option>
+                    <option value="scooter">🛵 سكوتر</option>
+                    <option value="car">🚗 سيارة</option>
+                    <option value="van">🚐 شاحنة صغيرة</option>
+                    <option value="bicycle">🚲 دراجة هوائية</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-stone-700 mb-1">
+                    متوسط الأجرة (د.م):
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="100"
+                    value={fastCourierForm.typicalFare}
+                    onChange={(e) =>
+                      setFastCourierForm({
+                        ...fastCourierForm,
+                        typicalFare: Number(e.target.value) || 20,
+                      })
+                    }
+                    className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-black focus:outline-amber-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black text-stone-700 mb-1">
+                  نطاق التواجد المفضل بفاس:
+                </label>
+                <select
+                  value={fastCourierForm.zone}
+                  onChange={(e) =>
+                    setFastCourierForm({
+                      ...fastCourierForm,
+                      zone: e.target.value as FezZoneId | 'all',
+                    })
+                  }
+                  className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-bold focus:outline-amber-600 bg-white"
+                >
+                  <option value="all">🌟 جميع أحياء فاس</option>
+                  <option value="south">🟠 المنطقة الجنوبية (بنسودة / زواغة / المرجة)</option>
+                  <option value="central">🟡 المنطقة الوسطى (الأطلس / فلورنس / الدكارات)</option>
+                  <option value="north">🟢 المنطقة الشمالية (سايس / النرجس / الرياض)</option>
+                  <option value="east">🟣 المنطقة الشرقية (الزهور / طريق صفرو / فاس البالي)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black text-stone-700 mb-1">
+                  ملاحظات عن الكابتن وسرعة الاستجابة:
+                </label>
+                <textarea
+                  rows={2}
+                  value={fastCourierForm.notes}
+                  onChange={(e) =>
+                    setFastCourierForm({ ...fastCourierForm, notes: e.target.value })
+                  }
+                  placeholder="مثال: يملك صندوقاً كبيراً، متواجد في المساء، موثوق..."
+                  className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 focus:outline-amber-600 text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddFastCourierOpen(false);
+                    setEditingFastCourier(null);
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 font-bold transition-colors cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{editingFastCourier ? 'حفظ التعديلات' : 'إضافة الكابتن'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ تأكيد حذف كابتن تطبيق ═══════════ */}
+      {deletingFastCourier && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-5 text-center space-y-4 border border-stone-200 shadow-2xl">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-black text-base text-stone-900">حذف كابتن التطبيق؟</h4>
+              <p className="text-xs text-stone-600 mt-1">
+                هل أنت متأكد من حذف الكابتن <strong>{deletingFastCourier.name}</strong>؟ سيتم مسحه من قائمة سائقي التطبيقات السريعة.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingFastCourier(null)}
+                className="px-4 py-2 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 font-bold text-xs cursor-pointer"
+              >
+                تراجع
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteFastCourier}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs cursor-pointer shadow-md"
+              >
+                تأكيد الحذف
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════ مودال مانيفست الجولة A4 ═══════════ */}
       {manifestZone && (
         <TourManifestModal
@@ -1757,6 +2330,18 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           selectedDriver={selectedDriverForManifest}
         />
       )}
+
+      {/* ═══════════ مودال الفاتورة وملصق الشحن في الوضع المستقل ═══════════ */}
+      <OrderInvoiceModal
+        order={localInvoiceOrder}
+        isOpen={Boolean(localInvoiceOrder)}
+        onClose={() => setLocalInvoiceOrder(null)}
+      />
+      <OrderBordereauModal
+        order={localBordereauOrder}
+        isOpen={Boolean(localBordereauOrder)}
+        onClose={() => setLocalBordereauOrder(null)}
+      />
     </div>
   );
 };

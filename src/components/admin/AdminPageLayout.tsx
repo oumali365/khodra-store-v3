@@ -16,12 +16,13 @@ import {
   BellOff,
   Home,
   CheckCircle2,
+  Bike,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
 import { updateAdminPassword } from '../../services/supabaseService';
 import { ChangePinModal } from './AdminReviewModals';
 
-export type AdminRoute = 'orders' | 'finance' | 'documents' | 'marketing';
+export type AdminRoute = 'orders' | 'fleet' | 'finance' | 'documents' | 'marketing';
 
 interface AdminPageLayoutProps {
   currentRoute: AdminRoute;
@@ -50,6 +51,14 @@ const NAV_ITEMS: NavItem[] = [
     sublabel: 'Commandes',
     Icon: ShoppingBag,
     accentColor: 'text-[#EAB308]',
+  },
+  {
+    id: 'fleet',
+    href: '/admin/fleet',
+    label: 'مسارات التوصيل والفريق',
+    sublabel: 'Flotte',
+    Icon: Bike,
+    accentColor: 'text-[#38BDF8]',
   },
   {
     id: 'finance',
@@ -348,8 +357,8 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
                   </span>
                 )}
               </div>
-              <span className="text-[10px] mt-0.5 leading-tight">
-                {item.label.replace('إدارة ', '').replace('وثائق ', '')}
+              <span className="text-[10px] mt-0.5 leading-tight truncate">
+                {item.id === 'fleet' ? 'التوصيل' : item.label.replace('إدارة ', '').replace('وثائق ', '')}
               </span>
             </a>
           );

@@ -98,6 +98,21 @@ export interface StoreDriver {
   updatedAt?: string;
 }
 
+export type FastDeliveryApp = 'indrive' | 'glovo' | 'yassir' | 'careem' | 'other';
+
+export interface FastAppCourier {
+  id: string;
+  name: string;
+  app: FastDeliveryApp;
+  appNameCustom?: string;
+  phone: string;
+  vehicleType: DriverVehicleType;
+  zone: FezZoneId | 'all';
+  typicalFare?: number;
+  notes?: string;
+  createdAt?: string;
+}
+
 export interface DeliveryDispatchInfo {
   provider: DeliveryProvider;
   driverName?: string;

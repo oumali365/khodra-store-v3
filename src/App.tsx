@@ -65,6 +65,9 @@ const AdminPageLayout = React.lazy(() =>
 const FinancePanel = React.lazy(() =>
   import('./components/admin/FinancePanel').then((m) => ({ default: m.FinancePanel }))
 );
+const AdminDeliveryFleetTab = React.lazy(() =>
+  import('./components/admin/AdminDeliveryFleetTab').then((m) => ({ default: m.AdminDeliveryFleetTab }))
+);
 const AdminDocumentsModal = React.lazy(() =>
   import('./components/admin/AdminDocumentsModal').then((m) => ({ default: m.AdminDocumentsModal }))
 );
@@ -90,11 +93,12 @@ function parseAdminRoute(): AdminRoute | null {
   try {
     const params = new URLSearchParams(window.location.search);
     const adminParam = params.get('admin') as AdminRoute | null;
-    if (adminParam && ['orders', 'finance', 'documents', 'marketing'].includes(adminParam)) {
+    if (adminParam && ['orders', 'fleet', 'finance', 'documents', 'marketing'].includes(adminParam)) {
       return adminParam;
     }
     const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
     if (path === 'admin' || path === 'admin/orders') return 'orders';
+    if (path === 'admin/fleet' || path === 'admin/delivery' || path === 'admin/routes') return 'fleet';
     if (path === 'admin/finance') return 'finance';
     if (path === 'admin/documents') return 'documents';
     if (path === 'admin/marketing') return 'marketing';
@@ -258,6 +262,10 @@ export default function App() {
           pageTitle = 'إدارة الطلبات | خُضرة فاس';
           pageDesc = 'لوحة التحكم ومتابعة وتجهيز طلبات الخضار والفواكه وطباعة بوليصات الشحن بفاس.';
           canonicalPath = '/admin/orders';
+        } else if (activeAdminRoute === 'fleet') {
+          pageTitle = 'مسارات التوصيل وفريق السائقين | خُضرة فاس';
+          pageDesc = 'لوحة إدارة مسارات التوصيل الذكية وكباتن التوصيل السريع وتوزيع المناطق بمدينة فاس.';
+          canonicalPath = '/admin/fleet';
         } else if (activeAdminRoute === 'finance') {
           pageTitle = 'اللوحة المالية والتوقعات | خُضرة فاس';
           pageDesc = 'توقعات التدفقات النقدية ونموذج عمل متجر خُضرة بفاس وخطة 12 شهراً.';
@@ -870,6 +878,11 @@ export default function App() {
                 standalone={true}
                 isOpen={true}
                 onClose={handleReturnToStore}
+              />
+            )}
+            {activeAdminRoute === 'fleet' && (
+              <AdminDeliveryFleetTab
+                standalone={true}
               />
             )}
             {activeAdminRoute === 'finance' && (

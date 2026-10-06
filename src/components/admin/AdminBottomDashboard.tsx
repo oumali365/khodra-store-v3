@@ -15,6 +15,7 @@ import {
   BellOff,
   Sparkles,
   ExternalLink,
+  Bike,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
 import { clearCachedAdminPin, updateAdminPassword } from '../../services/supabaseService';
@@ -23,7 +24,7 @@ import {
   AdminErrorBoundary,
 } from './index';
 
-export type AdminRoute = 'orders' | 'finance' | 'documents' | 'marketing';
+export type AdminRoute = 'orders' | 'fleet' | 'finance' | 'documents' | 'marketing';
 
 interface AdminBottomDashboardProps {
   isAdmin: boolean;
@@ -181,8 +182,8 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
           </div>
         )}
 
-        {/* ═══════ شبكة البطاقات 2×2 بروابط HTML مخصصة ═══════ */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-5">
+        {/* ═══════ شبكة بطاقات أدوات الإدارة بروابط HTML مخصصة ═══════ */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
 
           {/* ─── البطاقة 1: إدارة الطلبات والتجهيز ─── */}
           <a
@@ -219,6 +220,36 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               </div>
               <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium">
                 متابعة وتجهيز الطلبات، وطباعة بوليصة الشحن (Bordereau 80mm).
+              </p>
+            </div>
+          </a>
+
+          {/* ─── البطاقة 2: مسارات التوصيل والفريق (مستقلة) ─── */}
+          <a
+            href="/admin/fleet"
+            onClick={(e) => handleNavigate(e, 'fleet')}
+            className="group relative bg-gradient-to-br from-[#122A26] to-[#091715] hover:from-[#183832] hover:to-[#122A26] border-2 border-teal-600/50 hover:border-[#F5D76E]/70 rounded-2xl p-3.5 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(20,184,166,0.3)] active:scale-[0.98] flex flex-col justify-between min-h-[160px] sm:min-h-[175px]"
+          >
+            <div className="flex items-start justify-between gap-2 w-full">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-teal-700 to-emerald-800 border border-[#F5D76E]/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                <Bike className="w-5 h-5 sm:w-6 sm:h-6 text-[#F5D76E]" strokeWidth={2.5} />
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                4 مناطق
+              </span>
+            </div>
+
+            <div className="mt-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
+                <h3 className="text-sm sm:text-lg font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                  مسارات التوصيل والفريق
+                </h3>
+                <span className="text-[10px] sm:text-[11px] text-stone-400 font-mono">
+                  Flotte
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium">
+                جولات التوصيل، سائقو الفريق، وكباتن التطبيقات السريعة بفاس.
               </p>
             </div>
           </a>
@@ -283,11 +314,11 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             </div>
           </a>
 
-          {/* ─── البطاقة 4: النشر والتسويق الاجتماعي ─── */}
+          {/* ─── البطاقة 5: النشر والتسويق الاجتماعي ─── */}
           <a
             href="/admin/marketing"
             onClick={(e) => handleNavigate(e, 'marketing')}
-            className="group relative bg-gradient-to-br from-[#0C2D48] to-[#071E30] hover:from-[#113B5E] hover:to-[#0C2D48] border-2 border-[#0284C7]/40 hover:border-[#F5D76E]/70 rounded-2xl p-3.5 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(2,132,199,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[160px] sm:min-h-[175px]"
+            className="col-span-2 md:col-span-1 group relative bg-gradient-to-br from-[#0C2D48] to-[#071E30] hover:from-[#113B5E] hover:to-[#0C2D48] border-2 border-[#0284C7]/40 hover:border-[#F5D76E]/70 rounded-2xl p-3.5 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(2,132,199,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[160px] sm:min-h-[175px]"
           >
             <div className="flex items-start justify-between gap-2 w-full">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] border border-cyan-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
