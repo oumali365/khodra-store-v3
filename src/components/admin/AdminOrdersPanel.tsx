@@ -1,9 +1,9 @@
 // ============================================================
-// AdminOrdersPanel.tsx – الإصدار 6.0
-// إدارة الطلبات ومسار معالجة الطلبات لمتجر خُضرة - فاس
-// 1. قيد الإنشاء (الطلبات الجديدة قيد المراجعة والمعالجة)
-// 2. تم التجهيز (الجاهزة للتوصيل وتخصيص السائق)
-// 3. تم التسليم (المكتملة وتأكيد الدفع وتقييم العميل)
+// AdminOrdersPanel.tsx – الإصدار 5.0
+// إدارة الطلبات وتخصيص المعلومات حسب الفروع الثلاثة:
+// 1. الفرع الأيمن: قيد الإنشاء
+// 2. الفرع الأوسط: تم التجهيز
+// 3. الفرع الأيسر: تم التسليم
 // ============================================================
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
@@ -23,9 +23,9 @@ import {
   TrendingUp,
   AlertCircle,
   Inbox,
-  Check,
   Copy,
   Trash2,
+  Check,
   Printer,
   Sparkles,
   Bike,
@@ -36,6 +36,7 @@ import {
   Send,
   Save,
   Coins,
+  Archive,
   Star,
   Layers,
 } from 'lucide-react';
@@ -75,8 +76,9 @@ export interface AdminOrdersPanelProps {
   onOrdersChange?: (counts: { total: number; pending: number }) => void;
 }
 
-// ─── مفاتيح التخزين المحلي لتأكيد الدفع ───
+// ─── مفاتيح التخزين المحلي لتأكيد الدفع والأرشفة ───
 const STORAGE_KEY_PAID = 'khodra_paid_orders';
+const STORAGE_KEY_ARCHIVED = 'khodra_archived_orders';
 
 // ─── أدوات مساعدة ───
 function toWhatsApp(phone: string): string {
@@ -163,7 +165,7 @@ function buildOrderText(order: DbOrder): string {
   return lines.join('\n');
 }
 
-// ─── 1. رسالة إشعار الزبون وتأكيد الاستلام مع الشكر ───
+// ─── 1. رسالة إشعار الزبون وتأكيد الاستلام مع الشكر (الفرع الأيمن) ───
 function buildCustomerThankAndConfirmMessage(order: DbOrder): string {
   const safeTotal = Number(order.total ?? 0).toFixed(2);
   return `مرحباً بك أخي/أختي *${order.customer_name}* 🌿
@@ -179,14 +181,14 @@ function buildCustomerThankAndConfirmMessage(order: DbOrder): string {
 شكراً جزيلاً لثقتك بنا 💚✨`;
 }
 
-// ─── 2. رسالة استدعاء سائق فريق متجر خضرة (خيار أساسي) ───
+// ─── 2. رسالة استدعاء سائق فريق متجر خضرة - خيار أساسي (الفرع الأوسط) ───
 function buildStoreTeamDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
   const hub = STORE_PICKUP_HUB;
   const driverGreeting = draft?.driverName
     ? `السلام عليكم كابتن *${draft.driverName}* 🛵🌿`
     : 'السلام عليكم كابتن فريق متجر خُضرة 🛵🌿';
   const cleanN = cleanNote(order.note || '');
-  const deliveryCost = draft?.deliveryCost ?? 11; // أجور الفريق الداخلي 9-13 درهم
+  const deliveryCost = draft?.deliveryCost ?? 25;
   const safeTotal = Number(order.total ?? 0).toFixed(2);
   const mapUrl =
     order.maps_link ||
@@ -212,7 +214,7 @@ function buildStoreTeamDriverMessage(order: DbOrder, draft?: DeliveryDispatchInf
     cleanN ? `📝 ملاحظة: ${cleanN}` : '',
     `────────────────────`,
     `3️⃣ *التحصيل والأجرة:*`,
-    `🛵 أجرة التوصيل: ${deliveryCost} درهم`,
+    `🚚 أجرة التوصيل: ${deliveryCost} درهم`,
     `💵 *المبلغ المطلوب تحصيله (COD): ${safeTotal} درهم* (نقداً عند التسليم)`,
     `────────────────────`,
     `⚠️ يرجى تأكيد الاستلام عند الانطلاق والمحافظة على استقامة الصندوق. طريق السلامة! 🌟`,
@@ -221,10 +223,10 @@ function buildStoreTeamDriverMessage(order: DbOrder, draft?: DeliveryDispatchInf
     .join('\n');
 }
 
-// ─── 3. رسالة استدعاء سائق inDrive (المستوى الثاني - احتياطي) ───
+// ─── 3. رسالة استدعاء سائق inDrive - خيار احتياطي (الفرع الأوسط) ───
 function buildInDriveDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
   const hub = STORE_PICKUP_HUB;
-  const deliveryCost = draft?.deliveryCost ?? 22; // أجور سائقي التطبيقات 20-25 درهم
+  const deliveryCost = draft?.deliveryCost ?? 25;
   const safeTotal = Number(order.total ?? 0).toFixed(2);
   const mapUrl =
     order.maps_link ||
@@ -233,8 +235,8 @@ function buildInDriveDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo)
       : '');
 
   return [
-    `السلام عليكم كابتن inDrive 🚗🌿`,
-    `مشوار توصيل طرد - متجر خُضرة بفاس (خيار احتياطي)`,
+    `السلام عليكم كابتن inDrive 🛵`,
+    `🌿 *مشوار توصيل طرد - متجر خُضرة بفاس (احتياطي)*`,
     `🔖 *رقم الطلب:* ${order.order_code}`,
     `────────────────────`,
     `📍 *نقطة الانطلاق (استلام الطرد):*`,
@@ -256,21 +258,18 @@ function buildInDriveDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo)
     .join('\n');
 }
 
-// ─── 4. رسالة طلب تقييم الخدمة للعميل (رقم هاتف العميل وليس السائق) ───
+// ─── 4. رسالة طلب تقييم الخدمة للعميل (الفرع الأيسر) ───
 function buildCustomerReviewMessage(order: DbOrder): string {
   const appOrigin =
     typeof window !== 'undefined' ? window.location.origin : 'https://khodrafresh.vercel.app';
   return `السلام عليكم ورحمة الله أخي/أختي *${order.customer_name}* 🌿
 
-نشكرك جزيل الشكر على تسوقكم من *متجر خُضرة - فاس* (طلب رقم: ${order.order_code})! 🍏🥕🥦
+نتمنى أن تكون طلبيتكم من *متجر خُضرة* رقم (${order.order_code}) قد نالت رضاكم واستحسانكم! 🍏🥦
 
-نرجو أن تكون الخضار والفواكه طازجة والتوصيل سريعاً وبالمستوى الذي يرضيكم.
-رأيك يهمنا جداً لتطوير وتجويد خدماتنا؛ نرجو التكرم بمشاركتنا تقييمكم لتجربة الشراء وجودة التوصيل:
-⭐⭐⭐⭐⭐ (من 1 إلى 5 نجوم)
-رابط التقييم المباشر: ${appOrigin}/?review=true
+رأيكم يهمنا جداً لتطوير وتجويد خدماتنا باستمرار. نرجو التكرم بالضغط على الرابط التالي لمشاركتنا تقييمكم لتجربة الشراء والتوصيل:
+⭐ ${appOrigin}/?review=true
 
-أو يمكنكم الرد مباشرة على هذه الرسالة بملاحظاتكم واقتراحاتكم الكريمة.
-شكراً جزيلاً لثقتكم الغالية في متجر خُضرة، وشهية طيبة لكم ولعائلتكم الكريمة! 💚🌟`;
+شكراً جزيلاً لثقتكم المستمرة في متجر خُضرة، وشهية طيبة لكم ولعائلتكم الكريمة! 💚🌟`;
 }
 
 function playOrderChime() {
@@ -328,8 +327,11 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   const [invoiceOrder, setInvoiceOrder] = useState<DbOrder | null>(null);
   const [bordereauOrder, setBordereauOrder] = useState<DbOrder | null>(null);
 
-  // تصنيف مراحل تنفيذ الطلب للشاشات الصغيرة
-  const [mobileStageView, setMobileStageView] = useState<'all' | 'pending' | 'prepared' | 'delivered'>('all');
+  // تبويب الفرع للشاشات الصغيرة
+  const [mobileBranchView, setMobileBranchView] = useState<'all' | 'pending' | 'prepared' | 'delivered'>('all');
+
+  // إظهار الطلبات المؤرشفة في فرع التسليم
+  const [showArchived, setShowArchived] = useState(false);
 
   // السائقون وحفظ بياناتهم
   const [expandedDriverCardId, setExpandedDriverCardId] = useState<string | number | null>(null);
@@ -337,10 +339,19 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   const [savingDispatchId, setSavingDispatchId] = useState<string | number | null>(null);
   const [storeDrivers, setStoreDrivers] = useState<StoreDriver[]>([]);
 
-  // تأكيد الدفع المحفوظ محلياً
+  // تأكيد الدفع والأرشفة المحفوظة محلياً
   const [paidOrderCodes, setPaidOrderCodes] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_PAID);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const [archivedOrderCodes, setArchivedOrderCodes] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ARCHIVED);
       return saved ? new Set(JSON.parse(saved)) : new Set();
     } catch {
       return new Set();
@@ -482,6 +493,10 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     setIsRefreshing(true);
     const data = await fetchOrders();
     setOrders(data);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ARCHIVED);
+      if (saved) setArchivedOrderCodes(new Set(JSON.parse(saved)));
+    } catch {}
     setIsRefreshing(false);
     showToast('success', `تم تحديث القائمة (${data.length} طلب)`);
   };
@@ -610,6 +625,23 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     } catch {}
   };
 
+  // ─── أرشفة الطلب ───
+  const handleToggleArchiveOrder = (order: DbOrder) => {
+    const code = order.order_code || String(order.id);
+    const updated = new Set(archivedOrderCodes);
+    if (updated.has(code)) {
+      updated.delete(code);
+      showToast('success', `تم استرجاع الطلب ${order.order_code} من الأرشيف`);
+    } else {
+      updated.add(code);
+      showToast('success', `📦 تم نقل الطلب ${order.order_code} إلى الأرشيف المكتمل`);
+    }
+    setArchivedOrderCodes(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_ARCHIVED, JSON.stringify(Array.from(updated)));
+    } catch {}
+  };
+
   // ─── تحديث وحفظ مسودة السائق ───
   const handleUpdateDispatchDraft = (orderId: string | number, patch: Partial<DeliveryDispatchInfo>) => {
     const idKey = String(orderId);
@@ -669,7 +701,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     setDeletingId(null);
   };
 
-  // ─── تصفية الطلبات والبحث ───
+  // ─── تقسيم الطلبات حسب الفروع الثلاثة ───
   const filteredOrders = useMemo(() => {
     if (!Array.isArray(orders)) return [];
     const q = searchQuery.trim().toLowerCase();
@@ -685,7 +717,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     });
   }, [orders, searchQuery]);
 
-  // ─── تقسيم الطلبات حسب المراحل الثلاث (قيد الإنشاء، تم التجهيز، تم التسليم) ───
   const branchPendingOrders = useMemo(() => {
     return filteredOrders.filter((o) => o.status === 'pending');
   }, [filteredOrders]);
@@ -698,7 +729,14 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
     return filteredOrders.filter((o) => o.status === 'delivered');
   }, [filteredOrders]);
 
-  const activeDeliveredOrders = branchDeliveredOrders;
+  const activeDeliveredOrders = useMemo(() => {
+    if (showArchived) return branchDeliveredOrders;
+    return branchDeliveredOrders.filter((o) => !archivedOrderCodes.has(o.order_code || String(o.id)));
+  }, [branchDeliveredOrders, showArchived, archivedOrderCodes]);
+
+  const archivedCount = useMemo(() => {
+    return branchDeliveredOrders.filter((o) => archivedOrderCodes.has(o.order_code || String(o.id))).length;
+  }, [branchDeliveredOrders, archivedOrderCodes]);
 
   if (!isOpen && !standalone) return null;
 
@@ -829,12 +867,12 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                     <span className="truncate leading-none">{isCopied ? 'تم النسخ' : 'نسخ الطلب'}</span>
                   </button>
 
-                  {/* زر حذف الطلب (حذف نهائي) */}
+                  {/* زر حذف الطلب */}
                   <button
                     type="button"
                     onClick={() => setDeleteConfirmOrder(order)}
                     className="py-2 px-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-black text-[11px] flex flex-col items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer shadow-xs"
-                    title="حذف هذا الطلب نهائياً من قاعدة البيانات"
+                    title="حذف هذا الطلب"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-red-600" />
                     <span className="truncate leading-none">حذف الطلب</span>
@@ -842,17 +880,18 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                 </div>
               </div>
 
-              {/* حالة الطلب وأزرار الانتقال للمرحلة الموالية */}
+              {/* 3. الخطوة الموالية: تعبئة الحالة إلى: الإنشاء [✓]   التجهيز [ ] */}
               <div className="pt-2.5 border-t border-[#F0E9DA]">
                 <div className="text-[10px] font-black text-stone-500 mb-1.5 flex items-center justify-between">
-                  <span>حالة الطلب:</span>
+                  <span>تعبئة الحالة إلى:</span>
                   {isUpdating && <Loader2 className="w-3 h-3 text-amber-600 animate-spin" />}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div
-                    className="py-2 px-2 rounded-xl bg-amber-500 text-white font-black text-xs flex items-center justify-center shadow-xs border-2 border-amber-500 cursor-default"
+                    className="py-2 px-2 rounded-xl bg-amber-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-xs border-2 border-amber-500 cursor-default"
                   >
-                    <span>قيد الإنشاء</span>
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>الإنشاء [✓]</span>
                   </div>
 
                   <button
@@ -860,10 +899,10 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                     disabled={isUpdating}
                     onClick={() => handleStatusChange(order.id, 'prepared')}
                     className="py-2 px-2 rounded-xl bg-white hover:bg-blue-50 text-blue-700 font-black text-xs flex items-center justify-center gap-1.5 border-2 border-blue-300 hover:border-blue-500 transition-all cursor-pointer active:scale-95 shadow-xs"
-                    title="تحويل الطلب إلى تم التجهيز"
+                    title="نقل الطلب إلى الفرع الأوسط (تم التجهيز)"
                   >
                     <Package className="w-3.5 h-3.5 text-blue-600" />
-                    <span>تحويل للتجهيز</span>
+                    <span>التجهيز [ ]</span>
                   </button>
                 </div>
               </div>
@@ -1130,17 +1169,18 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                 </a>
               </div>
 
-              {/* حالة الطلب وأزرار الانتقال للمرحلة الموالية */}
+              {/* 3. الخطوة الموالية: تعبئة الحالة إلى: التجهيز [✓]   التسليم [ ] (تصميم grid cols 2) */}
               <div className="pt-2.5 border-t border-[#F0E9DA]">
                 <div className="text-[10px] font-black text-stone-500 mb-1.5 flex items-center justify-between">
-                  <span>حالة الطلب:</span>
+                  <span>تعبئة الحالة إلى:</span>
                   {isUpdating && <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div
-                    className="py-2 px-2 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-xs border-2 border-blue-600 cursor-default"
+                    className="py-2 px-2 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-xs border-2 border-blue-600 cursor-default"
                   >
-                    <span>تم التجهيز</span>
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>التجهيز [✓]</span>
                   </div>
 
                   <button
@@ -1148,10 +1188,10 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                     disabled={isUpdating}
                     onClick={() => handleStatusChange(order.id, 'delivered')}
                     className="py-2 px-2 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 font-black text-xs flex items-center justify-center gap-1.5 border-2 border-emerald-300 hover:border-emerald-500 transition-all cursor-pointer active:scale-95 shadow-xs"
-                    title="تحويل الطلب إلى تم التسليم"
+                    title="نقل الطلب إلى الفرع الأيسر (تم التسليم)"
                   >
-                    <Send className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>تحويل للتسليم</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>التسليم [ ]</span>
                   </button>
                 </div>
               </div>
@@ -1163,7 +1203,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   };
 
   // ═══════════════════════════════════════════════════════════════
-  // ─── المرحلة الثالثة: تم التسليم والتحصيل المالي ───
+  // ─── كود الفرع الأيسر: تم التسليم ───
   // ═══════════════════════════════════════════════════════════════
   const renderDeliveredBranchCards = () => {
     if (activeDeliveredOrders.length === 0) {
@@ -1171,7 +1211,9 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
         <div className="p-8 text-center bg-white/70 rounded-2xl border-2 border-dashed border-emerald-200">
           <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2 opacity-60" />
           <p className="text-xs font-black text-[#787163]">
-            لا توجد طلبات تم تسليمها حالياً
+            {showArchived
+              ? 'لا توجد طلبات في هذا الفرع'
+              : 'لا توجد طلبات نشطة (قد تكون مؤرشفة)'}
           </p>
         </div>
       );
@@ -1183,11 +1225,16 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
           const isUpdating = updatingId === order.id;
           const orderCode = order.order_code || String(order.id);
           const isPaid = paidOrderCodes.has(orderCode);
+          const isArchived = archivedOrderCodes.has(orderCode);
 
           return (
             <article
               key={order.id}
-              className="bg-white rounded-2xl border-2 border-emerald-200 shadow-xs hover:border-emerald-400 hover:shadow-md p-3.5 transition-all text-right relative overflow-hidden"
+              className={`bg-white rounded-2xl border-2 p-3.5 transition-all text-right relative overflow-hidden ${
+                isArchived
+                  ? 'border-stone-300 bg-stone-50/60 opacity-80'
+                  : 'border-emerald-200 shadow-xs hover:border-emerald-400 hover:shadow-md'
+              }`}
             >
               {/* شريط حالة علوي زمردي */}
               <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-l from-emerald-500 to-teal-600" />
@@ -1195,16 +1242,13 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
               {/* 1. في البطاقة الأولى: معلومات العميل والإجمالي */}
               {renderCardTopInfo(order)}
 
-              {/* حالة التسليم المكتملة بدون أي علامات [✓] */}
-              <div className="mb-2.5">
-                <div className="py-1.5 px-3 rounded-xl bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-xs border-2 border-emerald-600 cursor-default">
-                  <span>تم التسليم</span>
-                </div>
-              </div>
-
-              {/* 2. أزرار الدفع والتقييم والحذف النهائي */}
-              <div className="pt-2 border-t border-[#F0E9DA] mb-2 space-y-2">
-                {/* زر تأكيد استلام المبلغ نقداً (COD) */}
+              {/* 2. الخطوة الموالية:
+                  - زر تأكيد الدفع
+                  - زر أرشفة الطلب
+                  - زر إرسال رسالة تقييم الخدمة للعميل
+              */}
+              <div className="pt-2 border-t border-[#F0E9DA] mb-3 space-y-2">
+                {/* 1. زر تأكيد الدفع (هام جداً إذا كان الدفع عند الاستلام) */}
                 <button
                   type="button"
                   onClick={() => handleTogglePaymentConfirmation(order)}
@@ -1216,9 +1260,13 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                   title="تأكيد استلام المبلغ من الزبون عند الاستلام COD"
                 >
                   <div className="flex items-center gap-1.5">
-                    <Coins className={`w-4 h-4 ${isPaid ? 'text-white' : 'text-amber-600'}`} />
+                    {isPaid ? (
+                      <CheckCircle2 className="w-4 h-4 text-white" />
+                    ) : (
+                      <Coins className="w-4 h-4 text-amber-600" />
+                    )}
                     <span>
-                      {isPaid ? 'تم تأكيد استلام المبلغ (COD)' : 'تأكيد الدفع (استلام المبلغ نقداً)'}
+                      {isPaid ? '✓ تم تأكيد استلام المبلغ (COD)' : 'تأكيد الدفع (استلام المبلغ نقداً)'}
                     </span>
                   </div>
                   <span className="text-[10px] font-bold opacity-90">
@@ -1226,40 +1274,50 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                   </span>
                 </button>
 
-                {/* زر: إرسال رسالة تقييم الخدمة للعميل (رقم هاتف العميل وليس السائق) */}
-                <button
-                  type="button"
-                  onClick={() => handleSendCustomerReview(order)}
-                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-l from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
-                  title={`إرسال رسالة تقييم الخدمة للعميل عبر واتساب على رقم العميل (${order.phone}) وليس السائق`}
-                >
-                  <Star className="w-4 h-4 text-amber-100 fill-amber-100" />
-                  <span>إرسال رسالة تقييم الخدمة للعميل</span>
-                  <MessageCircle className="w-4 h-4 text-white mr-auto" />
-                </button>
-
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  {/* زر الفاتورة */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* 2. زر أرشفة الطلب (نقل الطلب إلى سجل الطلبات المكتملة) */}
                   <button
                     type="button"
-                    onClick={() => setInvoiceOrder(order)}
-                    className="py-2 px-2 rounded-xl bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#524B3E] font-black text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer border border-[#E8E1D3]"
-                    title="عرض وطباعة فاتورة العميل"
+                    onClick={() => handleToggleArchiveOrder(order)}
+                    className={`py-2 px-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer border shadow-xs ${
+                      isArchived
+                        ? 'bg-stone-200 text-stone-800 border-stone-400'
+                        : 'bg-[#F7F4EC] hover:bg-[#EAE2D2] text-[#524B3E] border-[#E8E1D3]'
+                    }`}
+                    title="نقل الطلب إلى سجل الطلبات المكتملة (الأرشيف)"
                   >
-                    <Printer className="w-3.5 h-3.5 text-blue-700" />
-                    <span>فاتورة الطلب</span>
+                    <Archive className="w-3.5 h-3.5 text-stone-600" />
+                    <span className="truncate">
+                      {isArchived ? 'مؤرشف (استرجاع)' : 'أرشفة الطلب'}
+                    </span>
                   </button>
 
-                  {/* استبدال زر أرشفة الطلب بزر حذف الطلب (حذف نهائي) */}
+                  {/* 3. زر إرسال رسالة تقييم الخدمة للعميل (اختياري لقياس رضا العملاء) */}
                   <button
                     type="button"
-                    onClick={() => setDeleteConfirmOrder(order)}
-                    className="py-2 px-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer border shadow-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-                    title="حذف هذا الطلب نهائياً من قاعدة البيانات"
+                    onClick={() => handleSendCustomerReview(order)}
+                    className="py-2 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-black text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                    title="إرسال رابط تقييم الخدمة للزبون عبر واتساب"
                   >
-                    <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                    <span className="truncate">حذف الطلب (نهائي)</span>
+                    <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+                    <span className="truncate">طلب التقييم</span>
                   </button>
+                </div>
+              </div>
+
+              {/* 3. الخطوة الموالية: تصميم: grid cols 1. تعبئة الحالة إلى: [✓] تم التسليم بنجاح (مكتمل) */}
+              <div className="pt-2.5 border-t border-[#F0E9DA]">
+                <div className="text-[10px] font-black text-stone-500 mb-1.5 flex items-center justify-between">
+                  <span>تعبئة الحالة إلى:</span>
+                  {isUpdating && <Loader2 className="w-3 h-3 text-emerald-600 animate-spin" />}
+                </div>
+                <div className="grid grid-cols-1">
+                  <div
+                    className="py-2.5 px-3 rounded-xl bg-emerald-600 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs border-2 border-emerald-600 cursor-default"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                    <span>[✓] تم التسليم بنجاح (مكتمل)</span>
+                  </div>
                 </div>
               </div>
             </article>
@@ -1286,6 +1344,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-black leading-tight">إدارة الطلبات</h2>
+              <p className="text-[10px] text-white/70">تخصيص المعلومات حسب الفروع الثلاثة</p>
             </div>
           </div>
 
@@ -1342,7 +1401,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>إدارة الطلبات</span>
+            <span>الفروع الثلاثة للطلبات</span>
             <span className="px-2 py-0.5 rounded-full bg-[#163920]/10 text-[#163920] text-[10px]">
               {orders.length}
             </span>
@@ -1398,80 +1457,81 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                 )}
               </div>
 
-              {/* أزرار تنقل مراحل الطلبات للهاتف الصغير */}
+              {/* أزرار تنقل الفروع للهاتف الصغير */}
               <div className="flex lg:hidden items-center gap-1 overflow-x-auto no-scrollbar py-1">
                 <button
                   type="button"
-                  onClick={() => setMobileStageView('all')}
+                  onClick={() => setMobileBranchView('all')}
                   className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black shrink-0 transition-colors ${
-                    mobileStageView === 'all'
+                    mobileBranchView === 'all'
                       ? 'bg-[#163920] text-white'
                       : 'bg-white text-stone-700 border border-stone-200'
                   }`}
                 >
-                  الكل ({filteredOrders.length})
+                  الكل (3 فروع)
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMobileStageView('pending')}
+                  onClick={() => setMobileBranchView('pending')}
                   className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black shrink-0 transition-colors ${
-                    mobileStageView === 'pending'
+                    mobileBranchView === 'pending'
                       ? 'bg-amber-500 text-white'
                       : 'bg-white text-amber-900 border border-amber-300'
                   }`}
                 >
-                  قيد الإنشاء ({branchPendingOrders.length})
+                  الإنشاء ({branchPendingOrders.length})
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMobileStageView('prepared')}
+                  onClick={() => setMobileBranchView('prepared')}
                   className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black shrink-0 transition-colors ${
-                    mobileStageView === 'prepared'
+                    mobileBranchView === 'prepared'
                       ? 'bg-blue-600 text-white'
                       : 'bg-white text-blue-900 border border-blue-300'
                   }`}
                 >
-                  تم التجهيز ({branchPreparedOrders.length})
+                  التجهيز ({branchPreparedOrders.length})
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMobileStageView('delivered')}
+                  onClick={() => setMobileBranchView('delivered')}
                   className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black shrink-0 transition-colors ${
-                    mobileStageView === 'delivered'
+                    mobileBranchView === 'delivered'
                       ? 'bg-emerald-600 text-white'
                       : 'bg-white text-emerald-900 border border-emerald-300'
                   }`}
                 >
-                  تم التسليم ({branchDeliveredOrders.length})
+                  التسليم ({branchDeliveredOrders.length})
                 </button>
               </div>
             </div>
 
-            {/* ═══════════ المراحل الرئيسية (قيد الإنشاء، تم التجهيز، تم التسليم) ═══════════ */}
+            {/* ═══════════ الفروع الثلاثة الرئيسية (الفرع الأيمن، الفرع الأوسط، الفرع الأيسر) ═══════════ */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-5">
               {isLoading ? (
                 <div className="py-20 text-center">
                   <Loader2 className="w-9 h-9 text-[#163920] animate-spin mx-auto mb-3" />
-                  <p className="text-xs text-[#787163] font-black">جارٍ تحميل بيانات الطلبات...</p>
+                  <p className="text-xs text-[#787163] font-black">جارٍ تحميل بيانات الفروع والطلبات...</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                   {/* ──────────────────────────────────────────
-                      1. قيد الإنشاء
+                      1. الفرع الأيمن: قيد الإنشاء
                   ────────────────────────────────────────── */}
                   <section
                     className={`flex flex-col bg-[#F7F4EC]/60 rounded-3xl border-2 border-amber-200/80 p-3 sm:p-4 min-h-[350px] transition-all ${
-                      mobileStageView !== 'all' && mobileStageView !== 'pending' ? 'hidden lg:flex' : 'flex'
+                      mobileBranchView !== 'all' && mobileBranchView !== 'pending' ? 'hidden lg:flex' : 'flex'
                     }`}
                   >
-                    {/* رأس قسم قيد الإنشاء */}
+                    {/* رأس الفرع الأيمن */}
                     <div className="flex items-center justify-between pb-3 mb-3 border-b-2 border-amber-300/70">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs font-black text-sm">
                           1
                         </div>
                         <div>
-                          <h3 className="font-black text-sm text-[#112616]">قيد الإنشاء</h3>
+                          <h3 className="font-black text-sm text-[#112616]">الفرع الأيمن: قيد الإنشاء</h3>
+                          <span className="text-[10px] text-amber-800 font-bold">بانتظار المراجعة والتأكيد</span>
                         </div>
                       </div>
                       <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black tabular-nums">
@@ -1479,26 +1539,27 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                       </span>
                     </div>
 
-                    {/* بطاقات قيد الإنشاء */}
+                    {/* بطاقات الفرع الأيمن */}
                     {renderPendingBranchCards()}
                   </section>
 
                   {/* ──────────────────────────────────────────
-                      2. تم التجهيز
+                      2. الفرع الأوسط: تم التجهيز
                   ────────────────────────────────────────── */}
                   <section
                     className={`flex flex-col bg-[#F7F4EC]/60 rounded-3xl border-2 border-blue-200/80 p-3 sm:p-4 min-h-[350px] transition-all ${
-                      mobileStageView !== 'all' && mobileStageView !== 'prepared' ? 'hidden lg:flex' : 'flex'
+                      mobileBranchView !== 'all' && mobileBranchView !== 'prepared' ? 'hidden lg:flex' : 'flex'
                     }`}
                   >
-                    {/* رأس قسم تم التجهيز */}
+                    {/* رأس الفرع الأوسط */}
                     <div className="flex items-center justify-between pb-3 mb-3 border-b-2 border-blue-300/70">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs font-black text-sm">
                           2
                         </div>
                         <div>
-                          <h3 className="font-black text-sm text-[#112616]">تم التجهيز</h3>
+                          <h3 className="font-black text-sm text-[#112616]">الفرع الأوسط: تم التجهيز</h3>
+                          <span className="text-[10px] text-blue-800 font-bold">تخصيص السائق والاستدعاء</span>
                         </div>
                       </div>
                       <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-900 border border-blue-300 text-xs font-black tabular-nums">
@@ -1506,34 +1567,47 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                       </span>
                     </div>
 
-                    {/* بطاقات تم التجهيز */}
+                    {/* بطاقات الفرع الأوسط */}
                     {renderPreparedBranchCards()}
                   </section>
 
                   {/* ──────────────────────────────────────────
-                      3. تم التسليم
+                      3. الفرع الأيسر: تم التسليم
                   ────────────────────────────────────────── */}
                   <section
                     className={`flex flex-col bg-[#F7F4EC]/60 rounded-3xl border-2 border-emerald-200/80 p-3 sm:p-4 min-h-[350px] transition-all ${
-                      mobileStageView !== 'all' && mobileStageView !== 'delivered' ? 'hidden lg:flex' : 'flex'
+                      mobileBranchView !== 'all' && mobileBranchView !== 'delivered' ? 'hidden lg:flex' : 'flex'
                     }`}
                   >
-                    {/* رأس قسم تم التسليم */}
+                    {/* رأس الفرع الأيسر */}
                     <div className="flex items-center justify-between pb-3 mb-3 border-b-2 border-emerald-300/70">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs font-black text-sm">
                           3
                         </div>
                         <div>
-                          <h3 className="font-black text-sm text-[#112616]">تم التسليم</h3>
+                          <h3 className="font-black text-sm text-[#112616]">الفرع الأيسر: تم التسليم</h3>
+                          <span className="text-[10px] text-emerald-800 font-bold">تأكيد الدفع والأرشفة</span>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-black tabular-nums">
-                        {branchDeliveredOrders.length}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {archivedCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowArchived((v) => !v)}
+                            className="text-[10px] font-black px-2 py-0.5 rounded-full bg-stone-200 text-stone-700 hover:bg-stone-300 transition-colors cursor-pointer"
+                            title="إظهار أو إخفاء الطلبات المؤرشفة"
+                          >
+                            {showArchived ? 'إخفاء الأرشيف' : `الأرشيف (${archivedCount})`}
+                          </button>
+                        )}
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-black tabular-nums">
+                          {branchDeliveredOrders.length}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* بطاقات مرحلة تم التسليم */}
+                    {/* بطاقات الفرع الأيسر */}
                     {renderDeliveredBranchCards()}
                   </section>
                 </div>
@@ -1548,9 +1622,9 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                   <strong className="text-[#112616] text-xs tabular-nums">{orders.length}</strong>
                 </span>
                 <span>•</span>
-                <span className="text-amber-800">قيد الإنشاء: {branchPendingOrders.length}</span>
-                <span className="text-blue-800">تم التجهيز: {branchPreparedOrders.length}</span>
-                <span className="text-emerald-800">تم التسليم: {branchDeliveredOrders.length}</span>
+                <span className="text-amber-800">الإنشاء: {branchPendingOrders.length}</span>
+                <span className="text-blue-800">التجهيز: {branchPreparedOrders.length}</span>
+                <span className="text-emerald-800">التسليم: {branchDeliveredOrders.length}</span>
               </div>
               {onClose && (
                 <button

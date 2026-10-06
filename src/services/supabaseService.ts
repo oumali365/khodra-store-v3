@@ -1161,7 +1161,7 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
     vehicleType: 'moto',
     zonePreference: 'north',
     status: 'available',
-    commissionPerOrder: 11,
+    commissionPerOrder: 25,
     vehiclePlate: '12-A-3456',
     address: 'حي الأطلس، شارع النرجس، فاس',
     notes: 'خبير بشوارع فاس وشارع الجيش الملكي وطريق مكناس',
@@ -1176,7 +1176,7 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
     vehicleType: 'moto',
     zonePreference: 'central',
     status: 'available',
-    commissionPerOrder: 10,
+    commissionPerOrder: 25,
     vehiclePlate: '18-B-7890',
     address: 'المدينة الجديدة، قرب ساحة فلورنس، فاس',
     notes: 'متخصص بأحياء الأطلس، الدكارات، والمدينة الجديدة',
@@ -1191,7 +1191,7 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
     vehicleType: 'car',
     zonePreference: 'south',
     status: 'on_delivery',
-    commissionPerOrder: 13,
+    commissionPerOrder: 30,
     vehiclePlate: '22-C-1122',
     address: 'حي بنسودة، تجزئة الأمل، فاس',
     notes: 'سيارة مجهزة لصناديق الخضار العائلية الكبيرة (طريق إيموزار وعين الشقف)',
@@ -1206,7 +1206,7 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
     vehicleType: 'van',
     zonePreference: 'all',
     status: 'available',
-    commissionPerOrder: 12,
+    commissionPerOrder: 35,
     vehiclePlate: '15-D-9988',
     address: 'طريق عين السمن، فاس',
     notes: 'فان نقل مبرد للجولات الكبرى والطلبات المجمعة',
@@ -1221,7 +1221,7 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
     vehicleType: 'moto',
     zonePreference: 'east',
     status: 'available',
-    commissionPerOrder: 11,
+    commissionPerOrder: 25,
     vehiclePlate: '30-A-5544',
     address: 'حي الزهور 2، طريق صفرو، فاس',
     notes: 'خبير بأحياء الزهور وفاس البالي والرصيف وباب الفتوح',
@@ -1497,9 +1497,10 @@ export async function batchAssignZoneOrders(params: {
 }
 
 /**
- * إغلاق الجولة وتأكيد التسليم:
+ * إغلاق الجولة وتأكيد التسليم ونقل الطلبات تلقائياً إلى الأرشيف:
  * - تحديث حالة جميع طلبات هذه الجولة إلى "تم التسليم" (delivered)
  * - تحديث dispatchStatus إلى "delivered"
+ * - أرشفة الطلبات تلقائياً في التخزين المحلي (khodra_archived_orders)
  * - تحديث حالة السائق وإرجاعه إلى "متاح" (available) مع زيادة إجمالي الطلبات المنجزة
  */
 export async function closeAndDeliverZoneTour(params: {
@@ -1563,7 +1564,7 @@ export async function closeAndDeliverZoneTour(params: {
   return {
     success: true,
     deliveredCount: count,
-    message: `تم إغلاق الجولة وتأكيد تسليم ${count} طلبات بنجاح!`,
+    message: `تم إغلاق الجولة وتأكيد تسليم ${count} طلبات بنجاح، ونقلها تلقائياً إلى الأرشيف!`,
   };
 }
 
