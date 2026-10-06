@@ -3,6 +3,7 @@
 // مُصحَّح: تنظيف items + RLS + RPC للطلبات
 // ============================================================
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { logger } from '../utils/logger';
 import {
   Product,
   OrderSubmission,
@@ -11,6 +12,7 @@ import {
   StoreDriver,
   DriverStatus,
   DriverVehicleType,
+  FastAppCourier,
 } from '../types';
 import { STORE_CONFIG } from '../data/config';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
@@ -469,6 +471,11 @@ export interface DbOrder {
   security_flags?: Record<string, any>;
   // ─── بيانات التوصيل الفوري والسائق (inDrive, DONE, Yassir) ───
   delivery_dispatch?: DeliveryDispatchInfo;
+  // ─── بيانات الدفع والأرشفة ───
+  is_paid?: boolean;
+  paid_at?: string | null;
+  is_archived?: boolean;
+  archived_at?: string | null;
 }
 
 // ─── كشف مسار فاس تلقائياً من العنوان للتجميع الذكي (4 مسارات ذكية) ───
@@ -811,6 +818,20 @@ function mapRowToOrder(row: any): DbOrder {
         ? safeRow.security_flags
         : undefined,
     delivery_dispatch: finalDispatch,
+    is_paid: safeRow.is_paid !== undefined ? Boolean(safeRow.is_paid) : (() => {
+      try {
+        const set = new Set(JSON.parse(localStorage.getItem('khodra_paid_orders') || '[]'));
+        return set.has(orderCode) || set.has(String(rawId));
+      } catch { return false; }
+    })(),
+    paid_at: safeRow.paid_at || null,
+    is_archived: safeRow.is_archived !== undefined ? Boolean(safeRow.is_archived) : (() => {
+      try {
+        const set = new Set(JSON.parse(localStorage.getItem('khodra_archived_orders') || '[]'));
+        return set.has(orderCode) || set.has(String(rawId));
+      } catch { return false; }
+    })(),
+    archived_at: safeRow.archived_at || null,
   };
 }
 
@@ -893,6 +914,20 @@ function readLocalOrders(): DbOrder[] {
           maps_link: String(o.mapsLink || o.maps_link || ''),
           created_at: String(o.created_at || new Date().toISOString()),
           delivery_dispatch: finalDispatch,
+          is_paid: (() => {
+            try {
+              const set = new Set(JSON.parse(localStorage.getItem('khodra_paid_orders') || '[]'));
+              return Boolean(o.is_paid || set.has(orderCode) || set.has(String(o.id ?? `local-${idx}`)));
+            } catch { return Boolean(o.is_paid); }
+          })(),
+          paid_at: o.paid_at || null,
+          is_archived: (() => {
+            try {
+              const set = new Set(JSON.parse(localStorage.getItem('khodra_archived_orders') || '[]'));
+              return Boolean(o.is_archived || set.has(orderCode) || set.has(String(o.id ?? `local-${idx}`)));
+            } catch { return Boolean(o.is_archived); }
+          })(),
+          archived_at: o.archived_at || null,
         };
       });
   } catch {
@@ -1565,6 +1600,247 @@ export async function closeAndDeliverZoneTour(params: {
     success: true,
     deliveredCount: count,
     message: `تم إغلاق الجولة وتأكيد تسليم ${count} طلبات بنجاح، ونقلها تلقائياً إلى الأرشيف!`,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ─── سائقو تطبيقات التوصيل السريع (Fast App Couriers) ───
+// ═══════════════════════════════════════════════════════════════
+
+const STORAGE_KEY_FAST_COURIERS = 'khodra_fast_app_couriers';
+
+function readLocalFastCouriers(): FastAppCourier[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_FAST_COURIERS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalFastCouriers(couriers: FastAppCourier[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_FAST_COURIERS, JSON.stringify(couriers));
+  } catch {}
+}
+
+export async function fetchFastCouriers(): Promise<FastAppCourier[]> {
+  const localList = readLocalFastCouriers();
+  const client = getSupabase();
+  if (!client) return localList;
+
+  try {
+    const { data, error } = await client
+      .from('fast_app_couriers')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.warn('Supabase fetchFastCouriers warning, falling back to local storage:', error.message);
+      return localList;
+    }
+
+    if (data && Array.isArray(data)) {
+      const mapped: FastAppCourier[] = data.map((r: any) => ({
+        id: String(r.id),
+        name: String(r.name || ''),
+        app: r.app || 'indrive',
+        appNameCustom: r.app_name_custom || undefined,
+        phone: String(r.phone || ''),
+        vehicleType: r.vehicle_type || 'moto',
+        zone: r.zone || 'all',
+        typicalFare: Number(r.typical_fare) || 20,
+        notes: r.notes || undefined,
+        createdAt: r.created_at || new Date().toISOString(),
+      }));
+      writeLocalFastCouriers(mapped);
+      return mapped;
+    }
+  } catch (err) {
+    logger.warn('Network error while fetching fast couriers:', err);
+  }
+  return localList;
+}
+
+export async function saveFastCourier(
+  courier: Partial<FastAppCourier>
+): Promise<{ success: boolean; courier?: FastAppCourier; message?: string }> {
+  const localList = readLocalFastCouriers();
+  const client = getSupabase();
+  const courierId = courier.id || `fast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const cleanCourier: FastAppCourier = {
+    id: courierId,
+    name: sanitizeInput(courier.name || ''),
+    phone: sanitizeInput(courier.phone || ''),
+    app: courier.app || 'indrive',
+    appNameCustom: courier.appNameCustom ? sanitizeInput(courier.appNameCustom) : undefined,
+    vehicleType: courier.vehicleType || 'moto',
+    zone: courier.zone || 'all',
+    typicalFare: Number(courier.typicalFare) || 20,
+    notes: courier.notes ? sanitizeInput(courier.notes) : undefined,
+    createdAt: courier.createdAt || new Date().toISOString(),
+  };
+
+  const existingIdx = localList.findIndex((c) => c.id === courierId);
+  let updatedList: FastAppCourier[];
+  if (existingIdx >= 0) {
+    updatedList = [...localList];
+    updatedList[existingIdx] = cleanCourier;
+  } else {
+    updatedList = [cleanCourier, ...localList];
+  }
+  writeLocalFastCouriers(updatedList);
+
+  if (client) {
+    try {
+      const payload: Record<string, unknown> = {
+        name: cleanCourier.name,
+        phone: cleanCourier.phone,
+        app: cleanCourier.app,
+        app_name_custom: cleanCourier.appNameCustom || null,
+        vehicle_type: cleanCourier.vehicleType,
+        zone: cleanCourier.zone,
+        typical_fare: cleanCourier.typicalFare,
+        notes: cleanCourier.notes || null,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      };
+      if (courier.id && !courier.id.startsWith('fast-')) {
+        payload.id = courier.id;
+      }
+      const { data, error } = await client
+        .from('fast_app_couriers')
+        .upsert(payload)
+        .select()
+        .single();
+      if (!error && data) {
+        cleanCourier.id = String(data.id);
+        return { success: true, courier: cleanCourier, message: 'تم حفظ الكابتن بنجاح ومزامنته سحابياً' };
+      }
+      logger.warn('Supabase saveFastCourier fallback to local:', error?.message);
+    } catch (e) {
+      logger.warn('saveFastCourier network error, saved locally:', e);
+    }
+  }
+
+  return { success: true, courier: cleanCourier, message: 'تم حفظ الكابتن بنجاح' };
+}
+
+export async function deleteFastCourier(id: string): Promise<{ success: boolean; message?: string }> {
+  const localList = readLocalFastCouriers();
+  writeLocalFastCouriers(localList.filter((c) => c.id !== id));
+  const client = getSupabase();
+  if (client && !id.startsWith('fast-')) {
+    try {
+      await client.from('fast_app_couriers').delete().eq('id', id);
+    } catch (e) {
+      logger.warn('deleteFastCourier network error, deleted locally:', e);
+    }
+  }
+  return { success: true, message: 'تم حذف الكابتن بنجاح' };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ─── تحديث الدفع والأرشفة وجلب طلب مفرد ───
+// ═══════════════════════════════════════════════════════════════
+
+export async function fetchSingleOrder(orderId: string | number): Promise<DbOrder | null> {
+  const client = getSupabase();
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('orders')
+        .select('*')
+        .or(`id.eq.${orderId},order_code.eq.${orderId}`)
+        .maybeSingle();
+      if (!error && data) {
+        return mapRowToOrder(data);
+      }
+    } catch (err) {
+      logger.warn('fetchSingleOrder network error:', err);
+    }
+  }
+  const localOrders = readLocalOrders();
+  return (
+    localOrders.find(
+      (o) => String(o.id) === String(orderId) || o.order_code === String(orderId)
+    ) || null
+  );
+}
+
+export async function updateOrderPayment(
+  orderId: string | number,
+  isPaid: boolean
+): Promise<{ success: boolean; message?: string }> {
+  const STORAGE_KEY_PAID = 'khodra_paid_orders';
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PAID);
+    const set = new Set<string>(raw ? JSON.parse(raw) : []);
+    const strId = String(orderId);
+    if (isPaid) {
+      set.add(strId);
+    } else {
+      set.delete(strId);
+    }
+    localStorage.setItem(STORAGE_KEY_PAID, JSON.stringify(Array.from(set)));
+  } catch {}
+
+  const client = getSupabase();
+  if (client && !String(orderId).startsWith('local-')) {
+    try {
+      const updateData = {
+        is_paid: isPaid,
+        paid_at: isPaid ? new Date().toISOString() : null,
+      };
+      await client
+        .from('orders')
+        .update(updateData)
+        .or(`id.eq.${orderId},order_code.eq.${orderId}`);
+    } catch (err) {
+      logger.warn('updateOrderPayment Supabase sync warning, saved locally:', err);
+    }
+  }
+
+  return { success: true, message: isPaid ? 'تم تأكيد استلام المبلغ' : 'تم إلغاء تأكيد الدفع' };
+}
+
+export async function updateOrderArchive(
+  orderId: string | number,
+  isArchived: boolean
+): Promise<{ success: boolean; message?: string }> {
+  const STORAGE_KEY_ARCHIVED = 'khodra_archived_orders';
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ARCHIVED);
+    const set = new Set<string>(raw ? JSON.parse(raw) : []);
+    const strId = String(orderId);
+    if (isArchived) {
+      set.add(strId);
+    } else {
+      set.delete(strId);
+    }
+    localStorage.setItem(STORAGE_KEY_ARCHIVED, JSON.stringify(Array.from(set)));
+  } catch {}
+
+  const client = getSupabase();
+  if (client && !String(orderId).startsWith('local-')) {
+    try {
+      const updateData = {
+        is_archived: isArchived,
+        archived_at: isArchived ? new Date().toISOString() : null,
+      };
+      await client
+        .from('orders')
+        .update(updateData)
+        .or(`id.eq.${orderId},order_code.eq.${orderId}`);
+    } catch (err) {
+      logger.warn('updateOrderArchive Supabase sync warning, saved locally:', err);
+    }
+  }
+
+  return {
+    success: true,
+    message: isArchived ? 'تم نقل الطلب إلى الأرشيف' : 'تم استعادة الطلب من الأرشيف',
   };
 }
 
