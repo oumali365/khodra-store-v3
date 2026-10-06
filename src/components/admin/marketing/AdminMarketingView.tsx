@@ -479,37 +479,21 @@ export const AdminMarketingView: React.FC = () => {
   return (
     <div className="space-y-6 text-right" dir="rtl">
       {/* ═══════ الرأس الترحيبي لمركز التسويق ═══════ */}
-      <div className="bg-gradient-to-l from-[#0C2D48] via-[#0E3A5D] to-[#071E30] rounded-3xl p-5 sm:p-7 text-white border-2 border-[#0284C7]/50 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-black">
-              <Share2 className="w-3.5 h-3.5 text-[#FEF08A]" />
-              <span>مركز النشر والترويج اليومي الذكي • فاس</span>
+      <div className="bg-gradient-to-l from-[#0C2D48] via-[#0E3A5D] to-[#071E30] rounded-2xl p-4 sm:p-5 text-white border border-[#0284C7]/40 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-60 h-60 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center border border-cyan-500/30">
+              <Share2 className="w-4 h-4 text-[#FEF08A]" />
             </div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black font-['Almarai'] text-white">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-black font-['Almarai'] text-white">
               إدارة النشر والتسويق الاجتماعي
             </h1>
-            <p className="text-xs sm:text-sm text-cyan-100/90 font-medium max-w-2xl leading-relaxed">
-              توليد عروض اليوم من سوق بنسودة آلياً، إدراج أسعار الخضر والفواكه الحية، ونشرها بنقرة واحدة على واتساب وشبكات التواصل.
-            </p>
-          </div>
-
-          {/* عداد المنشورات والمؤشر */}
-          <div className="flex items-center gap-3 shrink-0 bg-black/25 backdrop-blur-md p-3.5 rounded-2xl border border-white/15">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#0369A1] flex items-center justify-center shadow-md">
-              <TrendingUp className="w-6 h-6 text-[#FEF08A]" />
-            </div>
-            <div>
-              <span className="text-[10px] text-cyan-200 block font-bold">إجمالي المنشورات</span>
-              <span className="text-2xl font-black text-white tabular-nums">{shareCount}</span>
-              <span className="text-[10px] text-stone-300 mr-1 font-medium">مشاركة ناجحة</span>
-            </div>
           </div>
         </div>
 
         {/* أزرار التبويبات الرئيسية */}
-        <div className="mt-6 pt-4 border-t border-cyan-500/30 flex items-center gap-2 flex-wrap">
+        <div className="mt-4 pt-3 border-t border-cyan-500/20 flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setActiveTab('composer')}
@@ -632,36 +616,6 @@ export const AdminMarketingView: React.FC = () => {
                 <ShoppingBag className="w-3.5 h-3.5 text-[#F5D76E]" />
                 <span>إدراج أسعار الخضر والفواكه الحية في المنشور</span>
               </button>
-
-              <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-stone-200">
-                <Tag className="w-3.5 h-3.5 text-[#EA580C] mr-1.5" />
-                <span className="text-[11px] font-bold text-stone-600 ml-1">إضافة خصم:</span>
-                {[10, 15, 20].map((pct) => (
-                  <button
-                    key={pct}
-                    type="button"
-                    onClick={() => handleApplyDiscount(pct)}
-                    className="px-2 py-1 rounded-lg text-[10px] font-black bg-stone-100 hover:bg-amber-100 hover:text-amber-900 text-stone-700 transition cursor-pointer"
-                  >
-                    {pct}%
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-stone-200">
-                <MapPin className="w-3.5 h-3.5 text-blue-600 mr-1.5" />
-                <span className="text-[11px] font-bold text-stone-600 ml-1">توجيه لحي:</span>
-                {['طريق إيموزار', 'النرجس', 'الأطلس', 'عين الشقف'].map((z) => (
-                  <button
-                    key={z}
-                    type="button"
-                    onClick={() => handleAddZone(z)}
-                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-stone-100 hover:bg-blue-100 hover:text-blue-900 text-stone-700 transition cursor-pointer"
-                  >
-                    {z}
-                  </button>
-                ))}
-              </div>
             </div>
 
             <button

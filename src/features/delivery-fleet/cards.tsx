@@ -238,56 +238,49 @@ export interface ProviderCardProps {
   provider: {
     id: DeliveryProvider;
     name: string;
-    tagline: string;
     badgeClass: string;
     icon: string;
     appUrl: string;
     recommended: boolean;
-    avgCost: string;
+    tagline?: string;
+    avgCost?: string;
   };
 }
 
 /**
- * بطاقة شركة توصيل خارجية
+ * بطاقة شركة وتطبيق توصيل خارجي مبسطة وأنيقة
  */
 export const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   return (
     <div
-      className={`border-2 rounded-xl p-3.5 flex flex-col justify-between transition-all ${
+      className={`border rounded-xl p-3 flex flex-col justify-between transition-all bg-white hover:border-emerald-500 shadow-xs hover:shadow-sm ${
         provider.recommended
-          ? 'border-emerald-500 bg-emerald-50/50 shadow-sm'
-          : 'border-stone-200 bg-stone-50 hover:bg-white'
+          ? 'border-emerald-500/70 bg-emerald-50/20'
+          : 'border-stone-200'
       }`}
     >
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xl">{provider.icon}</span>
-          {provider.recommended && (
-            <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full">
-              موصى به
-            </span>
-          )}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xl p-1.5 rounded-lg bg-stone-100">{provider.icon}</span>
+          <h4 className="font-black text-xs sm:text-sm text-stone-900">{provider.name}</h4>
         </div>
-        <h4 className="font-black text-sm text-stone-900">{provider.name}</h4>
-        <p className="text-[11px] text-stone-600 leading-snug mt-1 mb-2">{provider.tagline}</p>
-        <div className="text-[11px] text-stone-700 font-bold bg-white p-2 rounded border border-stone-200 mb-3">
-          التكلفة: <span className="text-emerald-700">{provider.avgCost}</span>
-        </div>
+        {provider.recommended && (
+          <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+            موصى به
+          </span>
+        )}
       </div>
-      {provider.appUrl ? (
+
+      {provider.appUrl && (
         <a
           href={provider.appUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full py-2 px-3 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+          className="w-full py-1.5 px-3 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
           <ExternalLink className="w-3.5 h-3.5" />
           <span>فتح التطبيق</span>
         </a>
-      ) : (
-        <div className="text-center py-2 px-3 text-xs font-bold text-emerald-800 bg-emerald-100/60 rounded-lg">
-          فريق خُضرة الداخلي 🛵
-        </div>
       )}
     </div>
   );

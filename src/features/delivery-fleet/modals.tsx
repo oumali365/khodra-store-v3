@@ -478,23 +478,31 @@ export const DriverFormModal: React.FC<DriverFormModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden text-right">
+      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden text-right flex flex-col max-h-[92vh]">
+        {/* الترويسة العصرية */}
         <div
-          className={`p-4 text-white flex items-center justify-between ${
+          className={`p-4 text-white flex items-center justify-between shrink-0 ${
             isInternal
               ? 'bg-gradient-to-l from-[#163920] to-[#0E2615]'
               : 'bg-gradient-to-l from-amber-600 to-amber-700'
           }`}
         >
-          <div className="flex items-center gap-2">
-            {isInternal ? <Bike className="w-5 h-5 text-[#F5D76E]" /> : <Car className="w-5 h-5 text-amber-200" />}
-            <h3 className="font-black text-base">
-              {initialData
-                ? `تعديل بيانات: ${initialData.name}`
-                : isInternal
-                ? 'إضافة سائق جديد للفريق'
-                : 'إضافة كابتن تطبيق جديد'}
-            </h3>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-xs">
+              {isInternal ? <Bike className="w-5 h-5 text-[#F5D76E]" /> : <Car className="w-5 h-5 text-amber-200" />}
+            </div>
+            <div>
+              <h3 className="font-black text-sm sm:text-base leading-tight">
+                {initialData
+                  ? `تعديل بيانات: ${initialData.name}`
+                  : isInternal
+                  ? 'إضافة سائق جديد للفريق الداخلي'
+                  : 'إضافة كابتن تطبيق جديد'}
+              </h3>
+              <p className="text-[10px] text-white/80 font-medium mt-0.5">
+                {isInternal ? 'سائق تابع لمتجر خُضرة مباشرة' : 'كابتن من تطبيقات التوصيل الخارجي'}
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -505,201 +513,225 @@ export const DriverFormModal: React.FC<DriverFormModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-black text-stone-700 mb-1">
-                اسم {isInternal ? 'السائق' : 'الكابتن'} الكامل: *
-              </label>
-              <input
-                type="text"
-                required
-                value={isInternal ? internalForm.name : fastForm.name}
-                onChange={(e) =>
-                  isInternal
-                    ? setInternalForm({ ...internalForm, name: e.target.value })
-                    : setFastForm({ ...fastForm, name: e.target.value })
-                }
-                placeholder="مثال: يوسف العلمي"
-                className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 focus:outline-emerald-600 font-bold"
-              />
+        {/* نموذج الإدخال المنظم في أقسام عصرية */}
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
+          {/* القسم 1: بيانات الهوية والتواصل */}
+          <div className="bg-stone-50/80 p-3 sm:p-3.5 rounded-2xl border border-stone-200/70 space-y-2.5">
+            <div className="text-[11px] font-black text-stone-700 flex items-center gap-1.5 pb-1 border-b border-stone-200/60">
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
+              <span>المعلومات الأساسية والتواصل</span>
             </div>
 
-            <div>
-              <label className="block text-[11px] font-black text-stone-700 mb-1">
-                رقم الهاتف / الواتساب: *
-              </label>
-              <input
-                type="tel"
-                required
-                value={isInternal ? internalForm.phone : fastForm.phone}
-                onChange={(e) =>
-                  isInternal
-                    ? setInternalForm({ ...internalForm, phone: e.target.value })
-                    : setFastForm({ ...fastForm, phone: e.target.value })
-                }
-                placeholder="06XXXXXXXX"
-                dir="ltr"
-                className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 focus:outline-emerald-600 font-mono text-left font-bold"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {!isInternal ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-[11px] font-black text-stone-700 mb-1">
-                  تطبيق التوصيل:
-                </label>
-                <select
-                  value={fastForm.app}
-                  onChange={(e) =>
-                    setFastForm({ ...fastForm, app: e.target.value as FastDeliveryApp })
-                  }
-                  className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-bold focus:outline-amber-600 bg-white"
-                >
-                  <option value="indrive">🟢 inDrive (إن درايف)</option>
-                  <option value="glovo">🟡 Glovo (غلوفو)</option>
-                  <option value="yassir">🔴 Yassir (يسير)</option>
-                  <option value="careem">🟢 Careem (كريم)</option>
-                  <option value="other">⚪ تطبيق آخر / كابتن حر</option>
-                </select>
-              </div>
-            ) : null}
-
-            <div>
-              <label className="block text-[11px] font-black text-stone-700 mb-1">
-                وسيلة النقل:
-              </label>
-              <select
-                value={isInternal ? internalForm.vehicleType : fastForm.vehicleType}
-                onChange={(e) =>
-                  isInternal
-                    ? setInternalForm({
-                        ...internalForm,
-                        vehicleType: e.target.value as DriverVehicleType,
-                      })
-                    : setFastForm({
-                        ...fastForm,
-                        vehicleType: e.target.value as DriverVehicleType,
-                      })
-                }
-                className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-bold focus:outline-emerald-600 bg-white"
-              >
-                <option value="moto">🏍️ دراجة نارية</option>
-                <option value="car">🚗 سيارة</option>
-                <option value="van">🚐 فان / شاحنة</option>
-                <option value="scooter">🛵 سكوتر</option>
-                <option value="bicycle">🚲 دراجة هوائية</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-black text-stone-700 mb-1">
-                {isInternal ? 'أجرة التوصيل (د.م/طلب):' : 'متوسط الأجرة (د.م):'}
-              </label>
-              <input
-                type="number"
-                min="10"
-                max="100"
-                value={isInternal ? internalForm.commissionPerOrder : fastForm.typicalFare}
-                onChange={(e) =>
-                  isInternal
-                    ? setInternalForm({
-                        ...internalForm,
-                        commissionPerOrder: Number(e.target.value) || 25,
-                      })
-                    : setFastForm({
-                        ...fastForm,
-                        typicalFare: Number(e.target.value) || 20,
-                      })
-                }
-                className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-black focus:outline-emerald-600"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-black text-stone-700 mb-1">
-              المنطقة المفضلة بفاس:
-            </label>
-            <select
-              value={isInternal ? internalForm.zonePreference : fastForm.zone}
-              onChange={(e) =>
-                isInternal
-                  ? setInternalForm({
-                      ...internalForm,
-                      zonePreference: e.target.value as FezZoneId | 'all',
-                    })
-                  : setFastForm({
-                      ...fastForm,
-                      zone: e.target.value as FezZoneId | 'all',
-                    })
-              }
-              className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-bold focus:outline-emerald-600 bg-white"
-            >
-              <option value="all">🌟 جميع أحياء فاس</option>
-              <option value="east">🟣 المنطقة الشرقية (الزهور/فاس البالي)</option>
-              <option value="central">🟡 المنطقة الوسطى (الأطلس/فلورنس)</option>
-              <option value="south">🟠 المنطقة الجنوبية (بنسودة/زواغة)</option>
-              <option value="north">🟢 المنطقة الشمالية (سايس/النرجس)</option>
-            </select>
-          </div>
-
-          {isInternal && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-black text-stone-700 mb-1">
-                  الحالة الحالية:
-                </label>
-                <select
-                  value={internalForm.status}
-                  onChange={(e) =>
-                    setInternalForm({ ...internalForm, status: e.target.value as DriverStatus })
-                  }
-                  className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 font-bold focus:outline-emerald-600 bg-white"
-                >
-                  <option value="available">🟢 متاح وجاهز للتوصيل</option>
-                  <option value="on_delivery">🟡 في جولة توصيل حالياً</option>
-                  <option value="off_duty">⚪ خارج الخدمة / إجازة</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-black text-stone-700 mb-1">
-                  رقم اللوحة / تفاصيل المركبة:
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  اسم {isInternal ? 'السائق' : 'الكابتن'} الكامل: *
                 </label>
                 <input
                   type="text"
-                  value={internalForm.vehiclePlate || ''}
+                  required
+                  value={isInternal ? internalForm.name : fastForm.name}
                   onChange={(e) =>
-                    setInternalForm({ ...internalForm, vehiclePlate: e.target.value })
+                    isInternal
+                      ? setInternalForm({ ...internalForm, name: e.target.value })
+                      : setFastForm({ ...fastForm, name: e.target.value })
                   }
-                  placeholder="مثال: 12-أ-3456"
-                  className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 focus:outline-emerald-600 font-mono text-left"
+                  placeholder="مثال: يوسف العلمي"
+                  className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-emerald-600 focus:border-emerald-600 font-bold shadow-2xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  رقم الهاتف / الواتساب: *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={isInternal ? internalForm.phone : fastForm.phone}
+                  onChange={(e) =>
+                    isInternal
+                      ? setInternalForm({ ...internalForm, phone: e.target.value })
+                      : setFastForm({ ...fastForm, phone: e.target.value })
+                  }
+                  placeholder="06XXXXXXXX"
                   dir="ltr"
+                  className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-emerald-600 focus:border-emerald-600 font-mono text-left font-bold shadow-2xs"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* القسم 2: تفاصيل النقل والمنطقة والأجرة */}
+          <div className="bg-stone-50/80 p-3 sm:p-3.5 rounded-2xl border border-stone-200/70 space-y-2.5">
+            <div className="text-[11px] font-black text-stone-700 flex items-center gap-1.5 pb-1 border-b border-stone-200/60">
+              <span className="w-2 h-2 rounded-full bg-amber-600" />
+              <span>المركبة وتكلفة ونطاق التوصيل</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {!isInternal ? (
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                    تطبيق التوصيل:
+                  </label>
+                  <select
+                    value={fastForm.app}
+                    onChange={(e) =>
+                      setFastForm({ ...fastForm, app: e.target.value as FastDeliveryApp })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-stone-900 font-bold focus:outline-amber-600 shadow-2xs"
+                  >
+                    <option value="indrive">🟢 inDrive</option>
+                    <option value="glovo">🟡 Glovo</option>
+                    <option value="yassir">🔴 Yassir</option>
+                    <option value="careem">🟢 Careem</option>
+                    <option value="other">⚪ كابتن حر</option>
+                  </select>
+                </div>
+              ) : null}
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  وسيلة النقل:
+                </label>
+                <select
+                  value={isInternal ? internalForm.vehicleType : fastForm.vehicleType}
+                  onChange={(e) =>
+                    isInternal
+                      ? setInternalForm({
+                          ...internalForm,
+                          vehicleType: e.target.value as DriverVehicleType,
+                        })
+                      : setFastForm({
+                          ...fastForm,
+                          vehicleType: e.target.value as DriverVehicleType,
+                        })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-stone-900 font-bold focus:outline-emerald-600 shadow-2xs"
+                >
+                  <option value="moto">🏍️ دراجة نارية</option>
+                  <option value="car">🚗 سيارة</option>
+                  <option value="scooter">🛵 سكوتر</option>
+                  <option value="van">🚐 فان / شاحنة</option>
+                  <option value="bicycle">🚲 دراجة هوائية</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  {isInternal ? 'أجرة التوصيل (د.م/طلب):' : 'متوسط الأجرة (د.م):'}
+                </label>
+                <input
+                  type="number"
+                  min="10"
+                  max="100"
+                  value={isInternal ? internalForm.commissionPerOrder : fastForm.typicalFare}
+                  onChange={(e) =>
+                    isInternal
+                      ? setInternalForm({
+                          ...internalForm,
+                          commissionPerOrder: Number(e.target.value) || 25,
+                        })
+                      : setFastForm({
+                          ...fastForm,
+                          typicalFare: Number(e.target.value) || 20,
+                        })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-stone-900 font-black focus:outline-emerald-600 shadow-2xs tabular-nums text-center"
+                />
+              </div>
+
+              <div className={!isInternal ? 'sm:col-span-1' : ''}>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  المنطقة المفضلة بفاس:
+                </label>
+                <select
+                  value={isInternal ? internalForm.zonePreference : fastForm.zone}
+                  onChange={(e) =>
+                    isInternal
+                      ? setInternalForm({
+                          ...internalForm,
+                          zonePreference: e.target.value as FezZoneId | 'all',
+                        })
+                      : setFastForm({
+                          ...fastForm,
+                          zone: e.target.value as FezZoneId | 'all',
+                        })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-stone-900 font-bold focus:outline-emerald-600 shadow-2xs"
+                >
+                  <option value="all">🌟 جميع أحياء فاس</option>
+                  <option value="east">🟣 الشرقية (الزهور/فاس البالي)</option>
+                  <option value="central">🟡 الوسطى (الأطلس/فلورنس)</option>
+                  <option value="south">🟠 الجنوبية (بنسودة/زواغة)</option>
+                  <option value="north">🟢 الشمالية (سايس/النرجس)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* القسم 3 (خاص بالسائق الداخلي): الحالة والمركبة والعنوان */}
+          {isInternal && (
+            <div className="bg-stone-50/80 p-3 sm:p-3.5 rounded-2xl border border-stone-200/70 space-y-2.5">
+              <div className="text-[11px] font-black text-stone-700 flex items-center gap-1.5 pb-1 border-b border-stone-200/60">
+                <span className="w-2 h-2 rounded-full bg-blue-600" />
+                <span>الحالة التشغيلية وتفاصيل السكن</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                    الحالة الحالية:
+                  </label>
+                  <select
+                    value={internalForm.status}
+                    onChange={(e) =>
+                      setInternalForm({ ...internalForm, status: e.target.value as DriverStatus })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-stone-900 font-bold focus:outline-emerald-600 shadow-2xs"
+                  >
+                    <option value="available">🟢 متاح وجاهز للتوصيل</option>
+                    <option value="on_delivery">🟡 في جولة توصيل حالياً</option>
+                    <option value="off_duty">⚪ خارج الخدمة / إجازة</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                    رقم اللوحة / المركبة (اختياري):
+                  </label>
+                  <input
+                    type="text"
+                    value={internalForm.vehiclePlate || ''}
+                    onChange={(e) =>
+                      setInternalForm({ ...internalForm, vehiclePlate: e.target.value })
+                    }
+                    placeholder="مثال: 12-أ-3456"
+                    className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-emerald-600 font-mono text-left shadow-2xs"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  عنوان السائق / الحي المقيم به في فاس (اختياري):
+                </label>
+                <input
+                  type="text"
+                  value={internalForm.address || ''}
+                  onChange={(e) => setInternalForm({ ...internalForm, address: e.target.value })}
+                  placeholder="مثال: حي الأطلس، قرب ساحة العلويين، فاس"
+                  className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-emerald-600 font-bold shadow-2xs"
                 />
               </div>
             </div>
           )}
 
-          {isInternal && (
-            <div>
-              <label className="block text-[11px] font-black text-stone-700 mb-1">
-                عنوان السائق / الحي المقيم به في فاس:
-              </label>
-              <input
-                type="text"
-                value={internalForm.address || ''}
-                onChange={(e) => setInternalForm({ ...internalForm, address: e.target.value })}
-                placeholder="مثال: حي الأطلس، قرب ساحة العلويين، فاس"
-                className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 focus:outline-emerald-600 font-bold"
-              />
-            </div>
-          )}
-
+          {/* القسم 4: ملاحظات إضافية */}
           <div>
-            <label className="block text-[11px] font-black text-stone-700 mb-1">
+            <label className="block text-[11px] font-bold text-stone-700 mb-1">
               ملاحظات إضافية:
             </label>
             <textarea
@@ -711,22 +743,25 @@ export const DriverFormModal: React.FC<DriverFormModalProps> = ({
                   : setFastForm({ ...fastForm, notes: e.target.value })
               }
               placeholder="مثال: متفرغ في الفترة الصباحية، يملك صندوقاً عازلاً كبيراً..."
-              className="w-full p-2.5 rounded-xl border border-stone-300 text-stone-900 focus:outline-emerald-600 text-xs"
+              className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-stone-50/70 focus:bg-white text-stone-900 focus:outline-emerald-600 text-xs shadow-2xs transition-all"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
+          {/* أزرار الإجراءات السفلية */}
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 font-bold transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 font-bold text-xs transition-colors cursor-pointer"
             >
               إلغاء
             </button>
             <button
               type="submit"
-              className={`px-5 py-2.5 rounded-xl text-white font-black transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                isInternal ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-amber-600 hover:bg-amber-700'
+              className={`px-5 py-2 rounded-xl text-white font-black text-xs transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5 ${
+                isInternal
+                  ? 'bg-gradient-to-l from-emerald-700 to-green-800 hover:from-emerald-800 hover:to-green-900'
+                  : 'bg-gradient-to-l from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800'
               }`}
             >
               <Check className="w-4 h-4" />
