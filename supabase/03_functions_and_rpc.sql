@@ -186,21 +186,6 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.update_order_status_secure(
-  p_order_id BIGINT,
-  p_new_status TEXT,
-  p_admin_pin TEXT DEFAULT NULL
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN public.update_order_status_secure(p_order_id::TEXT, p_new_status, p_admin_pin);
-END;
-$$;
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5️⃣ دالة تحديث بيانات السائق والتوصيل بأمان (update_order_dispatch_secure)
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -278,34 +263,6 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.delete_order_secure(
-  p_order_id TEXT,
-  p_admin_pin TEXT
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN public.delete_order_secure(p_order_id, p_admin_pin, FALSE);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.delete_order_secure(
-  p_order_id BIGINT,
-  p_admin_pin TEXT DEFAULT NULL
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN public.delete_order_secure(p_order_id::TEXT, p_admin_pin, FALSE);
-END;
-$$;
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 7️⃣ دالة إفراغ سلة المحذوفات نهائياً (purge_deleted_orders_secure)
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -359,34 +316,6 @@ BEGIN
   END IF;
 
   RETURN jsonb_build_object('success', true, 'affected_rows', v_affected);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.delete_review_secure(
-  p_review_id TEXT,
-  p_admin_pin TEXT
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN public.delete_review_secure(p_review_id, p_admin_pin, FALSE);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.delete_review_secure(
-  p_review_id BIGINT,
-  p_admin_pin TEXT DEFAULT NULL
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN public.delete_review_secure(p_review_id::TEXT, p_admin_pin, FALSE);
 END;
 $$;
 
