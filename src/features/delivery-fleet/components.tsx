@@ -427,10 +427,7 @@ export const InternalDriversGrid: React.FC<InternalDriversGridProps> = ({
         </div>
       ) : drivers.length === 0 ? (
         <div className="py-8 text-center text-xs text-stone-500 bg-stone-50 rounded-xl my-3">
-          <p className="font-bold text-stone-700">لم يتم إضافة أي سائقين في الفريق الداخلي بعد.</p>
-          <p className="text-[11px] text-stone-500 mt-1">
-            انقر على زر "إضافة سائق جديد" لتسجيل أول مندوب توصيل.
-          </p>
+          <p className="font-bold text-stone-700">لم يتم إضافة أي سائقين في الفريق الداخلي.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-3.5">
@@ -459,7 +456,7 @@ export interface FastCouriersGridProps {
 }
 
 /**
- * شبكة كباتن تطبيقات التوصيل السريع (inDrive, Glovo, Yassir)
+ *  تطبيقات التوصيل السريع (inDrive, Glovo, Yassir)
  */
 export const FastCouriersGrid: React.FC<FastCouriersGridProps> = ({
   couriers,
@@ -478,14 +475,14 @@ export const FastCouriersGrid: React.FC<FastCouriersGridProps> = ({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-black text-base sm:text-lg text-stone-900">
-                سائقو تطبيقات التوصيل السريع بفاس
+                 تطبيقات التوصيل السريعة
               </h3>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-900 border border-amber-300">
-                {couriers.length} كابتن مسجل
+                {couriers.length} سائق مسجل
               </span>
             </div>
             <p className="text-xs text-stone-500 font-medium">
-              بطاقة مستقلة لإدارة والتواصل السريع مع كباتن التطبيقات (inDrive • Glovo • Yassir • Careem)
+                إدارة السائقين  
             </p>
           </div>
         </div>
@@ -496,21 +493,19 @@ export const FastCouriersGrid: React.FC<FastCouriersGridProps> = ({
           className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-l from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>إضافة كابتن تطبيق جديد</span>
+          <span>أضف سائق جديد</span>
         </button>
       </div>
 
       {isLoading ? (
         <div className="py-8 text-center text-xs text-stone-500">
           <RefreshCw className="w-5 h-5 animate-spin mx-auto text-amber-600 mb-2" />
-          <span>جاري تحميل كباتن التطبيقات...</span>
+          <span>جاري تحميل سائق جديد</span>
         </div>
       ) : couriers.length === 0 ? (
         <div className="py-8 text-center text-xs text-stone-500 bg-amber-50/50 rounded-xl border border-dashed border-amber-200">
-          <p className="font-bold text-stone-700">لم يتم إضافة كباتن تطبيقات حتى الآن.</p>
-          <p className="text-[11px] text-stone-500 mt-1">
-            انقر على "إضافة كابتن تطبيق جديد" لتسجيل كباتن inDrive أو Glovo للتواصل الفوري.
-          </p>
+          <p className="font-bold text-stone-700">أضف سائق من تطبيقات التوصيل
+الخارجية.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -530,14 +525,14 @@ export const FastCouriersGrid: React.FC<FastCouriersGridProps> = ({
 };
 
 /**
- * شبكة شركات وتطبيقات التوصيل الخارجي
+ * شركات وتطبيقات التوصيل الخارجي
  */
 export const ProviderCards: React.FC = () => {
   return (
     <div className="bg-white border-2 border-stone-200 rounded-2xl p-4 sm:p-5 shadow-sm">
       <h3 className="font-black text-base text-stone-900 mb-1 flex items-center gap-2">
         <Bike className="w-5 h-5 text-emerald-600" />
-        <span>خيارات النقل والتوصيل السريع بفاس (inDrive + DONE + Yassir + Glovo)</span>
+        <span>شركات وتطبيقات التوصيل الخارجي</span>
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
