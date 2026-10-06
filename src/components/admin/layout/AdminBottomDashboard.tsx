@@ -17,12 +17,10 @@ import {
   ExternalLink,
   Bike,
 } from 'lucide-react';
-import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
-import { clearCachedAdminPin, updateAdminPassword } from '../../services/supabaseService';
-import {
-  ChangePinModal,
-  AdminErrorBoundary,
-} from './index';
+import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
+import { clearCachedAdminPin, updateAdminPassword } from '../../../services/supabaseService';
+import { ChangePinModal } from '../modals/AdminReviewModals';
+import { AdminErrorBoundary } from './AdminErrorBoundary';
 
 export type AdminRoute = 'orders' | 'fleet' | 'finance' | 'documents' | 'marketing';
 

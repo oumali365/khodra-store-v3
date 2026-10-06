@@ -23,7 +23,7 @@ import {
   SortOption,
 } from './components/shop';
 import { ExitScreen } from './components/common';
-import { AdminErrorBoundary } from './components/admin/AdminErrorBoundary';
+import { AdminErrorBoundary } from './components/admin/layout/AdminErrorBoundary';
 import {
   verifyAdminPinRemote,
   clearCachedAdminPin,
@@ -54,28 +54,28 @@ const CustomerReviews = React.lazy(() =>
   import('./components/reviews/CustomerReviews').then((m) => ({ default: m.CustomerReviews }))
 );
 const AdminBottomDashboard = React.lazy(() =>
-  import('./components/admin/AdminBottomDashboard').then((m) => ({ default: m.AdminBottomDashboard }))
+  import('./components/admin/layout/AdminBottomDashboard').then((m) => ({ default: m.AdminBottomDashboard }))
 );
 const AdminOrdersPanel = React.lazy(() =>
-  import('./components/admin/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
+  import('./components/admin/orders/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
 );
 const AdminPageLayout = React.lazy(() =>
-  import('./components/admin/AdminPageLayout').then((m) => ({ default: m.AdminPageLayout }))
+  import('./components/admin/layout/AdminPageLayout').then((m) => ({ default: m.AdminPageLayout }))
 );
 const FinancePanel = React.lazy(() =>
-  import('./components/admin/FinancePanel').then((m) => ({ default: m.FinancePanel }))
+  import('./components/admin/finance/FinancePanel').then((m) => ({ default: m.FinancePanel }))
 );
 const AdminDeliveryFleetTab = React.lazy(() =>
-  import('./components/admin/AdminDeliveryFleetTab').then((m) => ({ default: m.AdminDeliveryFleetTab }))
+  import('./components/admin/fleet/AdminDeliveryFleetTab').then((m) => ({ default: m.AdminDeliveryFleetTab }))
 );
 const AdminDocumentsModal = React.lazy(() =>
-  import('./components/admin/AdminDocumentsModal').then((m) => ({ default: m.AdminDocumentsModal }))
+  import('./components/admin/documents/AdminDocumentsModal').then((m) => ({ default: m.AdminDocumentsModal }))
 );
 const AdminMarketingView = React.lazy(() =>
-  import('./components/admin/AdminMarketingView').then((m) => ({ default: m.AdminMarketingView }))
+  import('./components/admin/marketing/AdminMarketingView').then((m) => ({ default: m.AdminMarketingView }))
 );
 const PinModal = React.lazy(() =>
-  import('./components/admin/AdminReviewModals').then((m) => ({ default: m.PinModal }))
+  import('./components/admin/modals/AdminReviewModals').then((m) => ({ default: m.PinModal }))
 );
 
 // ─── تحميل مؤجل للصفحات الإضافية ───

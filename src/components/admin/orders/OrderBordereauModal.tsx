@@ -16,13 +16,13 @@ import {
   Send,
   ExternalLink,
 } from 'lucide-react';
-import { DbOrder, detectFezZone } from '../../services/supabaseService';
+import { DbOrder, detectFezZone } from '../../../services/supabaseService';
 import {
   STORE_CONFIG,
   DELIVERY_PROVIDERS,
   STORE_PICKUP_HUB,
   FEZ_DELIVERY_ZONES,
-} from '../../data/config';
+} from '../../../data/config';
 
 interface OrderBordereauModalProps {
   order: DbOrder | null;

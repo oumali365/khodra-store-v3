@@ -1,33 +1,34 @@
 // ============================================================
 // src/components/admin/index.ts
-// تصدير مركزي لجميع ملفات ومكونات لوحة تحكم وإدارة المدير
+// تصدير مركزي منظم لجميع مجلدات وملحقات لوحة تحكم وإدارة المتجر:
+// 1. orders/    - إدارة الطلبات والفواتير وبوالص الشحن
+// 2. fleet/     - مسارات التوصيل وفريق السائقين ومانيفست الجولات
+// 3. finance/   - اللوحة المالية والتوقعات
+// 4. marketing/ - النشر والتسويق الاجتماعي
+// 5. documents/ - وثائق المشروع وعقود SARL الرسمية
+// 6. layout/    - هيكل الإدارة والشريط السفلي والتنبيهات
+// 7. modals/    - النوافذ والملحقات المنبثقة والرمز السري
 // ============================================================
-export { AdminOrdersPanel } from './AdminOrdersPanel';
-export { AdminErrorBoundary } from './AdminErrorBoundary';
-export { AdminNotificationToast } from './AdminNotificationToast';
-export {
-  PinModal,
-  ChangePinModal,
-  DeleteReviewModal,
-} from './AdminReviewModals';
-export { OrderInvoiceModal } from './OrderInvoiceModal';
-export { OrderBordereauModal } from './OrderBordereauModal';
-export { FinancePanel } from './FinancePanel';
-export type {
-  FinancePanelProps,
-  MonthData,
-  MonthResult,
-  Assumptions,
-} from './FinancePanel';
-export { AdminDocumentsModal } from './AdminDocumentsModal';
-export type { AdminDocumentsModalProps } from './AdminDocumentsModal';
-export { AdminSocialPublisherModal } from './AdminSocialPublisherModal';
-export type { AdminSocialPublisherModalProps } from './AdminSocialPublisherModal';
-export { AdminMarketingView } from './AdminMarketingView';
-export { AdminDeliveryFleetTab } from './AdminDeliveryFleetTab';
-export type { AdminDeliveryFleetTabProps } from './AdminDeliveryFleetTab';
-export { AdminPageLayout } from './AdminPageLayout';
-export type { AdminRoute } from './AdminPageLayout';
-export { AdminBottomDashboard } from './AdminBottomDashboard';
+
+// 1. ملحق الطلبات
+export * from './orders';
+
+// 2. ملحق مسارات التوصيل والفريق
+export * from './fleet';
+
+// 3. ملحق اللوحة المالية
+export * from './finance';
+
+// 4. ملحق النشر والتسويق
+export * from './marketing';
+
+// 5. ملحق وثائق وعقود المشروع
+export * from './documents';
+
+// 6. هيكل الإدارة والشريط السفلي المشترك
+export * from './layout';
+
+// 7. النوافذ والملحقات المنبثقة والرمز السري
+export * from './modals';
 
 

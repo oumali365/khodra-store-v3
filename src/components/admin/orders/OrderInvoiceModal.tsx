@@ -3,8 +3,8 @@
 // ============================================================
 import React, { useEffect } from 'react';
 import { X, Printer, FileText, MapPin, Phone, User, Calendar, Package, TrendingUp, MessageCircle } from 'lucide-react';
-import { DbOrder, OrderStatus } from '../../services/supabaseService';
-import { STORE_CONFIG } from '../../data/config';
+import { DbOrder, OrderStatus } from '../../../services/supabaseService';
+import { STORE_CONFIG } from '../../../data/config';
 
 interface OrderInvoiceModalProps {
   order: DbOrder | null;

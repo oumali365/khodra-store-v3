@@ -51,7 +51,7 @@ import {
   fetchStoreDrivers,
   DbOrder,
   OrderStatus,
-} from '../../services/supabaseService';
+} from '../../../services/supabaseService';
 import { OrderInvoiceModal } from './OrderInvoiceModal';
 import { OrderBordereauModal } from './OrderBordereauModal';
 import {
@@ -59,14 +59,14 @@ import {
   FEZ_DELIVERY_ZONES,
   STORE_PICKUP_HUB,
   STORE_CONFIG,
-} from '../../data/config';
+} from '../../../data/config';
 import {
   DeliveryProvider,
   DeliveryDispatchStatus,
   DeliveryDispatchInfo,
   FezZoneId,
   StoreDriver,
-} from '../../types';
+} from '../../../types';
 
 export interface AdminOrdersPanelProps {
   isOpen?: boolean;

@@ -18,9 +18,9 @@ import {
   CheckCircle2,
   Bike,
 } from 'lucide-react';
-import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
-import { updateAdminPassword } from '../../services/supabaseService';
-import { ChangePinModal } from './AdminReviewModals';
+import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
+import { updateAdminPassword } from '../../../services/supabaseService';
+import { ChangePinModal } from '../modals/AdminReviewModals';
 
 export type AdminRoute = 'orders' | 'fleet' | 'finance' | 'documents' | 'marketing';
 

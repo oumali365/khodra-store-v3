@@ -56,13 +56,13 @@ import {
   deleteStoreDriver,
   closeAndDeliverZoneTour,
   detectFezZone,
-} from '../../services/supabaseService';
+} from '../../../services/supabaseService';
 import {
   DELIVERY_PROVIDERS,
   FEZ_DELIVERY_ZONES,
   STORE_PICKUP_HUB,
   STORE_CONFIG,
-} from '../../data/config';
+} from '../../../data/config';
 import {
   FezZoneId,
   StoreDriver,
@@ -70,10 +70,10 @@ import {
   DriverStatus,
   FastAppCourier,
   FastDeliveryApp,
-} from '../../types';
+} from '../../../types';
 import { TourManifestModal } from './TourManifestModal';
-import { OrderInvoiceModal } from './OrderInvoiceModal';
-import { OrderBordereauModal } from './OrderBordereauModal';
+import { OrderInvoiceModal } from '../orders/OrderInvoiceModal';
+import { OrderBordereauModal } from '../orders/OrderBordereauModal';
 
 export interface AdminDeliveryFleetTabProps {
   orders?: DbOrder[];

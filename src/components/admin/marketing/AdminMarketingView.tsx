@@ -29,9 +29,9 @@ import {
   RotateCcw,
   ShoppingBag,
 } from 'lucide-react';
-import { STORE_CONFIG } from '../../data/config';
-import { fetchProducts } from '../../services/supabaseService';
-import { Product } from '../../types';
+import { STORE_CONFIG } from '../../../data/config';
+import { fetchProducts } from '../../../services/supabaseService';
+import { Product } from '../../../types';
 
 export type MarketingTemplateId =
   | 'fresh_morning'

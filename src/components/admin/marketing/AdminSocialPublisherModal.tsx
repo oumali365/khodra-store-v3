@@ -34,7 +34,7 @@ import {
   Smartphone,
   Settings,
 } from 'lucide-react';
-import { STORE_CONFIG } from '../../data/config';
+import { STORE_CONFIG } from '../../../data/config';
 
 /* ═══════════════════════════════════════════════════════════
    1) الأنواع
