@@ -19,7 +19,7 @@ import {
   Bike,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
-import { updateAdminPassword } from '../../../services/supabaseService';
+import { updateAdminPassword, verifyAdminPinRemote } from '../../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
 
 export type AdminRoute = 'orders' | 'fleet' | 'finance' | 'documents' | 'marketing';
@@ -159,14 +159,95 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
     }
   };
 
-  useEffect(() => {
-    if (!isAdmin) {
-      handleExit();
+  // التحقق من الرمز السري عند الدخول المباشر للصفحة بدون تسجيل مسبق
+  const [inlinePin, setInlinePin] = useState('');
+  const [inlinePinError, setInlinePinError] = useState<string | null>(null);
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+
+  const handleInlinePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inlinePin.trim()) return;
+    setIsVerifyingPin(true);
+    setInlinePinError(null);
+    try {
+      const res = await verifyAdminPinRemote(inlinePin.trim());
+      if (res.valid) {
+        try {
+          sessionStorage.setItem('khodra_admin_auth', 'true');
+          localStorage.setItem('khodra_admin_auth', 'true');
+        } catch {}
+        window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
+      } else {
+        setInlinePinError(res.message || 'الرمز السري غير صحيح');
+      }
+    } catch {
+      setInlinePinError('تعذر الاتصال بالخادم للتحقق من الرمز السري');
+    } finally {
+      setIsVerifyingPin(false);
     }
-  }, [isAdmin, handleExit]);
+  };
 
   if (!isAdmin) {
-    return null;
+    return (
+      <div className="min-h-screen bg-[#F4EFE6] flex items-center justify-center p-4 selection:bg-[#EAB308]/30 font-['Tajawal']" dir="rtl">
+        <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-[#163920]/20 text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#163920] to-[#0E2615] border-2 border-[#EAB308] flex items-center justify-center mx-auto shadow-lg">
+            <ShieldCheck className="w-9 h-9 text-[#EAB308]" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-[#163920]">تسجيل دخول الإدارة</h2>
+            <p className="text-xs text-stone-600 mt-1.5 font-medium">
+              يرجى إدخال الرمز السري للوصول إلى صفحات إدارة المتجر
+            </p>
+          </div>
+          <form onSubmit={handleInlinePinSubmit} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={8}
+                value={inlinePin}
+                onChange={(e) => {
+                  setInlinePin(e.target.value);
+                  setInlinePinError(null);
+                }}
+                placeholder="أدخل الرمز السري (PIN)"
+                className="w-full text-center text-2xl tracking-[0.4em] font-mono py-3 px-4 rounded-xl border-2 border-stone-300 focus:border-[#163920] focus:ring-2 focus:ring-[#163920]/20 outline-none transition-all"
+                autoFocus
+              />
+              {inlinePinError && (
+                <p className="text-xs text-rose-600 font-bold mt-2">{inlinePinError}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={isVerifyingPin || inlinePin.length < 4}
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:from-[#1E4D2B] hover:to-[#163920] text-white font-black text-sm shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+            >
+              {isVerifyingPin ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>جارٍ التحقق...</span>
+                </>
+              ) : (
+                <>
+                  <KeyRound className="w-4 h-4 text-[#F5D76E]" />
+                  <span>تأكيد الدخول</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleExit}
+              className="w-full py-2.5 text-xs text-stone-500 hover:text-stone-800 font-bold transition-colors cursor-pointer"
+            >
+              العودة إلى المتجر الرئيسي
+            </button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (

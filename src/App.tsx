@@ -342,7 +342,10 @@ export default function App() {
   // ─── وضع المدير (Admin Mode) أسفل الفوتر ───
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     try {
-      return sessionStorage.getItem('khodra_admin_auth') === 'true';
+      return (
+        sessionStorage.getItem('khodra_admin_auth') === 'true' ||
+        localStorage.getItem('khodra_admin_auth') === 'true'
+      );
     } catch {
       return false;
     }
@@ -363,7 +366,10 @@ export default function App() {
 
     const handleAuthChanged = () => {
       try {
-        setIsAdmin(sessionStorage.getItem('khodra_admin_auth') === 'true');
+        const isAuthed =
+          sessionStorage.getItem('khodra_admin_auth') === 'true' ||
+          localStorage.getItem('khodra_admin_auth') === 'true';
+        setIsAdmin(isAuthed);
       } catch {}
     };
 
@@ -381,6 +387,7 @@ export default function App() {
       setIsAdmin(true);
       try {
         sessionStorage.setItem('khodra_admin_auth', 'true');
+        localStorage.setItem('khodra_admin_auth', 'true');
       } catch {}
       window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
       setIsAdminPinModalOpen(false);
@@ -400,6 +407,7 @@ export default function App() {
     clearCachedAdminPin();
     try {
       sessionStorage.removeItem('khodra_admin_auth');
+      localStorage.removeItem('khodra_admin_auth');
     } catch {}
     window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
   };
@@ -470,8 +478,12 @@ export default function App() {
     window.history.pushState({ page: 'main' }, '');
 
     const handlePopState = () => {
-      // 0. إذا كان مسار الإدارة مفتوحاً: الرجوع يغلق الإدارة ويعود للمتجر إلى لوحة المدير السفلية بدون خروج من التطبيق
-      if (activeAdminRouteRef.current || parseAdminRoute()) {
+      // 0. إذا كان مسار الإدارة مفتوحاً: التحقق من المسار الجديد أو العودة للوحة المدير السفلية
+      const newAdminRoute = parseAdminRoute();
+      if (newAdminRoute) {
+        setActiveAdminRoute(newAdminRoute);
+        return;
+      } else if (activeAdminRouteRef.current) {
         handleExitToBottomDashboard();
         return;
       }
