@@ -1231,6 +1231,99 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
   },
 ];
 
+// ═══════════════════════════════════════════════════════════════
+// ─── أسطول سائقي تطبيقات التوصيل السريعة (inDrive Fleet) ───
+// ═══════════════════════════════════════════════════════════════
+
+const INDRIVE_DRIVERS_STORAGE_KEY = 'khodra_indrive_drivers_v1';
+const INDRIVE_DRIVERS_SETTING_KEY = 'indrive_fleet_drivers';
+
+export const INITIAL_INDRIVE_DRIVERS: StoreDriver[] = [
+  {
+    id: 'indrive-1',
+    name: 'كابتن سفيان التازي',
+    phone: '0661998877',
+    vehicleType: 'car',
+    zonePreference: 'central',
+    status: 'available',
+    commissionPerOrder: 22,
+    vehiclePlate: '45-B-1122',
+    address: 'حي السعادة / طريق إيموزار، فاس',
+    notes: 'سيارة داسيا لوغان مجهزة - التوصيل السريع للمنطقة الوسطى وطريق عين الشقف',
+    activeOrdersCount: 0,
+    totalDeliveredCount: 84,
+    createdAt: new Date(Date.now() - 10 * 86400000).toISOString(),
+  },
+  {
+    id: 'indrive-2',
+    name: 'كابتن رشيد الفاسي',
+    phone: '0672334455',
+    vehicleType: 'car',
+    zonePreference: 'south',
+    status: 'available',
+    commissionPerOrder: 25,
+    vehiclePlate: '15-A-8899',
+    address: 'حي بنسودة / زواغة، فاس',
+    notes: 'سيارة رونو كليو - خبير بأحياء بنسودة والحي الصناعي والوفاق وزواغة',
+    activeOrdersCount: 0,
+    totalDeliveredCount: 112,
+    createdAt: new Date(Date.now() - 12 * 86400000).toISOString(),
+  },
+  {
+    id: 'indrive-3',
+    name: 'كابتن هشام العلمي',
+    phone: '0655443322',
+    vehicleType: 'car',
+    zonePreference: 'east',
+    status: 'available',
+    commissionPerOrder: 22,
+    vehiclePlate: '20-D-3344',
+    address: 'حي النرجس / طريق صفرو، فاس',
+    notes: 'سيارة بيجو 208 - متفرغ للمنطقة الشرقية وسيدي بوجيدة وباب الفتوح',
+    activeOrdersCount: 0,
+    totalDeliveredCount: 96,
+    createdAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+  },
+  {
+    id: 'indrive-4',
+    name: 'كابتن بدر المريني',
+    phone: '0663778899',
+    vehicleType: 'moto',
+    zonePreference: 'north',
+    status: 'available',
+    commissionPerOrder: 20,
+    vehiclePlate: '30-A-1234',
+    address: 'حي المرينيين / فاس البالي، فاس',
+    notes: 'دراجة نارية سريعة - خبير بالأزقة والدروب بالمدينة العتيقة ومولاي إدريس',
+    activeOrdersCount: 0,
+    totalDeliveredCount: 145,
+    createdAt: new Date(Date.now() - 14 * 86400000).toISOString(),
+  },
+];
+
+function readLocalInDriveDrivers(): StoreDriver[] {
+  try {
+    const raw = localStorage.getItem(INDRIVE_DRIVERS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed reading local inDrive drivers:', e);
+  }
+  return INITIAL_INDRIVE_DRIVERS;
+}
+
+function writeLocalInDriveDrivers(drivers: StoreDriver[]): void {
+  try {
+    localStorage.setItem(INDRIVE_DRIVERS_STORAGE_KEY, JSON.stringify(drivers));
+  } catch (e) {
+    console.warn('Failed saving local inDrive drivers:', e);
+  }
+}
+
 function readLocalDrivers(): StoreDriver[] {
   try {
     const raw = localStorage.getItem(STORE_DRIVERS_STORAGE_KEY);
@@ -1444,6 +1537,197 @@ export async function deleteStoreDriver(
     success: true,
     synced,
     message: synced ? 'تم حذف السائق ومزامنة التحديث' : 'تم حذف السائق محلياً',
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ─── دوال أسطول سائقي تطبيقات التوصيل السريعة (inDrive) ───
+// ═══════════════════════════════════════════════════════════════
+
+async function saveInDriveDriversRemote(drivers: StoreDriver[]): Promise<boolean> {
+  const client = getSupabase();
+  if (!client) return false;
+
+  const jsonValue = JSON.stringify(drivers);
+  const currentPin = getAdminPin();
+
+  try {
+    const { error: rpcErr } = await client.rpc('update_store_setting_secure', {
+      p_key: INDRIVE_DRIVERS_SETTING_KEY,
+      p_value: jsonValue,
+      p_admin_pin: currentPin,
+    });
+    if (!rpcErr) return true;
+
+    const retry = await client.rpc('update_store_setting_secure', {
+      p_key: INDRIVE_DRIVERS_SETTING_KEY,
+      p_value: jsonValue,
+      p_pin: currentPin,
+    });
+    if (!retry.error) return true;
+
+    const { error: upsertErr } = await client
+      .from('store_settings')
+      .upsert(
+        {
+          key: INDRIVE_DRIVERS_SETTING_KEY,
+          value: jsonValue,
+          description: 'أسطول سائقي تطبيقات التوصيل السريعة (inDrive)',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+
+    return !upsertErr;
+  } catch (err) {
+    console.warn('saveInDriveDriversRemote error:', err);
+    return false;
+  }
+}
+
+/**
+ * جلب قائمة سائقي تطبيقات التوصيل السريعة (inDrive) مع المزامنة الفورية
+ */
+export async function fetchInDriveDrivers(): Promise<{ drivers: StoreDriver[]; synced: boolean }> {
+  const localList = readLocalInDriveDrivers();
+  const client = getSupabase();
+
+  if (!client) {
+    return { drivers: localList, synced: false };
+  }
+
+  try {
+    const { data: settingData, error: settingError } = await client
+      .from('store_settings')
+      .select('value')
+      .eq('key', INDRIVE_DRIVERS_SETTING_KEY)
+      .maybeSingle();
+
+    if (!settingError && settingData && settingData.value) {
+      try {
+        const parsed = JSON.parse(settingData.value);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          writeLocalInDriveDrivers(parsed);
+          return { drivers: parsed, synced: true };
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
+
+    if (localList.length > 0) {
+      await saveInDriveDriversRemote(localList);
+    }
+
+    return { drivers: localList, synced: true };
+  } catch (err) {
+    console.warn('Network error while fetching inDrive drivers:', err);
+    return { drivers: localList, synced: false };
+  }
+}
+
+/**
+ * حفظ قائمة كباتن inDrive سحابياً ومحلياً
+ */
+export async function saveInDriveDrivers(
+  drivers: StoreDriver[]
+): Promise<{ success: boolean; synced: boolean; message?: string }> {
+  writeLocalInDriveDrivers(drivers);
+  const synced = await saveInDriveDriversRemote(drivers);
+  return {
+    success: true,
+    synced,
+    message: synced ? 'تم حفظ أسطول inDrive والمزامنة بنجاح' : 'تم الحفظ محلياً',
+  };
+}
+
+/**
+ * إضافة كابتن inDrive جديد للأسطول
+ */
+export async function addInDriveDriver(
+  driverData: Omit<StoreDriver, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<{ success: boolean; driver: StoreDriver; synced: boolean; message?: string }> {
+  const current = readLocalInDriveDrivers();
+  const newDriver: StoreDriver = {
+    ...driverData,
+    id: `indrive-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: sanitizeInput(driverData.name.trim()),
+    phone: sanitizeInput(driverData.phone.trim()),
+    address: driverData.address ? sanitizeInput(driverData.address.trim()) : undefined,
+    activeOrdersCount: 0,
+    totalDeliveredCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const updated = [newDriver, ...current];
+  writeLocalInDriveDrivers(updated);
+  const synced = await saveInDriveDriversRemote(updated);
+
+  return {
+    success: true,
+    driver: newDriver,
+    synced,
+    message: synced ? 'تمت إضافة كابتن inDrive والمزامنة بنجاح' : 'تمت الإضافة محلياً بنجاح',
+  };
+}
+
+/**
+ * تحديث بيانات كابتن inDrive
+ */
+export async function updateInDriveDriver(
+  driverId: string,
+  updates: Partial<StoreDriver>
+): Promise<{ success: boolean; driver?: StoreDriver; synced: boolean; message?: string }> {
+  const current = readLocalInDriveDrivers();
+  let targetDriver: StoreDriver | undefined;
+
+  const updated = current.map((d) => {
+    if (d.id === driverId) {
+      targetDriver = {
+        ...d,
+        ...updates,
+        name: updates.name ? sanitizeInput(updates.name.trim()) : d.name,
+        phone: updates.phone ? sanitizeInput(updates.phone.trim()) : d.phone,
+        address: updates.address !== undefined ? sanitizeInput(updates.address.trim()) : d.address,
+        updatedAt: new Date().toISOString(),
+      };
+      return targetDriver;
+    }
+    return d;
+  });
+
+  if (!targetDriver) {
+    return { success: false, synced: false, message: 'كابتن inDrive غير موجود' };
+  }
+
+  writeLocalInDriveDrivers(updated);
+  const synced = await saveInDriveDriversRemote(updated);
+
+  return {
+    success: true,
+    driver: targetDriver,
+    synced,
+    message: synced ? 'تم تحديث بيانات كابتن inDrive بنجاح' : 'تم التحديث محلياً',
+  };
+}
+
+/**
+ * حذف كابتن inDrive من الأسطول
+ */
+export async function deleteInDriveDriver(
+  driverId: string
+): Promise<{ success: boolean; synced: boolean; message?: string }> {
+  const current = readLocalInDriveDrivers();
+  const filtered = current.filter((d) => d.id !== driverId);
+
+  writeLocalInDriveDrivers(filtered);
+  const synced = await saveInDriveDriversRemote(filtered);
+
+  return {
+    success: true,
+    synced,
+    message: synced ? 'تم حذف كابتن inDrive ومزامنة التحديث' : 'تم حذف الكابتن محلياً',
   };
 }
 

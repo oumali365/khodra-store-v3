@@ -50,6 +50,11 @@ import {
   addStoreDriver,
   updateStoreDriver,
   deleteStoreDriver,
+  fetchInDriveDrivers,
+  saveInDriveDrivers,
+  addInDriveDriver,
+  updateInDriveDriver,
+  deleteInDriveDriver,
   closeAndDeliverZoneTour,
   updateOrderDispatch,
   detectFezZone,
@@ -226,11 +231,20 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   showToast,
   onRefreshOrders,
 }) => {
+  // ─── تبويب إدارة الأسطول (فريق المتجر الداخلي أم أسطول inDrive) ───
+  const [activeFleetTab, setActiveFleetTab] = useState<'internal' | 'indrive'>('internal');
+
   // ─── سائقو الفريق الداخلي ───
   const [drivers, setDrivers] = useState<StoreDriver[]>([]);
   const [isDriversLoading, setIsDriversLoading] = useState(true);
   const [isDriversSynced, setIsDriversSynced] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // ─── أسطول سائقي تطبيقات التوصيل السريعة (inDrive) ───
+  const [inDriveDrivers, setInDriveDrivers] = useState<StoreDriver[]>([]);
+  const [isInDriveLoading, setIsInDriveLoading] = useState(true);
+  const [isInDriveSynced, setIsInDriveSynced] = useState(false);
+  const [isInDriveSyncing, setIsInDriveSyncing] = useState(false);
 
   // ─── مودالات إدارة السائقين ───
   const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
@@ -263,14 +277,12 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     north: '',
   });
 
-  // خانة إضافية لتخصيص سائقي المستوى الثاني (inDrive - الخيار الاحتياطي)
-  const [inDriveDriversByZone, setInDriveDriversByZone] = useState<
-    Record<FezZoneId, { name: string; phone: string }>
-  >({
-    east: { name: '', phone: '' },
-    central: { name: '', phone: '' },
-    south: { name: '', phone: '' },
-    north: { name: '', phone: '' },
+  // الحل المطلوب 1: تعيين سائق الجولة من inDrive (اختر سائقاً من inDrive)
+  const [selectedInDriveDriverForZone, setSelectedInDriveDriverForZone] = useState<Record<FezZoneId, string>>({
+    east: '',
+    central: '',
+    south: '',
+    north: '',
   });
 
   // مودالات الأسئلة 5 و 6 و 7
@@ -282,14 +294,21 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   // ─── جلب السائقين ومزامنتهم عند التحميل ───
   const loadDrivers = async () => {
     setIsDriversLoading(true);
+    setIsInDriveLoading(true);
     try {
-      const res = await fetchStoreDrivers();
-      setDrivers(res.drivers);
-      setIsDriversSynced(res.synced);
+      const [storeRes, indriveRes] = await Promise.all([
+        fetchStoreDrivers(),
+        fetchInDriveDrivers(),
+      ]);
+      setDrivers(storeRes.drivers);
+      setIsDriversSynced(storeRes.synced);
+      setInDriveDrivers(indriveRes.drivers);
+      setIsInDriveSynced(indriveRes.synced);
     } catch {
       showToast('error', 'تعذر تحميل بيانات السائقين');
     } finally {
       setIsDriversLoading(false);
+      setIsInDriveLoading(false);
     }
   };
 
@@ -298,15 +317,28 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   }, []);
 
   const handleManualSync = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await saveStoreDrivers(drivers);
-      setIsDriversSynced(res.synced);
-      showToast(res.synced ? 'success' : 'error', res.message || 'تمت المزامنة');
-    } catch {
-      showToast('error', 'فشلت المزامنة');
-    } finally {
-      setIsSyncing(false);
+    if (activeFleetTab === 'indrive') {
+      setIsInDriveSyncing(true);
+      try {
+        const res = await saveInDriveDrivers(inDriveDrivers);
+        setIsInDriveSynced(res.synced);
+        showToast(res.synced ? 'success' : 'error', res.message || 'تمت مزامنة أسطول inDrive سحابياً');
+      } catch {
+        showToast('error', 'فشلت المزامنة');
+      } finally {
+        setIsInDriveSyncing(false);
+      }
+    } else {
+      setIsSyncing(true);
+      try {
+        const res = await saveStoreDrivers(drivers);
+        setIsDriversSynced(res.synced);
+        showToast(res.synced ? 'success' : 'error', res.message || 'تمت مزامنة الفريق الداخلي سحابياً');
+      } catch {
+        showToast('error', 'فشلت المزامنة');
+      } finally {
+        setIsSyncing(false);
+      }
     }
   };
 
@@ -318,35 +350,59 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       return;
     }
 
-    if (editingDriver) {
-      const res = await updateStoreDriver(editingDriver.id, driverForm);
-      if (res.success && res.driver) {
-        setDrivers((prev) => prev.map((d) => (d.id === editingDriver.id ? res.driver! : d)));
-        setIsDriversSynced(res.synced);
-        showToast('success', 'تم تعديل بيانات السائق بنجاح');
+    if (activeFleetTab === 'indrive') {
+      if (editingDriver) {
+        const res = await updateInDriveDriver(editingDriver.id, driverForm);
+        if (res.success && res.driver) {
+          setInDriveDrivers((prev) => prev.map((d) => (d.id === editingDriver.id ? res.driver! : d)));
+          setIsInDriveSynced(res.synced);
+          showToast('success', 'تم تعديل بيانات كابتن inDrive بنجاح');
+        } else {
+          showToast('error', res.message || 'فشل التعديل');
+        }
+        setEditingDriver(null);
       } else {
-        showToast('error', res.message || 'فشل التعديل');
+        const res = await addInDriveDriver(driverForm);
+        if (res.success && res.driver) {
+          setInDriveDrivers((prev) => [res.driver, ...prev]);
+          setIsInDriveSynced(res.synced);
+          showToast('success', `تمت إضافة كابتن inDrive ${res.driver.name} بنجاح`);
+        } else {
+          showToast('error', res.message || 'فشلت الإضافة');
+        }
+        setIsAddDriverOpen(false);
       }
-      setEditingDriver(null);
     } else {
-      const res = await addStoreDriver(driverForm);
-      if (res.success && res.driver) {
-        setDrivers((prev) => [res.driver, ...prev]);
-        setIsDriversSynced(res.synced);
-        showToast('success', `تمت إضافة السائق ${res.driver.name} بنجاح`);
+      if (editingDriver) {
+        const res = await updateStoreDriver(editingDriver.id, driverForm);
+        if (res.success && res.driver) {
+          setDrivers((prev) => prev.map((d) => (d.id === editingDriver.id ? res.driver! : d)));
+          setIsDriversSynced(res.synced);
+          showToast('success', 'تم تعديل بيانات السائق بنجاح');
+        } else {
+          showToast('error', res.message || 'فشل التعديل');
+        }
+        setEditingDriver(null);
       } else {
-        showToast('error', res.message || 'فشلت الإضافة');
+        const res = await addStoreDriver(driverForm);
+        if (res.success && res.driver) {
+          setDrivers((prev) => [res.driver, ...prev]);
+          setIsDriversSynced(res.synced);
+          showToast('success', `تمت إضافة السائق ${res.driver.name} بنجاح`);
+        } else {
+          showToast('error', res.message || 'فشلت الإضافة');
+        }
+        setIsAddDriverOpen(false);
       }
-      setIsAddDriverOpen(false);
     }
 
     setDriverForm({
       name: '',
       phone: '',
-      vehicleType: 'moto',
+      vehicleType: activeFleetTab === 'indrive' ? 'car' : 'moto',
       zonePreference: 'all',
       status: 'available',
-      commissionPerOrder: 11,
+      commissionPerOrder: activeFleetTab === 'indrive' ? 22 : 11,
       vehiclePlate: '',
       address: '',
       notes: '',
@@ -370,24 +426,47 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
 
   const handleDeleteDriver = async () => {
     if (!deletingDriver) return;
-    const res = await deleteStoreDriver(deletingDriver.id);
-    if (res.success) {
-      setDrivers((prev) => prev.filter((d) => d.id !== deletingDriver.id));
-      setIsDriversSynced(res.synced);
-      showToast('success', `تم حذف السائق ${deletingDriver.name}`);
+    const isIndrive = inDriveDrivers.some((d) => d.id === deletingDriver.id) || deletingDriver.id.startsWith('indrive');
+    if (isIndrive) {
+      const res = await deleteInDriveDriver(deletingDriver.id);
+      if (res.success) {
+        setInDriveDrivers((prev) => prev.filter((d) => d.id !== deletingDriver.id));
+        setIsInDriveSynced(res.synced);
+        showToast('success', `تم حذف كابتن inDrive ${deletingDriver.name}`);
+      } else {
+        showToast('error', res.message || 'فشل الحذف');
+      }
     } else {
-      showToast('error', res.message || 'فشل الحذف');
+      const res = await deleteStoreDriver(deletingDriver.id);
+      if (res.success) {
+        setDrivers((prev) => prev.filter((d) => d.id !== deletingDriver.id));
+        setIsDriversSynced(res.synced);
+        showToast('success', `تم حذف السائق ${deletingDriver.name}`);
+      } else {
+        showToast('error', res.message || 'فشل الحذف');
+      }
     }
     setDeletingDriver(null);
   };
 
   const handleToggleDriverStatus = async (driver: StoreDriver, newStatus: DriverStatus) => {
-    const res = await updateStoreDriver(driver.id, { status: newStatus });
-    if (res.success) {
-      setDrivers((prev) =>
-        prev.map((d) => (d.id === driver.id ? { ...d, status: newStatus } : d))
-      );
-      showToast('success', `تم تحديث حالة ${driver.name} إلى: ${STATUS_CONFIG[newStatus].label}`);
+    const isIndrive = inDriveDrivers.some((d) => d.id === driver.id) || driver.id.startsWith('indrive');
+    if (isIndrive) {
+      const res = await updateInDriveDriver(driver.id, { status: newStatus });
+      if (res.success) {
+        setInDriveDrivers((prev) =>
+          prev.map((d) => (d.id === driver.id ? { ...d, status: newStatus } : d))
+        );
+        showToast('success', `تم تحديث حالة كابتن inDrive ${driver.name} إلى: ${STATUS_CONFIG[newStatus].label}`);
+      }
+    } else {
+      const res = await updateStoreDriver(driver.id, { status: newStatus });
+      if (res.success) {
+        setDrivers((prev) =>
+          prev.map((d) => (d.id === driver.id ? { ...d, status: newStatus } : d))
+        );
+        showToast('success', `تم تحديث حالة ${driver.name} إلى: ${STATUS_CONFIG[newStatus].label}`);
+      }
     }
   };
 
@@ -546,7 +625,8 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     // 2. قالب InDrive / تطبيقات النقل (المستوى الثاني - احتياطي)
     if (format === 'indrive') {
       const pricing = calculateDeliveryBatchPricing(zoneOrders.length);
-      let msg = `السلام عليكم كابتن inDrive 🚗🌿\n`;
+      const captainName = driver?.name || 'كابتن inDrive';
+      let msg = `السلام عليكم ${captainName} 🚗🌿\n`;
       msg += `طلب جولة توصيل متجر خُضرة بفاس (${zoneOrders.length} محطات)\n`;
       msg += `🧭 المنطقة: ${zoneInfo.name}\n`;
       msg += `💰 السعر المقترح للجولة: ${pricing.indriveMin} إلى ${pricing.indriveMax} درهم\n\n`;
@@ -592,45 +672,61 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     }
   };
 
-  // ─── إرسال الجولة للسائق الداخلي عبر WhatsApp ───
+  // ─── إرسال الجولة للسائق المحدد (الداخلي أو inDrive) عبر WhatsApp ───
   const handleSendToDriverWhatsApp = (zoneKey: FezZoneId) => {
-    const driverId = selectedDriverForZone[zoneKey];
-    const driver = drivers.find((d) => d.id === driverId);
-    const zoneOrders = zoneGroups[zoneKey];
+    const internalDriverId = selectedDriverForZone[zoneKey];
+    const internalDriver = drivers.find((d) => d.id === internalDriverId);
 
-    if (zoneOrders.length === 0) {
-      showToast('error', 'لا توجد طلبات في هذه المنطقة');
-      return;
-    }
+    const indriveDriverId = selectedInDriveDriverForZone[zoneKey];
+    const indriveDriver = inDriveDrivers.find((d) => d.id === indriveDriverId);
 
-    const message = buildTourMessage(zoneKey, 'driver_whatsapp', driver);
-    const targetPhone = driver ? cleanPhoneForWhatsApp(driver.phone) : '';
-
-    if (!targetPhone) {
-      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-    } else {
-      window.open(
-        `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`,
-        '_blank'
-      );
-    }
-    showToast('success', `تم فتح واتساب لإرسال الجولة إلى ${driver?.name || 'السائق'}`);
-  };
-
-  // ─── إرسال الجولة لسائق inDrive (المستوى الثاني - احتياطي) وربط الأحداث ───
-  const handleSendToInDriveWhatsApp = async (zoneKey: FezZoneId) => {
     const zoneOrders = zoneGroups[zoneKey];
     if (zoneOrders.length === 0) {
       showToast('error', 'لا توجد طلبات في هذه المنطقة لإرسالها');
       return;
     }
 
-    const inDriveData = inDriveDriversByZone[zoneKey] || { name: '', phone: '' };
-    const pricing = calculateDeliveryBatchPricing(zoneOrders.length);
-    const message = buildTourMessage(zoneKey, 'indrive');
-    const targetPhone = cleanPhoneForWhatsApp(inDriveData.phone);
+    // إذا تم تعيين كابتن inDrive فقط
+    if (indriveDriver && !internalDriver) {
+      const message = buildTourMessage(zoneKey, 'indrive', indriveDriver);
+      const targetPhone = cleanPhoneForWhatsApp(indriveDriver.phone);
+      if (targetPhone) {
+        window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`, '_blank');
+      } else {
+        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+      }
+      showToast('success', `تم فتح واتساب لإرسال الجولة لكابتن inDrive (${indriveDriver.name})`);
+      return;
+    }
 
-    // ربط الأحداث منطقياً: تحديث بيانات التوصيل للطلبات وتعيين inDrive
+    // إذا تم تعيين سائق داخلي (أو الخيار الافتراضي)
+    const driver = internalDriver || indriveDriver;
+    const isIndrive = Boolean(!internalDriver && indriveDriver);
+    const format = isIndrive ? 'indrive' : 'driver_whatsapp';
+    const message = buildTourMessage(zoneKey, format, driver);
+    const targetPhone = driver ? cleanPhoneForWhatsApp(driver.phone) : '';
+
+    if (!targetPhone) {
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    } else {
+      window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+    showToast('success', `تم فتح واتساب لإرسال الجولة إلى ${driver?.name || 'السائق'}`);
+  };
+
+  // ─── الحل المطلوب 1: تعيين كابتن inDrive للجولة وحساب الأجور في الخفاء وربط الأحداث ───
+  const handleSelectInDriveDriverForZone = async (zoneKey: FezZoneId, driverId: string) => {
+    setSelectedInDriveDriverForZone((prev) => ({ ...prev, [zoneKey]: driverId }));
+    const driver = inDriveDrivers.find((d) => d.id === driverId);
+    if (!driver) return;
+
+    const zoneOrders = zoneGroups[zoneKey];
+    if (zoneOrders.length === 0) return;
+
+    // حساب الأجور التقديرية في الخفاء بناءً على حجم الجولة (بدون إظهار معادلات في الواجهة)
+    const pricing = calculateDeliveryBatchPricing(zoneOrders.length);
+    const costPerOrder = Math.round((pricing.indriveMin + pricing.indriveMax) / (zoneOrders.length * 2));
+
     try {
       for (const ord of zoneOrders) {
         const currentDispatch = ord.delivery_dispatch || {
@@ -641,25 +737,18 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           ...currentDispatch,
           provider: 'indrive',
           dispatchStatus: 'in_transit',
-          driverName: inDriveData.name.trim() || 'كابتن inDrive (احتياطي)',
-          driverPhone: inDriveData.phone.trim(),
-          deliveryCost: Math.round((pricing.indriveMin + pricing.indriveMax) / (zoneOrders.length * 2)),
+          driverName: driver.name,
+          driverPhone: driver.phone,
+          deliveryCost: costPerOrder,
           zone: zoneKey,
         });
       }
       if (onRefreshOrders) {
         onRefreshOrders();
       }
+      showToast('success', `تم تعيين كابتن inDrive ${driver.name} لجولة ${FEZ_DELIVERY_ZONES[zoneKey].name} بنجاح`);
     } catch (err) {
       console.warn('Failed to update dispatch for inDrive assignment:', err);
-    }
-
-    if (targetPhone) {
-      window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`, '_blank');
-      showToast('success', `تم فتح واتساب لإرسال الجولة لكابتن inDrive وتحديث الطلبات!`);
-    } else {
-      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-      showToast('success', 'تم فتح واتساب وإسناد طلبات الجولة إلى inDrive كخيار احتياطي!');
     }
   };
 
@@ -854,6 +943,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
 
             // تطبيق دالة تصفية وفرز السائقين (السؤال 4)
             const sortedDrivers = getSortedDriversForZone(zoneKey, drivers);
+            const sortedInDriveDrivers = getSortedDriversForZone(zoneKey, inDriveDrivers);
 
             return (
               <div
@@ -877,7 +967,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                     {info.neighborhoods.slice(0, 4).join(' • ')}
                   </p>
 
-                  {/* صندوق الإحصائيات: الطلبات الجاهزة و COD والقائمة المنسدلة */}
+                  {/* صندوق الإحصائيات: الطلبات الجاهزة و COD والقوائم المنسدلة */}
                   <div className="bg-white border border-stone-200 rounded-xl p-3 mb-3 text-xs space-y-2.5 shadow-2xs">
                     {/* عدد الطلبات الجاهزة */}
                     <div className="flex justify-between items-center font-bold text-stone-800">
@@ -944,82 +1034,45 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                       </select>
                     </div>
 
-                    {/* ─── خانة إضافية لتخصيص سائقين من المستوى الثاني (inDrive - الخيار الاحتياطي) ─── */}
-                    <div className="pt-2.5 mt-2 border-t border-amber-200 bg-amber-50/70 rounded-xl p-2.5 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-black text-amber-950 flex items-center gap-1.5">
+                    {/* ─── الحل المطلوب 1: تعيين سائق الجولة ( inDrive ) ─── */}
+                    <div className="pt-2 border-t border-amber-200">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-black text-amber-950 flex items-center gap-1">
                           <Car className="w-3.5 h-3.5 text-amber-700" />
-                          <span>سائق المستوى الثاني (inDrive - احتياطي):</span>
+                          <span>تعيين سائق الجولة ( inDrive ):</span>
                         </label>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/90 text-amber-950 border border-amber-300">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
                           احتياطي
                         </span>
                       </div>
-
-                      {/* شريط ومؤشر تسعير الأجور المعتمدة */}
-                      <div className="bg-white/90 border border-amber-200 rounded-lg p-2 text-[10px] space-y-1">
-                        <div className="flex justify-between items-center text-stone-700 font-bold">
-                          <span>فريق خضرة (داخلي):</span>
-                          <span className="text-emerald-700 font-black">9 - 13 د.م / طلب</span>
-                        </div>
-                        <div className="flex justify-between items-center text-stone-700 font-bold">
-                          <span>سائقو inDrive (تطبيقات):</span>
-                          <span className="text-amber-800 font-black">20 - 25 د.م / طلب</span>
-                        </div>
-                        <div className="pt-1 border-t border-amber-100 flex justify-between items-center font-black text-[10px]">
-                          <span className="text-stone-800">تجميع 3 طلبيات دفعة واحدة:</span>
-                          <span className="text-stone-900">
-                            خضرة <span className="text-emerald-700">30-35 د.م</span> • inDrive <span className="text-amber-800">45-60 د.م</span>
-                          </span>
-                        </div>
-                        {ordersCount > 0 && (
-                          <div className="pt-1 border-t border-amber-100 text-[10px] font-black text-[#163920] bg-amber-100/70 p-1 rounded flex justify-between items-center">
-                            <span>تقدير الجولة ({ordersCount} طلبات):</span>
-                            <span>{calculateDeliveryBatchPricing(ordersCount).summaryText}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* حقول إدخال بيانات كابتن inDrive وزر الإرسال الفوري عبر واتساب */}
-                      <div className="space-y-1.5">
-                        <input
-                          type="text"
-                          placeholder="اسم كابتن inDrive (اختياري)"
-                          value={inDriveDriversByZone[zoneKey]?.name || ''}
-                          onChange={(e) =>
-                            setInDriveDriversByZone((prev) => ({
-                              ...prev,
-                              [zoneKey]: { ...(prev[zoneKey] || { name: '', phone: '' }), name: e.target.value },
-                            }))
-                          }
-                          className="w-full p-1.5 text-xs rounded-lg border border-amber-300 bg-white font-bold text-stone-800 focus:outline-amber-600 placeholder:text-stone-400"
-                        />
-                        <div className="flex gap-1.5">
-                          <input
-                            type="tel"
-                            placeholder="هاتف كابتن inDrive (06XXXXXXXX)"
-                            value={inDriveDriversByZone[zoneKey]?.phone || ''}
-                            onChange={(e) =>
-                              setInDriveDriversByZone((prev) => ({
-                                ...prev,
-                                [zoneKey]: { ...(prev[zoneKey] || { name: '', phone: '' }), phone: e.target.value },
-                              }))
+                      <select
+                        value={selectedInDriveDriverForZone[zoneKey] || ''}
+                        onChange={(e) => handleSelectInDriveDriverForZone(zoneKey, e.target.value)}
+                        className="w-full p-2 text-xs rounded-lg border border-amber-300 bg-amber-50/40 font-bold text-stone-800 focus:outline-amber-600"
+                      >
+                        <option value="">-- اختر سائقاً من inDrive --</option>
+                        {sortedInDriveDrivers.map(({ driver, isPreferred, isDisabled, disabledReason }) => (
+                          <option
+                            key={driver.id}
+                            value={driver.id}
+                            disabled={isDisabled}
+                            className={
+                              isDisabled
+                                ? 'text-stone-400 bg-stone-100'
+                                : isPreferred
+                                ? 'font-black text-amber-950 bg-amber-100'
+                                : 'text-stone-800'
                             }
-                            className="flex-1 p-1.5 text-xs rounded-lg border border-amber-300 bg-white font-bold text-stone-800 focus:outline-amber-600 placeholder:text-stone-400"
-                            dir="ltr"
-                          />
-                          <button
-                            type="button"
-                            disabled={ordersCount === 0}
-                            onClick={() => handleSendToInDriveWhatsApp(zoneKey)}
-                            className="py-1.5 px-2.5 rounded-lg bg-stone-900 hover:bg-black text-[#F5D76E] font-black text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-40"
-                            title="إرسال تفاصيل الجولة والمحطات لكابتن inDrive عبر واتساب وتحديث الطلبات"
                           >
-                            <Car className="w-3.5 h-3.5 text-amber-400" />
-                            <span>طلب inDrive</span>
-                          </button>
-                        </div>
-                      </div>
+                            {isPreferred ? '⭐ ' : ''}
+                            {driver.name}
+                            {isPreferred ? ` (المفضلة: ${info.name})` : ''}
+                            {isDisabled
+                              ? ` ⛔ غير متاح (${disabledReason})`
+                              : ` متاح (${driver.vehiclePlate || 'سيارة'})`}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -1100,23 +1153,29 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          السؤال 3: تصميم بطاقة السائق (Driver Card) وفريق التوصيل الداخلي
+          السؤال 3 & الحل المطلوب 2: أسطول سائقي التوصيل (الداخلي + inDrive)
       ═══════════════════════════════════════════════════════════════ */}
       <div className="bg-white border-2 border-[#163920]/20 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-stone-200">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800">
-              <Bike className="w-5 h-5" />
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              activeFleetTab === 'indrive' ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'
+            }`}>
+              {activeFleetTab === 'indrive' ? <Car className="w-5 h-5" /> : <Bike className="w-5 h-5" />}
             </div>
             <div>
               <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
-                <span>أسطول سائقي خُضرة بفاس</span>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  {drivers.length} سائقين
+                <span>{activeFleetTab === 'indrive' ? 'أسطول سائقي تطبيقات التوصيل السريعة (inDrive)' : 'فريق التوصيل الداخلي لمتجر خُضرة'}</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                  activeFleetTab === 'indrive' ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {activeFleetTab === 'indrive' ? `${inDriveDrivers.length} كباتن inDrive` : `${drivers.length} سائقين`}
                 </span>
               </h3>
               <p className="text-[11px] text-stone-500">
-                إدارة السائقين، مناطق العمل المفضلة، تفاصيل المركبة، والتواصل الفوري
+                {activeFleetTab === 'indrive'
+                  ? 'إدارة كباتن التطبيقات السريعة، أرقام اللوحات، التوصيل الاحتياطي والمزامنة الفورية'
+                  : 'إدارة السائقين التابعين للمتجر، مناطق العمل المفضلة، تفاصيل المركبة، والتواصل الفوري'}
               </p>
             </div>
           </div>
@@ -1125,16 +1184,20 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
             <button
               type="button"
               onClick={handleManualSync}
-              disabled={isSyncing}
+              disabled={activeFleetTab === 'indrive' ? isInDriveSyncing : isSyncing}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                isDriversSynced
+                (activeFleetTab === 'indrive' ? isInDriveSynced : isDriversSynced)
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
                   : 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
               }`}
-              title="مزامنة مع السيرفر السحابي"
+              title="مزامنة فورية مع السيرفر السحابي والتخزين المحلي"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isDriversSynced ? 'متزامن سحابياً' : 'مزامنة مع السيرفر'}</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${(activeFleetTab === 'indrive' ? isInDriveSyncing : isSyncing) ? 'animate-spin' : ''}`} />
+              <span>
+                {(activeFleetTab === 'indrive' ? isInDriveSynced : isDriversSynced)
+                  ? 'متزامن سحابياً'
+                  : 'مزامنة فورية'}
+              </span>
             </button>
 
             <button
@@ -1144,48 +1207,96 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                 setDriverForm({
                   name: '',
                   phone: '',
-                  vehicleType: 'moto',
+                  vehicleType: activeFleetTab === 'indrive' ? 'car' : 'moto',
                   zonePreference: 'all',
                   status: 'available',
-                  commissionPerOrder: 25,
+                  commissionPerOrder: activeFleetTab === 'indrive' ? 22 : 11,
                   vehiclePlate: '',
                   address: '',
                   notes: '',
                 });
                 setIsAddDriverOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-white text-xs font-black transition-all shadow-sm active:scale-95 cursor-pointer"
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-white text-xs font-black transition-all shadow-sm active:scale-95 cursor-pointer ${
+                activeFleetTab === 'indrive'
+                  ? 'bg-stone-900 hover:bg-black text-[#F5D76E]'
+                  : 'bg-[#163920] hover:bg-[#0E2615]'
+              }`}
             >
               <Plus className="w-4 h-4" />
-              <span>إضافة سائق جديد</span>
+              <span>{activeFleetTab === 'indrive' ? 'إضافة كابتن inDrive جديد' : 'إضافة سائق جديد'}</span>
             </button>
           </div>
         </div>
 
+        {/* ─── تبويب التبديل بين الأسطولين ─── */}
+        <div className="flex items-center gap-2 p-1.5 bg-stone-100 rounded-2xl border border-stone-200 mt-3">
+          <button
+            type="button"
+            onClick={() => setActiveFleetTab('internal')}
+            className={`flex-1 py-2 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              activeFleetTab === 'internal'
+                ? 'bg-white text-emerald-900 shadow-sm border border-emerald-300'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Bike className="w-4 h-4 text-emerald-600" />
+            <span>فريق المتجر الداخلي (الأساسي)</span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px]">
+              {drivers.length} سائقين
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveFleetTab('indrive')}
+            className={`flex-1 py-2 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              activeFleetTab === 'indrive'
+                ? 'bg-white text-amber-950 shadow-sm border border-amber-300'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <Car className="w-4 h-4 text-amber-600" />
+            <span>أسطول سائقي تطبيقات التوصيل السريعة (inDrive)</span>
+            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px]">
+              {inDriveDrivers.length} كباتن
+            </span>
+          </button>
+        </div>
+
         {/* شبكة بطاقات السائقين (Driver Cards) */}
-        {isDriversLoading ? (
+        {(activeFleetTab === 'internal' ? isDriversLoading : isInDriveLoading) ? (
           <div className="py-8 text-center text-xs text-stone-500">
             <RefreshCw className="w-5 h-5 animate-spin mx-auto text-emerald-600 mb-2" />
-            <span>جاري تحميل فريق السائقين...</span>
+            <span>جاري تحميل بيانات السائقين...</span>
           </div>
-        ) : drivers.length === 0 ? (
+        ) : (activeFleetTab === 'internal' ? drivers : inDriveDrivers).length === 0 ? (
           <div className="py-8 text-center text-xs text-stone-500 bg-stone-50 rounded-xl my-3">
-            <p className="font-bold text-stone-700">لم يتم إضافة أي سائقين في الفريق الداخلي بعد.</p>
+            <p className="font-bold text-stone-700">
+              {activeFleetTab === 'internal'
+                ? 'لم يتم إضافة أي سائقين في الفريق الداخلي بعد.'
+                : 'لم يتم إضافة أي كباتن في أسطول inDrive بعد.'}
+            </p>
             <p className="text-[11px] text-stone-500 mt-1">
-              انقر على زر "إضافة سائق جديد" لتسجيل أول مندوب توصيل.
+              انقر على زر "إضافة {activeFleetTab === 'indrive' ? 'كابتن inDrive جديد' : 'سائق جديد'}" لتسجيل أول مندوب توصيل.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-3.5">
-            {drivers.map((driver) => {
+            {(activeFleetTab === 'internal' ? drivers : inDriveDrivers).map((driver) => {
               const vehicle = VEHICLE_CONFIG[driver.vehicleType] || VEHICLE_CONFIG.moto;
               const status = STATUS_CONFIG[driver.status] || STATUS_CONFIG.available;
               const cleanPhone = cleanPhoneForWhatsApp(driver.phone);
+              const isIndriveCaptain = activeFleetTab === 'indrive';
 
               return (
                 <div
                   key={driver.id}
-                  className="border-2 border-stone-200 hover:border-emerald-300 rounded-xl p-3.5 bg-stone-50/70 hover:bg-white transition-all flex flex-col justify-between shadow-xs"
+                  className={`border-2 rounded-xl p-3.5 transition-all flex flex-col justify-between shadow-xs ${
+                    isIndriveCaptain
+                      ? 'border-amber-200 hover:border-amber-400 bg-amber-50/40 hover:bg-white'
+                      : 'border-stone-200 hover:border-emerald-300 bg-stone-50/70 hover:bg-white'
+                  }`}
                 >
                   <div>
                     {/* ترويسة بطاقة السائق: الاسم والحالة */}
@@ -1194,7 +1305,12 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                         <span className="text-xl" title={vehicle.label}>
                           {vehicle.icon}
                         </span>
-                        <span className="text-xs font-black text-stone-900">{driver.name}</span>
+                        <div>
+                          <span className="text-xs font-black text-stone-900 block leading-tight">{driver.name}</span>
+                          {isIndriveCaptain && (
+                            <span className="text-[9px] font-bold text-amber-800">كابتن inDrive</span>
+                          )}
+                        </div>
                       </div>
                       <span
                         className={`text-[10px] font-black px-2 py-0.5 rounded-full border flex items-center gap-1 ${status.badge}`}
@@ -1694,7 +1810,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
                 <span>السائق المعين:</span>
                 <span className="font-bold text-stone-900">
                   {drivers.find((d) => d.id === selectedDriverForZone[closeTourZone])?.name ||
-                    inDriveDriversByZone[closeTourZone]?.name ||
+                    inDriveDrivers.find((d) => d.id === selectedInDriveDriverForZone[closeTourZone])?.name ||
                     'فريق خُضرة / inDrive'}
                 </span>
               </div>
@@ -1736,11 +1852,23 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       {(isAddDriverOpen || editingDriver) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden text-right">
-            <div className="p-4 bg-gradient-to-l from-[#163920] to-[#0E2615] text-white flex items-center justify-between">
+            <div className={`p-4 text-white flex items-center justify-between ${
+              activeFleetTab === 'indrive'
+                ? 'bg-gradient-to-l from-amber-800 to-stone-900'
+                : 'bg-gradient-to-l from-[#163920] to-[#0E2615]'
+            }`}>
               <div className="flex items-center gap-2">
-                <Bike className="w-5 h-5 text-[#F5D76E]" />
+                {activeFleetTab === 'indrive' ? (
+                  <Car className="w-5 h-5 text-amber-400" />
+                ) : (
+                  <Bike className="w-5 h-5 text-[#F5D76E]" />
+                )}
                 <h3 className="font-black text-base">
-                  {editingDriver ? `تعديل بيانات: ${editingDriver.name}` : 'إضافة سائق جديد للفريق'}
+                  {editingDriver
+                    ? `تعديل بيانات: ${editingDriver.name}`
+                    : activeFleetTab === 'indrive'
+                    ? 'إضافة كابتن inDrive جديد (أسطول التطبيقات)'
+                    : 'إضافة سائق جديد للفريق'}
                 </h3>
               </div>
               <button
@@ -1944,10 +2072,13 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
               <Trash2 className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="font-black text-base text-stone-900">حذف السائق من الفريق؟</h4>
+              <h4 className="font-black text-base text-stone-900">
+                {deletingDriver.id.startsWith('indrive') || inDriveDrivers.some((d) => d.id === deletingDriver.id)
+                  ? 'حذف كابتن inDrive من الأسطول؟'
+                  : 'حذف السائق من الفريق؟'}
+              </h4>
               <p className="text-xs text-stone-600 mt-1">
-                هل أنت متأكد من حذف السائق <strong>{deletingDriver.name}</strong>؟ سيتم مسحه من قائمة
-                الفريق الداخلي.
+                هل أنت متأكد من حذف <strong>{deletingDriver.name}</strong>؟ سيتم مسح بياناته ومزامنة التحديث فورياً.
               </p>
             </div>
             <div className="flex items-center justify-center gap-2 pt-2">
