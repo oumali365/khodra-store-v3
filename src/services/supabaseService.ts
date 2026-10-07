@@ -55,23 +55,22 @@ export function resolveProductImageUrl(url?: string | null): string | undefined 
 }
 
 function normalizeProduct(row: any): Product {
-  // ✅ الحاكم المطلق هو is_available. لا توجد قيم افتراضية مضللة.
-  // إذا لم يكن is_available موجوداً بشكل صريح، نعتبره false (غير متوفر) كإجراء احترازي.
-  let isAvail = false;
-  
-  // الأولوية القصوى: is_available
-  if (row.is_available === true) {
-    isAvail = true;
-  } else if (row.is_available === false) {
-    isAvail = false;
-  } 
-  // خيار احتياطي: active (فقط إذا لم يكن is_available موجوداً)
-  else if (row.active === true) {
-    isAvail = true;
-  } else if (row.active === false) {
-    isAvail = false;
+  // ✅ الحاكم في قاعدة البيانات: stock و is_available
+  // لتغيير حالة المنتج إلى غير متوفر في واجهة العميل: stock = 0
+  // إذا كان stock بين 1 و 5: كمية محدودة
+  // إذا كان stock فوق 5: متوفر
+  const rawStock = row.stock !== undefined && row.stock !== null ? Number(row.stock) : undefined;
+  let isAvail = true;
+
+  if (rawStock !== undefined && !isNaN(rawStock)) {
+    isAvail = rawStock > 0 && row.is_available !== false && row.active !== false;
+  } else if (row.is_available !== undefined) {
+    isAvail = Boolean(row.is_available);
+  } else if (row.active !== undefined) {
+    isAvail = Boolean(row.active);
   }
-  // في جميع الحالات الأخرى (null, undefined, قيمة غريبة) => false
+
+  const finalStock = rawStock !== undefined && !isNaN(rawStock) ? rawStock : (isAvail ? 10 : 0);
 
   return {
     id: Number(row.id),
@@ -80,7 +79,7 @@ function normalizeProduct(row: any): Product {
     type: (row.type === 'unit' ? 'unit' : 'weight') as Product['type'],
     price: Number(row.price) || 0,
     unit_label: row.unit_label || undefined,
-    stock: Number(row.stock) || 0, // للعرض فقط، لا يؤثر على التوفر
+    stock: finalStock,
     icon: row.icon || '🛒',
     image_url: resolveProductImageUrl(row.image_url),
     active: isAvail,

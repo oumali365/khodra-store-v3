@@ -215,9 +215,12 @@ export async function getProductPricingRows(): Promise<{
     if (raw) savedPricesMap = JSON.parse(raw);
   } catch {}
 
-  // 2. جلب حالة التوفر والأسعار الحية من قاعدة بيانات Supabase (لحسم المشكلة ومنع عودة الحالة لـ متوفر)
+  // 2. جلب حالة التوفر، المخزون والأسعار الحية من قاعدة بيانات Supabase
   const client = getSupabase();
-  const dbProductsMap = new Map<number, { active?: boolean; is_available?: boolean; price?: number }>();
+  const dbProductsMap = new Map<
+    number,
+    { active?: boolean; is_available?: boolean; price?: number; stock?: number }
+  >();
 
   if (client) {
     try {
@@ -228,6 +231,8 @@ export async function getProductPricingRows(): Promise<{
       if (!dbErr && dbProds && Array.isArray(dbProds)) {
         dbProds.forEach((p: any) => {
           if (p.id != null) {
+            const parsedStock =
+              p.stock !== undefined && p.stock !== null ? Number(p.stock) : undefined;
             dbProductsMap.set(Number(p.id), {
               active: p.active !== undefined ? Boolean(p.active) : undefined,
               is_available:
@@ -237,6 +242,7 @@ export async function getProductPricingRows(): Promise<{
                   ? Boolean(p.active)
                   : undefined,
               price: p.price != null ? Number(p.price) : undefined,
+              stock: parsedStock,
             });
           }
         });
@@ -259,7 +265,7 @@ export async function getProductPricingRows(): Promise<{
       chosenSupplier = suppliers.find((s) => s.id === 'sup-5') || defaultSupplier;
     }
 
-    const saved = savedPricesMap[prod.id];
+    const saved = savedPricesMap[prod.id] as any;
     const dbProd = dbProductsMap.get(prod.id);
 
     // احتساب هامش ربح 33% تلقائياً لتغطية مصاريف النقل، الإتلاف واللوجستيك
@@ -268,7 +274,7 @@ export async function getProductPricingRows(): Promise<{
       margin = DEFAULT_PROFIT_MARGIN; // ترقية الهامش القديم 25% تلقائياً إلى 33% المعتمد
     }
 
-    let purchasePrice = saved ? saved.purchase : Number((prod.price / (1 + margin / 100)).toFixed(2));
+    let purchasePrice = saved && saved.purchase ? saved.purchase : Number((prod.price / (1 + margin / 100)).toFixed(2));
     let yesterdayPrice = saved && saved.yesterday ? saved.yesterday : Number((purchasePrice * (0.95 + (index % 10) * 0.01)).toFixed(2));
     let supplierId = saved && saved.supplierId ? saved.supplierId : chosenSupplier.id;
 
@@ -276,23 +282,33 @@ export async function getProductPricingRows(): Promise<{
     const sellingPrice = calculateSellingPrice(purchasePrice, margin);
     const trend = determineTrend(purchasePrice, yesterdayPrice);
 
-    // ─── تحديد حالة التوفر المنطقية (Boolean State) بدقة مطلقة ───
-    // الأولوية 1: القيمة الحقيقية المخزنة في Supabase (is_available أو active)
-    // الأولوية 2: القيمة المحفوظة في LocalStorage (saved.is_available)
-    // الأولوية 3: القيمة الافتراضية للمنتج (prod.is_available أو prod.active)
-    let isAvailable = true;
+    // ─── تحديد كمية المخزون وحالة التوفر الحقيقية ───
+    // في قاعدة بيانات المتجر:
+    // إذا كان stock = 0 فالمنتج غير متوفر قطعا (false)
+    // إذا كان stock بين 1 و 5: كمية محدودة
+    // إذا كان stock فوق 5: متوفر
+    let currentStock = 10;
+    if (dbProd && dbProd.stock !== undefined) {
+      currentStock = dbProd.stock;
+    } else if (saved && saved.stock !== undefined) {
+      currentStock = Number(saved.stock);
+    } else if (prod.stock !== undefined) {
+      currentStock = Number(prod.stock);
+    }
+
+    let isAvailable = currentStock > 0;
     if (dbProd) {
-      if (dbProd.is_available !== undefined) {
+      if (dbProd.stock !== undefined) {
+        isAvailable = dbProd.stock > 0;
+      } else if (dbProd.is_available !== undefined) {
         isAvailable = Boolean(dbProd.is_available);
       } else if (dbProd.active !== undefined) {
         isAvailable = Boolean(dbProd.active);
       }
+    } else if (saved && saved.stock !== undefined) {
+      isAvailable = Number(saved.stock) > 0;
     } else if (saved && saved.is_available !== undefined) {
       isAvailable = Boolean(saved.is_available);
-    } else if (prod.is_available !== undefined) {
-      isAvailable = Boolean(prod.is_available);
-    } else if (prod.active !== undefined) {
-      isAvailable = Boolean(prod.active);
     }
 
     return {
@@ -310,6 +326,7 @@ export async function getProductPricingRows(): Promise<{
       yesterday_price: yesterdayPrice,
       trend,
       is_available: isAvailable,
+      stock: currentStock,
       is_modified: false,
     };
   });
@@ -318,28 +335,38 @@ export async function getProductPricingRows(): Promise<{
 }
 
 /**
- * تحديث حالة توفر المنتج منطقياً (متوفر / غير متوفر)
- * بدون أي تتبع كمي للمخزون وفق نموذج التموين المسبق (Just-In-Time)
+ * تحديث حالة توفر ومخزون المنتج في Supabase و LocalStorage
+ * لتغيير حالة المنتج إلى غير متوفر في واجهة العميل وقاعدة البيانات: يتم تفريغ stock = 0
+ * إذا أدخلنا بين 1 و 5 كمية محدودة، فوق 5 متوفر
  */
 export async function updateProductAvailability(
   productId: number,
-  isAvailable: boolean
+  isAvailable: boolean,
+  stockQuantity?: number
 ): Promise<boolean> {
   try {
+    const targetStock = isAvailable
+      ? stockQuantity !== undefined && stockQuantity > 0
+        ? stockQuantity
+        : 10
+      : 0;
+
     const raw = localStorage.getItem(LOCAL_PRICES_KEY);
     const savedMap = raw ? JSON.parse(raw) : {};
     savedMap[productId] = {
       ...(savedMap[productId] || {}),
-      is_available: isAvailable,
+      is_available: targetStock > 0,
+      active: targetStock > 0,
+      stock: targetStock,
     };
     localStorage.setItem(LOCAL_PRICES_KEY, JSON.stringify(savedMap));
 
     const client = getSupabase();
     if (client) {
-      // إرسال التحديث لحقل active وحقل is_available لضمان التوافق مع أي بنية في جدول Supabase
       const payload: Record<string, any> = {
-        active: isAvailable,
-        is_available: isAvailable,
+        stock: targetStock,
+        active: targetStock > 0,
+        is_available: targetStock > 0,
         updated_at: new Date().toISOString(),
       };
 
@@ -349,30 +376,31 @@ export async function updateProductAvailability(
         .eq('id', productId);
 
       if (updateErr) {
-        // في حال كان عمود is_available غير موجود في جدول Supabase وألقى خطأ، نحدّث عبر active فقط
-        if (updateErr.message?.includes('is_available') || updateErr.code === 'PGRST204') {
-          await client
-            .from('products')
-            .update({
-              active: isAvailable,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', productId);
-        } else {
-          logger.warn('Failed to update product availability in Supabase:', updateErr);
-        }
+        logger.warn('Initial update with is_available failed, falling back to stock and active:', updateErr);
+        await client
+          .from('products')
+          .update({
+            stock: targetStock,
+            active: targetStock > 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', productId);
       }
     }
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('khodra_products_availability_updated', {
-          detail: { productId, isAvailable, timestamp: Date.now() },
+          detail: { productId, isAvailable: targetStock > 0, stock: targetStock, timestamp: Date.now() },
         })
       );
       window.dispatchEvent(
         new CustomEvent('khodra_prices_updated', {
-          detail: { updates: [], availabilityUpdates: [{ productId, isAvailable }], timestamp: Date.now() },
+          detail: {
+            updates: [],
+            availabilityUpdates: [{ productId, isAvailable: targetStock > 0, stock: targetStock }],
+            timestamp: Date.now(),
+          },
         })
       );
     }
@@ -382,6 +410,17 @@ export async function updateProductAvailability(
     logger.error('Failed to update product availability:', err);
     return false;
   }
+}
+
+/**
+ * تحديث مباشر لكمية المخزون (0 = غير متوفر، 1-5 = كمية محدودة، >5 = متوفر)
+ */
+export async function updateProductStock(
+  productId: number,
+  newStock: number
+): Promise<boolean> {
+  const isAvailable = newStock > 0;
+  return updateProductAvailability(productId, isAvailable, newStock);
 }
 
 /**

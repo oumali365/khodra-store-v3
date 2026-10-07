@@ -78,8 +78,11 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   const imgContainerRef = useRef<HTMLDivElement>(null);
   const pulseTimer = useRef<number | null>(null);
 
-  // في نموذج التموين المسبق (Just-In-Time) يتم التحكم فقط عبر الحالة المنطقية (متوفر / غير متوفر)
-  const isAvailable = product.active !== false && product.is_available !== false && (product.stock === undefined || product.stock > 0);
+  // الحاكم في التوفر والمخزون: إذا كان stock = 0 فالمنتج غير متوفر، إذا كان بين 1 و 5 كمية محدودة، فوق 5 متوفر
+  const isAvailable =
+    product.stock !== undefined && product.stock !== null
+      ? product.stock > 0 && product.active !== false && product.is_available !== false
+      : product.active !== false && product.is_available !== false;
   const isSoldOut = !isAvailable;
 
   useEffect(() => {
@@ -201,6 +204,12 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   const getStatusBadge = () => {
     if (isSoldOut) {
       return { text: 'غير متوفر', cls: 'bg-rose-50 text-rose-800 border-rose-200 font-black' };
+    }
+    if (product.stock !== undefined && product.stock !== null && product.stock >= 1 && product.stock <= 5) {
+      return {
+        text: `كمية محدودة (${product.stock})`,
+        cls: 'bg-amber-50 text-amber-900 border-amber-300 font-black',
+      };
     }
     return {
       text: 'متوفر',

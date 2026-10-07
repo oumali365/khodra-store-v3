@@ -36,6 +36,7 @@ export interface ProductPriceRow {
   yesterday_price: number;      // سعر الشراء بالأمس للمقارنة
   trend: PriceTrend;            // مؤشر الاتجاه
   is_available: boolean;        // حالة التوفر المنطقية (متوفر / غير متوفر)
+  stock?: number;               // كمية المخزون في Supabase: 0 غير متوفر، 1-5 كمية محدودة، >5 متوفر
   is_modified?: boolean;        // مؤشر التعديل اللحظي
   last_updated?: string;
 }

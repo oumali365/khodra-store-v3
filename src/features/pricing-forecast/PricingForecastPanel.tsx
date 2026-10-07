@@ -1,6 +1,7 @@
 // ============================================================
 // src/features/pricing-forecast/PricingForecastPanel.tsx
 // اللوحة المتكاملة للتسعير الديناميكي وإدارة الموردين وتوقع الطلب
+// تصميم حديث واحترافي لمتجر "خُضرة"
 // ============================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -8,13 +9,12 @@ import {
   DollarSign,
   TrendingUp,
   Building2,
-  Calendar,
   Sparkles,
   RefreshCw,
-  ShoppingBag,
   CheckCircle2,
   X,
-  FileSpreadsheet,
+  ChevronLeft,
+  Store,
 } from 'lucide-react';
 import type { ProductPriceRow, Supplier, TopProductSalesHistory, DemandForecastSummary } from './types';
 import {
@@ -86,7 +86,7 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
     try {
       const success = await saveProductPrices(updates);
       if (success) {
-        setNotice('✅ تم حفظ وتحديث أسعار المنتجات في قاعدة البيانات بنجاح!');
+        setNotice('تم حفظ وتحديث أسعار المنتجات في قاعدة البيانات بنجاح!');
         setTimeout(() => setNotice(null), 3500);
       }
     } finally {
@@ -106,7 +106,7 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
       }
       return [...prev, saved];
     });
-    setNotice(`✅ تم حفظ المورد "${saved.name}" بنجاح!`);
+    setNotice(`تم حفظ بيانات المورد "${saved.name}" بنجاح!`);
     setTimeout(() => setNotice(null), 3000);
   };
 
@@ -121,34 +121,55 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
   if (!isOpen && !standalone) return null;
 
   return (
-    <div className={`space-y-4 sm:space-y-6 text-right ${standalone ? 'p-2 sm:p-4 max-w-7xl mx-auto' : ''}`} dir="rtl">
-      {/* ═══════ الترويسة الرئيسية والتبويبات ═══════ */}
-      <div className="bg-gradient-to-l from-[#163920] via-[#1E4D2B] to-[#0E2615] rounded-3xl p-5 sm:p-6 text-white border-2 border-emerald-500/40 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+    <div
+      className={`space-y-4 sm:space-y-6 text-right font-['Tajawal'] antialiased bg-[#FAFAF9] rounded-3xl ${
+        standalone ? 'p-3 sm:p-6 max-w-7xl mx-auto' : 'p-2 sm:p-4'
+      }`}
+      dir="rtl"
+    >
+      {/* ═══════ الترويسة الأنيقة المتدرجة ═══════ */}
+      <header className="relative overflow-hidden bg-gradient-to-l from-[#163920] via-[#1A4527] to-[#122F1B] rounded-3xl p-5 sm:p-7 text-white shadow-2xs border border-emerald-900/40">
+        {/* توهج هادئ خفيف في الخلفية */}
+        <div
+          className="absolute -top-16 -left-16 w-64 h-64 bg-[#F5D76E]/10 rounded-full blur-3xl pointer-events-none"
+          aria-hidden="true"
+        />
 
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-[#FEF08A] border border-emerald-400/30 text-xs font-black">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>نظام التموين المسبق (Just-In-Time) • سوق بنسودة فاس</span>
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-5">
+          {/* اليمين: الشعار وهوية متجر خُضرة */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center text-2xl shadow-inner shrink-0">
+              🥬
             </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F5D76E]/20 text-[#F5D76E] border border-[#F5D76E]/30 text-[11px] font-bold">
+                <Sparkles className="w-3 h-3" />
+                <span>نموذج التموين المسبق (JIT) • فاس</span>
+              </div>
+              <h2 className="text-xs text-emerald-200/80 font-medium mt-0.5">
+                سوق الجملة بنسودة ومزارع سايس
+              </h2>
+            </div>
+          </div>
 
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black font-['Almarai'] text-white">
+          {/* الوسط: العنوان والوصف الإرشادي */}
+          <div className="text-center md:text-center flex-1 max-w-xl mx-auto space-y-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black font-['Almarai'] text-white tracking-tight">
               التسعير الديناميكي وتوقع الطلب
             </h1>
-
-            <p className="text-xs sm:text-sm text-emerald-100/90 font-medium max-w-2xl leading-relaxed">
-              تعديل أسعار الشراء الصباحية لحظياً، حساب هوامش الربح تلقائياً لأكثر من 120 منتجاً، والتنبؤ باحتياجات التخزين قبل فتح السوق.
+            <p className="text-xs sm:text-sm text-emerald-100/85 font-medium leading-relaxed">
+              تحديد أسعار الشراء الصباحية، حساب هوامش الأمان تلقائياً، والتحكم الذكي في التوفر والمخزون
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+          {/* اليسار: أزرار التحكم والإجراءات */}
+          <div className="flex items-center justify-end gap-2.5 shrink-0 self-start md:self-auto">
             <button
               type="button"
               onClick={() => setIsSupplierModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-black text-xs inline-flex items-center gap-1.5 transition-all cursor-pointer"
+              className="min-h-[44px] px-4 py-2 rounded-2xl bg-white/12 hover:bg-white/20 border border-white/25 text-white font-bold text-xs inline-flex items-center gap-2 transition-all shadow-2xs hover:shadow-xs active:scale-97 cursor-pointer"
             >
-              <Building2 className="w-4 h-4 text-[#FEF08A]" />
+              <Building2 className="w-4 h-4 text-[#F5D76E]" />
               <span>الموردون ({suppliers.length})</span>
             </button>
 
@@ -156,66 +177,76 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white cursor-pointer"
+                className="min-h-[44px] min-w-[44px] rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white cursor-pointer transition-all active:scale-95"
+                aria-label="إغلاق النافذة"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             )}
           </div>
         </div>
 
-        {/* شريط التبويبات الرئيسية */}
-        <div className="mt-5 pt-4 border-t border-emerald-500/30 flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setActiveTab('pricing')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'pricing'
-                ? 'bg-white text-[#163920] shadow-md'
-                : 'bg-black/30 hover:bg-black/50 text-white/90 border border-white/10'
-            }`}
-          >
-            <DollarSign className="w-4 h-4 text-emerald-700" />
-            <span>جدول أسعار السوق الصباحي (120+ منتج)</span>
-          </button>
+        {/* ═══════ التبويبات بنمط أزرار Pill مع مؤشر سفلي أنيق ═══════ */}
+        <div className="mt-6 pt-4 border-t border-white/15 flex items-center gap-2">
+          <div className="inline-flex p-1 rounded-2xl bg-black/25 backdrop-blur-xs border border-white/10">
+            <button
+              type="button"
+              onClick={() => setActiveTab('pricing')}
+              className={`min-h-[40px] px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer relative ${
+                activeTab === 'pricing'
+                  ? 'bg-white text-[#163920] shadow-sm'
+                  : 'text-white/80 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <DollarSign className={`w-4 h-4 ${activeTab === 'pricing' ? 'text-[#163920]' : 'text-emerald-300'}`} />
+              <span>جدول أسعار السوق الصباحي</span>
+              {activeTab === 'pricing' && (
+                <span className="w-2 h-2 rounded-full bg-[#163920] inline-block mr-0.5" />
+              )}
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('forecast')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'forecast'
-                ? 'bg-white text-[#163920] shadow-md'
-                : 'bg-black/30 hover:bg-black/50 text-white/90 border border-white/10'
-            }`}
-          >
-            <TrendingUp className="w-4 h-4 text-[#EA580C]" />
-            <span>لوحة توقع الطلب والتموين (JIT)</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('forecast')}
+              className={`min-h-[40px] px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer relative ${
+                activeTab === 'forecast'
+                  ? 'bg-white text-[#163920] shadow-sm'
+                  : 'text-white/80 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <TrendingUp className={`w-4 h-4 ${activeTab === 'forecast' ? 'text-[#163920]' : 'text-[#F5D76E]'}`} />
+              <span>لوحة توقع الطلب والتموين (JIT)</span>
+              {activeTab === 'forecast' && (
+                <span className="w-2 h-2 rounded-full bg-[#163920] inline-block mr-0.5" />
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* ═══════ إشعار تنبيهي عام ═══════ */}
+      {/* ═══════ إشعار تنبيهي لطيف عند نجاح الإجراءات ═══════ */}
       {notice && (
-        <div className="p-3 bg-emerald-800 text-white text-xs sm:text-sm font-black rounded-2xl border border-emerald-600 shadow-md flex items-center justify-between animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#FEF08A]" />
+        <div className="p-3.5 bg-emerald-50 text-[#163920] text-xs sm:text-sm font-bold rounded-2xl border border-emerald-200 shadow-2xs flex items-center justify-between transition-all animate-in fade-in slide-in-from-top-1">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
             <span>{notice}</span>
           </div>
           <button
             type="button"
             onClick={() => setNotice(null)}
-            className="text-white/80 hover:text-white cursor-pointer px-2"
+            className="text-stone-400 hover:text-stone-700 p-1 cursor-pointer"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* ═══════ محتوى التبويبات ═══════ */}
+      {/* ═══════ محتوى التبويب النشط ═══════ */}
       {isLoading ? (
-        <div className="py-16 text-center text-stone-500 bg-white rounded-3xl border border-stone-200">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-700 mb-2" />
-          <p className="font-bold text-xs text-stone-700">جاري جلب أسعار السوق ومؤشرات التوقع...</p>
+        <div className="py-20 text-center text-stone-500 bg-white rounded-3xl border border-stone-200/80 shadow-2xs">
+          <RefreshCw className="w-7 h-7 animate-spin mx-auto text-[#163920] mb-3" />
+          <p className="font-bold text-sm text-stone-800">جاري جلب أسعار السوق ومؤشرات التوقع وسجلات المخزون...</p>
+          <span className="text-xs text-stone-400 mt-1 block">يرجى الانتظار بضع لحظات</span>
         </div>
       ) : activeTab === 'pricing' ? (
         <MorningPricingTable
@@ -235,7 +266,7 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
         )
       )}
 
-      {/* نافذة إدارة الموردين */}
+      {/* ═══════ نافذة إدارة الموردين العصرية ═══════ */}
       <SupplierModal
         isOpen={isSupplierModalOpen}
         onClose={() => setIsSupplierModalOpen(false)}
