@@ -17,12 +17,13 @@ import {
   Home,
   CheckCircle2,
   Bike,
+  DollarSign,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
 import { updateAdminPassword, verifyAdminPinRemote } from '../../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
 
-export type AdminRoute = 'orders' | 'fleet' | 'finance' | 'documents' | 'marketing';
+export type AdminRoute = 'orders' | 'fleet' | 'finance' | 'documents' | 'marketing' | 'pricing';
 
 interface AdminPageLayoutProps {
   currentRoute: AdminRoute;
@@ -75,6 +76,14 @@ const NAV_ITEMS: NavItem[] = [
     sublabel: 'Marketing',
     Icon: Share2,
     accentColor: 'text-[#0284C7]',
+  },
+  {
+    id: 'pricing',
+    href: '/admin/pricing',
+    label: 'التسعير والتوقعات',
+    sublabel: 'Tarification JIT',
+    Icon: DollarSign,
+    accentColor: 'text-[#FEF08A]',
   },
   {
     id: 'documents',

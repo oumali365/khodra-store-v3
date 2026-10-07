@@ -74,6 +74,9 @@ const AdminDocumentsModal = React.lazy(() =>
 const AdminMarketingView = React.lazy(() =>
   import('./components/admin/marketing/AdminMarketingView').then((m) => ({ default: m.AdminMarketingView }))
 );
+const PricingForecastPanel = React.lazy(() =>
+  import('./features/pricing-forecast').then((m) => ({ default: m.PricingForecastPanel }))
+);
 const PinModal = React.lazy(() =>
   import('./components/admin/modals/AdminReviewModals').then((m) => ({ default: m.PinModal }))
 );
@@ -913,6 +916,13 @@ export default function App() {
             )}
             {activeAdminRoute === 'marketing' && (
               <AdminMarketingView />
+            )}
+            {activeAdminRoute === 'pricing' && (
+              <PricingForecastPanel
+                standalone={true}
+                isOpen={true}
+                onClose={handleReturnToStore}
+              />
             )}
           </AdminErrorBoundary>
         </AdminPageLayout>
