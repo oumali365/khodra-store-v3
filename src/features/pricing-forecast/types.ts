@@ -5,6 +5,9 @@
 
 import type { ProductCategory } from '../../types';
 
+// الهامش المعتمد تلقائياً لضمان ربحية الخزينة بعد اقتطاع مصاريف النقل، الإتلاف، واللوجستيك (33%)
+export const DEFAULT_PROFIT_MARGIN = 33;
+
 export interface Supplier {
   id: string;
   name: string;

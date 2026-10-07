@@ -87,7 +87,7 @@ const InfoPages = React.lazy(() =>
 );
 
 import { Product, CartItem, ProductCategory, OrderSubmission } from './types';
-import { fetchProducts, submitOrder } from './services/supabaseService';
+import { fetchProducts, submitOrder, getSupabase } from './services/supabaseService';
 import { STORE_CONFIG } from './data/config';
 import { CATEGORIES_CONFIG } from './data/mockProducts';
 import type { AdminRoute } from './components/admin';
@@ -96,7 +96,7 @@ function parseAdminRoute(): AdminRoute | null {
   try {
     const params = new URLSearchParams(window.location.search);
     const adminParam = params.get('admin') as AdminRoute | null;
-    if (adminParam && ['orders', 'fleet', 'finance', 'documents', 'marketing'].includes(adminParam)) {
+    if (adminParam && ['orders', 'fleet', 'finance', 'documents', 'marketing', 'pricing'].includes(adminParam)) {
       return adminParam;
     }
     const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
@@ -105,6 +105,7 @@ function parseAdminRoute(): AdminRoute | null {
     if (path === 'admin/finance') return 'finance';
     if (path === 'admin/documents') return 'documents';
     if (path === 'admin/marketing') return 'marketing';
+    if (path === 'admin/pricing') return 'pricing';
   } catch {}
   return null;
 }
@@ -432,7 +433,7 @@ export default function App() {
   const catalogSectionRef = useRef<HTMLDivElement>(null);
   const bundlesSectionRef = useRef<HTMLDivElement>(null);
 
-  // ─── Load products ───
+  // ─── Load products & Live Dynamic Price Sync ───
   useEffect(() => {
     let mounted = true;
     fetchProducts().then((data) => {
@@ -441,8 +442,79 @@ export default function App() {
         setIsLoading(false);
       }
     });
+
+    // 1. الاستماع الفوري لأحداث تحديث الأسعار داخل المتصفح (تطبيق فوري بدون إعادة تحميل)
+    const handlePricesUpdated = (e: any) => {
+      const updates = e?.detail?.updates;
+      if (Array.isArray(updates) && updates.length > 0) {
+        const priceMap = new Map<number, number>();
+        updates.forEach((u: any) => {
+          if (u.productId != null && u.sellingPrice != null) {
+            priceMap.set(Number(u.productId), Number(u.sellingPrice));
+          }
+        });
+
+        setProducts((prev) =>
+          prev.map((p) => {
+            if (priceMap.has(p.id)) {
+              return { ...p, price: priceMap.get(p.id)! };
+            }
+            return p;
+          })
+        );
+
+        // تحديث أسعار العناصر في السلة إن كانت متواجدة
+        setCart((prevCart) =>
+          prevCart.map((item) => {
+            if (priceMap.has(item.id)) {
+              const newUnit = priceMap.get(item.id)!;
+              return {
+                ...item,
+                unitTotal: newUnit,
+                lineTotal: Number((newUnit * item.qty).toFixed(2)),
+              };
+            }
+            return item;
+          })
+        );
+      }
+    };
+
+    window.addEventListener('khodra_prices_updated', handlePricesUpdated);
+
+    // 2. اشتراك سحابي لحظي (Supabase Realtime) لتحديث المتجر فورياً في شاشات جميع العملاء
+    const client = getSupabase();
+    let channel: any = null;
+    if (client) {
+      try {
+        channel = client
+          .channel('khodra_realtime_products_prices')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'daily_prices' },
+            () => {
+              if (mounted) fetchProducts().then((data) => setProducts(data));
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'products' },
+            () => {
+              if (mounted) fetchProducts().then((data) => setProducts(data));
+            }
+          )
+          .subscribe();
+      } catch (rtErr) {
+        console.warn('Realtime subscription handled gracefully:', rtErr);
+      }
+    }
+
     return () => {
       mounted = false;
+      window.removeEventListener('khodra_prices_updated', handlePricesUpdated);
+      if (client && channel) {
+        client.removeChannel(channel);
+      }
     };
   }, []);
 

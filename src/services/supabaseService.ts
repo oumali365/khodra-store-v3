@@ -73,28 +73,78 @@ function normalizeProduct(row: any): Product {
 
 export async function fetchProducts(): Promise<Product[]> {
   const client = getSupabase();
-  if (!client) return INITIAL_PRODUCTS;
+  let baseProducts: Product[] = INITIAL_PRODUCTS;
 
-  try {
-    const { data, error } = await client
-      .from('products')
-      .select('*')
-      .eq('active', true)
-      .order('id');
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('products')
+        .select('*')
+        .eq('active', true)
+        .order('id');
 
-    if (error) {
-      console.warn('Supabase products fetch failed:', error.message);
-      return INITIAL_PRODUCTS;
+      if (!error && data && data.length > 0) {
+        baseProducts = data.map(normalizeProduct);
+      } else if (error) {
+        console.warn('Supabase products fetch failed:', error.message);
+      }
+    } catch (err) {
+      console.warn('Network error while connecting to Supabase:', err);
     }
-
-    if (data && data.length > 0) {
-      return data.map(normalizeProduct);
-    }
-  } catch (err) {
-    console.warn('Network error while connecting to Supabase:', err);
   }
 
-  return INITIAL_PRODUCTS;
+  // ─── مزامنة أسعار البيع اليومية الديناميكية (Dynamic Pricing Sync) ───
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 1. جلب أحدث أسعار البيع المسجلة اليوم من جدول daily_prices لضمان الانعكاس الفوري
+    if (client) {
+      const { data: dailyPrices } = await client
+        .from('daily_prices')
+        .select('product_id, selling_price')
+        .eq('recorded_date', todayStr);
+
+      if (dailyPrices && dailyPrices.length > 0) {
+        const priceMap = new Map<number, number>();
+        dailyPrices.forEach((dp: any) => {
+          if (dp.product_id != null && dp.selling_price != null) {
+            priceMap.set(Number(dp.product_id), Number(dp.selling_price));
+          }
+        });
+
+        baseProducts = baseProducts.map((p) => {
+          if (priceMap.has(p.id)) {
+            const dynamicPrice = priceMap.get(p.id)!;
+            return { ...p, price: dynamicPrice };
+          }
+          return p;
+        });
+      }
+    }
+
+    // 2. دمج أي أسعار مسجلة محلياً عبر أداة التسعير الصباحي (Fallback / Offline)
+    if (typeof localStorage !== 'undefined') {
+      const rawLocal = localStorage.getItem('khodra_daily_prices_v1');
+      if (rawLocal) {
+        const localMap = JSON.parse(rawLocal);
+        baseProducts = baseProducts.map((p) => {
+          const entry = localMap[p.id];
+          if (entry && entry.purchase != null && entry.margin != null) {
+            const effectiveMargin = entry.margin === 25 ? 33 : Number(entry.margin);
+            const calculatedSelling = Number((Number(entry.purchase) * (1 + effectiveMargin / 100)).toFixed(2));
+            if (calculatedSelling > 0) {
+              return { ...p, price: calculatedSelling };
+            }
+          }
+          return p;
+        });
+      }
+    }
+  } catch (syncErr) {
+    console.warn('Notice: Daily prices synchronization handled gracefully:', syncErr);
+  }
+
+  return baseProducts;
 }
 
 // ═══════════════════════════════════════════════════════════════

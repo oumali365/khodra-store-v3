@@ -18,8 +18,10 @@ import {
   TrendingUp,
   Percent,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import type { ProductPriceRow, Supplier, PriceTrend } from './types';
+import { DEFAULT_PROFIT_MARGIN } from './types';
 import { calculateSellingPrice, determineTrend } from './pricingService';
 import type { ProductCategory } from '../../types';
 
@@ -143,6 +145,35 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
     setTimeout(() => setSuccessToast(null), 3500);
   };
 
+  // تطبيق هامش 33% لجميع المنتجات دفعة واحدة لضمان أمان الخزينة وتغطية اللوجستيك
+  const handleApplyGlobal33Percent = async () => {
+    const updated = tableData.map((item) => {
+      const newMargin = DEFAULT_PROFIT_MARGIN; // 33%
+      const newSelling = calculateSellingPrice(item.purchase_price, newMargin);
+      return {
+        ...item,
+        margin_percentage: newMargin,
+        selling_price: newSelling,
+        is_modified: true,
+      };
+    });
+    setTableData(updated);
+
+    const payload = updated.map((r) => ({
+      productId: r.id,
+      purchasePrice: r.purchase_price,
+      marginPercentage: DEFAULT_PROFIT_MARGIN,
+      supplierId: r.supplier_id,
+    }));
+
+    await onSaveBatch(payload);
+    setTableData((prev) => prev.map((r) => ({ ...r, is_modified: false })));
+    setSuccessToast(
+      `🛡️ تم رفع هامش الربح لجميع المنتجات إلى 33% تلقائياً لتغطية مصاريف النقل، الإتلاف واللوجستيك ومزامنتها فوراً مع المتجر!`
+    );
+    setTimeout(() => setSuccessToast(null), 4500);
+  };
+
   // Filter products by search and category
   const filteredData = useMemo(() => {
     return tableData.filter((row) => {
@@ -185,9 +216,14 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
 
         <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[10px] sm:text-[11px] text-stone-500 font-bold block">متوسط هامش الربح</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] sm:text-[11px] text-stone-500 font-bold block">متوسط هامش الربح</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-amber-100 text-amber-800">
+                المعتمد: 33%
+              </span>
+            </div>
             <span className="text-xl sm:text-2xl font-black text-emerald-800 tabular-nums">%{stats.avgMargin}</span>
-            <span className="text-[10px] text-stone-400 block mt-0.5">محسوب تلقائياً</span>
+            <span className="text-[10px] text-emerald-700 font-bold block mt-0.5">يغطي اللوجستيك والتلف ونقل بنسودة</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
             <Percent className="w-5 h-5" />
@@ -272,6 +308,17 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
 
           {/* أزرار الإجراءات السريعة */}
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleApplyGlobal33Percent}
+              disabled={isSaving}
+              className="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-black text-xs inline-flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95 transition-all"
+              title="رفع وتوحيد هامش الربح لكافة المنتجات إلى 33% لضمان تغطية مصاريف التشغيل والنقل واللوجستيك"
+            >
+              <ShieldCheck className="w-4 h-4 text-amber-700" />
+              <span>رفع الكل إلى 33% (أمان الخزينة)</span>
+            </button>
+
             <button
               type="button"
               onClick={onOpenSuppliersModal}
@@ -432,12 +479,30 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                             onChange={(e) =>
                               handleCellChange(row.id, 'margin_percentage', parseFloat(e.target.value) || 0)
                             }
-                            className="w-full py-1 px-2 pr-6 rounded-xl border border-stone-300 bg-white text-stone-900 font-mono font-black text-xs focus:outline-emerald-600 focus:border-emerald-600 tabular-nums text-center"
+                            className={`w-full py-1 px-2 pr-6 rounded-xl border font-mono font-black text-xs focus:outline-emerald-600 focus:border-emerald-600 tabular-nums text-center transition-colors ${
+                              row.margin_percentage < 33
+                                ? 'border-amber-300 bg-amber-50/50 text-amber-900 font-black'
+                                : 'border-stone-300 bg-white text-stone-900'
+                            }`}
                           />
                           <span className="absolute right-2 top-2 text-[10px] text-stone-400 font-bold pointer-events-none">
                             %
                           </span>
                         </div>
+                        {row.margin_percentage < 33 ? (
+                          <button
+                            type="button"
+                            onClick={() => handleCellChange(row.id, 'margin_percentage', 33)}
+                            className="text-[9px] font-black text-amber-700 hover:text-amber-900 underline block mt-1 mx-auto cursor-pointer"
+                            title="رفع إلى هامش الأمان المعتمد (33%)"
+                          >
+                            رفع إلى 33% 🛡️
+                          </button>
+                        ) : (
+                          <span className="text-[9px] font-bold text-emerald-700 block mt-0.5 text-center">
+                            هامش آمن ✓
+                          </span>
+                        )}
                       </td>
 
                       {/* سعر البيع (محسوب تلقائياً) */}

@@ -13,6 +13,7 @@ import type {
   DemandForecastSummary,
   DaySalesPoint,
 } from './types';
+import { DEFAULT_PROFIT_MARGIN } from './types';
 
 // الموردون الأوليون المعتمدون في سوق الجملة بنسودة فاس
 export const DEFAULT_SUPPLIERS: Supplier[] = [
@@ -225,8 +226,13 @@ export async function getProductPricingRows(): Promise<{
     }
 
     const saved = savedPricesMap[prod.id];
-    let purchasePrice = saved ? saved.purchase : Number((prod.price * 0.75).toFixed(2));
-    let margin = saved ? saved.margin : 25; // افتراضي 25% هامش ربح
+    // احتساب هامش ربح 33% تلقائياً لتغطية مصاريف النقل، الإتلاف واللوجستيك
+    let margin = saved && saved.margin !== undefined ? saved.margin : DEFAULT_PROFIT_MARGIN;
+    if (margin === 25) {
+      margin = DEFAULT_PROFIT_MARGIN; // ترقية الهامش القديم 25% تلقائياً إلى 33% المعتمد
+    }
+
+    let purchasePrice = saved ? saved.purchase : Number((prod.price / (1 + margin / 100)).toFixed(2));
     let yesterdayPrice = saved && saved.yesterday ? saved.yesterday : Number((purchasePrice * (0.95 + (index % 10) * 0.01)).toFixed(2));
     let supplierId = saved && saved.supplierId ? saved.supplierId : chosenSupplier.id;
 
@@ -293,15 +299,68 @@ export async function saveProductPrices(
         updated_at: new Date().toISOString(),
       }));
 
+      // 1. تحديث جدول أسعار السوق اليومية (daily_prices)
       await client.from('daily_prices').upsert(recordsToInsert, {
         onConflict: 'product_id,recorded_date',
       });
+
+      // 2. تحديث جدول المنتجات العام (products.price) لضمان مزامنة أسعار البيع للعملاء في المتجر فورياً
+      for (const rec of recordsToInsert) {
+        try {
+          await client
+            .from('products')
+            .update({
+              price: rec.selling_price,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', rec.product_id);
+        } catch (prodErr) {
+          logger.warn(`Could not sync price to products table for id ${rec.product_id}`, prodErr);
+        }
+      }
+    }
+
+    // 3. إرسال حدث متصفح فوري (Realtime CustomEvent) لتحديث الواجهة فوراً دون الحاجة لإعادة تحميل الصفحة
+    if (typeof window !== 'undefined') {
+      const priceChanges = updates.map((u) => ({
+        productId: u.productId,
+        sellingPrice: calculateSellingPrice(u.purchasePrice, u.marginPercentage),
+      }));
+      window.dispatchEvent(
+        new CustomEvent('khodra_prices_updated', {
+          detail: { updates: priceChanges, timestamp: Date.now() },
+        })
+      );
     }
 
     return true;
   } catch (err) {
     logger.error('Failed to save daily product prices', err);
     return false;
+  }
+}
+
+/**
+ * تطبيق هامش ربح موحد (33% افتراضياً) على جميع المنتجات دفعة واحدة
+ * لضمان أمان خزينة المتجر وتغطية مصاريف النقل، الإتلاف واللوجستيك
+ */
+export async function applyGlobalMarginToAllProducts(
+  marginPercentage: number = DEFAULT_PROFIT_MARGIN
+): Promise<{ success: boolean; count: number }> {
+  try {
+    const { rows } = await getProductPricingRows();
+    const updates = rows.map((r) => ({
+      productId: r.id,
+      purchasePrice: r.purchase_price,
+      marginPercentage,
+      supplierId: r.supplier_id,
+    }));
+
+    const success = await saveProductPrices(updates);
+    return { success, count: updates.length };
+  } catch (err) {
+    logger.error('Failed applying global margin', err);
+    return { success: false, count: 0 };
   }
 }
 
