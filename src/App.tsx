@@ -1263,6 +1263,13 @@ export default function App() {
             onClearCart={handleClearCart}
             onExploreBundles={scrollToBundles}
             onProceedToCheckout={() => {
+              const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
+              const isFree = subtotal >= STORE_CONFIG.freeDeliveryThreshold;
+              const fee = cart.length === 0 ? 0 : (isFree ? 0 : STORE_CONFIG.standardDeliveryFee);
+              const grandTotal = subtotal + fee;
+              if (grandTotal < (STORE_CONFIG.minOrderAmount || 70)) {
+                return;
+              }
               setIsCartOpen(false);
               setIsCheckoutOpen(true);
             }}
@@ -1336,7 +1343,17 @@ export default function App() {
         cartCount={cartCount}
         cartTotal={cartTotal}
         onOpenCart={() => setIsCartOpen(true)}
-        onOpenCheckout={() => setIsCheckoutOpen(true)}
+        onOpenCheckout={() => {
+          const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
+          const isFree = subtotal >= STORE_CONFIG.freeDeliveryThreshold;
+          const fee = cart.length === 0 ? 0 : (isFree ? 0 : STORE_CONFIG.standardDeliveryFee);
+          const grandTotal = subtotal + fee;
+          if (grandTotal < (STORE_CONFIG.minOrderAmount || 70)) {
+            setIsCartOpen(true);
+            return;
+          }
+          setIsCheckoutOpen(true);
+        }}
       />
 
       {/* ═══════ Footer ═══════ */}

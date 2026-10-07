@@ -257,8 +257,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       newErrors.location = 'يرجى تحديد موقعك الحالي (GPS) بدقة عبر الزر المخصص لإكمال تأكيد الطلب';
     }
 
+    const minOrderAmount = STORE_CONFIG.minOrderAmount || 70;
     if (!items || items.length === 0) {
       newErrors.cart = 'السلة فارغة، يرجى اختيار بعض الخضر أو الفواكه أولاً';
+    } else if (grandTotal < minOrderAmount) {
+      newErrors.cart = `الحد الأدنى للطلب هو ${minOrderAmount} ${STORE_CONFIG.currency} شامل رسوم التوصيل. ينقصك ${(minOrderAmount - grandTotal).toFixed(2)} ${STORE_CONFIG.currency}.`;
     } else if (grandTotal <= 0 || grandTotal > 50000) {
       newErrors.cart = 'قيمة الطلب غير صحيحة';
     }
@@ -449,6 +452,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             onSubmit={handleSubmit}
             className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 text-right bg-[#FBF9F5]"
           >
+            {/* تنبيه الحد الأدنى للطلب الترحيبي (70 د.م شامل التوصيل) */}
+            {grandTotal < (STORE_CONFIG.minOrderAmount || 70) && (
+              <div className="p-3 bg-emerald-50/85 border border-emerald-200/90 rounded-2xl text-[#163920] text-xs font-bold flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🥬</span>
+                  <span className="leading-relaxed">
+                    مرحباً بك! الحد الأدنى للطلب هو <strong>{STORE_CONFIG.minOrderAmount || 70} {STORE_CONFIG.currency}</strong> شامل التوصيل (تبقى <strong>{((STORE_CONFIG.minOrderAmount || 70) - grandTotal).toFixed(2)} {STORE_CONFIG.currency}</strong>).
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3 py-1.5 bg-[#163920] text-white rounded-xl text-xs font-black shrink-0 hover:bg-[#0E2615] cursor-pointer"
+                >
+                  + إضافة منتجات
+                </button>
+              </div>
+            )}
+
             {/* 1. ملخص السلة */}
             <CheckoutCartSummary
               items={items}
@@ -515,6 +537,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               grandTotal={grandTotal}
               onTurnstileVerify={(token) => setTurnstileToken(token)}
               isZoneRejected={zoneDetection.status === 'rejected'}
+              isBelowMinOrder={grandTotal < (STORE_CONFIG.minOrderAmount || 70)}
+              minOrderAmount={STORE_CONFIG.minOrderAmount || 70}
             />
           </form>
         </div>

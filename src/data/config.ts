@@ -10,6 +10,7 @@ export const STORE_CONFIG = {
   whatsappCleanNumber: '212704274830',
   currency: 'DH',
   standardDeliveryFee: 15,
+  minOrderAmount: 70, // الحد الأدنى للطلب (70 د.م شامل رسوم التوصيل) لتأمين المتجر من الخسارة وتغطية تكاليف الإعداد والتوصيل
   freeDeliveryThreshold: 250,
   freshnessMaxItems: 12,
   weightStep: 1,

@@ -194,6 +194,19 @@ function cleanItemForJson(item: any): Record<string, any> {
 export async function submitOrder(
   order: OrderSubmission
 ): Promise<{ success: boolean; message?: string; errorCode?: string }> {
+  // ─── حماية المتجر من الخسارة: التحقق من الحد الأدنى للطلب (70 د.م شامل رسوم التوصيل) ───
+  const subtotal = (order.items || []).reduce((sum, item) => sum + (Number(item?.lineTotal) || 0), 0);
+  const deliveryFee = Number(order.deliveryFee) || 0;
+  const grandTotal = Number(order.total) || (subtotal + deliveryFee);
+  const minOrder = STORE_CONFIG.minOrderAmount || 70;
+  if (grandTotal < minOrder) {
+    return {
+      success: false,
+      message: `عذراً، الحد الأدنى للطلب هو ${minOrder} درهم شامل رسوم التوصيل. يرجى إضافة المزيد من المنتجات.`,
+      errorCode: 'MINIMUM_ORDER_NOT_MET',
+    };
+  }
+
   const client = getSupabase();
 
   // ─── حفظ محلي احتياطي ───

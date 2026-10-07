@@ -20,6 +20,8 @@ interface CheckoutSecuritySubmitProps {
   grandTotal: number;
   onTurnstileVerify: (token: string) => void;
   isZoneRejected?: boolean;
+  isBelowMinOrder?: boolean;
+  minOrderAmount?: number;
 }
 
 // ═══════ زر Ripple ═══════
@@ -74,6 +76,8 @@ export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
   grandTotal,
   onTurnstileVerify,
   isZoneRejected = false,
+  isBelowMinOrder = false,
+  minOrderAmount = 70,
 }) => {
   return (
     <>
@@ -148,7 +152,7 @@ export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
         {/* ════════ زر التأكيد الرئيسي ════════ */}
         <RippleButton
           type="submit"
-          disabled={isSubmitting || cooldown.inCooldown || !rateLimit.allowed || isZoneRejected}
+          disabled={isSubmitting || cooldown.inCooldown || !rateLimit.allowed || isZoneRejected || isBelowMinOrder}
           rippleColor="rgba(255,255,255,0.30)"
           className="w-full min-h-[56px] py-4 px-4 rounded-2xl bg-gradient-to-l from-[#2D6A3F] to-[#1A3D24] hover:from-[#3A8152] hover:to-[#2D6A3F] text-white font-black text-base shadow-[0_4px_14px_rgba(45,106,63,0.35)] hover:shadow-[0_6px_22px_rgba(45,106,63,0.45)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer border border-[#EAB308]/25"
         >
@@ -156,6 +160,11 @@ export const CheckoutSecuritySubmit: React.FC<CheckoutSecuritySubmitProps> = ({
             <>
               <span className="w-5 h-5 border-2 border-[#EAB308] border-t-transparent rounded-full animate-spin relative z-10" />
               <span className="relative z-10">جارٍ التحقق وتأكيد الطلب بأمان...</span>
+            </>
+          ) : isBelowMinOrder ? (
+            <>
+              <ShoppingBag className="w-5 h-5 text-[#F5D76E] relative z-10" strokeWidth={2.5} />
+              <span className="relative z-10">أكمل الحد الأدنى للطلب ({minOrderAmount} DH شامل التوصيل)</span>
             </>
           ) : isZoneRejected ? (
             <>

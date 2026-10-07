@@ -3,7 +3,7 @@
 // تعطيل زر الأيقونة + تقليل الارتفاع + زر فتح السلة
 // ============================================================
 import React from 'react';
-import { ShoppingBag, ArrowLeft, Truck } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Truck, AlertCircle, ShieldAlert } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
 
 interface StickyBottomBarProps {
@@ -18,8 +18,14 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
   cartTotal,
   onOpenCart,
 }) => {
-  // حساب التوصيل المجاني
+  // حساب الحد الأدنى للطلب (70 د.م شامل التوصيل) والتوصيل المجاني
+  const minOrderAmount = STORE_CONFIG.minOrderAmount || 70;
   const isFreeDelivery = cartTotal >= STORE_CONFIG.freeDeliveryThreshold;
+  const deliveryFee = cartCount === 0 ? 0 : (isFreeDelivery ? 0 : STORE_CONFIG.standardDeliveryFee);
+  const grandTotal = cartTotal + deliveryFee;
+
+  const isBelowMinOrder = grandTotal < minOrderAmount && cartCount > 0;
+  const remainingForMinOrder = Math.max(0, minOrderAmount - grandTotal);
   const remainingForFree = Math.max(0, STORE_CONFIG.freeDeliveryThreshold - cartTotal);
 
   return (
@@ -35,23 +41,23 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
       <div className="w-full px-3 sm:px-4 pb-[max(0.6rem,env(safe-area-inset-bottom))] pointer-events-auto">
         <div className="relative max-w-7xl mx-auto bg-white/95 backdrop-blur-md border border-[#2D6A3F]/15 rounded-2xl shadow-[0_6px_22px_rgba(45,106,63,0.18)] overflow-hidden transition-all duration-200">
 
-          {/* ─── شريط علوي: تقدم التوصيل المجاني (أنحف) ─── */}
-          <div className={`px-4 py-1 text-[11px] font-black flex items-center gap-1.5 border-b ${
-            isFreeDelivery
-              ? 'bg-[#2D6A3F]/10 text-[#1A3D24] border-[#2D6A3F]/15'
-              : 'bg-[#FEF3C7] text-[#92400E] border-[#EAB308]/30'
-          }`}>
-            <Truck
-              className={`w-3.5 h-3.5 shrink-0 ${isFreeDelivery ? 'text-[#2D6A3F]' : 'text-[#EA580C]'}`}
-              strokeWidth={2.5}
-            />
+          {/* ─── شريط علوي هادئ: التوصيل والحد الأدنى ─── */}
+          <div className="px-4 py-1 text-[11px] font-medium flex items-center justify-between gap-1.5 border-b bg-[#F9F7F2] text-[#5C5547] border-[#E8E2D5]">
             {isFreeDelivery ? (
-              <span className="flex items-center gap-1">
-                🎉 <strong className="text-[#2D6A3F]">مبروك!</strong> حصلت على توصيل مجاني
+              <span className="flex items-center gap-1 text-[#163920] font-bold">
+                <Truck className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
+                <span>🎉 مبروك! حصلت على توصيل مجاني</span>
+              </span>
+            ) : isBelowMinOrder ? (
+              <span className="flex items-center gap-1.5">
+                <span>الحد الأدنى: {minOrderAmount} {STORE_CONFIG.currency} (شامل التوصيل)</span>
+                <span className="text-[#8C8474]">•</span>
+                <span className="font-bold text-[#163920]">تبقى {remainingForMinOrder.toFixed(2)} {STORE_CONFIG.currency} لإكمال الطلب</span>
               </span>
             ) : (
-              <span>
-                أضف <strong className="text-[#EA580C]">{remainingForFree.toFixed(2)} {STORE_CONFIG.currency}</strong> للحصول على توصيل مجاني
+              <span className="flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5 text-[#2D6A3F]" strokeWidth={2.5} />
+                <span>أضف {remainingForFree.toFixed(2)} {STORE_CONFIG.currency} للتوصيل المجاني</span>
               </span>
             )}
           </div>
