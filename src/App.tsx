@@ -480,7 +480,22 @@ export default function App() {
       }
     };
 
+    // الاستماع الفوري لتحديثات توفر المنتجات (متوفر / غير متوفر)
+    const handleAvailabilityUpdated = (e: any) => {
+      const { productId, isAvailable } = e?.detail || {};
+      if (productId != null && isAvailable != null) {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === Number(productId)
+              ? { ...p, active: Boolean(isAvailable), is_available: Boolean(isAvailable) }
+              : p
+          )
+        );
+      }
+    };
+
     window.addEventListener('khodra_prices_updated', handlePricesUpdated);
+    window.addEventListener('khodra_products_availability_updated', handleAvailabilityUpdated);
 
     // 2. اشتراك سحابي لحظي (Supabase Realtime) لتحديث المتجر فورياً في شاشات جميع العملاء
     const client = getSupabase();
@@ -512,6 +527,7 @@ export default function App() {
     return () => {
       mounted = false;
       window.removeEventListener('khodra_prices_updated', handlePricesUpdated);
+      window.removeEventListener('khodra_products_availability_updated', handleAvailabilityUpdated);
       if (client && channel) {
         client.removeChannel(channel);
       }
@@ -886,7 +902,8 @@ export default function App() {
       const matchesSearch = !searchQuery.trim() ||
         p.name.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
         (p.origin && p.origin.toLowerCase().includes(searchQuery.toLowerCase().trim()));
-      const matchesStock = !onlyInStock || p.stock > 0;
+      const isProductAvailable = p.active !== false && p.is_available !== false && (p.stock === undefined || p.stock > 0);
+      const matchesStock = !onlyInStock || isProductAvailable;
       return matchesCategory && matchesSearch && matchesStock;
     });
 

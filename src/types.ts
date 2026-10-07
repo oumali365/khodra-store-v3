@@ -18,7 +18,8 @@ export interface Product {
   type: ProductType;
   price: number;
   unit_label?: string;
-  stock: number;
+  stock?: number;
+  is_available?: boolean;
   icon: string;
   image_url?: string;
   active: boolean;

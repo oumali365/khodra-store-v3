@@ -7,8 +7,14 @@ import {
   X, TrendingUp, DollarSign, Package, Target,
   Download, RotateCcw, Save, BarChart3, LineChart, Percent,
   Info, Sparkles, ChevronDown, ChevronUp, Settings, CheckCircle2, AlertCircle,
-  Globe, Copy, Check,
+  Globe, Copy, Check, Database,
 } from 'lucide-react';
+import {
+  fetchOrders,
+  subscribeToOrdersChanges,
+  unsubscribeFromOrdersChanges,
+  type DbOrder,
+} from '../../../services/supabaseService';
 
 export interface FinancePanelProps {
   isOpen?: boolean;
@@ -319,8 +325,89 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, standalone, onClose]);
 
+  const [realOrders, setRealOrders] = useState<DbOrder[]>([]);
+  const [dataMode, setDataMode] = useState<'auto' | 'projected'>('auto');
+  const [isSyncingSupabase, setIsSyncingSupabase] = useState(false);
+
+  // ─── استعلام ومزامنة الطلبات الحقيقية من Supabase (Realtime Sync) ───
+  useEffect(() => {
+    let mounted = true;
+    setIsSyncingSupabase(true);
+
+    fetchOrders()
+      .then((data) => {
+        if (mounted) {
+          setRealOrders(data || []);
+          setIsSyncingSupabase(false);
+        }
+      })
+      .catch((err) => {
+        console.warn('FinancePanel fetch orders error:', err);
+        if (mounted) setIsSyncingSupabase(false);
+      });
+
+    // الاشتراك الفوري في أحداث الطلبات (Realtime)
+    const channel = subscribeToOrdersChanges(() => {
+      fetchOrders().then((data) => {
+        if (mounted) setRealOrders(data || []);
+      });
+    });
+
+    return () => {
+      mounted = false;
+      if (channel) unsubscribeFromOrdersChanges(channel);
+    };
+  }, []);
+
+  // حساب المؤشرات الواقعية من طلبات Supabase غير الملغاة
+  const realMetrics = useMemo(() => {
+    const active = realOrders.filter(
+      (o) => o && !o.is_deleted && o.status !== 'cancelled' && (Number(o.total) > 0 || (Array.isArray(o.items) && o.items.length > 0))
+    );
+    if (active.length === 0) return null;
+
+    const totalOrders = active.length;
+    const totalRevenue = active.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const avgBasket = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+    const uniqueDates = new Set(active.map((o) => (o.created_at ? o.created_at.split('T')[0] : '')).filter(Boolean));
+    const activeDays = Math.max(1, Math.min(26, uniqueDates.size));
+    const ordersPerDay = Math.max(1, +(totalOrders / activeDays).toFixed(1));
+
+    return {
+      active,
+      totalOrders,
+      totalRevenue,
+      avgBasket,
+      activeDays,
+      ordersPerDay,
+    };
+  }, [realOrders]);
+
+  const hasRealData = Boolean(realMetrics && realMetrics.totalOrders > 0);
+  const isUsingRealData = dataMode === 'auto' && hasRealData;
+
+  // الأشهر الفعالة: إذا توفرت بيانات حقيقية في Supabase تُستبدل تلقائياً، وإلا يتم الاعتماد على البيانات الافتراضية
+  const effectiveMonths: MonthData[] = useMemo(() => {
+    if (!isUsingRealData || !realMetrics) {
+      return months; // Fallback to hardcoded/saved months
+    }
+
+    // استبدال بيانات الشهر الأول بالأرقام الحقيقية المسجلة في Supabase
+    return months.map((m, idx) => {
+      if (idx === 0) {
+        return {
+          ...m,
+          ordersPerDay: realMetrics.ordersPerDay,
+          workingDays: realMetrics.activeDays,
+          avgBasket: realMetrics.avgBasket,
+        };
+      }
+      return m;
+    });
+  }, [months, isUsingRealData, realMetrics]);
+
   const results: MonthResult[] = useMemo(() => {
-    return months.map((m) => {
+    return effectiveMonths.map((m) => {
       const totalOrders = m.ordersPerDay * m.workingDays;
       const revenue = totalOrders * m.avgBasket;
       const cogs = revenue * (assumptions.cogsPercent / 100);
@@ -348,7 +435,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
         margin,
       };
     });
-  }, [months, assumptions]);
+  }, [effectiveMonths, assumptions]);
 
   const totals = useMemo(() => {
     const totalRevenue = results.reduce((s, r) => s + r.revenue, 0);
@@ -478,7 +565,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
 
   // ⚠️ تصحيح حساب نقطة التعادل لتعتمد على بيانات الشهر الأول والفرضيات المحدثة مع حماية من القسمة على صفر أو القيم غير المحددة
   const breakEven = useMemo(() => {
-    const firstMonth = months[0] || INITIAL_MONTHS[0];
+    const firstMonth = effectiveMonths[0] || INITIAL_MONTHS[0];
     const targetAOV = Number.isFinite(firstMonth?.avgBasket) && (firstMonth?.avgBasket ?? 0) > 0 ? firstMonth.avgBasket : 115;
     const cogsPct = Number.isFinite(assumptions.cogsPercent) ? assumptions.cogsPercent : 68;
     const deliveryCost = Number.isFinite(assumptions.deliveryCostPerOrder) ? assumptions.deliveryCostPerOrder : 8;
@@ -500,7 +587,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     const breakevenPerDay = Math.max(1, Math.ceil(breakevenOrders / workingDays));
     
     return { orders: breakevenOrders, perDay: breakevenPerDay, workingDays };
-  }, [months, assumptions]);
+  }, [effectiveMonths, assumptions]);
 
   const maxRevenue = Math.max(...results.map((r) => (Number.isFinite(r.revenue) ? r.revenue : 0)), 1);
   const maxProfit = Math.max(...results.map((r) => (Number.isFinite(r.netProfit) ? Math.abs(r.netProfit) : 0)), 1);
@@ -631,6 +718,55 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
 
         {/* ═══════ المحتوى الرئيسي ═══════ */}
         <div className={`${standalone ? 'p-3 sm:p-5 space-y-4' : 'flex-1 overflow-y-auto p-3 sm:p-5 space-y-4'}`}>
+
+          {/* ─── شريط حالة مصدر البيانات الذكي (Supabase Live vs Fallback) ─── */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-3 rounded-2xl border text-xs font-bold transition-all shadow-2xs bg-white border-stone-200">
+            <div className="flex items-center gap-2.5">
+              {isUsingRealData ? (
+                <>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <div className="text-emerald-950 text-right">
+                    <span className="font-black text-xs sm:text-sm">
+                      {lang === 'ar' ? '🟢 بيانات حقيقية ومزامنة فورية من Supabase' : '🟢 Données Réelles Supabase synchronisées en direct'}
+                    </span>
+                    <span className="block text-[10px] sm:text-[11px] text-emerald-700 font-normal mt-0.5">
+                      {lang === 'ar'
+                        ? `تم رصد ${realMetrics?.totalOrders} طلب فعلي بإجمالي إيرادات ${fmt(realMetrics?.totalRevenue || 0)} د.م (متوسط السلة: ${realMetrics?.avgBasket} د.م)`
+                        : `${realMetrics?.totalOrders} commandes réelles • CA: ${fmt(realMetrics?.totalRevenue || 0)} MAD (Panier: ${realMetrics?.avgBasket} MAD)`}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                  <div className="text-stone-800 text-right">
+                    <span className="font-black text-xs text-amber-900">
+                      {lang === 'ar' ? 'ℹ️ وضع البيانات الافتراضية والتوقعات المبدئية (Fallback Data)' : 'ℹ️ Mode Prévisions & Données par Défaut (Fallback)'}
+                    </span>
+                    <span className="block text-[10px] text-stone-500 font-normal mt-0.5">
+                      {lang === 'ar'
+                        ? 'تُعرض هذه التقديرات تلقائياً لعدم توفر طلبات كافية بعد في Supabase، وستستبدل فورياً مع تسجيل كل طلب جديد.'
+                        : 'Ces chiffres s’affichent par défaut et seront automatiquement remplacés dès l’enregistrement de commandes réelles.'}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {hasRealData && (
+              <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => setDataMode((prev) => (prev === 'auto' ? 'projected' : 'auto'))}
+                  className="px-3 py-1.5 rounded-xl border text-[11px] font-black transition-all cursor-pointer bg-stone-100 hover:bg-stone-200 text-stone-800 border-stone-300"
+                >
+                  {dataMode === 'auto'
+                    ? (lang === 'ar' ? 'عرض التوقعات المبدئية 📊' : 'Voir Prévisions 📊')
+                    : (lang === 'ar' ? 'عرض أرقام Supabase الفعلية 🟢' : 'Voir Données Réelles 🟢')}
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* ─── 4 بطاقات مؤشرات أداء رئيسية KPI Cards ─── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">

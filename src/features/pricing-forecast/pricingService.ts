@@ -254,11 +254,61 @@ export async function getProductPricingRows(): Promise<{
       selling_price: sellingPrice,
       yesterday_price: yesterdayPrice,
       trend,
+      is_available: prod.active !== false && (prod as any).is_available !== false,
       is_modified: false,
     };
   });
 
   return { rows, suppliers };
+}
+
+/**
+ * تحديث حالة توفر المنتج منطقياً (متوفر / غير متوفر)
+ * بدون أي تتبع كمي للمخزون وفق نموذج التموين المسبق (Just-In-Time)
+ */
+export async function updateProductAvailability(
+  productId: number,
+  isAvailable: boolean
+): Promise<boolean> {
+  try {
+    const raw = localStorage.getItem(LOCAL_PRICES_KEY);
+    const savedMap = raw ? JSON.parse(raw) : {};
+    if (savedMap[productId]) {
+      savedMap[productId].is_available = isAvailable;
+    } else {
+      savedMap[productId] = { is_available: isAvailable };
+    }
+    localStorage.setItem(LOCAL_PRICES_KEY, JSON.stringify(savedMap));
+
+    const client = getSupabase();
+    if (client) {
+      await client
+        .from('products')
+        .update({
+          active: isAvailable,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', productId);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('khodra_products_availability_updated', {
+          detail: { productId, isAvailable, timestamp: Date.now() },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent('khodra_prices_updated', {
+          detail: { updates: [], availabilityUpdates: [{ productId, isAvailable }], timestamp: Date.now() },
+        })
+      );
+    }
+
+    return true;
+  } catch (err) {
+    logger.error('Failed to update product availability:', err);
+    return false;
+  }
 }
 
 /**
@@ -382,7 +432,7 @@ export async function getDemandForecastData(): Promise<DemandForecastSummary> {
   const currentDayIdx = today.getDay(); // 0-6
   const currentDayName = daysOfWeek.find((d) => d.index === currentDayIdx)?.name || 'اليوم';
 
-  // حساب كميات التخزين الموصى بها لأبرز المنتجات
+  // حساب كميات الشراء والتموين الصباحي المقترحة لأبرز المنتجات (نموذج JIT)
   const recommendedTopItems = [
     { productId: 1, name: 'بطاطس بلدية', icon: '🥔', quantityKg: 145, trendNote: '+18% مقارنة بالأسبوع الماضي' },
     { productId: 2, name: 'طماطم طازجة', icon: '🍅', quantityKg: 120, trendNote: 'طلب الذروة في سوق بنسودة' },
@@ -393,20 +443,20 @@ export async function getDemandForecastData(): Promise<DemandForecastSummary> {
     { productId: 12, name: 'برتقال عصير نافيل', icon: '🍊', quantityKg: 110, trendNote: 'طلب موسمي فائق' },
   ];
 
-  const smartSuggestionText = `بناءً على مبيعات آخر 3 أيام (${currentDayName})، يُنصح بتخزين حوالي 145 كجم من البطاطس و 120 كجم من الطماطم و 95 كجم من البصل اليوم من سوق الجملة بنسودة قبل الساعة 08:30 صباحاً.`;
+  const smartSuggestionText = `بناءً على تحليل طلبات ومبيعات آخر 3 أيام (${currentDayName})، يُنصح بشراء وتموين حوالي 145 كجم من البطاطس و 120 كجم من الطماطم و 95 كجم من البصل اليوم من سوق الجملة بنسودة قبل الساعة 08:30 صباحاً وفق نموذج JIT.`;
 
   const aiSpikeAlerts = [
     {
       id: 'alert-1',
       title: 'ارتفاع مفاجئ في الطلب على الحوامض والفواكه الموسمية',
-      message: 'تم رصد ارتفاع الطلب على البرتقال والتفاح بنسبة +24% خلال الـ 48 ساعة الأخيرة في أحياء طريق إيموزار والنرجس. يُنصح بزيادة المخزون الصباحي بنسبة 20% غداً.',
+      message: 'تم رصد ارتفاع الطلب على البرتقال والتفاح بنسبة +24% خلال الـ 48 ساعة الأخيرة في أحياء طريق إيموزار والنرجس. يُنصح بزيادة كمية الشراء الصباحي من سوق بنسودة بنسبة 20% غداً.',
       severity: 'warning' as const,
       suggestedIncreasePercent: 20,
     },
     {
       id: 'alert-2',
       title: 'استقرار أسعار ورقيات عين الشقف وسهل سايس',
-      message: 'انخفاض سعر الشراء للنعناع والقزبر بنسبة -12% في سوق بنسودة. يُوصى بالحفاظ على هامش ربح 30% مع تقديم عروض حزم ورقية إضافية للزبائن.',
+      message: 'انخفاض سعر الشراء للنعناع والقزبر بنسبة -12% في سوق بنسودة. يُوصى بالحفاظ على هامش ربح 33% مع تقديم عروض حزم ورقية إضافية للزبائن.',
       severity: 'info' as const,
       suggestedIncreasePercent: 15,
     },
@@ -465,6 +515,7 @@ export async function getTop10ProductsSalesHistory(): Promise<TopProductSalesHis
     const totalVolume30Days = dailyDistribution.reduce((acc, curr) => acc + curr.volumeKg, 0) * 4;
     const mondayData = dailyDistribution.find((d) => d.dayName === 'الإثنين');
     const averagePerMonday = mondayData ? mondayData.volumeKg : item.baseVolume;
+    const suggestedPurchase = Math.round(averagePerMonday * 1.15);
 
     return {
       productId: item.id,
@@ -474,7 +525,8 @@ export async function getTop10ProductsSalesHistory(): Promise<TopProductSalesHis
       totalVolume30Days,
       dailyDistribution,
       averagePerMonday,
-      currentStockRecommendation: Math.round(averagePerMonday * 1.15),
+      currentStockRecommendation: suggestedPurchase,
+      suggestedPurchaseQuantityKg: suggestedPurchase,
       spikeDetected: item.spike > 15,
       spikePercentage: item.spike,
     };

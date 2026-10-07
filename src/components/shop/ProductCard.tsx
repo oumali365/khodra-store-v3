@@ -78,8 +78,9 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   const imgContainerRef = useRef<HTMLDivElement>(null);
   const pulseTimer = useRef<number | null>(null);
 
-  const isSoldOut = product.stock <= 0;
-  const isLimited = product.stock > 0 && product.stock <= 5;
+  // في نموذج التموين المسبق (Just-In-Time) يتم التحكم فقط عبر الحالة المنطقية (متوفر / غير متوفر)
+  const isAvailable = product.active !== false && product.is_available !== false && (product.stock === undefined || product.stock > 0);
+  const isSoldOut = !isAvailable;
 
   useEffect(() => {
     if (isJustAdded) {
@@ -199,13 +200,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
 
   const getStatusBadge = () => {
     if (isSoldOut) {
-      return { text: 'نفد المخزون', cls: 'bg-rose-50 text-rose-800 border-rose-200 font-black' };
-    }
-    if (isLimited) {
-      return {
-        text: 'كمية محدودة',
-        cls: 'bg-[#FEF3C7] text-[#92400E] border-[#EAB308]/60 font-black',
-      };
+      return { text: 'غير متوفر', cls: 'bg-rose-50 text-rose-800 border-rose-200 font-black' };
     }
     return {
       text: 'متوفر',
@@ -406,7 +401,7 @@ export const ProductCard = React.memo(ProductCardComponent, (prev, next) => {
   return (
     prev.product.id === next.product.id &&
     prev.inCartQty === next.inCartQty &&
-    prev.product.stock === next.product.stock &&
+    prev.product.is_available === next.product.is_available &&
     prev.product.price === next.product.price &&
     prev.product.name === next.product.name &&
     prev.product.image_url === next.product.image_url &&

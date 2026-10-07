@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import type { ProductPriceRow, Supplier, PriceTrend } from './types';
 import { DEFAULT_PROFIT_MARGIN } from './types';
-import { calculateSellingPrice, determineTrend } from './pricingService';
+import { calculateSellingPrice, determineTrend, updateProductAvailability } from './pricingService';
 import type { ProductCategory } from '../../types';
 
 interface MorningPricingTableProps {
@@ -126,6 +126,20 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
     } finally {
       setSavingRowId(null);
     }
+  };
+
+  // تبديل حالة توفر المنتج فورياً (متوفر / غير متوفر) بدون تتبع كمي
+  const handleToggleAvailability = async (productId: number, newStatus: boolean) => {
+    setTableData((prev) =>
+      prev.map((item) => (item.id === productId ? { ...item, is_available: newStatus } : item))
+    );
+    await updateProductAvailability(productId, newStatus);
+    setSuccessToast(
+      newStatus
+        ? `🟢 تم تعيين المنتج كـ "متوفر" في المتجر ومزامنته فوراً`
+        : `🔴 تم تعيين المنتج كـ "غير متوفر" في المتجر ومزامنته فوراً`
+    );
+    setTimeout(() => setSuccessToast(null), 3000);
   };
 
   // Save all modified rows
@@ -392,13 +406,17 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                   <span className="text-[10px] text-emerald-600 font-normal block">(محسوب تلقائياً)</span>
                 </th>
                 <th className="py-3 px-3 sm:px-4 min-w-[110px] text-center">مؤشر الاتجاه</th>
+                <th className="py-3 px-3 sm:px-4 min-w-[100px] text-center">
+                  <span>حالة التوفر</span>
+                  <span className="text-[10px] text-stone-500 font-normal block">(تحكم منطقي JIT)</span>
+                </th>
                 <th className="py-3 px-3 sm:px-4 w-20 text-center">إجراء</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 font-medium">
               {filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-stone-500">
+                  <td colSpan={9} className="py-12 text-center text-stone-500">
                     لم نتمكن من العثور على أي منتج مطابق لمعايير البحث.
                   </td>
                 </tr>
@@ -532,6 +550,26 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                             <span>مستقر</span>
                           </span>
                         )}
+                      </td>
+
+                      {/* حالة التوفر المنطقية (JIT Boolean) */}
+                      <td className="py-2.5 px-3 sm:px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleAvailability(row.id, !row.is_available)}
+                          className={`px-2.5 py-1 rounded-xl text-[10px] font-black border transition-all cursor-pointer ${
+                            row.is_available
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 shadow-2xs'
+                              : 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100 shadow-2xs'
+                          }`}
+                          title={
+                            row.is_available
+                              ? 'المنتج متوفر حالياً • اضغط لجعله غير متوفر'
+                              : 'المنتج غير متوفر • اضغط لجعله متوفراً في المتجر'
+                          }
+                        >
+                          {row.is_available ? 'متوفر ✓' : 'غير متوفر ✕'}
+                        </button>
                       </td>
 
                       {/* زر الحفظ السريع */}

@@ -536,6 +536,8 @@ export interface DbOrder {
   paid_at?: string | null;
   is_archived?: boolean;
   archived_at?: string | null;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
 }
 
 // ─── كشف مسار فاس تلقائياً من العنوان للتجميع الذكي (4 مسارات ذكية) ───

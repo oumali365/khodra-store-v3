@@ -106,7 +106,7 @@ export const DemandForecastView: React.FC<DemandForecastViewProps> = ({
 
           <div className="mt-3.5 p-2.5 bg-white/10 rounded-xl border border-white/15 flex items-center justify-between">
             <div>
-              <span className="text-[10px] text-amber-200 block font-medium">الزيادة المقترحة في المخزون:</span>
+              <span className="text-[10px] text-amber-200 block font-medium">الزيادة المقترحة في الشراء الصباحي:</span>
               <span className="text-base font-black text-white">
                 +{forecastSummary.aiSpikeAlerts[0]?.suggestedIncreasePercent || 20}% غداً
               </span>
@@ -200,12 +200,12 @@ export const DemandForecastView: React.FC<DemandForecastViewProps> = ({
                 </div>
               </div>
 
-              {/* بطاقة مخزون الأمان الموصى به */}
+              {/* بطاقة حجم الشراء الصباحي المقترح (JIT) */}
               <div className="bg-stone-50 p-3 rounded-xl border border-stone-200/80">
-                <span className="text-[10px] text-stone-500 font-medium block">مخزون الأمان (JIT)</span>
+                <span className="text-[10px] text-stone-500 font-medium block">الشراء الصباحي المقترح (JIT)</span>
                 <div className="flex items-baseline gap-1 mt-0.5">
                   <span className="text-lg sm:text-xl font-black text-emerald-800 tabular-nums">
-                    {selectedProduct.currentStockRecommendation}
+                    {selectedProduct.suggestedPurchaseQuantityKg || selectedProduct.currentStockRecommendation}
                   </span>
                   <span className="text-[10px] text-emerald-700">كجم</span>
                 </div>

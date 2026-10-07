@@ -35,6 +35,7 @@ export interface ProductPriceRow {
   selling_price: number;        // سعر البيع المحسوب تلقائياً
   yesterday_price: number;      // سعر الشراء بالأمس للمقارنة
   trend: PriceTrend;            // مؤشر الاتجاه
+  is_available: boolean;        // حالة التوفر المنطقية (متوفر / غير متوفر)
   is_modified?: boolean;        // مؤشر التعديل اللحظي
   last_updated?: string;
 }
@@ -65,7 +66,8 @@ export interface TopProductSalesHistory {
   totalVolume30Days: number;
   dailyDistribution: DaySalesPoint[];
   averagePerMonday: number;
-  currentStockRecommendation: number;
+  currentStockRecommendation: number; // للرجعية
+  suggestedPurchaseQuantityKg: number; // حجم الشراء الصباحي المقترح (كجم)
   spikeDetected: boolean;
   spikePercentage: number;
 }
