@@ -204,13 +204,47 @@ export async function getProductPricingRows(): Promise<{
   const suppliers = await getSuppliers();
   const defaultSupplier = suppliers[0] || DEFAULT_SUPPLIERS[0];
 
-  // جلب الأسعار المحفوظة محلياً أو سحابياً
-  let savedPricesMap: Record<number, { purchase: number; margin: number; yesterday: number; supplierId: string }> = {};
+  // 1. جلب الأسعار وحالة التوفر المحفوظة محلياً
+  let savedPricesMap: Record<
+    number,
+    { purchase: number; margin: number; yesterday: number; supplierId: string; is_available?: boolean }
+  > = {};
 
   try {
     const raw = localStorage.getItem(LOCAL_PRICES_KEY);
     if (raw) savedPricesMap = JSON.parse(raw);
   } catch {}
+
+  // 2. جلب حالة التوفر والأسعار الحية من قاعدة بيانات Supabase (لحسم المشكلة ومنع عودة الحالة لـ متوفر)
+  const client = getSupabase();
+  const dbProductsMap = new Map<number, { active?: boolean; is_available?: boolean; price?: number }>();
+
+  if (client) {
+    try {
+      const { data: dbProds, error: dbErr } = await client
+        .from('products')
+        .select('*');
+
+      if (!dbErr && dbProds && Array.isArray(dbProds)) {
+        dbProds.forEach((p: any) => {
+          if (p.id != null) {
+            dbProductsMap.set(Number(p.id), {
+              active: p.active !== undefined ? Boolean(p.active) : undefined,
+              is_available:
+                p.is_available !== undefined
+                  ? Boolean(p.is_available)
+                  : p.active !== undefined
+                  ? Boolean(p.active)
+                  : undefined,
+              price: p.price != null ? Number(p.price) : undefined,
+            });
+          }
+        });
+      }
+    } catch (e) {
+      logger.warn('Failed to fetch products from Supabase for pricing table:', e);
+    }
+  }
 
   const rows: ProductPriceRow[] = INITIAL_PRODUCTS.map((prod, index) => {
     // تعيين مورد مناسب حسب فئة المنتج
@@ -226,6 +260,8 @@ export async function getProductPricingRows(): Promise<{
     }
 
     const saved = savedPricesMap[prod.id];
+    const dbProd = dbProductsMap.get(prod.id);
+
     // احتساب هامش ربح 33% تلقائياً لتغطية مصاريف النقل، الإتلاف واللوجستيك
     let margin = saved && saved.margin !== undefined ? saved.margin : DEFAULT_PROFIT_MARGIN;
     if (margin === 25) {
@@ -239,6 +275,25 @@ export async function getProductPricingRows(): Promise<{
     const supplierObj = suppliers.find((s) => s.id === supplierId) || chosenSupplier;
     const sellingPrice = calculateSellingPrice(purchasePrice, margin);
     const trend = determineTrend(purchasePrice, yesterdayPrice);
+
+    // ─── تحديد حالة التوفر المنطقية (Boolean State) بدقة مطلقة ───
+    // الأولوية 1: القيمة الحقيقية المخزنة في Supabase (is_available أو active)
+    // الأولوية 2: القيمة المحفوظة في LocalStorage (saved.is_available)
+    // الأولوية 3: القيمة الافتراضية للمنتج (prod.is_available أو prod.active)
+    let isAvailable = true;
+    if (dbProd) {
+      if (dbProd.is_available !== undefined) {
+        isAvailable = Boolean(dbProd.is_available);
+      } else if (dbProd.active !== undefined) {
+        isAvailable = Boolean(dbProd.active);
+      }
+    } else if (saved && saved.is_available !== undefined) {
+      isAvailable = Boolean(saved.is_available);
+    } else if (prod.is_available !== undefined) {
+      isAvailable = Boolean(prod.is_available);
+    } else if (prod.active !== undefined) {
+      isAvailable = Boolean(prod.active);
+    }
 
     return {
       id: prod.id,
@@ -254,7 +309,7 @@ export async function getProductPricingRows(): Promise<{
       selling_price: sellingPrice,
       yesterday_price: yesterdayPrice,
       trend,
-      is_available: prod.active !== false && (prod as any).is_available !== false,
+      is_available: isAvailable,
       is_modified: false,
     };
   });
@@ -273,22 +328,40 @@ export async function updateProductAvailability(
   try {
     const raw = localStorage.getItem(LOCAL_PRICES_KEY);
     const savedMap = raw ? JSON.parse(raw) : {};
-    if (savedMap[productId]) {
-      savedMap[productId].is_available = isAvailable;
-    } else {
-      savedMap[productId] = { is_available: isAvailable };
-    }
+    savedMap[productId] = {
+      ...(savedMap[productId] || {}),
+      is_available: isAvailable,
+    };
     localStorage.setItem(LOCAL_PRICES_KEY, JSON.stringify(savedMap));
 
     const client = getSupabase();
     if (client) {
-      await client
+      // إرسال التحديث لحقل active وحقل is_available لضمان التوافق مع أي بنية في جدول Supabase
+      const payload: Record<string, any> = {
+        active: isAvailable,
+        is_available: isAvailable,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error: updateErr } = await client
         .from('products')
-        .update({
-          active: isAvailable,
-          updated_at: new Date().toISOString(),
-        })
+        .update(payload)
         .eq('id', productId);
+
+      if (updateErr) {
+        // في حال كان عمود is_available غير موجود في جدول Supabase وألقى خطأ، نحدّث عبر active فقط
+        if (updateErr.message?.includes('is_available') || updateErr.code === 'PGRST204') {
+          await client
+            .from('products')
+            .update({
+              active: isAvailable,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', productId);
+        } else {
+          logger.warn('Failed to update product availability in Supabase:', updateErr);
+        }
+      }
     }
 
     if (typeof window !== 'undefined') {
@@ -324,12 +397,13 @@ export async function saveProductPrices(
     const todayDate = new Date().toISOString().split('T')[0];
 
     updates.forEach((u) => {
-      const prev = savedMap[u.productId];
+      const prev = savedMap[u.productId] || {};
       savedMap[u.productId] = {
+        ...prev, // الحفاظ الصارم على حالة is_available وعدم مسحها عند تعديل السعر
         purchase: u.purchasePrice,
         margin: u.marginPercentage,
         supplierId: u.supplierId,
-        yesterday: prev ? prev.purchase : u.purchasePrice,
+        yesterday: prev.purchase ? prev.purchase : u.purchasePrice,
         date: todayDate,
       };
     });

@@ -55,6 +55,10 @@ export function resolveProductImageUrl(url?: string | null): string | undefined 
 }
 
 function normalizeProduct(row: any): Product {
+  const isAvail = row.is_available !== undefined
+    ? Boolean(row.is_available)
+    : (row.active !== undefined ? Boolean(row.active) : true);
+
   return {
     id: Number(row.id),
     name: String(row.name || ''),
@@ -65,7 +69,8 @@ function normalizeProduct(row: any): Product {
     stock: Number(row.stock) || 0,
     icon: row.icon || '🛒',
     image_url: resolveProductImageUrl(row.image_url),
-    active: row.active !== undefined ? Boolean(row.active) : true,
+    active: isAvail,
+    is_available: isAvail,
     description: row.description || undefined,
     origin: row.origin || undefined,
   };
@@ -80,7 +85,6 @@ export async function fetchProducts(): Promise<Product[]> {
       const { data, error } = await client
         .from('products')
         .select('*')
-        .eq('active', true)
         .order('id');
 
       if (!error && data && data.length > 0) {
