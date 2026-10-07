@@ -55,9 +55,23 @@ export function resolveProductImageUrl(url?: string | null): string | undefined 
 }
 
 function normalizeProduct(row: any): Product {
-  const isAvail = row.is_available !== undefined
-    ? Boolean(row.is_available)
-    : (row.active !== undefined ? Boolean(row.active) : true);
+  // ✅ الحاكم المطلق هو is_available. لا توجد قيم افتراضية مضللة.
+  // إذا لم يكن is_available موجوداً بشكل صريح، نعتبره false (غير متوفر) كإجراء احترازي.
+  let isAvail = false;
+  
+  // الأولوية القصوى: is_available
+  if (row.is_available === true) {
+    isAvail = true;
+  } else if (row.is_available === false) {
+    isAvail = false;
+  } 
+  // خيار احتياطي: active (فقط إذا لم يكن is_available موجوداً)
+  else if (row.active === true) {
+    isAvail = true;
+  } else if (row.active === false) {
+    isAvail = false;
+  }
+  // في جميع الحالات الأخرى (null, undefined, قيمة غريبة) => false
 
   return {
     id: Number(row.id),
@@ -66,7 +80,7 @@ function normalizeProduct(row: any): Product {
     type: (row.type === 'unit' ? 'unit' : 'weight') as Product['type'],
     price: Number(row.price) || 0,
     unit_label: row.unit_label || undefined,
-    stock: Number(row.stock) || 0,
+    stock: Number(row.stock) || 0, // للعرض فقط، لا يؤثر على التوفر
     icon: row.icon || '🛒',
     image_url: resolveProductImageUrl(row.image_url),
     active: isAvail,
@@ -75,7 +89,6 @@ function normalizeProduct(row: any): Product {
     origin: row.origin || undefined,
   };
 }
-
 export async function fetchProducts(): Promise<Product[]> {
   const client = getSupabase();
   let baseProducts: Product[] = INITIAL_PRODUCTS;
