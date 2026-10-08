@@ -22,6 +22,7 @@ import {
   PackageCheck,
   PackageX,
   AlertCircle,
+  ChevronDown,
 } from 'lucide-react';
 import type { ProductPriceRow, Supplier } from './types';
 import { DEFAULT_PROFIT_MARGIN } from './types';
@@ -44,15 +45,14 @@ interface MorningPricingTableProps {
   isSaving: boolean;
 }
 
-const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  all: 'الكل (120+)',
-  veg: 'خضار وورقيات',
-  fruit: 'فواكه موسمية',
-  dairy: 'ألبان وأجبان',
-  grocery: 'بقالة ومونة',
-  drinks: 'عصائر ومشروبات',
-  cleaning: 'نظافة وعناية',
-};
+export const OFFICIAL_CATEGORIES: { id: ProductCategory; name: string; icon: string }[] = [
+  { id: 'veg', name: 'خضار وورقيات', icon: '🥬' },
+  { id: 'fruit', name: 'فواكه موسمية', icon: '🍎' },
+  { id: 'dairy', name: 'ألبان وأجبان', icon: '🥛' },
+  { id: 'grocery', name: 'بقالة ومونة', icon: '🛒' },
+  { id: 'drinks', name: 'عصائر ومشروبات', icon: '🥤' },
+  { id: 'cleaning', name: 'نظافة وعناية', icon: '🧴' },
+];
 
 export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
   rows: initialRows,
@@ -64,7 +64,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
 }) => {
   const [tableData, setTableData] = useState<ProductPriceRow[]>(initialRows);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('veg');
   const [savingRowId, setSavingRowId] = useState<number | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
@@ -227,7 +227,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
   // تصفية المنتجات بالبحث والفئة
   const filteredData = useMemo(() => {
     return tableData.filter((row) => {
-      const matchCat = selectedCategory === 'all' || row.category === selectedCategory;
+      const matchCat = row.category === selectedCategory;
       const matchSearch =
         searchQuery.trim() === '' ||
         row.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -422,28 +422,198 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
           </div>
         </div>
 
-        {/* فئات المنتجات بنمط أزرار Pill */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs">
-          {(Object.keys(CATEGORY_LABELS) as ProductCategory[]).map((cat) => (
+        {/* اختيار الفئة في وضع الهاتف: Dropdown أنيق وبسيط لمنع الازدحام */}
+        <div className="sm:hidden">
+          <label className="text-[11px] font-bold text-stone-500 mb-1.5 block">
+            الفئة ({OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name}):
+          </label>
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value as ProductCategory)}
+              className="w-full appearance-none bg-stone-50 border-2 border-stone-200 text-stone-900 font-black text-xs py-2.5 px-3 pr-10 rounded-2xl focus:outline-none focus:border-[#163920] focus:ring-1 focus:ring-[#163920] cursor-pointer shadow-2xs"
+            >
+              {OFFICIAL_CATEGORIES.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icon} {cat.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-stone-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-base">
+              {OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.icon}
+            </span>
+          </div>
+        </div>
+
+        {/* فئات المنتجات في الشاشات الكبيرة: 6 فئات رسمية فقط */}
+        <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs">
+          {OFFICIAL_CATEGORIES.map((cat) => (
             <button
-              key={cat}
+              key={cat.id}
               type="button"
-              onClick={() => setSelectedCategory(cat)}
-              className={`min-h-[38px] px-3.5 py-1.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
-                selectedCategory === cat
-                  ? 'bg-[#163920] text-white shadow-2xs'
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`min-h-[38px] px-3.5 py-1.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedCategory === cat.id
+                  ? 'bg-[#163920] text-white shadow-2xs font-black'
                   : 'bg-stone-100/80 hover:bg-stone-200/80 text-stone-700'
               }`}
             >
-              {CATEGORY_LABELS[cat]}
+              <span>{cat.icon}</span>
+              <span>{cat.name}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ═══════ جدول الأسعار المريح ═══════ */}
+      {/* ═══════ جدول وبطاقات الأسعار: بطاقات للموبايل + جدول للمكتبي ═══════ */}
       <div className="bg-white rounded-3xl border border-stone-200/90 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* 1. بطاقات تسعير المنتجات للهاتف (Mobile Pricing Cards) */}
+        <div className="md:hidden divide-y divide-stone-100">
+          {filteredData.length === 0 ? (
+            <div className="py-12 text-center text-stone-400 text-xs font-medium">
+              لا توجد منتجات مطابقة في فئة {OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
+            </div>
+          ) : (
+            filteredData.map((row) => {
+              const isRowSaving = savingRowId === row.id;
+
+              return (
+                <div
+                  key={row.id}
+                  className={`p-3.5 bg-white space-y-3 transition-colors ${
+                    row.is_modified ? 'bg-amber-50/40 border-r-4 border-r-amber-400' : ''
+                  }`}
+                >
+                  {/* الرأس: اسم المنتج + السعر للبيع المحسوب */}
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-xl w-10 h-10 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0 shadow-2xs">
+                        {row.icon}
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="font-black text-stone-900 text-xs sm:text-sm">{row.name}</h4>
+                        <span className="text-[10px] text-stone-500 font-medium">
+                          {row.unit_label} • {OFFICIAL_CATEGORIES.find((c) => c.id === row.category)?.name}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-left shrink-0">
+                      <div className="py-1 px-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[#163920] font-mono font-black text-xs sm:text-sm text-center tabular-nums">
+                        {row.selling_price.toFixed(2)} د.م
+                      </div>
+                      <span className="text-[9px] text-emerald-700 font-bold block text-center mt-0.5">
+                        سعر البيع
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* المورد */}
+                  <div>
+                    <label className="text-[10px] font-bold text-stone-500 mb-1 block">المورد:</label>
+                    <select
+                      value={row.supplier_id}
+                      onChange={(e) => handleCellChange(row.id, 'supplier_id', e.target.value)}
+                      className="w-full py-1.5 px-2.5 rounded-xl border border-stone-200 bg-white text-stone-800 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#163920]"
+                    >
+                      {suppliers.map((sup) => (
+                        <option key={sup.id} value={sup.id}>
+                          {sup.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* سعر الشراء + هامش الربح */}
+                  <div className="grid grid-cols-2 gap-2.5 pt-1">
+                    <div>
+                      <label className="text-[10px] font-bold text-stone-500 mb-1 block">سعر الشراء (د.م):</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          value={row.purchase_price}
+                          onChange={(e) => handleCellChange(row.id, 'purchase_price', parseFloat(e.target.value) || 0)}
+                          className="w-full py-1.5 px-2.5 pr-7 rounded-xl border border-stone-200 bg-white text-stone-900 font-mono font-bold text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-[#163920]"
+                        />
+                        <span className="absolute right-2 top-1.5 text-[9px] text-stone-400 font-bold pointer-events-none">
+                          د.م
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-bold text-stone-500">هامش الربح (%):</label>
+                        {row.margin_percentage < 33 && (
+                          <button
+                            type="button"
+                            onClick={() => handleCellChange(row.id, 'margin_percentage', 33)}
+                            className="text-[9px] font-black text-amber-800 underline cursor-pointer"
+                          >
+                            رفع لـ 33% 🛡️
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          max="150"
+                          value={row.margin_percentage}
+                          onChange={(e) => handleCellChange(row.id, 'margin_percentage', parseFloat(e.target.value) || 0)}
+                          className={`w-full py-1.5 px-2.5 pr-6 rounded-xl border font-mono font-bold text-xs tabular-nums text-center focus:outline-none focus:ring-1 focus:ring-[#163920] ${
+                            row.margin_percentage < 33
+                              ? 'border-amber-300 bg-amber-50/60 text-amber-900'
+                              : 'border-stone-200 bg-white text-stone-900'
+                          }`}
+                        />
+                        <span className="absolute right-2 top-1.5 text-[9px] text-stone-400 font-bold pointer-events-none">
+                          %
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* الإجراءات وحالة التوفر */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-100">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAvailability(row.id, row.is_available, row.stock)}
+                      className={`text-[10px] font-bold px-2 py-1 rounded-lg border flex items-center gap-1 cursor-pointer ${
+                        row.is_available
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}
+                    >
+                      <span>{row.is_available ? '✓ متوفر' : '✕ غير متوفر'}</span>
+                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      {row.is_modified && (
+                        <button
+                          type="button"
+                          onClick={() => handleSaveSingleRow(row)}
+                          disabled={isRowSaving}
+                          className="px-3 py-1.5 rounded-lg bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                          <span>{isRowSaving ? 'حفظ...' : 'حفظ التعديل'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* 2. جدول الأسعار للشاشات المتوسطة والكبيرة (Desktop Table) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-right text-xs border-collapse">
             <thead>
               <tr className="bg-[#FAFAF9] border-b border-stone-200/80 text-stone-600 font-bold">
@@ -513,7 +683,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                           <div>
                             <div className="font-bold text-stone-900 text-xs sm:text-sm">{row.name}</div>
                             <span className="text-[10px] text-stone-400 font-normal">
-                              {row.unit_label} • {CATEGORY_LABELS[row.category]}
+                              {row.unit_label} • {OFFICIAL_CATEGORIES.find((c) => c.id === row.category)?.name || row.category}
                             </span>
                           </div>
                         </div>

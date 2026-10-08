@@ -50,7 +50,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'orders',
     href: '/admin/orders',
-    label: 'إدارة الطلبات',
+    label: 'الطلبات',
     sublabel: 'Commandes',
     Icon: ShoppingBag,
     accentColor: 'text-[#EAB308]',
@@ -58,23 +58,23 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'inventory',
     href: '/admin/inventory',
-    label: 'المنتجات والمخزون',
-    sublabel: 'Stock & Produits',
+    label: 'المنتجات',
+    sublabel: 'Stock',
     Icon: Package,
     accentColor: 'text-[#10B981]',
   },
   {
     id: 'marketing',
     href: '/admin/marketing',
-    label: 'التسويق الذكي AI',
-    sublabel: 'Marketing Copilot',
+    label: 'التسويق',
+    sublabel: 'Marketing AI',
     Icon: Sparkles,
     accentColor: 'text-[#0284C7]',
   },
   {
     id: 'fleet',
     href: '/admin/fleet',
-    label: 'مسارات التوصيل والفريق',
+    label: 'التوصيل',
     sublabel: 'Flotte',
     Icon: Bike,
     accentColor: 'text-[#38BDF8]',
@@ -82,15 +82,15 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'pricing',
     href: '/admin/pricing',
-    label: 'التسعير والتوقعات',
-    sublabel: 'Tarification JIT',
+    label: 'التسعير',
+    sublabel: 'Tarifs JIT',
     Icon: DollarSign,
     accentColor: 'text-[#FEF08A]',
   },
   {
     id: 'finance',
     href: '/admin/finance',
-    label: 'اللوحة المالية',
+    label: 'المالية',
     sublabel: 'Finance',
     Icon: BarChart3,
     accentColor: 'text-[#EA580C]',
@@ -98,7 +98,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'documents',
     href: '/admin/documents',
-    label: 'وثائق المشروع',
+    label: 'الوثائق',
     sublabel: 'Contrats',
     Icon: FileText,
     accentColor: 'text-[#10B981]',
@@ -275,43 +275,45 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
           1. الشريط العلوي الرئيسي (Desktop & Mobile Top Header)
           ══════════════════════════════════════════════════════════ */}
       <header className="sticky top-0 z-40 bg-[#0E1B11] text-white border-b-2 border-[#EAB308]/40 shadow-md">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-15 sm:h-16 gap-2 sm:gap-4">
 
-            {/* المنطقة 1: الشعار والاسم وحالة الاتصال ورابط المتجر */}
-            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-              <a
-                href="/"
-                onClick={handleReturnClick}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-[#EAB308]/50 flex items-center justify-center hover:scale-105 transition-transform shadow-xs"
-                title="الرجوع إلى المتجر الرئيسي"
+            {/* الجزء الأيمن: علامة الرجوع الحمراء + الشعار والعنوان الموحد الثابت */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* علامة الرجوع الحمراء الصريحة والوحيدة */}
+              <button
+                type="button"
+                onClick={handleExit}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-600/50 text-rose-300 hover:text-white flex items-center justify-center shrink-0 transition-all active:scale-95 cursor-pointer shadow-xs"
+                title="الرجوع إلى المتجر"
+                aria-label="الرجوع إلى المتجر"
               >
-                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-[#EAB308]" />
-              </a>
+                <LogOut className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-400 rotate-180" />
+              </button>
 
-              <div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span className="font-black text-sm sm:text-base text-white tracking-tight font-['Almarai']">
-                    خُضرة الإدارة
-                  </span>
-                  <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    مباشر
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-2xs">
+                  <ShieldCheck className="w-4.5 h-4.5 text-[#EAB308]" />
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-sm sm:text-base text-white tracking-tight font-['Almarai'] leading-tight">
+                      إدارة متجر خُضرة
+                    </span>
+                    <span className="hidden xs:inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      مباشر
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-stone-400 font-medium leading-tight">
+                    لوحة التحكم والإدارة
                   </span>
                 </div>
-                <a
-                  href="/"
-                  onClick={handleReturnClick}
-                  className="text-[10px] sm:text-[11px] text-zinc-400 hover:text-[#F5D76E] transition-colors flex items-center gap-1 font-medium"
-                >
-                  <Home className="w-2.5 h-2.5" />
-                  <span>العودة للمتجر</span>
-                </a>
               </div>
             </div>
 
-            {/* المنطقة 2: روابط الأدوات الأربعة (ظاهرة في الشاشات المتوسطة والكبيرة) */}
-            <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
+            {/* أدوات الإدارة في الشاشات الكبيرة والمتوسطة */}
+            <nav className="hidden md:flex items-center gap-1 lg:gap-1.5">
               {NAV_ITEMS.map((item) => {
                 const isActive = currentRoute === item.id;
                 const { Icon } = item;
@@ -322,7 +324,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
                     key={item.id}
                     href={item.href}
                     onClick={(e) => handleNavClick(e, item.id)}
-                    className={`relative px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                    className={`relative px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
                       isActive
                         ? 'bg-zinc-800 text-white border border-[#EAB308]/60 shadow-sm ring-1 ring-[#EAB308]/20'
                         : 'text-zinc-300 hover:text-white hover:bg-zinc-900 border border-transparent'
@@ -330,9 +332,6 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
                   >
                     <Icon className={`w-4 h-4 ${isActive ? item.accentColor : 'opacity-70'}`} />
                     <span>{item.label}</span>
-                    <span className="text-[10px] text-zinc-400 font-mono hidden lg:inline">
-                      ({item.sublabel})
-                    </span>
 
                     {/* شارة الطلبات المعلقة */}
                     {isOrders && totalPending > 0 && (
@@ -345,56 +344,43 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
               })}
             </nav>
 
-            {/* المنطقة 3: أزرار العمليات والإعدادات السريعة */}
+            {/* الجزء الأيسر: الإشعارات والأمان */}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* زر التنبيه الصوتي */}
+              {/* زر الإشعارات / التنبيه الصوتي */}
               <button
                 type="button"
                 onClick={handleToggleSound}
-                className={`p-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                className={`relative min-h-[38px] px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border flex items-center gap-1.5 shadow-xs active:scale-95 ${
                   soundEnabled
                     ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-500'
                 }`}
                 title={soundEnabled ? 'التنبيهات الصوتية مفعّلة' : 'التنبيهات الصوتية مكتومة'}
+                aria-label="إعدادات التنبيهات الصوتية"
               >
                 {soundEnabled ? (
                   <Bell className="w-4 h-4 text-emerald-400" />
                 ) : (
                   <BellOff className="w-4 h-4 text-zinc-500" />
                 )}
+                {totalPending > 0 && (
+                  <span className="min-w-[16px] h-[16px] px-1 rounded-full bg-[#EA580C] text-white text-[9px] font-black flex items-center justify-center">
+                    {totalPending}
+                  </span>
+                )}
+                <span className="hidden sm:inline text-[11px]">الإشعارات</span>
               </button>
 
-              {/* زر تغيير الرمز السري */}
+              {/* زر الحساب / الأمان والرمز السري */}
               <button
                 type="button"
                 onClick={() => setIsChangePinOpen(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95"
-                title="تغيير الرمز السري"
+                className="min-h-[38px] px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
+                title="أمان الحساب والرمز السري"
+                aria-label="أمان الحساب والرمز السري"
               >
-                <KeyRound className="w-3.5 h-3.5 text-[#F5D76E]" />
-                <span className="hidden lg:inline">الرمز السري</span>
-              </button>
-
-              {/* زر العودة للمتجر الرئيسي */}
-              <a
-                href="/"
-                onClick={handleReturnClick}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1A3D24] hover:bg-[#235331] border border-emerald-500/40 text-emerald-200 text-xs font-black transition-all shadow-xs"
-              >
-                <Home className="w-3.5 h-3.5" />
-                <span>المتجر</span>
-              </a>
-
-              {/* زر الخروج الأحمر -> توجه تلقائي لـ admin bottom dashboard */}
-              <button
-                type="button"
-                onClick={handleExit}
-                className="p-2 sm:px-3 sm:py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 hover:text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1 active:scale-95 shadow-xs"
-                title="الخروج إلى لوحة تحكم المتجر السفلية"
-              >
-                <LogOut className="w-4 h-4 text-rose-400" />
-                <span className="hidden md:inline">خروج</span>
+                <KeyRound className="w-4 h-4 text-[#F5D76E]" />
+                <span className="hidden sm:inline text-[11px]">الأمان</span>
               </button>
             </div>
 
@@ -422,7 +408,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
       {/* ══════════════════════════════════════════════════════════
           3. جسم الصفحة والمحتوى المخصص
           ══════════════════════════════════════════════════════════ */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-8 pb-24 md:pb-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-2.5 sm:p-6 lg:p-8 pb-28 md:pb-8">
         {children}
       </main>
 
@@ -431,7 +417,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
           ══════════════════════════════════════════════════════════ */}
       <nav
         aria-label="التنقل بين أدوات الإدارة"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0E1B11]/95 backdrop-blur-md border-t-2 border-[#EAB308]/40 px-2 py-1.5 shadow-2xl flex items-center justify-around"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0E1B11]/95 backdrop-blur-md border-t-2 border-[#EAB308]/40 px-1 py-1.5 shadow-2xl flex items-center justify-around overflow-x-auto no-scrollbar"
       >
         {NAV_ITEMS.map((item) => {
           const isActive = currentRoute === item.id;
@@ -443,22 +429,22 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
               key={item.id}
               href={item.href}
               onClick={(e) => handleNavClick(e, item.id)}
-              className={`relative flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all cursor-pointer min-w-[64px] ${
+              className={`relative flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all cursor-pointer flex-1 min-w-[46px] max-w-[64px] min-h-[44px] ${
                 isActive
-                  ? 'bg-zinc-800 text-white shadow-xs font-black'
+                  ? 'bg-zinc-800 text-[#F5D76E] shadow-xs font-black'
                   : 'text-zinc-400 hover:text-zinc-200 font-bold'
               }`}
             >
               <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? item.accentColor : 'opacity-70'}`} />
+                <Icon className={`w-4.5 h-4.5 ${isActive ? item.accentColor : 'opacity-70'}`} />
                 {isOrders && totalPending > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-0.5 rounded-full bg-[#EA580C] text-white text-[9px] font-black flex items-center justify-center animate-pulse">
+                  <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-0.5 rounded-full bg-[#EA580C] text-white text-[8px] font-black flex items-center justify-center animate-pulse">
                     {totalPending}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] mt-0.5 leading-tight truncate">
-                {item.id === 'fleet' ? 'التوصيل' : item.label.replace('إدارة ', '').replace('وثائق ', '')}
+              <span className="text-[10px] mt-0.5 leading-tight truncate w-full text-center">
+                {item.label}
               </span>
             </a>
           );

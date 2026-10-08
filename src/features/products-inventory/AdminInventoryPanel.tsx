@@ -33,6 +33,15 @@ import {
 } from '../../services/supabaseService';
 import { CATEGORIES_CONFIG } from '../../data/mockProducts';
 
+export const ADMIN_OFFICIAL_CATEGORIES: { id: ProductCategory; name: string; icon: string }[] = [
+  { id: 'veg', name: 'خضار وورقيات', icon: '🥬' },
+  { id: 'fruit', name: 'فواكه موسمية', icon: '🍎' },
+  { id: 'dairy', name: 'ألبان وأجبان', icon: '🥛' },
+  { id: 'grocery', name: 'بقالة ومونة', icon: '🛒' },
+  { id: 'drinks', name: 'عصائر ومشروبات', icon: '🥤' },
+  { id: 'cleaning', name: 'نظافة وعناية', icon: '🧴' },
+];
+
 interface AdminInventoryPanelProps {
   standalone?: boolean;
   isOpen?: boolean;
@@ -49,7 +58,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('veg');
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>('all');
 
   // نوافذ التعديل والإضافة
@@ -118,7 +127,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (p.origin && p.origin.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchCategory = selectedCategory === 'all' || p.category === selectedCategory;
+      const matchCategory = p.category === selectedCategory;
 
       let matchStock = true;
       if (stockFilter === 'low') {
@@ -442,16 +451,40 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
           </div>
         </div>
 
-        {/* أزرار الفئات */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pt-1 no-scrollbar text-xs">
-          {CATEGORIES_CONFIG.map((cat) => (
+        {/* اختيار الفئة في وضع الهاتف: Dropdown أنيق وبسيط يمنع الازدحام والتمرير الطويل */}
+        <div className="sm:hidden">
+          <label className="text-[11px] font-bold text-stone-500 mb-1.5 block">
+            الفئة ({ADMIN_OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name}):
+          </label>
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value as ProductCategory)}
+              className="w-full appearance-none bg-stone-50 border-2 border-stone-200 text-stone-900 font-black text-xs py-2.5 px-3 pr-10 rounded-xl focus:outline-none focus:border-[#163920] focus:ring-1 focus:ring-[#163920] cursor-pointer shadow-2xs"
+            >
+              {ADMIN_OFFICIAL_CATEGORIES.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icon} {cat.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-stone-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-base">
+              {ADMIN_OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.icon}
+            </span>
+          </div>
+        </div>
+
+        {/* أزرار الفئات في الشاشات الكبيرة: 6 فئات رسمية بدون الكل أو جميع المنتجات */}
+        <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pt-1 no-scrollbar text-xs">
+          {ADMIN_OFFICIAL_CATEGORIES.map((cat) => (
             <button
               key={cat.id}
               type="button"
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                 selectedCategory === cat.id
-                  ? 'bg-emerald-800 text-white shadow-xs'
+                  ? 'bg-[#163920] text-white shadow-xs font-black'
                   : 'bg-stone-100 text-stone-600 hover:bg-stone-200/80'
               }`}
             >
@@ -462,9 +495,134 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
         </div>
       </div>
 
-      {/* ═══════ جدول المنتجات ═══════ */}
+      {/* ═══════ عرض المنتجات: بطاقات للهاتف + جدول للمكتبي ═══════ */}
       <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* 1. قائمة بطاقات المنتجات للهاتف (Mobile Product Cards) */}
+        <div className="md:hidden divide-y divide-stone-100">
+          {filteredProducts.length === 0 ? (
+            <div className="py-12 text-center text-stone-400 text-xs font-medium">
+              لا توجد منتجات مطابقة للبحث في فئة {ADMIN_OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
+            </div>
+          ) : (
+            filteredProducts.map((p) => {
+              const stock = p.stock ?? 0;
+              const isLow = stock > 0 && stock <= 5;
+              const isOut = stock === 0 || p.is_available === false;
+
+              return (
+                <div key={p.id} className="p-3.5 bg-white space-y-2.5">
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0 overflow-hidden text-xl shadow-2xs">
+                        {p.image_url ? (
+                          <img
+                            src={p.image_url}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as any).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <span>{p.icon || '🛒'}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-black text-stone-900 text-xs sm:text-sm">{p.name}</h4>
+                          {p.is_bestseller && (
+                            <span className="text-[9px] text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded-md font-bold">
+                              الأكثر طلباً
+                            </span>
+                          )}
+                          {p.is_seasonal && (
+                            <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded-md font-bold">
+                              موسمي
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-stone-500 mt-0.5">
+                          {p.origin || 'المغرب'} · {p.type === 'unit' ? 'بالحبة' : 'بالكيلوغرام'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-left shrink-0">
+                      <div className="font-mono font-black text-emerald-800 text-sm whitespace-nowrap">
+                        {p.price.toFixed(2)} د.م
+                      </div>
+                      <span className="text-[10px] text-stone-400">
+                        /{p.unit_label || (p.type === 'unit' ? 'وحدة' : 'kg')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-100">
+                    {/* تعديل المخزون */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-stone-500 font-bold ml-1">المخزون:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStockChange(p.id, -1)}
+                        disabled={stock <= 0 || savingId === p.id}
+                        className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-sm cursor-pointer disabled:opacity-30"
+                      >
+                        -
+                      </button>
+                      <span
+                        className={`min-w-9 text-center font-black font-mono text-xs px-1.5 py-1 rounded-lg ${
+                          isOut
+                            ? 'bg-rose-100 text-rose-700'
+                            : isLow
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-stone-100 text-stone-800'
+                        }`}
+                      >
+                        {stock}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStockChange(p.id, 5)}
+                        disabled={savingId === p.id}
+                        className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-sm cursor-pointer"
+                        title="إضافة 5"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* الإجراءات الأساسية */}
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                          isOut
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : isLow
+                            ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        }`}
+                      >
+                        {isOut ? 'نفد' : isLow ? 'محدود' : 'متوفر'}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(p)}
+                        className="p-1.5 px-2.5 rounded-lg bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>تعديل</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* 2. جدول المنتجات للشاشات المتوسطة والكبيرة (Desktop Table) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-right text-xs sm:text-sm">
             <thead className="bg-stone-50 border-b border-stone-200 text-stone-600 font-black">
               <tr>
@@ -530,7 +688,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
 
                       <td className="py-3 px-4">
                         <span className="text-stone-600 font-medium">
-                          {CATEGORIES_CONFIG.find((c) => c.id === p.category)?.name || p.category}
+                          {ADMIN_OFFICIAL_CATEGORIES.find((c) => c.id === p.category)?.name || p.category}
                         </span>
                       </td>
 

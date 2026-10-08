@@ -187,37 +187,37 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
         </div>
 
         {/* ═══════ التبويبات بنمط أزرار Pill مع مؤشر سفلي أنيق ═══════ */}
-        <div className="mt-6 pt-4 border-t border-white/15 flex items-center gap-2">
-          <div className="inline-flex p-1 rounded-2xl bg-black/25 backdrop-blur-xs border border-white/10">
+        <div className="mt-5 pt-3.5 border-t border-white/15 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="inline-flex p-1 rounded-2xl bg-black/25 backdrop-blur-xs border border-white/10 shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab('pricing')}
-              className={`min-h-[40px] px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer relative ${
+              className={`min-h-[38px] px-3.5 sm:px-5 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer relative whitespace-nowrap ${
                 activeTab === 'pricing'
                   ? 'bg-white text-[#163920] shadow-sm'
                   : 'text-white/80 hover:text-white hover:bg-white/5'
               }`}
             >
               <DollarSign className={`w-4 h-4 ${activeTab === 'pricing' ? 'text-[#163920]' : 'text-emerald-300'}`} />
-              <span>جدول أسعار السوق الصباحي</span>
+              <span>جدول أسعار السوق</span>
               {activeTab === 'pricing' && (
-                <span className="w-2 h-2 rounded-full bg-[#163920] inline-block mr-0.5" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#163920] inline-block mr-0.5" />
               )}
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('forecast')}
-              className={`min-h-[40px] px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer relative ${
+              className={`min-h-[38px] px-3.5 sm:px-5 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer relative whitespace-nowrap ${
                 activeTab === 'forecast'
                   ? 'bg-white text-[#163920] shadow-sm'
                   : 'text-white/80 hover:text-white hover:bg-white/5'
               }`}
             >
               <TrendingUp className={`w-4 h-4 ${activeTab === 'forecast' ? 'text-[#163920]' : 'text-[#F5D76E]'}`} />
-              <span>لوحة توقع الطلب والتموين (JIT)</span>
+              <span>توقع الطلب والتموين</span>
               {activeTab === 'forecast' && (
-                <span className="w-2 h-2 rounded-full bg-[#163920] inline-block mr-0.5" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#163920] inline-block mr-0.5" />
               )}
             </button>
           </div>
