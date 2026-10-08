@@ -1,6 +1,7 @@
 // ============================================================
-// CustomerReviews.tsx – الإصدار 6.0
-//  ============================================================
+// CustomerReviews.tsx – الإصدار 7.0 المحدث
+// يدعم Swiper مع dynamicBullets، منع تكرار التقييمات، التحكم بعرض التقييمات (3 → 6 → 9 → 12 → 15)
+// ============================================================
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Star,
@@ -15,11 +16,20 @@ import {
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react';
-import { STORE_CONFIG } from '../../data/config';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, A11y } from 'swiper/modules';
+import type { Swiper as SwiperType } from 'swiper';
+
+// Swiper styles
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+
 import {
   fetchReviews,
   submitCustomerReview,
   deleteCustomerReview,
+  getSupabase,
 } from '../../services/supabaseService';
 import {
   INITIAL_THREE_REVIEWS,
@@ -30,17 +40,45 @@ import { DeleteReviewModal } from '../admin';
 
 export type { CustomerReview };
 
-const INITIAL_VISIBLE_COUNT = 3;
-const FOCUS_PULSE_MS = 600;
+// التدرج في ظهور التقييمات: 4، 8، 12، 16...
+const INITIAL_VISIBLE_COUNT = 4;
+const REVIEWS_PER_STEP = 4;
 
 interface CustomerReviewsProps {
   onOpenOrdersPanel?: () => void;
 }
 
-export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPanel }) => {
-  const [reviews, setReviews] = useState<CustomerReview[]>(INITIAL_THREE_REVIEWS);
-  const [showAllReviews, setShowAllReviews] = useState(false);
+// ─── دالة مساعدة لمنع تكرار التقييمات بالاعتماد على معرف التقييم id ───
+const deduplicateReviews = (list: CustomerReview[]): CustomerReview[] => {
+  const seenIds = new Set<string>();
+  const uniqueList: CustomerReview[] = [];
+  for (const item of list) {
+    if (!item) continue;
+    const idKey = String(item.id || '').trim();
+    if (!idKey || seenIds.has(idKey)) continue;
+    seenIds.add(idKey);
+    uniqueList.push(item);
+  }
+  return uniqueList;
+};
+
+export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
+  // قاعدة البيانات الأساسية مع منع التكرار
+  const [allReviews, setAllReviews] = useState<CustomerReview[]>(() =>
+    deduplicateReviews(INITIAL_THREE_REVIEWS)
+  );
+
+  // التحكم بعدد التقييمات المعروضة في السلايدر (يبدأ بـ 3، ويزيد 3 بكل ضغطة)
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE_COUNT);
+
+  // حالة النافذة المنبثقة لإضافة تقييم
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // مرجع Swiper والتحكم بحالة الأسهم والنقاط الأربع الثابتة
+  const swiperRef = useRef<SwiperType | null>(null);
+  const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
+  const [isBeginning, setIsBeginning] = useState<boolean>(true);
+  const [isEnd, setIsEnd] = useState<boolean>(false);
 
   // ─── Admin mode ───
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
@@ -67,144 +105,173 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     };
   }, []);
 
-  // ─── التمرير الأفقي والوميض البصري ───
-  const [activeReviewIndex, setActiveReviewIndex] = useState(0);
-  const [pulsingIndex, setPulsingIndex] = useState<number | null>(null);
-  const reviewsScrollRef = useRef<HTMLDivElement>(null);
-  const scrollRaf = useRef<number | null>(null);
-  const pulseTimer = useRef<number | null>(null);
+  // ─── 1. جلب التقييمات من Supabase مع منع التكرار وتطبيق limit(10) و order ───
+  const loadSupabaseReviews = useCallback(async () => {
+    try {
+      const dbReviews = await fetchReviews();
+      if (dbReviews && dbReviews.length > 0) {
+        const formatted: CustomerReview[] = dbReviews.map((r) => ({
+          id: String(r.id),
+          author: r.author,
+          neighborhood: r.neighborhood,
+          rating: r.rating,
+          date: r.date || 'مؤخراً',
+          comment: r.comment,
+          verified: r.verified,
+        }));
 
-  const displayedReviews = useMemo(() => {
-    if (showAllReviews) return reviews;
-    return reviews.slice(0, INITIAL_VISIBLE_COUNT);
-  }, [reviews, showAllReviews]);
-
-  const updateLayout = useCallback(() => {
-    if (!reviewsScrollRef.current) return;
-    const container = reviewsScrollRef.current;
-    const cards = container.querySelectorAll('article');
-    const containerRect = container.getBoundingClientRect();
-    const containerCenter = containerRect.left + containerRect.width / 2;
-
-    let closestIdx = 0;
-    let minDiff = Infinity;
-
-    cards.forEach((card, idx) => {
-      const cardRect = card.getBoundingClientRect();
-      const cardCenter = cardRect.left + cardRect.width / 2;
-      const diff = Math.abs(cardCenter - containerCenter);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIdx = idx;
+        // دمج التقييمات الجديدة مع المراجعات الأولية مع ضمان عدم التكرار بالمعرف id
+        setAllReviews((prev) => {
+          const combined = [...formatted, ...prev];
+          return deduplicateReviews(combined);
+        });
       }
-    });
-
-    setActiveReviewIndex((prev) => {
-      if (prev !== closestIdx) {
-        setPulsingIndex(closestIdx);
-        if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
-        pulseTimer.current = window.setTimeout(() => setPulsingIndex(null), FOCUS_PULSE_MS);
-        return closestIdx;
-      }
-      return prev;
-    });
-  }, []);
-
-  const handleScroll = useCallback(() => {
-    if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
-    scrollRaf.current = requestAnimationFrame(updateLayout);
-  }, [updateLayout]);
-
-  useEffect(() => {
-    return () => {
-      if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
-      if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
-    };
-  }, []);
-
-  const scrollToReview = (idx: number) => {
-    if (!reviewsScrollRef.current) return;
-    const container = reviewsScrollRef.current;
-    const cards = container.querySelectorAll('article');
-    if (cards[idx]) {
-      const card = cards[idx] as HTMLElement;
-      const cardLeft = card.offsetLeft;
-      const cardWidth = card.offsetWidth;
-      const containerWidth = container.offsetWidth;
-      const scrollPosition = cardLeft - (containerWidth - cardWidth) / 2;
-
-      container.scrollTo({
-        left: scrollPosition,
-        behavior: 'smooth',
-      });
-      setActiveReviewIndex(idx);
-      setPulsingIndex(idx);
-      if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
-      pulseTimer.current = window.setTimeout(() => setPulsingIndex(null), FOCUS_PULSE_MS);
+    } catch (e) {
+      console.warn('Could not load reviews from Supabase:', e);
     }
-  };
+  }, []);
 
-  const scrollNext = () => {
-    const nextIdx = Math.min(displayedReviews.length - 1, activeReviewIndex + 1);
-    scrollToReview(nextIdx);
-  };
-
-  const scrollPrev = () => {
-    const prevIdx = Math.max(0, activeReviewIndex - 1);
-    scrollToReview(prevIdx);
-  };
-
-  // ─── جلب التقييمات من Supabase ───
   useEffect(() => {
     let isMounted = true;
-    async function loadSupabaseReviews() {
-      try {
-        const dbReviews = await fetchReviews();
-
-        if (isMounted && dbReviews && dbReviews.length > 0) {
-          const formatted: CustomerReview[] = dbReviews.map((r) => ({
-            id: r.id,
-            author: r.author,
-            neighborhood: r.neighborhood,
-            rating: r.rating,
-            date: r.date || 'مؤخراً',
-            comment: r.comment,
-            verified: r.verified,
-          }));
-
-          const merged = [
-            ...formatted,
-            ...INITIAL_THREE_REVIEWS.filter(
-              (init) =>
-                !formatted.some((f) => f.id === init.id || f.author === init.author)
-            ),
-          ];
-          setReviews(merged);
-        }
-      } catch (e) {
-        console.warn('Could not load reviews from Supabase:', e);
-      }
-    }
-
     if ('requestIdleCallback' in window) {
-      const handle = (window as any).requestIdleCallback(() => {
-        loadSupabaseReviews();
-      }, { timeout: 2000 });
+      const handle = (window as any).requestIdleCallback(
+        () => {
+          if (isMounted) loadSupabaseReviews();
+        },
+        { timeout: 2000 }
+      );
       return () => {
         isMounted = false;
         (window as any).cancelIdleCallback(handle);
       };
     } else {
       const timer = setTimeout(() => {
-        loadSupabaseReviews();
+        if (isMounted) loadSupabaseReviews();
       }, 500);
       return () => {
         isMounted = false;
         clearTimeout(timer);
       };
     }
+  }, [loadSupabaseReviews]);
+
+  // ─── 2. المزامنة الفورية اللحظية (Supabase Realtime) عند إضافة أو تعديل أو حذف أي تقييم ───
+  useEffect(() => {
+    const client = getSupabase();
+    if (!client) return;
+
+    // اشتراك فوري في جدول التقييمات لاستقبال الإضافات والتعديلات فوراً
+    const channel = client
+      .channel('realtime_customer_reviews')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reviews' },
+        (payload) => {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newRevItem: CustomerReview = {
+              id: String(payload.new.id),
+              author: payload.new.author || 'زبون المتجر',
+              neighborhood: payload.new.neighborhood || 'فاس',
+              rating: typeof payload.new.rating === 'number' ? payload.new.rating : 5,
+              date: payload.new.created_at
+                ? new Date(payload.new.created_at).toLocaleDateString('ar-MA', {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                : 'الآن',
+              comment: payload.new.comment || '',
+              verified: Boolean(payload.new.verified),
+            };
+            setAllReviews((prev) => deduplicateReviews([newRevItem, ...prev]));
+          } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+            setAllReviews((prev) =>
+              prev.filter((r) => String(r.id) !== String(payload.old.id))
+            );
+          } else {
+            // تحديث كامل للقائمة في الحالات الأخرى
+            loadSupabaseReviews();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  }, [loadSupabaseReviews]);
+
+  // ─── قائمة التقييمات الفريدة المجهزة للعرض ───
+  const uniqueReviews = useMemo(() => {
+    return deduplicateReviews(allReviews);
+  }, [allReviews]);
+
+  // التقييمات المعروضة حالياً حسب visibleCount المحدد
+  const displayedReviews = useMemo(() => {
+    return uniqueReviews.slice(0, visibleCount);
+  }, [uniqueReviews, visibleCount]);
+
+  // إحصائيات التقييمات المتبقية والزر
+  const totalCount = uniqueReviews.length;
+  const remainingCount = Math.max(0, totalCount - visibleCount);
+  const isAllVisible = visibleCount >= totalCount;
+
+  // ─── التحكم في "عرض باقي التقييمات" / "عرض أقل" ───
+  // كل نقرة تكشف عن 3 تقييمات إضافية (3 → 6 → 9 → 12 → 15)
+  // وعند اكتمال العرض يتحول الزر إلى "عرض أقل" ويعيد العدد إلى 3
+  const handleToggleMoreReviews = () => {
+    if (isAllVisible) {
+      setVisibleCount(INITIAL_VISIBLE_COUNT);
+      if (swiperRef.current) {
+        swiperRef.current.slideTo(0);
+      }
+    } else {
+      setVisibleCount((prev) => Math.min(prev + REVIEWS_PER_STEP, totalCount));
+    }
+  };
+
+  // تحديث حالة Swiper عند تغيير عدد الشرائح
+  useEffect(() => {
+    if (swiperRef.current) {
+      swiperRef.current.update();
+      setIsBeginning(swiperRef.current.isBeginning);
+      setIsEnd(swiperRef.current.isEnd);
+      setActiveSlideIndex(swiperRef.current.realIndex ?? swiperRef.current.activeIndex ?? 0);
+    }
+  }, [displayedReviews.length]);
+
+  const updateSwiperState = useCallback((swiper: SwiperType) => {
+    setIsBeginning(swiper.isBeginning);
+    setIsEnd(swiper.isEnd);
+    setActiveSlideIndex(swiper.realIndex ?? swiper.activeIndex ?? 0);
   }, []);
 
+  // التنقل عبر نقاط التنقل الأربع الثابتة (مثل شارات الثقة)
+  const handleDotClick = (dotIndex: number) => {
+    if (!swiperRef.current) return;
+    const count = displayedReviews.length;
+    if (count <= 1) return;
+    // توزيع النقاط الأربع على إجمالي التقييمات المعروضة
+    const targetIndex = Math.min(
+      Math.round((dotIndex / 3) * (count - 1)),
+      count - 1
+    );
+    swiperRef.current.slideTo(targetIndex);
+  };
+
+  // التنقل بالأسهم مع ضمان عدم الاختفاء
+  const handleSlidePrev = () => {
+    if (swiperRef.current) {
+      swiperRef.current.slidePrev();
+    }
+  };
+
+  const handleSlideNext = () => {
+    if (swiperRef.current) {
+      swiperRef.current.slideNext();
+    }
+  };
+
+  // ─── إضافة تقييم جديد ───
   const handleReviewSubmit = async (newRev: {
     author: string;
     neighborhood: string;
@@ -224,7 +291,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
     }
 
     const newReviewItem: CustomerReview = {
-      id: result.data.id,
+      id: String(result.data.id),
       author: result.data.author,
       neighborhood: result.data.neighborhood,
       rating: result.data.rating,
@@ -233,9 +300,14 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
       verified: Boolean(result.data.verified),
     };
 
-    setReviews((prev) => [newReviewItem, ...prev]);
+    setAllReviews((prev) => deduplicateReviews([newReviewItem, ...prev]));
+    setVisibleCount((prev) => Math.max(prev, INITIAL_VISIBLE_COUNT));
+    if (swiperRef.current) {
+      swiperRef.current.slideTo(0);
+    }
   };
 
+  // ─── حذف تقييم (لوحة الإدارة) ───
   const handleExecuteDelete = async () => {
     if (!deleteConfirmReview) return;
     setIsDeleting(true);
@@ -244,7 +316,9 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
       const res = await deleteCustomerReview(deleteConfirmReview.id);
 
       if (res.success) {
-        setReviews((prev) => prev.filter((r) => r.id !== deleteConfirmReview.id));
+        setAllReviews((prev) =>
+          prev.filter((r) => String(r.id) !== String(deleteConfirmReview.id))
+        );
         setAdminNotification(`✅ ${res.message || 'تم حذف التعليق بنجاح'}`);
       } else {
         setAdminNotification(`❌ فشل الحذف: ${res.message || 'خطأ غير معروف'}`);
@@ -286,7 +360,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
 
         {/* ════════ الحاوية الرئيسية الموحدة ════════ */}
         <div className="relative bg-white border-2 border-[#2D6A3F]/15 rounded-3xl sm:rounded-[36px] shadow-[0_12px_36px_rgba(45,106,63,0.06)] p-4 sm:p-6 lg:p-8 overflow-hidden">
-          {/* أنماط الوميض البصري والتأثيرات الحركية */}
+          {/* تأثيرات لمعان ومظهر Swiper مخصص */}
           <style>{`
             @keyframes reviewSheenSwipe {
               0%   { transform: translateX(180%) skewX(-20deg); opacity: 0; }
@@ -306,17 +380,32 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
               animation: reviewSheenSwipe 0.75s cubic-bezier(0.16, 1, 0.3, 1);
             }
 
-            @keyframes reviewFocusPulse {
-              0%   { opacity: 0.55; }
-              100% { opacity: 0; }
+            /* تخصيص نقاط Swiper Pagination باللون الأخضر والذهبي مع dynamicBullets */
+            .khodra-reviews-swiper .swiper-pagination {
+              position: static !important;
+              margin-top: 1rem;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 6px;
             }
-            .review-focus-pulse {
-              animation: reviewFocusPulse ${FOCUS_PULSE_MS}ms cubic-bezier(0.4, 0, 0.2, 1);
+            .khodra-reviews-swiper .swiper-pagination-bullet {
+              background: #2D6A3F !important;
+              opacity: 0.3 !important;
+              width: 8px !important;
+              height: 8px !important;
+              transition: all 0.3s ease !important;
+              margin: 0 !important;
             }
-
-            @media (prefers-reduced-motion: reduce) {
-              .review-sheen-sweep,
-              .review-focus-pulse { animation: none; }
+            .khodra-reviews-swiper .swiper-pagination-bullet-active {
+              background: #2D6A3F !important;
+              opacity: 1 !important;
+              width: 26px !important;
+              border-radius: 9999px !important;
+            }
+            .khodra-reviews-swiper .swiper-slide {
+              height: auto;
+              display: flex;
             }
           `}</style>
 
@@ -326,7 +415,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
 
           {/* ─── 1. رأس القسم الموحد (مُوسَّط مع النقطة الذهبية) ─── */}
           <div className="relative flex flex-col items-center text-center gap-4 pb-5 border-b border-[#2D6A3F]/10">
-
             <div className="text-center space-y-2 max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#1A3D24] tracking-tight flex items-center justify-center gap-2">
                 <span>آراء زبنائنا بمدينة فاس</span>
@@ -340,7 +428,6 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
 
             {/* شارة التقييم + زر المشاركة (مُوسَّط) */}
             <div className="flex items-center justify-center flex-wrap gap-3 shrink-0 w-full pt-1">
-
               <div className="inline-flex items-center gap-2.5 bg-white px-4 py-2 rounded-2xl border-2 border-[#2D6A3F]/20 shadow-xs">
                 <span className="font-black text-[#EA580C] text-lg sm:text-xl tabular-nums leading-none">4.9</span>
                 <div className="flex text-amber-400 gap-0.5">
@@ -349,7 +436,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                   ))}
                 </div>
                 <span className="text-xs text-[#3E4F43] font-black border-r border-[#2D6A3F]/20 pr-2.5 mr-0.5">
-                  {reviews.length}+ تقييم معتمد
+                  {uniqueReviews.length}+ تقييم معتمد
                 </span>
               </div>
 
@@ -362,37 +449,56 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                 <span>شاركنا تجربتك</span>
                 <Sparkles className="w-3.5 h-3.5 text-[#F5D76E]/80" />
               </button>
-
             </div>
-
           </div>
 
-          {/* ─── 2. شبكة وبطاقات التقييمات (مطابقة تماماً لحجم الصناديق) ─── */}
-          <div className="relative pt-5">
-            <div
-              ref={reviewsScrollRef}
-              onScroll={handleScroll}
-              className="flex flex-row md:grid md:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 px-1 md:px-0 snap-x snap-mandatory md:snap-none overscroll-x-contain no-scrollbar"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+          {/* ─── 2. سلايدر التقييمات عبر Swiper (مع dynamicBullets وأسهم تنقل دائمة الظهور) ─── */}
+          <div className="relative pt-6">
+            <Swiper
+              modules={[Pagination, Navigation, A11y]}
+              onSwiper={(swiper) => {
+                swiperRef.current = swiper;
+                updateSwiperState(swiper);
+              }}
+              onSlideChange={updateSwiperState}
+              onToEdge={updateSwiperState}
+              onFromEdge={updateSwiperState}
+              dir="rtl"
+              spaceBetween={20}
+              slidesPerView={1}
+              breakpoints={{
+                640: {
+                  slidesPerView: 1.5,
+                  spaceBetween: 20,
+                },
+                768: {
+                  slidesPerView: 2,
+                  spaceBetween: 22,
+                },
+                1024: {
+                  slidesPerView: 3,
+                  spaceBetween: 24,
+                },
+                1280: {
+                  slidesPerView: 4,
+                  spaceBetween: 24,
+                },
+              }}
+              pagination={{
+                clickable: true,
+                dynamicBullets: true,
+              }}
+              className="khodra-reviews-swiper w-full"
             >
-              {displayedReviews.map((rev, idx) => {
-                const isActive = activeReviewIndex === idx;
-                const isPulsing = pulsingIndex === idx;
-
-                return (
+              {displayedReviews.map((rev) => (
+                <SwiperSlide key={rev.id} className="h-full">
                   <article
-                    key={rev.id}
-                    onClick={() => scrollToReview(idx)}
-                    className={`group/rev relative w-[72vw] max-w-[260px] sm:w-[270px] md:w-auto md:max-w-none shrink-0 snap-center rounded-2xl border-2 transition-all duration-300 md:hover:-translate-y-1 p-4 sm:p-5 text-center flex flex-col justify-between overflow-hidden cursor-pointer active:scale-[0.98] ${
-                      isActive
-                        ? 'bg-white border-[#EAB308] shadow-[0_8px_24px_rgba(234,179,8,0.20)] md:hover:shadow-[0_12px_28px_rgba(234,179,8,0.25)]'
-                        : 'bg-[#FAF6EE] border-[#EAB308]/30 hover:border-[#EAB308]/60 hover:bg-white shadow-xs md:hover:shadow-[0_10px_24px_rgba(234,179,8,0.14)]'
-                    }`}
+                    className="group/rev relative w-full h-full bg-white border-2 border-[#EAB308] rounded-2xl transition-all duration-300 md:hover:-translate-y-1 p-4 sm:p-5 text-center flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-[0_10px_24px_rgba(234,179,8,0.18)]"
                   >
                     {/* شريط الوميض البصري عند المس والتحويم */}
                     <div className="review-sheen-sweep" />
 
-                    <div className="w-full flex flex-col items-center relative z-10">
+                    <div className="w-full flex flex-col items-center relative z-10 flex-1">
                       {/* الأفاتار بحجم متناسق */}
                       <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#2D6A3F] to-[#1A3D24] border-2 border-[#EAB308]/50 text-[#F5D76E] font-black text-xl flex items-center justify-center shadow-md shrink-0 group-hover/rev:scale-105 transition-transform mb-2.5">
                         {rev.author.trim().charAt(0) || 'خ'}
@@ -432,13 +538,13 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                       </div>
 
                       {/* نص التعليق */}
-                      <p className="text-xs sm:text-sm text-[#1F2937] font-semibold leading-relaxed text-center px-1">
+                      <p className="text-xs sm:text-sm text-[#1F2937] font-semibold leading-relaxed text-center px-1 mb-3">
                         "{rev.comment}"
                       </p>
                     </div>
 
                     {/* تذييل البطاقة (مُوسَّط) */}
-                    <div className="w-full pt-3 mt-3 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center text-xs text-stone-500 gap-2 font-bold relative z-10">
+                    <div className="w-full pt-3 mt-auto border-t-2 border-[#2D6A3F]/10 flex items-center justify-center text-xs text-stone-500 gap-2 font-bold relative z-10">
                       <span>{rev.date || 'مؤخراً'}</span>
                       <span className="text-stone-300">•</span>
                       {isAdmin ? (
@@ -459,73 +565,83 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                         </span>
                       )}
                     </div>
-
-                    {/* تأثير الوميض البصري للمركز النشط */}
-                    {isPulsing && (
-                      <div
-                        className="review-focus-pulse absolute inset-0 rounded-2xl bg-[#EAB308]/15 pointer-events-none z-10"
-                        aria-hidden="true"
-                      />
-                    )}
                   </article>
-                );
-              })}
-            </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
 
-            {/* ═══════ مؤشرات التنقل وأسهم التوجيه الموحدة المكبرة ═══════ */}
-            {displayedReviews.length > 1 && (
-              <div className="flex md:hidden items-center justify-between pt-4 px-1">
-                {/* نقاط التنقل */}
-                <div className="flex items-center gap-1.5">
-                  {displayedReviews.map((_, i) => (
+            {/* ═══════ مؤشرات التنقل الأربع الثابتة (تصميم شارات الثقة) + أسهم التنقل ═══════ */}
+            {/* في الشريحة الأولى: السهم الأيسر يبقى مرئياً مع opacity-50 */}
+            {/* في الشريحة الأخيرة: السهم الأيمن يبقى مرئياً مع opacity-50 */}
+            <div className="flex items-center justify-between pt-4 px-1">
+              {/* أربع نقاط تنقل ثابتة متجددة مثل تصميم شارات الثقة */}
+              <div className="flex items-center gap-1.5" role="tablist" aria-label="مؤشرات التنقل بين التقييمات">
+                {[0, 1, 2, 3].map((dotIdx) => {
+                  const maxSlide = Math.max(1, displayedReviews.length - 1);
+                  const activeDot = Math.min(3, Math.max(0, Math.round((activeSlideIndex / maxSlide) * 3)));
+                  const isActive = activeDot === dotIdx;
+
+                  return (
                     <button
-                      key={i}
+                      key={dotIdx}
                       type="button"
-                      onClick={() => scrollToReview(i)}
-                      className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
-                        activeReviewIndex === i
+                      onClick={() => handleDotClick(dotIdx)}
+                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                        isActive
                           ? 'w-7 bg-[#2D6A3F]'
                           : 'w-2 bg-[#2D6A3F]/25 hover:bg-[#2D6A3F]/50'
                       }`}
-                      aria-label={`تقييم ${i + 1}`}
+                      aria-label={`الانتقال إلى المجموعة ${dotIdx + 1}`}
+                      aria-selected={isActive}
+                      role="tab"
                     />
-                  ))}
-                </div>
-
-                {/* أسهم التمرير المكبرة الموحدة */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={scrollPrev}
-                    disabled={activeReviewIndex === 0}
-                    className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#FAF6EE] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
-                    aria-label="السابق"
-                  >
-                    <ChevronRight className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={scrollNext}
-                    disabled={activeReviewIndex >= displayedReviews.length - 1}
-                    className="w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] hover:bg-[#FAF6EE] hover:border-[#2D6A3F]/50 shadow-sm flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
-                    aria-label="التالي"
-                  >
-                    <ChevronLeft className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
-                  </button>
-                </div>
+                  );
+                })}
               </div>
-            )}
+
+              <div className="flex items-center gap-2" dir="ltr">
+                {/* السهم الأيسر (Left arrow): يظل ظاهراً دائماً، وعند أول شريحة يكون معطلاً بـ opacity-50 */}
+                <button
+                  type="button"
+                  onClick={handleSlidePrev}
+                  disabled={isBeginning}
+                  aria-label="السابق"
+                  className={`w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] shadow-sm flex items-center justify-center transition-all ${
+                    isBeginning
+                      ? 'opacity-50 cursor-not-allowed pointer-events-none'
+                      : 'cursor-pointer hover:bg-[#FAF6EE] hover:border-[#2D6A3F]/50 active:scale-95'
+                  }`}
+                >
+                  <ChevronLeft className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
+                </button>
+
+                {/* السهم الأيمن (Right arrow): يظل ظاهراً دائماً، وعند آخر شريحة يكون معطلاً بـ opacity-50 */}
+                <button
+                  type="button"
+                  onClick={handleSlideNext}
+                  disabled={isEnd}
+                  aria-label="التالي"
+                  className={`w-11 h-11 rounded-xl bg-white border-2 border-[#2D6A3F]/25 text-[#1A3D24] shadow-sm flex items-center justify-center transition-all ${
+                    isEnd
+                      ? 'opacity-50 cursor-not-allowed pointer-events-none'
+                      : 'cursor-pointer hover:bg-[#FAF6EE] hover:border-[#2D6A3F]/50 active:scale-95'
+                  }`}
+                >
+                  <ChevronRight className="w-5 h-5 text-[#1A3D24]" strokeWidth={2.6} />
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* ─── 3. الشريط السفلي: زر عرض المزيد (مُوسَّط) ─── */}
-          {reviews.length > INITIAL_VISIBLE_COUNT && (
+          {/* ─── 3. الشريط السفلي: زر عرض باقي التقييمات / عرض أقل ─── */}
+          {totalCount > INITIAL_VISIBLE_COUNT && (
             <div className="mt-6 pt-5 border-t-2 border-[#2D6A3F]/10 flex items-center justify-center">
               <button
                 type="button"
-                onClick={() => setShowAllReviews(!showAllReviews)}
+                onClick={handleToggleMoreReviews}
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#FAF8F3] border-2 border-[#2D6A3F]/25 text-[#1A3D24] text-xs sm:text-sm font-black transition-all cursor-pointer active:scale-95 shadow-sm"
               >
-                {showAllReviews ? (
+                {isAllVisible ? (
                   <>
                     <ChevronUp className="w-4 h-4 text-[#2D6A3F]" strokeWidth={2.5} />
                     <span>عرض أقل</span>
@@ -533,13 +649,12 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({ onOpenOrdersPa
                 ) : (
                   <>
                     <ChevronDown className="w-4 h-4 text-[#2D6A3F]" strokeWidth={2.5} />
-                    <span>عرض باقي التقييمات ({reviews.length - INITIAL_VISIBLE_COUNT})</span>
+                    <span>عرض باقي التقييمات ({remainingCount})</span>
                   </>
                 )}
               </button>
             </div>
           )}
-
         </div>
       </section>
 

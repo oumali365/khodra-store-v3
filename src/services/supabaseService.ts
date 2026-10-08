@@ -362,12 +362,13 @@ export async function fetchReviews(): Promise<DbReview[] | null> {
   if (!client) return null;
 
   try {
-    // ✅ تصفية التعليقات المحذوفة
+    // ✅ تصفية التعليقات المحذوفة وجلب أحدث 10 تقييمات فريدة بالمعرف
     const { data, error } = await client
       .from('reviews')
       .select('*')
       .or('is_deleted.is.null,is_deleted.eq.false')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(10);
 
     if (error) {
       console.warn('Supabase reviews fetch warning:', error.message);
@@ -375,7 +376,16 @@ export async function fetchReviews(): Promise<DbReview[] | null> {
     }
 
     if (data && data.length > 0) {
-      return data.map((item) => ({
+      // ✅ ضمان عدم تكرار التقييمات بالاعتماد على معرف التقييم id
+      const uniqueMap = new Map<string, any>();
+      for (const item of data) {
+        const idKey = String(item.id || '').trim();
+        if (idKey && !uniqueMap.has(idKey)) {
+          uniqueMap.set(idKey, item);
+        }
+      }
+
+      return Array.from(uniqueMap.values()).map((item) => ({
         id: String(item.id),
         author: item.author || 'زبون المتجر',
         neighborhood: item.neighborhood || 'فاس',
