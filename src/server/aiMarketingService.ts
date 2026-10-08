@@ -8,6 +8,50 @@
 import { getGeminiClient, GEMINI_MODEL } from './geminiClient';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
 
+// ────────────────────────────────────────────────────────────
+// دالة مساعدة: تحليل JSON بأمان مع تنظيف النص
+// تعالج الحالات الشائعة: code fences، نص إضافي، JSON مقطوع
+// ────────────────────────────────────────────────────────────
+function safeParseJson<T>(text: string, fallback: T): T {
+  if (!text || typeof text !== 'string') return fallback;
+
+  try {
+    let cleaned = text.trim();
+
+    // 1) إزالة code fences إن وُجدت
+    cleaned = cleaned
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```\s*$/i, '');
+
+    // 2) البحث عن أول قوس { أو [
+    const firstBrace = cleaned.search(/[{[]/);
+    if (firstBrace > 0) {
+      cleaned = cleaned.substring(firstBrace);
+    }
+
+    // 3) البحث عن آخر قوس } أو ]
+    const lastBrace = Math.max(
+      cleaned.lastIndexOf('}'),
+      cleaned.lastIndexOf(']')
+    );
+    if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
+      cleaned = cleaned.substring(0, lastBrace + 1);
+    }
+
+    // 4) محاولة التحليل
+    return JSON.parse(cleaned) as T;
+  } catch (e) {
+    console.warn(
+      '[safeParseJson] فشل التحليل:',
+      e,
+      '\nالنص الخام:',
+      text.slice(0, 300)
+    );
+    return fallback;
+  }
+}
+
 export interface TemplateAnalysisResult {
   marketingScore: number;
   criteriaScores: {
@@ -183,9 +227,12 @@ ${JSON.stringify(stats)}
         },
       });
 
-      const parsed = JSON.parse(response.text || '{}');
-      if (parsed.marketingScore && parsed.criteriaScores) {
-        return parsed as TemplateAnalysisResult;
+      const parsed = safeParseJson<TemplateAnalysisResult>(
+        response.text || '',
+        null as any
+      );
+      if (parsed?.marketingScore && parsed?.criteriaScores) {
+        return parsed;
       }
     } catch (err) {
       console.warn('Gemini analyzeTemplate failed, using deterministic local engine:', err);
@@ -290,9 +337,12 @@ ${sampleProducts.join('، ')}
         },
       });
 
-      const parsed = JSON.parse(response.text || '[]');
+      const parsed = safeParseJson<MarketingIdea[]>(
+        response.text || '',
+        []
+      );
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed as MarketingIdea[];
+        return parsed;
       }
     } catch (err) {
       console.warn('Gemini generateIdeas failed, using curated Moroccan ideas:', err);
@@ -512,9 +562,12 @@ ${lowStockItems.map((p) => p.name).join('، ') || 'لا توجد'}
         },
       });
 
-      const parsed = JSON.parse(response.text || '{}');
-      if (parsed.campaignName && parsed.posts && Array.isArray(parsed.posts)) {
-        return parsed as GeneratedCampaign;
+      const parsed = safeParseJson<GeneratedCampaign>(
+        response.text || '',
+        null as any
+      );
+      if (parsed?.campaignName && parsed?.posts && Array.isArray(parsed.posts)) {
+        return parsed;
       }
     } catch (err) {
       console.warn('Gemini generateMarketingCampaign fallback:', err);
@@ -703,8 +756,8 @@ export async function chatWithMarketingCopilot(userQuery: string): Promise<{
         },
       });
 
-      const parsed = JSON.parse(response.text || '{}');
-      if (parsed.reply) {
+      const parsed = safeParseJson<any>(response.text || '', null);
+      if (parsed?.reply) {
         return parsed;
       }
     } catch (err) {
