@@ -18,12 +18,14 @@ import {
   CheckCircle2,
   Bike,
   DollarSign,
+  Package,
+  Sparkles,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
 import { updateAdminPassword, verifyAdminPinRemote } from '../../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
 
-export type AdminRoute = 'orders' | 'fleet' | 'finance' | 'documents' | 'marketing' | 'pricing';
+export type AdminRoute = 'orders' | 'inventory' | 'marketing' | 'fleet' | 'finance' | 'documents' | 'pricing';
 
 interface AdminPageLayoutProps {
   currentRoute: AdminRoute;
@@ -54,6 +56,22 @@ const NAV_ITEMS: NavItem[] = [
     accentColor: 'text-[#EAB308]',
   },
   {
+    id: 'inventory',
+    href: '/admin/inventory',
+    label: 'المنتجات والمخزون',
+    sublabel: 'Stock & Produits',
+    Icon: Package,
+    accentColor: 'text-[#10B981]',
+  },
+  {
+    id: 'marketing',
+    href: '/admin/marketing',
+    label: 'التسويق الذكي AI',
+    sublabel: 'Marketing Copilot',
+    Icon: Sparkles,
+    accentColor: 'text-[#0284C7]',
+  },
+  {
     id: 'fleet',
     href: '/admin/fleet',
     label: 'مسارات التوصيل والفريق',
@@ -62,28 +80,20 @@ const NAV_ITEMS: NavItem[] = [
     accentColor: 'text-[#38BDF8]',
   },
   {
-    id: 'finance',
-    href: '/admin/finance',
-    label: 'اللوحة المالية',
-    sublabel: 'Finance',
-    Icon: BarChart3,
-    accentColor: 'text-[#EA580C]',
-  },
-  {
-    id: 'marketing',
-    href: '/admin/marketing',
-    label: 'النشر والتسويق',
-    sublabel: 'Marketing',
-    Icon: Share2,
-    accentColor: 'text-[#0284C7]',
-  },
-  {
     id: 'pricing',
     href: '/admin/pricing',
     label: 'التسعير والتوقعات',
     sublabel: 'Tarification JIT',
     Icon: DollarSign,
     accentColor: 'text-[#FEF08A]',
+  },
+  {
+    id: 'finance',
+    href: '/admin/finance',
+    label: 'اللوحة المالية',
+    sublabel: 'Finance',
+    Icon: BarChart3,
+    accentColor: 'text-[#EA580C]',
   },
   {
     id: 'documents',

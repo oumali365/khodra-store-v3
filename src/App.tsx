@@ -71,8 +71,11 @@ const AdminDeliveryFleetTab = React.lazy(() =>
 const AdminDocumentsModal = React.lazy(() =>
   import('./components/admin/documents/AdminDocumentsModal').then((m) => ({ default: m.AdminDocumentsModal }))
 );
-const AdminMarketingView = React.lazy(() =>
-  import('./components/admin/marketing/AdminMarketingView').then((m) => ({ default: m.AdminMarketingView }))
+const AdminInventoryPanel = React.lazy(() =>
+  import('./features/products-inventory/AdminInventoryPanel').then((m) => ({ default: m.AdminInventoryPanel }))
+);
+const AIMarketingCenter = React.lazy(() =>
+  import('./features/ai-marketing/AIMarketingCenter').then((m) => ({ default: m.AIMarketingCenter }))
 );
 const PricingForecastPanel = React.lazy(() =>
   import('./features/pricing-forecast').then((m) => ({ default: m.PricingForecastPanel }))
@@ -96,15 +99,16 @@ function parseAdminRoute(): AdminRoute | null {
   try {
     const params = new URLSearchParams(window.location.search);
     const adminParam = params.get('admin') as AdminRoute | null;
-    if (adminParam && ['orders', 'fleet', 'finance', 'documents', 'marketing', 'pricing'].includes(adminParam)) {
+    if (adminParam && ['orders', 'inventory', 'marketing', 'fleet', 'finance', 'documents', 'pricing'].includes(adminParam)) {
       return adminParam;
     }
     const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
     if (path === 'admin' || path === 'admin/orders') return 'orders';
+    if (path === 'admin/inventory' || path === 'admin/stock' || path === 'admin/products') return 'inventory';
+    if (path === 'admin/marketing' || path === 'admin/ai') return 'marketing';
     if (path === 'admin/fleet' || path === 'admin/delivery' || path === 'admin/routes') return 'fleet';
     if (path === 'admin/finance') return 'finance';
     if (path === 'admin/documents') return 'documents';
-    if (path === 'admin/marketing') return 'marketing';
     if (path === 'admin/pricing') return 'pricing';
   } catch {}
   return null;
@@ -494,8 +498,53 @@ export default function App() {
       }
     };
 
+    const handleProductUpdated = (e: any) => {
+      const updated = e?.detail;
+      if (updated && updated.id) {
+        setProducts((prev) => {
+          const idx = prev.findIndex((p) => p.id === updated.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], ...updated };
+            return next;
+          }
+          return [...prev, updated];
+        });
+      }
+    };
+
+    const handleStockChanged = (e: any) => {
+      const { id, stock, is_available } = e?.detail || {};
+      if (id != null) {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === Number(id)
+              ? {
+                  ...p,
+                  stock: Number(stock),
+                  is_available: Boolean(is_available),
+                  active: Boolean(is_available),
+                }
+              : p
+          )
+        );
+      }
+    };
+
+    const handleProductDeleted = (e: any) => {
+      const { id } = e?.detail || {};
+      if (id != null) {
+        setProducts((prev) =>
+          prev.map((p) => (p.id === Number(id) ? { ...p, active: false, is_available: false, stock: 0 } : p))
+        );
+      }
+    };
+
     window.addEventListener('khodra_prices_updated', handlePricesUpdated);
     window.addEventListener('khodra_products_availability_updated', handleAvailabilityUpdated);
+    window.addEventListener('khodra_products_updated', handleProductUpdated);
+    window.addEventListener('khodra_product_stock_changed', handleStockChanged);
+    window.addEventListener('khodra_product_deleted', handleProductDeleted);
 
     // 2. اشتراك سحابي لحظي (Supabase Realtime) لتحديث المتجر فورياً في شاشات جميع العملاء
     const client = getSupabase();
@@ -528,6 +577,9 @@ export default function App() {
       mounted = false;
       window.removeEventListener('khodra_prices_updated', handlePricesUpdated);
       window.removeEventListener('khodra_products_availability_updated', handleAvailabilityUpdated);
+      window.removeEventListener('khodra_products_updated', handleProductUpdated);
+      window.removeEventListener('khodra_product_stock_changed', handleStockChanged);
+      window.removeEventListener('khodra_product_deleted', handleProductDeleted);
       if (client && channel) {
         client.removeChannel(channel);
       }
@@ -984,9 +1036,29 @@ export default function App() {
                 onClose={handleReturnToStore}
               />
             )}
+            {activeAdminRoute === 'inventory' && (
+              <AdminInventoryPanel
+                standalone={true}
+                isOpen={true}
+                onClose={handleReturnToStore}
+                onNavigateToAI={() => {
+                  handleNavigateAdmin('marketing');
+                }}
+              />
+            )}
+            {activeAdminRoute === 'marketing' && (
+              <AIMarketingCenter />
+            )}
             {activeAdminRoute === 'fleet' && (
               <AdminDeliveryFleetTab
                 standalone={true}
+              />
+            )}
+            {activeAdminRoute === 'pricing' && (
+              <PricingForecastPanel
+                standalone={true}
+                isOpen={true}
+                onClose={handleReturnToStore}
               />
             )}
             {activeAdminRoute === 'finance' && (
@@ -998,16 +1070,6 @@ export default function App() {
             )}
             {activeAdminRoute === 'documents' && (
               <AdminDocumentsModal
-                standalone={true}
-                isOpen={true}
-                onClose={handleReturnToStore}
-              />
-            )}
-            {activeAdminRoute === 'marketing' && (
-              <AdminMarketingView />
-            )}
-            {activeAdminRoute === 'pricing' && (
-              <PricingForecastPanel
                 standalone={true}
                 isOpen={true}
                 onClose={handleReturnToStore}

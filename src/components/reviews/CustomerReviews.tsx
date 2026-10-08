@@ -32,6 +32,7 @@ import {
   getSupabase,
 } from '../../services/supabaseService';
 import {
+  INITIAL_REVIEWS,
   INITIAL_THREE_REVIEWS,
   type CustomerReview,
 } from '../../data/initialReviews';
@@ -40,7 +41,7 @@ import { DeleteReviewModal } from '../admin';
 
 export type { CustomerReview };
 
-// التدرج في ظهور التقييمات: 4، 8، 12، 16...
+// التدرج في ظهور التقييمات: 4، 8، 12 (المجموع الكلي الافتراضي 12 تقييم)
 const INITIAL_VISIBLE_COUNT = 4;
 const REVIEWS_PER_STEP = 4;
 
@@ -48,27 +49,40 @@ interface CustomerReviewsProps {
   onOpenOrdersPanel?: () => void;
 }
 
-// ─── دالة مساعدة لمنع تكرار التقييمات بالاعتماد على معرف التقييم id ───
+// ─── دالة مساعدة لمنع تكرار التقييمات بالاعتماد على معرف التقييم id وبصمة النص ───
+const getReviewSignature = (r: CustomerReview): string => {
+  const author = (r.author || '').trim().toLowerCase();
+  const comment = (r.comment || '').trim().replace(/\s+/g, ' ').slice(0, 50).toLowerCase();
+  return `${author}__${comment}`;
+};
+
 const deduplicateReviews = (list: CustomerReview[]): CustomerReview[] => {
   const seenIds = new Set<string>();
+  const seenSigs = new Set<string>();
   const uniqueList: CustomerReview[] = [];
+
   for (const item of list) {
     if (!item) continue;
-    const idKey = String(item.id || '').trim();
-    if (!idKey || seenIds.has(idKey)) continue;
-    seenIds.add(idKey);
+    const idKey = String(item.id || '').trim().toLowerCase();
+    const sigKey = getReviewSignature(item);
+
+    if (idKey && seenIds.has(idKey)) continue;
+    if (sigKey && seenSigs.has(sigKey)) continue;
+
+    if (idKey) seenIds.add(idKey);
+    if (sigKey) seenSigs.add(sigKey);
     uniqueList.push(item);
   }
   return uniqueList;
 };
 
 export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
-  // قاعدة البيانات الأساسية مع منع التكرار
+  // توحيد مصدر التقييمات مع الحفاظ على 12 تقييماً كمجموع كلي افتراضياً
   const [allReviews, setAllReviews] = useState<CustomerReview[]>(() =>
-    deduplicateReviews(INITIAL_THREE_REVIEWS)
+    deduplicateReviews(INITIAL_REVIEWS.slice(0, 12))
   );
 
-  // التحكم بعدد التقييمات المعروضة في السلايدر (يبدأ بـ 3، ويزيد 3 بكل ضغطة)
+  // التحكم بعدد التقييمات المعروضة في السلايدر (4 ← 8 ← 12)
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE_COUNT);
 
   // حالة النافذة المنبثقة لإضافة تقييم
@@ -120,10 +134,13 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
           verified: r.verified,
         }));
 
-        // دمج التقييمات الجديدة مع المراجعات الأولية مع ضمان عدم التكرار بالمعرف id
-        setAllReviews((prev) => {
-          const combined = [...formatted, ...prev];
-          return deduplicateReviews(combined);
+        // دمج التقييمات القادمة من قاعدة البيانات مع المراجعات الافتراضية مع توحيد المصدر وضمان عدم التكرار
+        setAllReviews(() => {
+          const combined = deduplicateReviews([
+            ...formatted,
+            ...INITIAL_REVIEWS.slice(0, 12),
+          ]);
+          return combined;
         });
       }
     } catch (e) {
@@ -216,8 +233,8 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
   const isAllVisible = visibleCount >= totalCount;
 
   // ─── التحكم في "عرض باقي التقييمات" / "عرض أقل" ───
-  // كل نقرة تكشف عن 3 تقييمات إضافية (3 → 6 → 9 → 12 → 15)
-  // وعند اكتمال العرض يتحول الزر إلى "عرض أقل" ويعيد العدد إلى 3
+  // كل نقرة تكشف عن 4 تقييمات إضافية (4 → 8 → 12)
+  // وعند النقر تنتقل الشرائح بسلاسة إلى أول تقييم من الأربعة المضافة وتتحرك النقاط الأربع وفقها
   const handleToggleMoreReviews = () => {
     if (isAllVisible) {
       setVisibleCount(INITIAL_VISIBLE_COUNT);
@@ -225,7 +242,16 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
         swiperRef.current.slideTo(0);
       }
     } else {
-      setVisibleCount((prev) => Math.min(prev + REVIEWS_PER_STEP, totalCount));
+      const nextCount = Math.min(visibleCount + REVIEWS_PER_STEP, totalCount);
+      const newBatchStartIndex = visibleCount;
+      setVisibleCount(nextCount);
+
+      // انتقال فوري وسلس إلى أول تقييم من الأربعة المضافة لتتحرك نقاط التنقل الأربع وفقها
+      setTimeout(() => {
+        if (swiperRef.current) {
+          swiperRef.current.slideTo(newBatchStartIndex);
+        }
+      }, 50);
     }
   };
 
@@ -245,15 +271,13 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
     setActiveSlideIndex(swiper.realIndex ?? swiper.activeIndex ?? 0);
   }, []);
 
-  // التنقل عبر نقاط التنقل الأربع الثابتة (مثل شارات الثقة)
+  // التنقل عبر نقاط التنقل الأربع الثابتة (تتحرك وتتجدد وفق كل 4 تقييمات مضافة)
   const handleDotClick = (dotIndex: number) => {
     if (!swiperRef.current) return;
-    const count = displayedReviews.length;
-    if (count <= 1) return;
-    // توزيع النقاط الأربع على إجمالي التقييمات المعروضة
+    const currentBatch = Math.floor(activeSlideIndex / 4);
     const targetIndex = Math.min(
-      Math.round((dotIndex / 3) * (count - 1)),
-      count - 1
+      currentBatch * 4 + dotIndex,
+      displayedReviews.length - 1
     );
     swiperRef.current.slideTo(targetIndex);
   };
@@ -574,11 +598,11 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
             {/* في الشريحة الأولى: السهم الأيسر يبقى مرئياً مع opacity-50 */}
             {/* في الشريحة الأخيرة: السهم الأيمن يبقى مرئياً مع opacity-50 */}
             <div className="flex items-center justify-between pt-4 px-1">
-              {/* أربع نقاط تنقل ثابتة متجددة مثل تصميم شارات الثقة */}
+              {/* أربع نقاط تنقل ثابتة متجددة تتحرك وفق كل 4 تقييمات مضافة مثل تصميم شارات الثقة */}
               <div className="flex items-center gap-1.5" role="tablist" aria-label="مؤشرات التنقل بين التقييمات">
                 {[0, 1, 2, 3].map((dotIdx) => {
-                  const maxSlide = Math.max(1, displayedReviews.length - 1);
-                  const activeDot = Math.min(3, Math.max(0, Math.round((activeSlideIndex / maxSlide) * 3)));
+                  // النقطة النشطة تتحرك مع كل تقييم داخل مجموعة الـ 4 المضافة وتتجدد بسلاسة
+                  const activeDot = activeSlideIndex % 4;
                   const isActive = activeDot === dotIdx;
 
                   return (
@@ -591,7 +615,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
                           ? 'w-7 bg-[#2D6A3F]'
                           : 'w-2 bg-[#2D6A3F]/25 hover:bg-[#2D6A3F]/50'
                       }`}
-                      aria-label={`الانتقال إلى المجموعة ${dotIdx + 1}`}
+                      aria-label={`التقييم ${dotIdx + 1} من المجموعة`}
                       aria-selected={isActive}
                       role="tab"
                     />

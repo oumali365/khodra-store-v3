@@ -19,6 +19,8 @@ import {
   Handshake,
   Sparkles,
   FolderKanban,
+  Cpu,
+  Code,
 } from 'lucide-react';
 
 export interface AdminDocumentsModalProps {
@@ -39,6 +41,20 @@ interface DocItem {
   accent: 'emerald' | 'amber' | 'orange' | 'blue';
   Icon: React.FC<{ className?: string }>;
 }
+
+const TECH_ARCHITECTURE_DOC: DocItem = {
+  id: 'system-architecture',
+  code: '05_System_Architecture',
+  title: 'الدليل التقني الشامل وهندسة المنصة وآليات الاشتغال (A4 PDF)',
+  subtitle: 'دليل معماري وهندسي مستقل لمالك المتجر وفريق التطوير',
+  description:
+    'وثيقة تقنية مستقلة ومختصرة توضح بنية المشروع وهندسته المعمارية، البنية الداخلية لإدارة المتجر ووحداتها الست (الطلبات، مسارات التوصيل، اللوحة المالية، العقود، التسويق، والتسعير JIT)، دورة حياة الطلبات، الأدوات والتقنيات البرمجية المتقدمة (React 19 + Supabase + PWA + GPS)، وإرشادات التوسعة والتحديثات المستقبلية بأمان.',
+  url: '/docs/system-architecture.html',
+  badge: 'دليل تقني مستقل • A4 PDF',
+  buttonLabel: 'فتح وطباعة الدليل التقني والهندسي (PDF)',
+  accent: 'emerald',
+  Icon: Cpu,
+};
 
 const PROJECT_DOCS: DocItem[] = [
   {
@@ -192,6 +208,15 @@ export const AdminDocumentsModal: React.FC<AdminDocumentsModalProps> = ({
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
+              onClick={() => window.open('/docs/system-architecture.html', '_blank')}
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-900/80 hover:bg-emerald-900 text-[#FEF08A] text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 border border-[#EAB308]/40"
+              title="طباعة الدليل التقني الشامل وهندسة المنصة (A4 PDF)"
+            >
+              <Cpu className="w-4 h-4 text-[#F5D76E]" />
+              <span>الدليل التقني المستقل (A4)</span>
+            </button>
+            <button
+              type="button"
               onClick={() => window.open('/docs/funding-dossier.html', '_blank')}
               className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 border border-[#F5D76E]/30"
               title="طباعة الملف الموحد الكامل في 3 صفحات A4"
@@ -212,6 +237,60 @@ export const AdminDocumentsModal: React.FC<AdminDocumentsModalProps> = ({
 
         {/* ═══════ المحتوى القابل للتمرير ═══════ */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
+          {/* بطاقة الدليل التقني الشامل وهندسة المنصة (مستقل تماماً) */}
+          <div className="bg-gradient-to-l from-[#163920] via-[#1A3D24] to-[#122A1A] border-2 border-[#EAB308]/70 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm text-white">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-white/15 text-[#F5D76E] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-inner mt-0.5">
+                <Cpu className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-black text-white">
+                    الدليل التقني الشامل وهندسة المنصة وآليات الاشتغال (A4 PDF)
+                  </h3>
+                  <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#EAB308] text-[#1A3D24]">
+                    مستقل • لصاحب المتجر والمطورين
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-100/90 font-semibold mt-1 leading-relaxed">
+                  وثيقة معمارية مستقلة توضح بنية الكود (React 19 + Supabase)، آليات اشتغال المنصة، دورة حياة الطلب، الأدوات البرمجية المتقدمة، وإرشادات التوسعة والتحديثات المستقبلية بدون تشتيت.
+                </p>
+                <div className="text-[11px] text-emerald-300 font-mono mt-1 dir-ltr inline-block">
+                  /docs/system-architecture.html
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => handleCopyUrl('tech-guide-top', '/docs/system-architecture.html')}
+                className="px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-black inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                title="نسخ الرابط المباشر للدليل التقني"
+              >
+                {copiedId === 'tech-guide-top' ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-300" />
+                    <span>تم النسخ</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-emerald-200" />
+                    <span>نسخ الرابط</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => window.open('/docs/system-architecture.html', '_blank')}
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-[#EAB308] to-[#CA8A04] hover:from-[#FACC15] hover:to-[#EAB308] text-[#1A3D24] text-xs font-black cursor-pointer shadow-sm transition-all active:scale-95"
+              >
+                <Printer className="w-4 h-4 text-[#1A3D24]" />
+                <span>فتح وطباعة الدليل التقني (PDF)</span>
+              </button>
+            </div>
+          </div>
+
           {/* بطاقة الملف الشامل الموحد (Hero Banner) */}
           <div className="bg-gradient-to-l from-[#FEF3C7] via-[#FFFBEB] to-white border-2 border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
             <div className="flex items-start gap-3">
@@ -426,6 +505,76 @@ export const AdminDocumentsModal: React.FC<AdminDocumentsModalProps> = ({
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* ═══════ القسم 3: الدليل التقني والهندسي المستقل للمنصة ═══════ */}
+          <div>
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#E8E1D3]">
+              <h3 className="text-sm sm:text-base font-black text-[#1A3D24] flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-[#16A34A]" />
+                <span>ثالثاً: الدليل التقني والهندسي المستقل للمنصة (خاص بالمالك وفريق التطوير)</span>
+              </h3>
+              <span className="text-[11px] font-bold text-[#5A6B5F]">
+                مستقل تماماً عن التمويل والعقود • A4 PDF
+              </span>
+            </div>
+
+            <div className="bg-white border-2 border-emerald-600/30 hover:border-emerald-600/60 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs transition-all">
+              <div className="flex items-start gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-[#1A3D24] text-[#F5D76E] flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                  <Code className="w-5 h-5 text-[#F5D76E]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                      {TECH_ARCHITECTURE_DOC.badge}
+                    </span>
+                    <span className="text-[11px] font-mono text-stone-500 font-bold">
+                      {TECH_ARCHITECTURE_DOC.code}
+                    </span>
+                  </div>
+                  <h4 className="text-xs sm:text-sm font-black text-[#112616] leading-snug">
+                    {TECH_ARCHITECTURE_DOC.title}
+                  </h4>
+                  <p className="text-[11px] font-bold text-[#EA580C] mt-0.5">
+                    {TECH_ARCHITECTURE_DOC.subtitle}
+                  </p>
+                  <p className="text-xs text-[#524B3E] mt-1.5 leading-relaxed font-medium max-w-3xl">
+                    {TECH_ARCHITECTURE_DOC.description}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => handleCopyUrl(TECH_ARCHITECTURE_DOC.id, TECH_ARCHITECTURE_DOC.url)}
+                  className="px-3 py-2 rounded-xl bg-white hover:bg-stone-100 text-[#1A3D24] border border-stone-300 text-xs font-black inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                  title="نسخ الرابط المباشر"
+                >
+                  {copiedId === TECH_ARCHITECTURE_DOC.id ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>تم النسخ</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-[#5A6B5F]" />
+                      <span>الرابط</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.open(TECH_ARCHITECTURE_DOC.url, '_blank')}
+                  className="flex-1 md:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1A3D24] hover:bg-[#122A1A] text-white text-xs font-black cursor-pointer shadow-xs transition-all active:scale-95"
+                >
+                  <Printer className="w-4 h-4 text-[#F5D76E]" />
+                  <span>{TECH_ARCHITECTURE_DOC.buttonLabel}</span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-75" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

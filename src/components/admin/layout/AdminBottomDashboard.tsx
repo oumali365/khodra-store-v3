@@ -17,13 +17,14 @@ import {
   ExternalLink,
   Bike,
   DollarSign,
+  Package,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
 import { clearCachedAdminPin, updateAdminPassword } from '../../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
 import { AdminErrorBoundary } from './AdminErrorBoundary';
 
-export type AdminRoute = 'orders' | 'fleet' | 'finance' | 'documents' | 'marketing' | 'pricing';
+export type AdminRoute = 'orders' | 'inventory' | 'marketing' | 'fleet' | 'finance' | 'documents' | 'pricing';
 
 interface AdminBottomDashboardProps {
   isAdmin: boolean;
@@ -223,7 +224,37 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             </div>
           </a>
 
-          {/* ─── البطاقة 2: مسارات التوصيل والفريق (مستقلة) ─── */}
+          {/* ─── البطاقة 2: المنتجات والمخزون الحي ─── */}
+          <a
+            href="/admin/inventory"
+            onClick={(e) => handleNavigate(e, 'inventory')}
+            className="group relative bg-gradient-to-br from-[#1b3d22] to-[#0d2113] hover:from-[#23502c] hover:to-[#1b3d22] border-2 border-emerald-600/50 hover:border-[#F5D76E]/70 rounded-2xl p-3.5 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_8px_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex flex-col justify-between min-h-[160px] sm:min-h-[175px]"
+          >
+            <div className="flex items-start justify-between gap-2 w-full">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-700 to-green-800 border border-[#F5D76E]/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-[#F5D76E]" strokeWidth={2.5} />
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                مخزون حي
+              </span>
+            </div>
+
+            <div className="mt-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
+                <h3 className="text-sm sm:text-lg font-black text-white group-hover:text-[#F5D76E] transition-colors leading-tight">
+                  المنتجات والمخزون
+                </h3>
+                <span className="text-[10px] sm:text-[11px] text-stone-400 font-mono">
+                  Stock
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium">
+                تحديث الكميات اللحظي، إضافة السلع، وحظر الترويج عند النفاد.
+              </p>
+            </div>
+          </a>
+
+          {/* ─── البطاقة 3: مسارات التوصيل والفريق (مستقلة) ─── */}
           <a
             href="/admin/fleet"
             onClick={(e) => handleNavigate(e, 'fleet')}

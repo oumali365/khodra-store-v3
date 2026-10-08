@@ -160,7 +160,219 @@ export async function fetchProducts(): Promise<Product[]> {
     console.warn('Notice: Daily prices synchronization handled gracefully:', syncErr);
   }
 
+  // 3. دمج التعديلات والمنتجات المضافة من لوحة الإدارة
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const savedCustom = localStorage.getItem('khodra_custom_products_v2');
+      if (savedCustom) {
+        const customOverrides = JSON.parse(savedCustom);
+        if (Array.isArray(customOverrides)) {
+          const map = new Map<number, Product>();
+          baseProducts.forEach((p) => map.set(p.id, p));
+          customOverrides.forEach((p: Product) => {
+            if (p && p.id) {
+              const existing = map.get(p.id);
+              map.set(p.id, existing ? { ...existing, ...p } : p);
+            }
+          });
+          baseProducts = Array.from(map.values()).sort((a, b) => a.id - b.id);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Custom products merge error:', err);
+  }
+
   return baseProducts;
+}
+
+// ────────────────────────────────────────────────────────────
+// دوال إدارة وتعديل المنتجات والمخزون من لوحة الإدارة
+// ────────────────────────────────────────────────────────────
+
+export async function saveProductToStore(
+  productData: Partial<Product> & { name: string; price: number; category: Product['category'] }
+): Promise<{ success: boolean; data?: Product; message?: string }> {
+  try {
+    const allProducts = await fetchProducts();
+    const isNew = !productData.id || productData.id <= 0;
+    const targetId = isNew ? (allProducts.length > 0 ? Math.max(...allProducts.map((p) => p.id)) + 1 : 1) : Number(productData.id);
+
+    const completeProduct: Product = {
+      id: targetId,
+      name: productData.name.trim(),
+      category: productData.category,
+      type: productData.type || 'weight',
+      price: Number(productData.price) || 0,
+      unit_label: productData.unit_label || (productData.type === 'unit' ? 'حبة' : 'kg'),
+      stock: productData.stock !== undefined ? Number(productData.stock) : 10,
+      min_stock_alert: productData.min_stock_alert !== undefined ? Number(productData.min_stock_alert) : 5,
+      is_available: productData.is_available !== false && (productData.stock === undefined || Number(productData.stock) > 0),
+      is_featured: Boolean(productData.is_featured),
+      is_seasonal: Boolean(productData.is_seasonal),
+      is_bestseller: Boolean(productData.is_bestseller),
+      icon: productData.icon || '🛒',
+      image_url: resolveProductImageUrl(productData.image_url),
+      active: productData.active !== false && productData.is_available !== false,
+      description: productData.description?.trim(),
+      origin: productData.origin?.trim() || 'فاس والمغرب',
+    };
+
+    // 1. محاولة الحفظ في Supabase إن كان متاحاً
+    const client = getSupabase();
+    if (client) {
+      try {
+        const payload: any = {
+          name: completeProduct.name,
+          category: completeProduct.category,
+          type: completeProduct.type,
+          price: completeProduct.price,
+          unit_label: completeProduct.unit_label,
+          stock: completeProduct.stock,
+          is_available: completeProduct.is_available,
+          active: completeProduct.active,
+          icon: completeProduct.icon,
+          image_url: completeProduct.image_url,
+          description: completeProduct.description,
+          origin: completeProduct.origin,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (isNew) {
+          payload.id = targetId;
+          await client.from('products').upsert(payload);
+        } else {
+          await client.from('products').update(payload).eq('id', targetId);
+        }
+      } catch (dbErr) {
+        console.warn('Supabase product save fallback to local:', dbErr);
+      }
+    }
+
+    // 2. الحفظ الفوري في التخزين المحلي لضمان الانعكاس المباشر (Instant Local Persistence)
+    if (typeof localStorage !== 'undefined') {
+      const savedCustom = localStorage.getItem('khodra_custom_products_v2');
+      let customList: Product[] = savedCustom ? JSON.parse(savedCustom) : [];
+      const idx = customList.findIndex((p) => p.id === targetId);
+      if (idx >= 0) {
+        customList[idx] = completeProduct;
+      } else {
+        customList.push(completeProduct);
+      }
+      localStorage.setItem('khodra_custom_products_v2', JSON.stringify(customList));
+    }
+
+    // إطلاق حدث محلي لتحديث الواجهة في الوقت الفعلي
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('khodra_products_updated', { detail: completeProduct }));
+    }
+
+    return {
+      success: true,
+      data: completeProduct,
+      message: isNew ? 'تمت إضافة المنتج بنجاح إلى المتجر' : 'تم تحديث بيانات المنتج بنجاح',
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || 'حدث خطأ أثناء حفظ المنتج',
+    };
+  }
+}
+
+export async function updateProductStockQuick(
+  productId: number,
+  newStock: number
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const validStock = Math.max(0, Math.floor(newStock));
+    const isAvail = validStock > 0;
+
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client
+          .from('products')
+          .update({
+            stock: validStock,
+            is_available: isAvail,
+            active: isAvail,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', productId);
+      } catch (e) {
+        console.warn('Supabase stock update fallback:', e);
+      }
+    }
+
+    if (typeof localStorage !== 'undefined') {
+      const savedCustom = localStorage.getItem('khodra_custom_products_v2');
+      let customList: Product[] = savedCustom ? JSON.parse(savedCustom) : [];
+      const idx = customList.findIndex((p) => p.id === productId);
+      if (idx >= 0) {
+        customList[idx].stock = validStock;
+        customList[idx].is_available = isAvail;
+        customList[idx].active = isAvail;
+      } else {
+        customList.push({
+          id: productId,
+          stock: validStock,
+          is_available: isAvail,
+          active: isAvail,
+        } as Product);
+      }
+      localStorage.setItem('khodra_custom_products_v2', JSON.stringify(customList));
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('khodra_product_stock_changed', {
+          detail: { id: productId, stock: validStock, is_available: isAvail },
+        })
+      );
+    }
+
+    return { success: true, message: `تم تحديث المخزون إلى ${validStock}` };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'فشل تحديث المخزون' };
+  }
+}
+
+export async function deleteProductFromStore(
+  productId: number
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client.from('products').update({ active: false, is_available: false, stock: 0 }).eq('id', productId);
+      } catch (e) {
+        console.warn('Supabase product delete fallback:', e);
+      }
+    }
+
+    if (typeof localStorage !== 'undefined') {
+      const savedCustom = localStorage.getItem('khodra_custom_products_v2');
+      let customList: Product[] = savedCustom ? JSON.parse(savedCustom) : [];
+      const idx = customList.findIndex((p) => p.id === productId);
+      if (idx >= 0) {
+        customList[idx].active = false;
+        customList[idx].is_available = false;
+        customList[idx].stock = 0;
+      } else {
+        customList.push({ id: productId, active: false, is_available: false, stock: 0 } as Product);
+      }
+      localStorage.setItem('khodra_custom_products_v2', JSON.stringify(customList));
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('khodra_product_deleted', { detail: { id: productId } }));
+    }
+
+    return { success: true, message: 'تم إيقاف وتعطيل المنتج بنجاح' };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'فشل تعطيل المنتج' };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -376,16 +588,26 @@ export async function fetchReviews(): Promise<DbReview[] | null> {
     }
 
     if (data && data.length > 0) {
-      // ✅ ضمان عدم تكرار التقييمات بالاعتماد على معرف التقييم id
-      const uniqueMap = new Map<string, any>();
+      // ✅ ضمان عدم تكرار التقييمات بالاعتماد على معرف التقييم id وبصمة النص
+      const seenIds = new Set<string>();
+      const seenSigs = new Set<string>();
+      const uniqueItems: any[] = [];
+
       for (const item of data) {
-        const idKey = String(item.id || '').trim();
-        if (idKey && !uniqueMap.has(idKey)) {
-          uniqueMap.set(idKey, item);
-        }
+        const idKey = String(item.id || '').trim().toLowerCase();
+        const author = String(item.author || '').trim().toLowerCase();
+        const comment = String(item.comment || '').trim().replace(/\s+/g, ' ');
+        const sigKey = `${author}__${comment}`;
+
+        if (idKey && seenIds.has(idKey)) continue;
+        if (sigKey && seenSigs.has(sigKey)) continue;
+
+        if (idKey) seenIds.add(idKey);
+        if (sigKey) seenSigs.add(sigKey);
+        uniqueItems.push(item);
       }
 
-      return Array.from(uniqueMap.values()).map((item) => ({
+      return uniqueItems.map((item) => ({
         id: String(item.id),
         author: item.author || 'زبون المتجر',
         neighborhood: item.neighborhood || 'فاس',

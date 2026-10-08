@@ -19,7 +19,11 @@ export interface Product {
   price: number;
   unit_label?: string;
   stock?: number;
+  min_stock_alert?: number;
   is_available?: boolean;
+  is_featured?: boolean;
+  is_seasonal?: boolean;
+  is_bestseller?: boolean;
   icon: string;
   image_url?: string;
   active: boolean;
