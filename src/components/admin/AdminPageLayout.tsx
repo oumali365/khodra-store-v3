@@ -14,7 +14,7 @@ import {
   LogOut,
   Bell,
   BellOff,
-  Home,
+  ArrowRight,
   CheckCircle2,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
@@ -161,7 +161,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-[#F4EFE6] text-[#1A1814] flex flex-col selection:bg-[#EAB308]/30" dir="rtl">
+    <div className="min-h-screen overflow-x-hidden bg-[#F4EFE6] text-[#1A1814] flex flex-col selection:bg-[#EAB308]/30" dir="rtl">
       {/* ══════════════════════════════════════════════════════════
           1. الشريط العلوي الرئيسي (Desktop & Mobile Top Header)
           ══════════════════════════════════════════════════════════ */}
@@ -174,30 +174,25 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
               <a
                 href="/"
                 onClick={handleReturnClick}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-[#EAB308]/50 flex items-center justify-center hover:scale-105 transition-transform shadow-xs"
-                title="الرجوع إلى المتجر الرئيسي"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-rose-950/60 border border-rose-400/50 flex items-center justify-center hover:bg-rose-900/70 transition-colors shadow-xs"
+                title="رجوع"
               >
-                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-[#EAB308]" />
+                <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 text-rose-300" />
               </a>
 
               <div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <span className="font-black text-sm sm:text-base text-white tracking-tight font-['Almarai']">
-                    خُضرة الإدارة
+                    إدارة متجر خُضرة
                   </span>
                   <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                     مباشر
                   </span>
                 </div>
-                <a
-                  href="/"
-                  onClick={handleReturnClick}
-                  className="text-[10px] sm:text-[11px] text-zinc-400 hover:text-[#F5D76E] transition-colors flex items-center gap-1 font-medium"
-                >
-                  <Home className="w-2.5 h-2.5" />
-                  <span>العودة للمتجر</span>
-                </a>
+                <span className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">
+                  لوحة التحكم والإدارة
+                </span>
               </div>
             </div>
 
@@ -266,16 +261,6 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
                 <KeyRound className="w-3.5 h-3.5 text-[#F5D76E]" />
                 <span className="hidden lg:inline">الرمز السري</span>
               </button>
-
-              {/* زر العودة للمتجر الرئيسي */}
-              <a
-                href="/"
-                onClick={handleReturnClick}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1A3D24] hover:bg-[#235331] border border-emerald-500/40 text-emerald-200 text-xs font-black transition-all shadow-xs"
-              >
-                <Home className="w-3.5 h-3.5" />
-                <span>المتجر</span>
-              </a>
 
               {/* زر الخروج الأحمر -> توجه تلقائي لـ admin bottom dashboard */}
               <button
