@@ -3,14 +3,15 @@
 // يدمج Express API الخلفية مع وسائط تطوير Vite
 // ============================================================
 
+// ① تحميل متغيرات البيئة أولاً قبل أي استيراد آخر
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
 import { pricingRouter } from './src/server/pricingRoutes';
 import { aiRouter } from './src/server/aiRoutes';
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,21 +21,31 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // معالجة نصوص JSON مع حد حجم آمن
+  // ② رؤوس CORS — تسمح للواجهة بالاتصال بالـ API
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
+    next();
+  });
+
+  // ③ معالجة نصوص JSON مع حد حجم آمن
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // مسار فحص الصحة
+  // ④ مسار فحص الصحة — يظهر ما إذا كان المفتاح محملاً
   app.get('/api/health', (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
       service: 'Khodra Fès Fullstack Server',
+      geminiConfigured: !!process.env.GEMINI_API_KEY,
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
     });
   });
 
-  // ربط مسارات الواجهة الخلفية
+  // ⑤ ربط مسارات الواجهة الخلفية
   app.use(pricingRouter);
   app.use(aiRouter);
 
@@ -62,8 +73,18 @@ async function startServer() {
     console.log(`📦 Serving production build from ${distPath}`);
   }
 
+  // ⑥ معالج الأخطاء العام
+  app.use((err: any, _req: Request, res: Response, _next: any) => {
+    console.error('[Server Error]', err);
+    res.status(500).json({
+      success: false,
+      error: err?.message || 'خطأ داخلي في الخادم',
+    });
+  });
+
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 خُضرة — Khodra Server running at http://0.0.0.0:${PORT}`);
+    console.log(`🔑 Gemini API Key: ${process.env.GEMINI_API_KEY ? '✅ مُحمّل' : '❌ مفقود'}`);
   });
 }
 
