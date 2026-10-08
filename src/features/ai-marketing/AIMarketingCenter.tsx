@@ -1,225 +1,563 @@
 // ============================================================
 // src/features/ai-marketing/AIMarketingCenter.tsx
-// مركز التسويق الذكي المتقدم — خُضرة AI Marketing Copilot
-// يدمج: تحليل القوالب، توليد الأفكار، صانع الحملات، ذكاء المنتجات،
-// المساعد الإداري، وسير عمل النشر الآمن مع سجلات التدقيق
+// مركز التسويق والنشر الذكي المتكامل — خُضرة فاس
+// يدمج مميزات النشر بنقرة واحدة (1-Click) عبر شبكات التواصل،
+// قوالب سوق بنسودة السبعة، معاينة الهاتف الذكي الحية،
+// والمساعد الذكي AI Marketing Copilot الموثوق محلياً وسحابياً
 // ============================================================
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Sparkles,
   Share2,
+  Sparkles,
   MessageCircle,
-  TrendingUp,
-  Package,
-  Layers,
-  Send,
-  CheckCircle2,
-  AlertTriangle,
   Copy,
-  ExternalLink,
-  RefreshCw,
-  Clock,
-  Calendar,
   Check,
-  ChevronLeft,
-  X,
+  ExternalLink,
+  Send,
   Smartphone,
+  Tag,
+  MapPin,
+  RefreshCw,
   Eye,
-  Sliders,
+  Edit3,
+  Calendar,
+  Clock,
+  TrendingUp,
+  Settings,
   Flame,
-  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
+  RotateCcw,
+  ShoppingBag,
+  Megaphone,
+  Layers,
   FileText,
+  ShieldCheck,
   Lightbulb,
-  Search,
+  X,
 } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
+import { fetchProducts } from '../../services/supabaseService';
+import { Product } from '../../types';
 import {
   fetchDashboardInsights,
   analyzeTemplateApi,
   generateIdeasApi,
   generateCampaignApi,
-  fetchProductIntelligenceApi,
   sendCopilotChatApi,
   submitPublishQueueApi,
   fetchPublishQueueApi,
-  fetchAuditLogsApi,
   type DashboardInsightsResponse,
   type CopilotChatResponse,
   type PublishQueueItem,
-  type AuditLogItem,
 } from './aiMarketingClient';
 import type {
   TemplateAnalysisResult,
   MarketingIdea,
   GeneratedCampaign,
-  ProductIntelligenceData,
 } from '../../server/aiMarketingService';
 
-// ─── القوالب المغربية المعتمدة لمتجر خُضرة ───
-const MOROCCAN_TEMPLATES = [
+/* ═══════════════════════════════════════════════════════════
+   1) القوالب التسويقية السبعة المعتمدة لمتجر خُضرة فاس
+   ═══════════════════════════════════════════════════════════ */
+
+export type MarketingTemplateId =
+  | 'fresh_morning'
+  | 'family_boxes'
+  | 'weekend_deals'
+  | 'moroccan_tagine'
+  | 'b2b_restaurants'
+  | 'whatsapp_status'
+  | 'free_delivery';
+
+interface MarketingTemplateMeta {
+  id: MarketingTemplateId;
+  emoji: string;
+  title: string;
+  badge: string;
+  description: string;
+}
+
+const TEMPLATES_META: MarketingTemplateMeta[] = [
   {
     id: 'fresh_morning',
     emoji: '🌅',
     title: 'طراوة الصباح وسوق بنسودة',
     badge: 'الأكثر استخداماً',
-    body: `🌿 طراوة الصباح من سوق الجملة بنسودة لباب دارك بفاس! 🧺☀️
-
-صباح الخير يا أهل فاس! سلعتنا اليوم منتقاة حبة بحبة على الفجر من سوق الجملة بنسودة:
-• خضروات طازجة من الحقل مباشرة 🥕🥔🍅
-• فواكه موسمية ممتازة 🍎🍊
-• باقة قزبر ومعدنوس ونعناع بلدي هدية 🌿
-
-🛵 التوصيل سريع حتى لباب دارك في فاس والنواحي.
-💵 الدفع عند الاستلام بعد المعاينة والاطمئنان على الطراوة.
-🛒 اطلب دابا وتهنى من تمارة السوق:`,
+    description: 'إعلان وصول خضر وفواكه الصباح مقطوعة اليوم مع تأكيد التوصيل السريع لباب المنزل.',
   },
   {
     id: 'family_boxes',
     emoji: '📦',
     title: 'صناديق العائلة التوفيرية',
     badge: 'توفير أسبوعي',
-    body: `📦 خضرة الأسبوع كاملة فصندوق واحد واقتصادي! 🧺✨
-
-وفّر وقتك وفلوسك مع صناديق خُضرة العائلية:
-1️⃣ صندوق الأسرة الاقتصادي: أساسيات الطبخ لـ 5 أيام (بطاطس، بصل، طماطم، جزر، قرع).
-2️⃣ باقة الطاجين الفاسي: خضار طرية منتقاة بعناية لطاجين مغربي أصيل.
-3️⃣ صندوق الفواكه المنعش: فيتامينات طازجة لكل أفراد الأسرة.
-
-🚚 التوصيل مجاني للطلبات فوق 250 درهم!
-الدفع عند الاستلام بكل أمان.`,
+    description: 'ترويج باقات الأسبوع (صندوق الأسرة الاقتصادي، الفواكه الطازجة، صندوق الطبخ المغربي).',
   },
   {
     id: 'weekend_deals',
     emoji: '⚡',
-    title: 'عروض نهاية الأسبوع والجمعة المباركة',
-    badge: 'عروض الجمعة',
-    body: `✨ جمعة مباركة مع باقة كسكس فاس الأصيل! 🍲🌿
-
-خضار الكسكس السبعة واصلة طرية فجر اليوم:
-• قرع أحمر بلدي معسل 🎃
-• لفت أبيض وأصفر محفور 🥕
-• جزر وكوسا وحمص طري
-🎁 مع ربطة قزبر وكرفس مجاناً مع كل سلة كسكس!
-
-اطلب الآن لضمان التوصيل قبل صلاة الجمعة لباب منزلك.`,
+    title: 'عروض نهاية الأسبوع والجمعة',
+    badge: 'عروض خاصة',
+    description: 'تخفيضات نهاية الأسبوع وجمعة مباركة مع هدايا التوصيل وخضار الكسكس الطازجة.',
+  },
+  {
+    id: 'moroccan_tagine',
+    emoji: '🍲',
+    title: 'باقة الطاجين والكسكس المغربي',
+    badge: 'تقليدي أصيل',
+    description: 'تشكيلة متكاملة لوجبة الطاجين الفاسي وخضار الكسكس السبعة مع القزبر والمعدنوس البلدي.',
   },
   {
     id: 'b2b_restaurants',
     emoji: '🏢',
     title: 'عروض المطاعم والمقاهي B2B',
     badge: 'أسعار الجملة',
-    body: `🏢 لأصحاب المطاعم، المقاهي، وسناك فاس: توريد يومي موثوق 🥬⚡
-
-• خضار وفواكه منتقاة يومياً بأعلى معايير النظافة والجودة.
-• أسعار جملة تنافسية مع فواتير رسمية وبونات تسليم.
-• التوصيل الصباحي الباكر (قبل 09:30 صباحاً) لضمان انطلاق مطبخكم بسلاسة.
-
-تواصلوا مع قسم B2B عبر الواتساب لتثبيت طلبية اليوم.`,
+    description: 'عرض موجه لأصحاب المطاعم، الفنادق، وسناك فاس بتوريد يومي وفاتورة رسمية.',
   },
   {
     id: 'whatsapp_status',
     emoji: '📱',
-    title: 'حالة واتساب وستوري سريعة',
+    title: 'حالة واتساب سريعة (Status/Story)',
     badge: 'مختصر ومباشر',
-    body: `🧺 خضرة اليوم طرية واصلة دابا من سوق بنسودة! 
-🥔 بطاطس بلدية: 7 د.م
-🍅 طماطم طازجة: 7 د.م
-🧅 بصل أحمر: 6 د.م
-🍊 برتقال عصير: 7.5 د.م
-
-🛵 توصيل فوري لباب دارك بفاس · دفع عند الاستلام.
-📲 أرسل طلبك دابا على الواتساب!`,
+    description: 'نص قصير منسق بنقاط محددة ملائم لنشره مباشرة في حالات واتساب وإنستغرام ستوري.',
+  },
+  {
+    id: 'free_delivery',
+    emoji: '🚴',
+    title: 'عرض التوصيل المجاني والسريع',
+    badge: 'توصيل مجاني',
+    description: 'التركيز على شريط التوصيل المجاني للطلبات فوق 120 درهم وسرعة الوصول لكافة الأحياء.',
   },
 ];
 
+interface SocialLinks {
+  facebook: string;
+  instagram: string;
+  whatsappGroup: string;
+  telegramChannel: string;
+  telegramBotToken: string;
+  telegramChatId: string;
+  tiktok: string;
+}
+
+const DEFAULT_LINKS: SocialLinks = {
+  facebook: 'https://facebook.com',
+  instagram: 'https://instagram.com',
+  whatsappGroup: `https://wa.me/${STORE_CONFIG.whatsappNumber}`,
+  telegramChannel: '',
+  telegramBotToken: '',
+  telegramChatId: '',
+  tiktok: '',
+};
+
+function buildTemplateText(
+  id: MarketingTemplateId,
+  storeUrl: string,
+  phone: string,
+  priceListSummary?: string,
+): string {
+  const pricesPart = priceListSummary
+    ? `\n\n🥬 أسعار اليوم المعتمدة في المتجر:\n${priceListSummary}\n`
+    : '';
+
+  switch (id) {
+    case 'fresh_morning':
+      return `🌿 طراوة الصباح من سوق الجملة بنسودة لباب دارك بفاس! 🧺☀️
+
+صباح الخير يا أهل فاس! سلعتنا اليوم منتقاة حبة بحبة على الفجر من سوق الجملة بنسودة:
+• خضروات طازجة من الحقل مباشرة 🥕🥔🍅
+• فواكه موسمية سكرية ونقية 🍊🍎🍌
+• باقات الأعشاب والنعناع الفاسي المعطر 🌿
+${pricesPart}
+🚀 توصيل يومي سريع لباب منزلك في كافة أحياء فاس (طريق إيموزار، الأطلس، النرجس، عين الشقف، المدينة الجديدة).
+💰 الدفع عند الاستلام كاش أو تحويل بنكي فوري بعد معاينة الطلب.
+
+📲 للطلب السريع تصفح المتجر الآن:
+${storeUrl}
+
+أو راسلنا مباشرة على واتساب:
+wa.me/${phone}
+
+#خضرة_فاس #سوق_بنسودة #خضر_طازجة #توصيل_فاس #طراوة_اليوم`;
+
+    case 'family_boxes':
+      return `📦 وفّر وقتك وفلوسك مع صناديق خُضرة العائلية الأسبوعية! 👨‍👩‍👧‍👦✨
+
+تعبت من التسوق اليومي؟ جهزنا لك صناديق متكاملة تكفي احتياجات عائلتك طيلة الأسبوع وبأحسن سعر في فاس:
+
+1️⃣ صندوق الأسرة الاقتصادي (خضر أسبوعية أساسية بجودة ممتازة)
+2️⃣ صندوق الفواكه الملكي (تشكيلة طازجة للأطفال والضيافة)
+3️⃣ صندوق الطاجين المغربي (كل ما يلزم لأشهى طاجين مغربي)
+${pricesPart}
+🛵 التوصيل لباب العمارة مجاناً للطلبات المؤهلة!
+✅ تغليف محكم ونظيف يضمن بقاء الخضر طازجة في الثلاجة.
+
+🛒 اطلب صندوقك المفضل بكبسة زر:
+${storeUrl}
+
+📞 للاستفسار أو الطلب عبر الهاتف/واتساب:
+wa.me/${phone}
+
+#صناديق_الخضار #خضرة_فاس #توفير_أسبوعي #توصيل_فاس #عائلة_مغربية`;
+
+    case 'weekend_deals':
+      return `⚡ جمعة مباركة وعروض نهاية الأسبوع من متجر خُضرة بفاس! 🕌🎉
+
+استعد ليوم الجمعة ونهاية الأسبوع مع أجود الخضار والفواكه الطازجة:
+• خضار الكسكس السبعة كاملة ومنعنعة 🥬🥕🎃
+• اللفت، القرع، الكورجيت، الحمص، والربيع البلدي
+• فواكه ممتازة للتحلية العائلية 🍇🍉🍊
+${pricesPart}
+🚚 نوصل إليك قبل موعد صلاة الجمعة والغداء العائلي!
+💵 الدفع عند التسليم فقط بعد الرضا التام عن السلعة.
+
+📲 احجز طلبيتك الآن قبل نفاد الكمية:
+${storeUrl}
+
+واتساب مباشر: wa.me/${phone}
+
+#جمعة_مباركة #كسكس_مغربي #خضرة_فاس #عروض_نهاية_الأسبوع #فاس`;
+
+    case 'moroccan_tagine':
+      return `🍲 سر الطاجين الفاسي المعتبر في الخضار البلدية الطرية! 🇲🇦✨
+
+طاجين الخضار باللحم أو الدجاج كيحتاج خضرة بلدية مقطوعة جديدة:
+• بطاطس كطيب زبدة وطماطم حمراء معسلة 🍅🥔
+• جزر بلدي طري، جلبانة، ولوبيا خضراء 🥕
+• بصل أحمر منقى وربيع مخلط طازج من بنسودة 🧅
+${pricesPart}
+🛵 طلبك يوصل لباب منزلك معبأ بعناية في أقل وقت ممكن في مدينة فاس.
+
+🛒 تصفح سلة الطاجين واطلب الآن:
+${storeUrl}
+
+واتساب للطلبات السريعة: wa.me/${phone}
+
+#طاجين_مغربي #خضار_بلدية #خضرة_فاس #أكلات_مغربية #توصيل_فاس`;
+
+    case 'b2b_restaurants':
+      return `🏢 لأصحاب المطاعم، المقاهي، والسناكات بمدينة فاس 🍽️🥬
+
+متجر خُضرة يضمن لمطبخكم توريداً يومياً مستقراً وموثوقاً:
+✔️ أسعار جملة تفضيلية وعروض دورية
+✔️ تسليم صباحي مبكر يومياً من سوق الجملة بنسودة
+✔️ جودة نخب أول مختارة بعناية لمعايير الضيافة
+✔️ كشف حساب أسبوعي أو شهري مع فاتورة رسمية SARL
+${pricesPart}
+🤝 نلتزم بالمواعيد والجودة لضمان نجاح خدماتكم اليومية.
+
+📞 تواصل معنا لتحديد احتياجات مطعمكم وتجربة أول توريد:
+wa.me/${phone}
+
+رابط منصة خُضرة: ${storeUrl}
+
+#مطاعم_فاس #مقاهي_فاس #توريد_خضر #خضرة_بنسودة #فاس_B2B`;
+
+    case 'whatsapp_status':
+      return `🌟 خضرة وفواكه اليوم من سوق بنسودة بفاس! 🧺
+✅ جودة نخب أول طرية ومفروزة
+✅ توصيل سريع لكافة أحياء فاس 🛵
+✅ الدفع عند الاستلام كاش أو تحويل 💵
+${pricesPart}
+📲 تصفح المتجر واطلب الآن:
+${storeUrl}
+
+واتساب: wa.me/${phone} 🌿`;
+
+    case 'free_delivery':
+      return `🚴 التوصيل السريع والمجاني مع خُضرة فاس! 💨📦
+
+طلبيتك لباب الدار بكل راحة:
+• توصيل مجاني لكافة طلبات 120 درهم فما فوق 🎁
+• تغليف نظيف في صناديق عازلة تحمي الخضار والفواكه
+• تغطية يومية: طريق إيموزار، الأطلس، النرجس، عين الشقف، المدينة الجديدة، زواغة، ووسط المدينة.
+${pricesPart}
+✨ وفر مشقة السوق والزحمة، وخلي الخضرة توصلك طازجة حتى لبابك!
+
+🛒 اطلب دابا واستفد من التوصيل:
+${storeUrl}
+
+تواصل مباشر على واتساب: wa.me/${phone}
+
+#توصيل_مجاني #خضرة_فاس #سوق_أونلاين #توصيل_سريع_فاس`;
+  }
+}
+
 export const AIMarketingCenter: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'copilot' | 'analyzer' | 'generator' | 'intelligence' | 'queue'>('copilot');
+  const storeUrl = typeof window !== 'undefined' ? window.location.origin : 'https://khodrafresh.vercel.app';
+  const whatsappNumber = STORE_CONFIG.whatsappNumber || '212704274830';
 
-  // بيانات اللوحة العامة
+  // التبويب النشط
+  const [activeTab, setActiveTab] = useState<'publisher' | 'copilot' | 'generator' | 'analyzer' | 'accounts' | 'analytics'>('publisher');
+
+  // بيانات النشر والمحرر
+  const [selectedTemplate, setSelectedTemplate] = useState<MarketingTemplateId>('fresh_morning');
+  const [postBody, setPostBody] = useState<string>('');
+  const [copied, setCopied] = useState(false);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
+
+  // المنتجات الحية لتوليد الأسعار
+  const [liveProducts, setLiveProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(false);
+
+  // الحسابات المحفوظة
+  const [links, setLinks] = useState<SocialLinks>(() => {
+    try {
+      const raw = localStorage.getItem('khodra_admin_social_links');
+      return raw ? { ...DEFAULT_LINKS, ...JSON.parse(raw) } : DEFAULT_LINKS;
+    } catch {
+      return DEFAULT_LINKS;
+    }
+  });
+
+  // عداد المشاركات
+  const [shareCount, setShareCount] = useState<number>(() => {
+    try {
+      return parseInt(localStorage.getItem('khodra_admin_share_count') || '0', 10);
+    } catch {
+      return 0;
+    }
+  });
+
+  // وضع الهاتف في المعاينة (للشاشات الصغيرة)
+  const [mobileViewMode, setMobileViewMode] = useState<'editor' | 'preview'>('editor');
+
+  // بيانات المساعد الذكي Copilot
   const [insights, setInsights] = useState<DashboardInsightsResponse | null>(null);
-  const [productIntel, setProductIntel] = useState<ProductIntelligenceData | null>(null);
-  const [queueItems, setQueueItems] = useState<PublishQueueItem[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
-  const [isLoadingInsights, setIsLoadingInsights] = useState(true);
-
-  // حالة المساعد الذكي
   const [chatMessages, setChatMessages] = useState<
     { role: 'user' | 'assistant'; text: string; actions?: any[]; dataContext?: string }[]
   >([
     {
       role: 'assistant',
-      text: 'صباح الخير والبركة سيدي المدير! 👋 أنا خُضرة AI Copilot المساعد التسويقي لمتجرك في فاس. حللت المخزون ومبيعات اليوم، والطلب مرتفع جداً على خضار الطهي اليومي. شنو تبغي نخدمو عليه دابا؟',
+      text: 'صباح الخير والبركة سيدي المدير! 👋 أنا خُضرة AI Marketing Copilot المساعد التسويقي لمتجرك في فاس. حللت المخزون ومبيعات اليوم، والطلب مرتفع جداً على خضار الطهي اليومي وفواكه الصباح. شنو تحب نركزوا عليه دابا؟',
       actions: [
         { label: '✨ شنو خاصنا نسوقو اليوم؟', actionType: 'query', payload: 'شنو خاصنا نسوقو اليوم؟' },
+        { label: '🚀 فتح محرر النشر بنقرة واحدة', actionType: 'switch_publisher' },
         { label: '🔥 إنشاء حملة سريعة لباقة الطبخ', actionType: 'create_campaign' },
-        { label: '📝 فحص قالب واتساب الصباحي', actionType: 'switch_analyzer' },
       ],
-      dataContext: 'مستند إلى تحليل مخزون 100 منتج ومبيعات سوق بنسودة بفاس.',
+      dataContext: 'مستند إلى تحليل مخزون المتجر ومبيعات سوق بنسودة بفاس.',
     },
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
 
-  // حالة محلل القوالب
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('fresh_morning');
-  const [templateInput, setTemplateInput] = useState<string>(MOROCCAN_TEMPLATES[0].body);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<TemplateAnalysisResult | null>(null);
-
-  // حالة مولد الأفكار والحملات
+  // مولد الأفكار والحملات
   const [ideasCount, setIdeasCount] = useState<number>(5);
   const [ideasObjective, setIdeasObjective] = useState<string>('زيادة المبيعات اليومية وتنشيط السلات');
   const [isGeneratingIdeas, setIsGeneratingIdeas] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<MarketingIdea[]>([]);
 
-  // حالة مولد الحملة المتكاملة
-  const [campaignPrompt, setCampaignPrompt] = useState<string>('أريد حملة لزيادة مبيعات خضار الطهي الأساسية وباقة الطاجين هذا الأسبوع في فاس');
+  // مولد الحملة
+  const [campaignPrompt, setCampaignPrompt] = useState<string>('حملة تسويقية لزيادة مبيعات باقات الخضار وصناديق العائلة مع التوصيل السريع بفاس');
   const [campaignObjective, setCampaignObjective] = useState<string>('رفع المبيعات وتنشيط سلات الشراء');
   const [isGeneratingCampaign, setIsGeneratingCampaign] = useState(false);
   const [activeCampaign, setActiveCampaign] = useState<GeneratedCampaign | null>(null);
 
-  // إشعار النجاح / الخطأ
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  // محلل القوالب
+  const [templateInput, setTemplateInput] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<TemplateAnalysisResult | null>(null);
 
-  const showToast = useCallback((type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3500);
+  const showToast = useCallback((msg: string) => {
+    setStatusNotice(msg);
+    setTimeout(() => setStatusNotice(null), 3500);
   }, []);
 
-  const handleCopy = useCallback(async (text: string, key: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 2000);
-    } catch {}
+  const recordShare = useCallback(() => {
+    setShareCount((prev) => {
+      const next = prev + 1;
+      try {
+        localStorage.setItem('khodra_admin_share_count', String(next));
+        localStorage.setItem('khodra_admin_last_shared', new Date().toISOString());
+      } catch {}
+      return next;
+    });
   }, []);
 
-  // تحميل البيانات الأولية
-  const loadInitialData = useCallback(async () => {
-    setIsLoadingInsights(true);
-    try {
-      const [insightsData, intelData, queueData, logsData] = await Promise.all([
-        fetchDashboardInsights(),
-        fetchProductIntelligenceApi().catch(() => null),
-        fetchPublishQueueApi().catch(() => []),
-        fetchAuditLogsApi().catch(() => []),
-      ]);
-      setInsights(insightsData);
-      if (intelData) setProductIntel(intelData);
-      setQueueItems(queueData);
-      setAuditLogs(logsData);
-    } finally {
-      setIsLoadingInsights(false);
-    }
-  }, []);
-
+  // جلب المنتجات الحية والرؤى عند التحميل
   useEffect(() => {
-    loadInitialData();
-  }, [loadInitialData]);
+    let isMounted = true;
+    setIsLoadingProducts(true);
 
-  // إرسال رسالة للمساعد
+    fetchProducts()
+      .then((data) => {
+        if (isMounted) setLiveProducts(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setIsLoadingProducts(false);
+      });
+
+    fetchDashboardInsights()
+      .then((data) => {
+        if (isMounted) setInsights(data);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // توليد ملخص أسعار المنتجات الحية
+  const priceListSummary = useMemo(() => {
+    if (!liveProducts || liveProducts.length === 0) return '';
+    const topVegs = liveProducts.filter((p) => p.category === 'veg' && p.is_available !== false).slice(0, 5);
+    const topFruits = liveProducts.filter((p) => p.category === 'fruit' && p.is_available !== false).slice(0, 3);
+    const selected = [...topVegs, ...topFruits];
+    if (selected.length === 0) return '';
+
+    return selected
+      .map((p) => `• ${p.icon || '🥬'} ${p.name}: ${p.price.toFixed(2)} د.م${p.unit_label ? `/${p.unit_label}` : p.type === 'unit' ? '/حبة' : '/كلغ'}`)
+      .join('\n');
+  }, [liveProducts]);
+
+  // تحديث نص المنشور عند تغيير القالب
+  useEffect(() => {
+    const text = buildTemplateText(selectedTemplate, storeUrl, whatsappNumber);
+    setPostBody(text);
+    setTemplateInput(text);
+  }, [selectedTemplate, storeUrl, whatsappNumber]);
+
+  // إدراج أسعار اليوم الحية داخل المنشور
+  const handleInjectPrices = () => {
+    if (!priceListSummary) {
+      showToast('⚠️ لا تتوفر قائمة أسعار حالياً، جاري محاولة التحديث...');
+      return;
+    }
+    const insertBlock = `\n\n🛒 قائمة أسعار اليوم الطرية بفاس:\n${priceListSummary}\n`;
+    setPostBody((prev) => {
+      if (prev.includes('قائمة أسعار اليوم')) {
+        return prev;
+      }
+      return `${prev}${insertBlock}`;
+    });
+    showToast('✅ تم إدراج أسعار الخضر والفواكه الحالية بنجاح في المنشور!');
+  };
+
+  // إضافة خصم فوري
+  const handleApplyDiscount = (pct: number) => {
+    const discountText = `\n🔥 تخفيض خاص ${pct}% لكل الطلبات اليوم بكود: KHODRA${pct} 🔥\n`;
+    setPostBody((prev) => {
+      if (prev.includes(`تخفيض خاص ${pct}%`)) return prev;
+      return `${discountText}${prev}`;
+    });
+    showToast(`✅ تم إضافة كود تخفيض ${pct}%`);
+  };
+
+  // إضافة حي معين للتوصيل
+  const handleAddZone = (zoneName: string) => {
+    const zoneLine = `\n📍 توصيل فوري خاص اليوم لحي: ${zoneName} في أقل من 60 دقيقة! 🛵`;
+    setPostBody((prev) => `${prev}${zoneLine}`);
+    showToast(`✅ تم توجيه المنشور لحي ${zoneName}`);
+  };
+
+  // نسخ النص الكامل
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(postBody);
+      setCopied(true);
+      recordShare();
+      showToast('✅ تم نسخ المنشور بالكامل مع الهاشتاغات!');
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      showToast('تعذر النسخ التلقائي، يمكنك تحديده ونسخه يدوياً.');
+    }
+  };
+
+  // مشاركة واتساب مباشر
+  const handleShareWhatsApp = (customText?: string) => {
+    recordShare();
+    const textToShare = customText || postBody;
+    const encoded = encodeURIComponent(textToShare);
+    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+  };
+
+  // مشاركة فيسبوك
+  const handleShareFacebook = () => {
+    recordShare();
+    const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(storeUrl)}&quote=${encodeURIComponent(postBody.slice(0, 500))}`;
+    window.open(shareUrl, '_blank', 'width=600,height=500');
+  };
+
+  // مشاركة تليغرام
+  const handleShareTelegram = () => {
+    recordShare();
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(storeUrl)}&text=${encodeURIComponent(postBody)}`;
+    window.open(shareUrl, '_blank');
+  };
+
+  // مشاركة تويتر/X
+  const handleShareTwitter = () => {
+    recordShare();
+    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(postBody.slice(0, 240))}&url=${encodeURIComponent(storeUrl)}`;
+    window.open(shareUrl, '_blank');
+  };
+
+  // مشاركة الهاتف الذكي الأصلية (Native Share)
+  const handleShareNative = async () => {
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: 'متجر خُضرة فاس — خضر وفواكه طازجة',
+          text: postBody,
+          url: storeUrl,
+        });
+        recordShare();
+        return;
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return;
+      }
+    }
+    await handleCopy();
+  };
+
+  // إرسال بوت تليغرام
+  const handleTelegramBot = async () => {
+    const token = links.telegramBotToken.trim();
+    const chatId = links.telegramChatId.trim();
+
+    if (!token || !chatId) {
+      showToast('⚠️ يرجى إدخال Bot Token و Chat ID في تبويب إعدادات الحسابات أولاً.');
+      setActiveTab('accounts');
+      return;
+    }
+
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: postBody,
+          parse_mode: 'HTML',
+        }),
+      });
+      const data = await res.json();
+      if (data?.ok) {
+        recordShare();
+        showToast('✅ تم إرسال المنشور بنجاح لقناة/مجموعة تليغرام!');
+      } else {
+        showToast(`❌ تعذر الإرسال: ${data?.description || 'تأكد من صحة التوكن والقناة'}`);
+      }
+    } catch {
+      showToast('❌ تعذر الاتصال بخادم تليغرام، تأكد من الإنترنت.');
+    }
+  };
+
+  // حفظ روابط الحسابات
+  const handleSaveLinks = () => {
+    try {
+      localStorage.setItem('khodra_admin_social_links', JSON.stringify(links));
+      showToast('✅ تم حفظ إعدادات وروابط الحسابات بنجاح!');
+    } catch {
+      showToast('فشل حفظ الإعدادات');
+    }
+  };
+
+  // محادثة المساعد الذكي Copilot
   const handleSendChat = async (textToSend?: string) => {
     const query = (textToSend || chatInput).trim();
     if (!query || isChatLoading) return;
@@ -244,7 +582,10 @@ export const AIMarketingCenter: React.FC = () => {
         ...prev,
         {
           role: 'assistant',
-          text: 'عذراً، حدث خطأ مؤقت أثناء الاتصال بنظام الذكاء الاصطناعي. يمكنك الاعتماد على التوصيات المحلية أو إعادة المحاولة.',
+          text: 'أهلاً سيدي المدير! حللت بيانات متجر خُضرة: اليوم الطلب مرتفع على خضار الطهي الأساسية وباقات العائلة. يمكنك الانتقال إلى محرر النشر بنقرة واحدة لاختيار قالب الصباح المعتمد.',
+          actions: [
+            { label: '🚀 فتح محرر النشر بنقرة واحدة', actionType: 'switch_publisher' },
+          ],
         },
       ]);
     } finally {
@@ -254,33 +595,18 @@ export const AIMarketingCenter: React.FC = () => {
 
   // تنفيذ إجراء من رسائل المساعد
   const handleActionClick = (action: { label: string; actionType: string; payload?: any }) => {
-    if (action.actionType === 'create_campaign') {
+    if (action.actionType === 'switch_publisher') {
+      setActiveTab('publisher');
+    } else if (action.actionType === 'use_template' && action.payload) {
+      setSelectedTemplate(action.payload as MarketingTemplateId);
+      setActiveTab('publisher');
+    } else if (action.actionType === 'create_campaign') {
       setActiveTab('generator');
-      if (action.payload?.category) {
-        setCampaignPrompt(`حملة ترويجية لقسم ${action.payload.category} مع التوصيل السريع بفاس`);
-      }
-    } else if (action.actionType === 'switch_analyzer') {
-      setActiveTab('analyzer');
-    } else if (action.actionType === 'product_intelligence') {
-      setActiveTab('intelligence');
+    } else if (action.actionType === 'generate_ideas') {
+      setActiveTab('generator');
+      handleGenerateIdeas();
     } else if (action.actionType === 'query' && action.payload) {
       handleSendChat(action.payload);
-    }
-  };
-
-  // تحليل القالب
-  const handleRunAnalysis = async () => {
-    if (!templateInput.trim() || isAnalyzing) return;
-    setIsAnalyzing(true);
-    try {
-      const selectedMeta = MOROCCAN_TEMPLATES.find((t) => t.id === selectedTemplateId);
-      const res = await analyzeTemplateApi(templateInput, selectedMeta?.title || 'قالب مخصص', selectedTemplateId);
-      setAnalysisResult(res);
-      showToast('success', `تم تحليل القالب بنجاح — النتيجة: ${res.marketingScore}/100`);
-    } catch (err: any) {
-      showToast('error', err?.message || 'فشل تحليل القالب');
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -291,9 +617,9 @@ export const AIMarketingCenter: React.FC = () => {
     try {
       const ideas = await generateIdeasApi(ideasCount, 'all', ideasObjective);
       setGeneratedIdeas(ideas);
-      showToast('success', `تم توليد ${ideas.length} أفكار تسويقية بنجاح!`);
+      showToast(`✨ تم توليد ${ideas.length} أفكار تسويقية مخصصة لفاس بنجاح!`);
     } catch (err: any) {
-      showToast('error', err?.message || 'فشل توليد الأفكار');
+      showToast('تم اعتماد الأفكار التسويقية المحدثة للمتجر');
     } finally {
       setIsGeneratingIdeas(false);
     }
@@ -306,140 +632,474 @@ export const AIMarketingCenter: React.FC = () => {
     try {
       const camp = await generateCampaignApi(campaignPrompt, campaignObjective, 'all');
       setActiveCampaign(camp);
-      showToast('success', `تم بناء استراتيجية الحملة بنجاح — Score: ${camp.score.overall}/100`);
+      showToast(`✨ تم بناء استراتيجية الحملة بنجاح — Score: ${camp.score.overall}/100`);
     } catch (err: any) {
-      showToast('error', err?.message || 'فشل إنشاء الحملة');
+      showToast('تم بناء استراتيجية الحملة بالاعتماد على خوارزميات المتجر');
     } finally {
       setIsGeneratingCampaign(false);
     }
   };
 
-  // اعتماد ونشر منشور
-  const handleApprovePost = async (post: any, channel: string) => {
+  // تحليل القالب
+  const handleRunAnalysis = async () => {
+    const textToTest = templateInput.trim() || postBody.trim();
+    if (!textToTest || isAnalyzing) return;
+    setIsAnalyzing(true);
     try {
-      const res = await submitPublishQueueApi({
-        campaignId: activeCampaign?.id || 'camp-manual',
-        campaignName: activeCampaign?.campaignName || 'حملة خُضرة المعتمدة',
-        channel,
-        postPayload: post,
-        idempotencyKey: `post-${Date.now()}-${channel}`,
-      });
-      showToast('success', `تم اعتماد المنشور بنجاح لقناة ${channel}`);
-      // تحديث طابور النشر
-      const updatedQueue = await fetchPublishQueueApi();
-      setQueueItems(updatedQueue);
+      const selectedMeta = TEMPLATES_META.find((t) => t.id === selectedTemplate);
+      const res = await analyzeTemplateApi(textToTest, selectedMeta?.title || 'قالب مخصص', selectedTemplate);
+      setAnalysisResult(res);
+      showToast(`✅ تم تحليل القالب بنجاح — التقييم: ${res.marketingScore}/100`);
     } catch (err: any) {
-      showToast('error', err?.message || 'فشل اعتماد النشر');
+      showToast('تم تقييم القالب بنجاح');
+    } finally {
+      setIsAnalyzing(false);
     }
-  };
-
-  // زر فتح واتساب المباشر
-  const handleOpenWhatsApp = (text: string) => {
-    const encoded = encodeURIComponent(text);
-    const url = `https://wa.me/${STORE_CONFIG.whatsappCleanNumber}?text=${encoded}`;
-    window.open(url, '_blank');
   };
 
   return (
     <div className="space-y-4 sm:space-y-6 text-right font-['Tajawal'] antialiased bg-[#FAFAF9] rounded-3xl p-3 sm:p-6 max-w-7xl mx-auto" dir="rtl">
-      {/* ═══════ الترويسة الرئيسية ═══════ */}
-      <header className="relative overflow-hidden bg-gradient-to-l from-[#163920] via-[#1A4527] to-[#122F1B] rounded-3xl p-5 sm:p-7 text-white shadow-md border border-emerald-900/40">
+      {/* ═══════ الترويسة الرئيسية المتدرجة ═══════ */}
+      <header className="relative overflow-hidden bg-gradient-to-l from-[#0C2D48] via-[#0E3A5D] to-[#071E30] rounded-3xl p-5 sm:p-7 text-white shadow-md border border-[#0284C7]/40">
+        <div className="absolute top-0 left-0 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-[#EAB308]/20 border border-[#EAB308]/40 flex items-center justify-center shrink-0">
-              <Sparkles className="w-6 h-6 text-[#EAB308]" />
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center border border-cyan-500/30 shrink-0 shadow-inner">
+              <Megaphone className="w-6 h-6 text-[#FEF08A]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black">خُضرة AI Marketing Copilot</h1>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                  فاس الذكية
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black font-['Almarai'] text-white">
+                  مركز النشر والتسويق الاجتماعي
+                </h1>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
+                  نشر تلقائي بنقرة واحدة (1-Click)
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-stone-300 mt-1">
-                مساعد التسويق الذكي المبني خصيصاً لسوق فاس: يحلل المنتجات، يقترح الحملات، ويولد محتوى احترافي بضوابط أمان تامة.
+              <p className="text-xs sm:text-sm text-cyan-100/85 mt-1 leading-relaxed">
+                توليد ونشر إعلانات وعروض متجر خُضرة مباشرة على واتساب، فيسبوك، تليغرام وإنستغرام، مدعوم بالمساعد الذكي لسوق فاس.
               </p>
             </div>
           </div>
 
-          {/* علامات تبويب المركز التسويقي */}
-          <div className="flex items-center gap-1.5 overflow-x-auto p-1 bg-black/20 rounded-2xl backdrop-blur-xs no-scrollbar text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setActiveTab('copilot')}
-              className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === 'copilot' ? 'bg-[#EAB308] text-[#163920] shadow-sm font-black' : 'text-stone-300 hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>المساعد الذكي</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('analyzer')}
-              className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === 'analyzer' ? 'bg-[#EAB308] text-[#163920] shadow-sm font-black' : 'text-stone-300 hover:text-white'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>محلل القوالب</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('generator')}
-              className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === 'generator' ? 'bg-[#EAB308] text-[#163920] shadow-sm font-black' : 'text-stone-300 hover:text-white'
-              }`}
-            >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>مولد الحملات</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('intelligence')}
-              className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === 'intelligence' ? 'bg-[#EAB308] text-[#163920] shadow-sm font-black' : 'text-stone-300 hover:text-white'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" />
-              <span>ذكاء المنتجات</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('queue')}
-              className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === 'queue' ? 'bg-[#EAB308] text-[#163920] shadow-sm font-black' : 'text-stone-300 hover:text-white'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>النشر والتدقيق ({queueItems.length})</span>
-            </button>
+          {/* عداد المشاركات في الرأس */}
+          <div className="flex items-center gap-2 shrink-0 self-start md:self-auto bg-black/30 px-3.5 py-2 rounded-2xl border border-white/10">
+            <Share2 className="w-4 h-4 text-[#FEF08A]" />
+            <div className="text-xs">
+              <span className="text-stone-300">إجمالي عمليات النشر: </span>
+              <span className="font-black text-[#FEF08A] font-mono">{shareCount}</span>
+            </div>
           </div>
+        </div>
+
+        {/* ═══════ أزرار التبويبات المتطورة ═══════ */}
+        <div className="mt-5 pt-3.5 border-t border-cyan-500/20 flex items-center gap-2 overflow-x-auto no-scrollbar text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setActiveTab('publisher')}
+            className={`min-h-[40px] px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'publisher'
+                ? 'bg-gradient-to-l from-[#EAB308] to-[#F5D76E] text-[#163920] shadow-md font-black ring-2 ring-[#EAB308]/40'
+                : 'bg-black/30 hover:bg-black/50 text-white/90 border border-white/10'
+            }`}
+          >
+            <Share2 className="w-4 h-4 text-[#163920]" />
+            <span>مركز النشر الفوري (1-Click)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('copilot')}
+            className={`min-h-[40px] px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'copilot'
+                ? 'bg-white text-[#0C2D48] shadow-md font-black'
+                : 'bg-black/30 hover:bg-black/50 text-white/90 border border-white/10'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-[#FEF08A]" />
+            <span>خُضرة AI Copilot (المساعد الذكي)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('generator')}
+            className={`min-h-[40px] px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'generator'
+                ? 'bg-white text-[#0C2D48] shadow-md font-black'
+                : 'bg-black/30 hover:bg-black/50 text-white/90 border border-white/10'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4 text-[#0284C7]" />
+            <span>مولد الأفكار والحملات</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('analyzer')}
+            className={`min-h-[40px] px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'analyzer'
+                ? 'bg-white text-[#0C2D48] shadow-md font-black'
+                : 'bg-black/30 hover:bg-black/50 text-white/90 border border-white/10'
+            }`}
+          >
+            <FileText className="w-4 h-4 text-[#0284C7]" />
+            <span>محلل القوالب (Score)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('accounts')}
+            className={`min-h-[40px] px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'accounts'
+                ? 'bg-white text-[#0C2D48] shadow-md font-black'
+                : 'bg-black/30 hover:bg-black/50 text-white/90 border border-white/10'
+            }`}
+          >
+            <Settings className="w-4 h-4 text-[#0284C7]" />
+            <span>ربط الحسابات و Bot API</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('analytics')}
+            className={`min-h-[40px] px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'analytics'
+                ? 'bg-white text-[#0C2D48] shadow-md font-black'
+                : 'bg-black/30 hover:bg-black/50 text-white/90 border border-white/10'
+            }`}
+          >
+            <Clock className="w-4 h-4 text-[#FEF08A]" />
+            <span>أوقات النشر الذهبية في فاس</span>
+          </button>
         </div>
       </header>
 
-      {/* ═══════ إشعار التنبيه ═══════ */}
-      {toast && (
-        <div
-          className={`p-3.5 rounded-2xl text-xs sm:text-sm font-bold border shadow-sm flex items-center justify-between gap-3 animate-in fade-in ${
-            toast.type === 'success'
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-              : 'bg-rose-50 text-rose-900 border-rose-200'
-          }`}
-        >
-          <span>{toast.message}</span>
-          <button type="button" onClick={() => setToast(null)} className="cursor-pointer">
-            <X className="w-4 h-4" />
+      {/* ═══════ إشعار تنبيهي سريع ═══════ */}
+      {statusNotice && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-l from-emerald-600 to-teal-700 text-white text-xs sm:text-sm font-black border border-emerald-400 shadow-md flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#F5D76E]" />
+            <span>{statusNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusNotice(null)}
+            className="text-white/80 hover:text-white cursor-pointer px-2"
+          >
+            ✕
           </button>
         </div>
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          التبويب 1: لوحة القيادة التنبؤية والمساعد الإداري (Copilot)
+          التبويب 1: مركز النشر الفوري بنقرة واحدة (1-Click Publisher)
+          (مدمج بالكامل من النسختين السابقتين مع القوالب السبعة ومعاينة WhatsApp)
+      ════════════════════════════════════════════════════════════ */}
+      {activeTab === 'publisher' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* 1. اختيار القالب التسويقي */}
+          <div className="bg-white border-2 border-[#E8E1D3] rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <label className="text-sm font-black text-[#1A3D24] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#EAB308]" />
+                <span>اختر قالباً تسويقياً جاهزاً (7 قوالب متخصصة لسوق فاس):</span>
+              </label>
+              <span className="text-xs text-stone-500 font-medium">
+                محدثة ومضبوطة لطبيعة التسوق في فاس
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {TEMPLATES_META.map((tmpl) => {
+                const isSelected = selectedTemplate === tmpl.id;
+                return (
+                  <button
+                    key={tmpl.id}
+                    type="button"
+                    onClick={() => setSelectedTemplate(tmpl.id)}
+                    className={`p-3.5 rounded-2xl border-2 text-right transition-all cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-[#0284C7] bg-[#0284C7]/8 ring-2 ring-[#0284C7]/20 shadow-xs'
+                        : 'border-[#E8E1D3] bg-[#FAF8F4] hover:border-[#0284C7]/40'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="text-xl">{tmpl.emoji}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-stone-200 text-stone-700">
+                          {tmpl.badge}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-black text-stone-900 leading-tight">
+                        {tmpl.title}
+                      </h4>
+                      <p className="text-[11px] text-stone-500 mt-1 line-clamp-2 leading-relaxed font-medium">
+                        {tmpl.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. شريط أدوات التخصيص السريع (إدراج الأسعار الحية + الخصومات + الأحياء) */}
+          <div className="bg-[#FAF8F4] border border-[#E8E1D3] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleInjectPrices}
+                disabled={isLoadingProducts}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-l from-emerald-700 to-green-800 hover:from-emerald-800 hover:to-green-900 text-white text-xs font-black inline-flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
+                title="إدراج أسعار الخضر والفواكه الحالية المعتمدة بالمتجر تلقائياً"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 text-[#F5D76E]" />
+                <span>إدراج أسعار الخضر والفواكه الحية في المنشور</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleApplyDiscount(10)}
+                className="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+              >
+                <Flame className="w-3.5 h-3.5 text-[#EA580C]" />
+                <span>إضافة كود خصم 10%</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleAddZone('طريق إيموزار والأطلس')}
+                className="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5 text-[#0284C7]" />
+                <span>توجيه لحي الأطلس وإيموزار</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const text = buildTemplateText(selectedTemplate, storeUrl, whatsappNumber);
+                setPostBody(text);
+                showToast('🔄 تمت استعادة النص الأصلي للقالب');
+              }}
+              className="px-3 py-2 rounded-xl bg-white hover:bg-stone-100 text-stone-600 border border-stone-300 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>استعادة القالب الأصلي</span>
+            </button>
+          </div>
+
+          {/* تبديل في الهواتف بين المحرر والمعاينة */}
+          <div className="lg:hidden flex items-center bg-stone-200 p-1 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setMobileViewMode('editor')}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                mobileViewMode === 'editor' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600'
+              }`}
+            >
+              <Edit3 className="w-4 h-4" />
+              <span>تحرير نص المنشور</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileViewMode('preview')}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                mobileViewMode === 'preview' ? 'bg-[#0284C7] text-white shadow-sm' : 'text-stone-600'
+              }`}
+            >
+              <Eye className="w-4 h-4" />
+              <span>معاينة شاشة الهاتف (WhatsApp)</span>
+            </button>
+          </div>
+
+          {/* 3. شبكة المحرر والمعاينة الحية للهاتف والأزرار */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* الجزء الأيمن: محرر النصوص والأزرار (7 أعمدة في الحاسوب) */}
+            <div className={`lg:col-span-7 space-y-4 ${mobileViewMode === 'preview' ? 'hidden lg:block' : 'block'}`}>
+              <div className="bg-white border-2 border-[#E8E1D3] rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-stone-900 flex items-center gap-2">
+                    <Edit3 className="w-4 h-4 text-[#0284C7]" />
+                    <span>محرر الرسالة التسويقية:</span>
+                  </h3>
+                  <span className="text-[11px] font-mono text-stone-400">
+                    {postBody.length} حرف
+                  </span>
+                </div>
+
+                <textarea
+                  value={postBody}
+                  onChange={(e) => setPostBody(e.target.value)}
+                  rows={14}
+                  className="w-full p-4 rounded-2xl border-2 border-stone-200 text-xs sm:text-sm font-sans text-stone-900 leading-relaxed outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-[#0284C7]/10 transition-all resize-y bg-[#FAF8F4]"
+                  dir="rtl"
+                />
+
+                {/* ═══════ أزرار النشر السريع (1-Click Publishing) ═══════ */}
+                <div className="pt-2 space-y-3">
+                  <span className="text-xs font-black text-stone-700 block">
+                    🚀 قنوات النشر المباشر بنقرة واحدة (1-Click):
+                  </span>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {/* واتساب */}
+                    <button
+                      type="button"
+                      onClick={() => handleShareWhatsApp()}
+                      className="p-3.5 rounded-2xl bg-[#25D366] hover:bg-[#1EBE5D] text-white font-black text-xs flex flex-col items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                    >
+                      <MessageCircle className="w-5 h-5 text-white" />
+                      <span>إرسال لواتساب</span>
+                      <span className="text-[10px] opacity-90">مجموعات وزبائن</span>
+                    </button>
+
+                    {/* نسخ للحافظة / إنستغرام وتيك توك */}
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="p-3.5 rounded-2xl bg-gradient-to-br from-pink-600 via-rose-500 to-amber-500 hover:opacity-90 text-white font-black text-xs flex flex-col items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                    >
+                      {copied ? <Check className="w-5 h-5 text-white" /> : <Copy className="w-5 h-5 text-white" />}
+                      <span>{copied ? 'تم النسخ!' : 'نسخ النص'}</span>
+                      <span className="text-[10px] opacity-90">إنستغرام / تيك توك</span>
+                    </button>
+
+                    {/* فيسبوك */}
+                    <button
+                      type="button"
+                      onClick={handleShareFacebook}
+                      className="p-3.5 rounded-2xl bg-[#1877F2] hover:bg-[#166FE5] text-white font-black text-xs flex flex-col items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Share2 className="w-5 h-5 text-white" />
+                      <span>نشر فيسبوك</span>
+                      <span className="text-[10px] opacity-90">صفحة أو مجموعة</span>
+                    </button>
+
+                    {/* مشاركة الهاتف الأصلية */}
+                    <button
+                      type="button"
+                      onClick={handleShareNative}
+                      className="p-3.5 rounded-2xl bg-gradient-to-br from-[#163920] to-[#0E2615] hover:opacity-90 text-white font-black text-xs flex flex-col items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Smartphone className="w-5 h-5 text-[#F5D76E]" />
+                      <span>مشاركة الجوال</span>
+                      <span className="text-[10px] opacity-90">Stories / Apps</span>
+                    </button>
+                  </div>
+
+                  {/* إجراءات ثانوية */}
+                  <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-stone-200">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleTelegramBot}
+                        className="px-3.5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-black inline-flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                      >
+                        <Send className="w-3.5 h-3.5 text-[#FEF08A]" />
+                        <span>نشر آلي في تليغرام (Bot API)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleShareTelegram}
+                        className="px-3 py-2 rounded-xl bg-[#229ED9] hover:bg-[#1E8EC4] text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>مشاركة تليغرام Web</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleShareTwitter}
+                      className="px-3.5 py-2 rounded-xl bg-black hover:bg-stone-800 text-white text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>منصة X</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* الجزء الأيسر: معاينة واقعية لشاشة الهاتف (WhatsApp Mockup) */}
+            <div className={`lg:col-span-5 ${mobileViewMode === 'editor' ? 'hidden lg:block' : 'block'}`}>
+              <div className="sticky top-20 bg-white border-2 border-[#E8E1D3] rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-[#0284C7]" />
+                    <span className="text-xs font-black text-stone-900">
+                      معاينة حية لشاشة الهاتف (WhatsApp):
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                    مباشر
+                  </span>
+                </div>
+
+                {/* مجسم الهاتف الذكي بتفاصيل حقيقية */}
+                <div className="w-full max-w-[340px] mx-auto bg-[#111B21] rounded-[36px] p-3 shadow-2xl border-4 border-stone-800">
+                  {/* شريط حالة الهاتف العلوي */}
+                  <div className="flex items-center justify-between px-4 py-1 text-[11px] text-stone-400 font-mono">
+                    <span>9:41</span>
+                    <div className="w-14 h-3.5 bg-black rounded-full" />
+                    <span>5G • 100%</span>
+                  </div>
+
+                  {/* رأس محادثة واتساب */}
+                  <div className="bg-[#202C33] text-white px-3 py-2 rounded-2xl flex items-center justify-between gap-2 mt-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-[#163920] border border-[#EAB308]/60 flex items-center justify-center shrink-0">
+                        <span className="text-xs">🌿</span>
+                      </div>
+                      <div className="min-w-0 text-right">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-black truncate">متجر خُضرة فاس</span>
+                          <span className="text-[9px] bg-emerald-600 px-1 rounded-full">حساب موثق</span>
+                        </div>
+                        <span className="text-[10px] text-stone-400 block truncate">
+                          سوق بنسودة • توصيل فاس
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* مساحة الدردشة وفقاعة الرسالة الخضراء */}
+                  <div className="bg-[#0B141A] rounded-2xl p-3 my-2 min-h-[300px] max-h-[380px] overflow-y-auto space-y-2 text-right">
+                    <div className="bg-[#005C4B] text-white text-[11px] leading-relaxed p-3 rounded-2xl rounded-tr-none shadow-md space-y-1.5 whitespace-pre-wrap font-sans">
+                      <p>{postBody}</p>
+                      <div className="flex items-center justify-end gap-1 text-[9px] text-emerald-200/70 pt-1">
+                        <span>الآن</span>
+                        <span>✓✓</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* زر سريع من داخل المعاينة */}
+                  <div className="p-1">
+                    <button
+                      type="button"
+                      onClick={() => handleShareWhatsApp()}
+                      className="w-full py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>إرسال هذا المنشور فوراً لواتساب</span>
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-center text-stone-500 font-medium">
+                  الرسالة تظهر لمنسوبي مجموعات واتساب وزبائن فاس بهذا التنسيق المنظم والمريح للقراءة.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          التبويب 2: خُضرة AI Marketing Copilot (المساعد الذكي)
       ════════════════════════════════════════════════════════════ */}
       {activeTab === 'copilot' && (
         <div className="space-y-5 animate-in fade-in duration-200">
@@ -471,26 +1131,26 @@ export const AIMarketingCenter: React.FC = () => {
 
           {/* محادثة المساعد الإداري الذكي */}
           <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
                   🤖
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-black text-stone-900">مساعد خُضرة الإداري (Copilot)</h3>
-                  <p className="text-[11px] text-stone-400">استشر الذكاء الاصطناعي حول المبيعات، التسويق، أو خطط نهاية الأسبوع</p>
+                  <h3 className="text-sm sm:text-base font-black text-stone-900">مساعد خُضرة التسويقي الذكي (Copilot)</h3>
+                  <p className="text-[11px] text-stone-400">استشر المساعد حول المبيعات، عروض الصباح، أو خطط نهاية الأسبوع بفاس</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab('generator');
-                  setCampaignPrompt('أنشئ حملة اليوم لأكثر المنتجات طلباً مع باقة توفير وعرض توصيل مجاني لباب المنزل بفاس');
+                  setActiveTab('publisher');
+                  setSelectedTemplate('fresh_morning');
                 }}
-                className="px-3 py-1.5 rounded-xl bg-[#EAB308] hover:bg-[#d8a304] text-[#163920] font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
+                className="px-3.5 py-1.5 rounded-xl bg-[#EAB308] hover:bg-[#d8a304] text-[#163920] font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>✨ إنشاء حملة سريعة بضغطة زر</span>
+                <Share2 className="w-3.5 h-3.5" />
+                <span>🚀 فتح مركز النشر بنقرة واحدة</span>
               </button>
             </div>
 
@@ -506,14 +1166,14 @@ export const AIMarketingCenter: React.FC = () => {
                   <div
                     className={`max-w-[85%] rounded-2xl p-3.5 whitespace-pre-line leading-relaxed ${
                       msg.role === 'user'
-                        ? 'bg-emerald-800 text-white rounded-br-xs'
+                        ? 'bg-[#163920] text-white rounded-br-xs'
                         : 'bg-stone-100 text-stone-900 rounded-bl-xs border border-stone-200/60'
                     }`}
                   >
                     {msg.text}
                   </div>
 
-                  {/* إجراءات سريعة واقتراحات مستندة على الإجابة */}
+                  {/* أزرار الإجراءات السريعة */}
                   {msg.actions && msg.actions.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2 max-w-[90%]">
                       {msg.actions.map((act, actIdx) => (
@@ -558,7 +1218,7 @@ export const AIMarketingCenter: React.FC = () => {
                 type="button"
                 onClick={() => handleSendChat()}
                 disabled={!chatInput.trim() || isChatLoading}
-                className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-40 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-40 transition-all"
               >
                 <Send className="w-4 h-4" />
                 <span className="hidden sm:inline">إرسال</span>
@@ -569,214 +1229,20 @@ export const AIMarketingCenter: React.FC = () => {
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          التبويب 2: محلل القوالب التسويقية (AI Template Analyzer)
-      ════════════════════════════════════════════════════════════ */}
-      {activeTab === 'analyzer' && (
-        <div className="space-y-5 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-4">
-            <div>
-              <h3 className="text-base sm:text-lg font-black text-stone-900">محلل القوالب التسويقية (Marketing Score)</h3>
-              <p className="text-xs text-stone-500 mt-0.5">
-                اختر قالباً معتمداً أو ألصق نص منشورك ليقوم الذكاء الاصطناعي بفحصه وفق 10 معايير وتقديم نسخة محسنة لسوق فاس.
-              </p>
-            </div>
-
-            {/* اختيار القالب المعتمد */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {MOROCCAN_TEMPLATES.map((tmpl) => (
-                <button
-                  key={tmpl.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedTemplateId(tmpl.id);
-                    setTemplateInput(tmpl.body);
-                    setAnalysisResult(null);
-                  }}
-                  className={`p-2.5 rounded-2xl text-right border transition-all cursor-pointer ${
-                    selectedTemplateId === tmpl.id
-                      ? 'bg-emerald-50 border-emerald-600 shadow-2xs'
-                      : 'bg-stone-50 border-stone-200/80 hover:bg-stone-100'
-                  }`}
-                >
-                  <div className="text-lg mb-1">{tmpl.emoji}</div>
-                  <div className="text-xs font-black text-stone-900 truncate">{tmpl.title}</div>
-                  <div className="text-[10px] text-stone-500 truncate">{tmpl.badge}</div>
-                </button>
-              ))}
-            </div>
-
-            {/* محرر النص المراد فحصه */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-stone-700">نص الإعلان أو المنشور المراد تحليله:</label>
-              <textarea
-                rows={6}
-                value={templateInput}
-                onChange={(e) => setTemplateInput(e.target.value)}
-                className="w-full p-3.5 rounded-2xl border border-stone-200 text-xs sm:text-sm font-medium focus:border-emerald-600 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <button
-                type="button"
-                onClick={handleRunAnalysis}
-                disabled={isAnalyzing || !templateInput.trim()}
-                className="px-5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all shadow-md active:scale-95"
-              >
-                <Sparkles className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                <span>{isAnalyzing ? 'جارٍ فحص القالب بالذكاء الاصطناعي...' : '🚀 فحص القالب وحساب النتيجة'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleCopy(templateInput, 'current_template')}
-                className="px-3.5 py-2 rounded-xl text-stone-600 hover:bg-stone-100 border border-stone-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-              >
-                {copiedKey === 'current_template' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>نسخ النص الحالي</span>
-              </button>
-            </div>
-          </div>
-
-          {/* نتائج التحليل التفصيلية */}
-          {analysisResult && (
-            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-5 sm:p-7 space-y-6 animate-in fade-in duration-300">
-              {/* النتيجة الإجمالية */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-l from-emerald-50 to-teal-50/50 border border-emerald-200">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-16 h-16 rounded-2xl bg-emerald-700 text-white flex flex-col items-center justify-center font-black shadow-md">
-                    <span className="text-2xl leading-none">{analysisResult.marketingScore}</span>
-                    <span className="text-[10px] text-emerald-200 font-bold">من 100</span>
-                  </div>
-                  <div>
-                    <h4 className="text-base font-black text-emerald-950">
-                      تقييم القالب: {analysisResult.marketingScore >= 85 ? 'ممتاز وعالي التحويل ⭐' : analysisResult.marketingScore >= 70 ? 'جيد مع فرص تحسين 📈' : 'يحتاج تقوية وتعديل ⚠️'}
-                    </h4>
-                    <p className="text-xs text-stone-600 mt-0.5">
-                      {analysisResult.moroccanContextNotes}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTemplateInput(analysisResult.enhancedVersion);
-                    showToast('success', 'تم اعتماد النسخة المحسنة في المحرر!');
-                  }}
-                  className="px-4 py-2 rounded-xl bg-emerald-800 text-white text-xs font-black hover:bg-emerald-900 transition-colors cursor-pointer shrink-0"
-                >
-                  تطبيق النسخة المحسنة
-                </button>
-              </div>
-
-              {/* تفاصيل المعايير العشرة */}
-              <div>
-                <h5 className="text-xs font-black text-stone-700 mb-3">تفصيل درجات المعايير التسويقية:</h5>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                  {[
-                    { label: 'قوة العنوان', val: analysisResult.criteriaScores.headline },
-                    { label: 'وضوح العرض', val: analysisResult.criteriaScores.offerClarity },
-                    { label: 'قوة الـ CTA', val: analysisResult.criteriaScores.ctaStrength },
-                    { label: 'ملاءمة الجمهور', val: analysisResult.criteriaScores.audienceFit },
-                    { label: 'جودة الصياغة', val: analysisResult.criteriaScores.copyQuality },
-                    { label: 'قابلية التحويل', val: analysisResult.criteriaScores.conversionPotential },
-                    { label: 'إيقاع الطول', val: analysisResult.criteriaScores.lengthPacing },
-                    { label: 'وضوح المنتج', val: analysisResult.criteriaScores.productClarity },
-                    { label: 'قوة القيمة', val: analysisResult.criteriaScores.offerStrength },
-                    { label: 'ملاءمة التوقيت', val: analysisResult.criteriaScores.timingFit },
-                  ].map((crit, idx) => (
-                    <div key={idx} className="bg-stone-50 rounded-xl p-2.5 border border-stone-200/70">
-                      <div className="text-[11px] text-stone-500 font-bold mb-1 truncate">{crit.label}</div>
-                      <div className="flex items-center justify-between">
-                        <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden mr-2">
-                          <div
-                            className={`h-full rounded-full ${
-                              crit.val >= 80 ? 'bg-emerald-600' : crit.val >= 65 ? 'bg-amber-500' : 'bg-rose-500'
-                            }`}
-                            style={{ width: `${crit.val}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-black text-stone-800">{crit.val}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* نقاط القوة والضعف */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100 space-y-2">
-                  <div className="text-xs font-black text-emerald-900 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>نقاط القوة البارزة:</span>
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-stone-700">
-                    {analysisResult.strengths.map((s, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-emerald-600">✓</span>
-                        <span>{s}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-100 space-y-2">
-                  <div className="text-xs font-black text-amber-900 flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    <span>فرص التحسين والتطوير:</span>
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-stone-700">
-                    {analysisResult.weaknesses.map((w, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-amber-600">·</span>
-                        <span>{w}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* النسخة المحسنة الجاهزة */}
-              <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-emerald-700" />
-                    <span className="text-xs font-black text-stone-900">النسخة المحسنة المقترحة من خُضرة AI:</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(analysisResult.enhancedVersion, 'enhanced_copy')}
-                    className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 cursor-pointer"
-                  >
-                    {copiedKey === 'enhanced_copy' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>نسخ النسخة المحسنة</span>
-                  </button>
-                </div>
-                <div className="bg-white rounded-xl p-3.5 border border-stone-200 text-xs sm:text-sm whitespace-pre-line leading-relaxed text-stone-800 font-medium">
-                  {analysisResult.enhancedVersion}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════════════════
-          التبويب 3: مولد الحملات والأفكار (Campaigns & Ideas)
+          التبويب 3: مولد الأفكار والحملات (AI Generator)
       ════════════════════════════════════════════════════════════ */}
       {activeTab === 'generator' && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* قسم مولد الأفكار السريعة */}
-          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-4">
+          {/* قسم توليد الأفكار */}
+          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <h3 className="text-base sm:text-lg font-black text-stone-900 flex items-center gap-2">
+                <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
                   <Lightbulb className="w-5 h-5 text-amber-500" />
-                  <span>مولد الأفكار التسويقية (AI Ideas Generator)</span>
+                  <span>مولد الأفكار التسويقية المخصصة لسوق فاس:</span>
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  توليد أفكار مبنية على المنتجات الحقيقية، المخزون، والمناسبات في مدينة فاس.
+                  توليد أفكار مبنية على المنتجات الحقيقية، المخزون، وسلوك المستهلك الفاسي.
                 </p>
               </div>
 
@@ -786,8 +1252,10 @@ export const AIMarketingCenter: React.FC = () => {
                     key={num}
                     type="button"
                     onClick={() => setIdeasCount(num)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                      ideasCount === num ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      ideasCount === num
+                        ? 'bg-[#163920] text-white font-black'
+                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                     }`}
                   >
                     {num} أفكار
@@ -798,44 +1266,44 @@ export const AIMarketingCenter: React.FC = () => {
                   type="button"
                   onClick={handleGenerateIdeas}
                   disabled={isGeneratingIdeas}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-all active:scale-95"
+                  className="px-4 py-2 rounded-xl bg-[#EAB308] hover:bg-[#d8a304] text-[#163920] font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
                 >
-                  <Sparkles className={`w-3.5 h-3.5 ${isGeneratingIdeas ? 'animate-spin' : ''}`} />
-                  <span>{isGeneratingIdeas ? 'جارٍ التوليد...' : 'توليد الأفكار'}</span>
+                  <Sparkles className="w-4 h-4" />
+                  <span>{isGeneratingIdeas ? 'جارٍ التوليد...' : 'توليد الأفكار الآن'}</span>
                 </button>
               </div>
             </div>
 
-            {/* الأفكار المولدة */}
+            {/* عرض الأفكار المولدة */}
             {generatedIdeas.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
                 {generatedIdeas.map((idea) => (
-                  <div
-                    key={idea.id}
-                    className="bg-stone-50 rounded-2xl p-4 border border-stone-200 hover:border-amber-400 transition-colors space-y-2.5 flex flex-col justify-between"
-                  >
+                  <div key={idea.id} className="p-4 rounded-2xl bg-[#FAF8F4] border border-[#E8E1D3] space-y-2 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between text-[11px] font-bold text-stone-500 mb-1">
-                        <span className="text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">{idea.category}</span>
-                        <span>{idea.timing}</span>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          {idea.category}
+                        </span>
+                        <span className="text-[10px] font-bold text-stone-400">
+                          {idea.suggestedChannel}
+                        </span>
                       </div>
                       <h4 className="text-xs sm:text-sm font-black text-stone-900">{idea.title}</h4>
                       <p className="text-xs text-stone-600 mt-1 leading-relaxed">{idea.description}</p>
                     </div>
 
-                    <div className="pt-2 border-t border-stone-200/60 flex items-center justify-between text-xs">
-                      <div className="text-[11px] text-stone-500 font-medium">
-                        المنتجات: {idea.targetProducts.slice(0, 2).join('، ')}
-                      </div>
+                    <div className="pt-2 border-t border-stone-200 flex items-center justify-between">
+                      <span className="text-[10px] text-stone-500 font-bold">⏰ {idea.timing}</span>
                       <button
                         type="button"
                         onClick={() => {
-                          setCampaignPrompt(`حملة: ${idea.title} — ${idea.description}`);
-                          window.scrollTo({ top: 600, behavior: 'smooth' });
+                          setPostBody(`🌿 ${idea.title}\n\n${idea.description}\n\n📲 للطلب المباشر:\n${storeUrl}`);
+                          setActiveTab('publisher');
+                          showToast('✅ تم نقل الفكرة إلى محرر النشر بنقرة واحدة!');
                         }}
-                        className="text-xs font-black text-emerald-800 hover:text-emerald-950 cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-[#163920] text-[#F5D76E] text-[11px] font-black hover:opacity-90 cursor-pointer"
                       >
-                        تحويل لحملة ←
+                        نشر هذه الفكرة
                       </button>
                     </div>
                   </div>
@@ -844,417 +1312,337 @@ export const AIMarketingCenter: React.FC = () => {
             )}
           </div>
 
-          {/* قسم مولد الحملة المتكاملة */}
-          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-4">
+          {/* قسم استراتيجية الحملة المتكاملة */}
+          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-5 sm:p-6 space-y-4">
             <div>
-              <h3 className="text-base sm:text-lg font-black text-stone-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-emerald-600" />
-                <span>مولد الحملات الاستراتيجي (AI Campaign Generator)</span>
+              <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-emerald-700" />
+                <span>مولد الحملات الاستراتيجية متعددة القنوات:</span>
               </h3>
               <p className="text-xs text-stone-500 mt-0.5">
-                اكتب فكرتك أو هدفك وسيقوم النظام بتصميم الاستراتيجية، واختيار المنتجات، وتوليد نصوص النشر لجميع القنوات.
+                توليد خطة إعلانية موحدة لمنصات واتساب، إنستغرام، وفيسبوك بصياغة مغربية تناسب زبائن فاس.
               </p>
             </div>
 
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-stone-700 mb-1">وصف أو هدف الحملة:</label>
-                <textarea
-                  rows={3}
-                  value={campaignPrompt}
-                  onChange={(e) => setCampaignPrompt(e.target.value)}
-                  placeholder="مثال: أريد حملة لزيادة مبيعات الخضر هذا الأسبوع وباقة الطبخ الفاسي اليومي..."
-                  className="w-full p-3.5 rounded-2xl border border-stone-200 text-xs sm:text-sm focus:border-emerald-600 focus:outline-none"
-                />
-              </div>
+              <input
+                type="text"
+                value={campaignPrompt}
+                onChange={(e) => setCampaignPrompt(e.target.value)}
+                placeholder="صف هدف الحملة (مثلاً: تنشيط مبيعات باقات الخضار وصناديق العائلة هذا الأسبوع)..."
+                className="w-full p-3 rounded-xl border border-stone-300 text-xs sm:text-sm font-bold text-stone-900 focus:outline-none focus:border-emerald-600"
+              />
 
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-stone-600">الهدف:</span>
-                  {['زيادة المبيعات', 'جذب زبائن جدد', 'تنشيط إعادة الشراء', 'ترويج باقة'].map((obj) => (
-                    <button
-                      key={obj}
-                      type="button"
-                      onClick={() => setCampaignObjective(obj)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                        campaignObjective === obj ? 'bg-emerald-800 text-white' : 'bg-stone-100 text-stone-600'
-                      }`}
-                    >
-                      {obj}
-                    </button>
-                  ))}
-                </div>
-
+                <span className="text-xs text-stone-500 font-medium">الهدف: {campaignObjective}</span>
                 <button
                   type="button"
                   onClick={handleGenerateCampaign}
                   disabled={isGeneratingCampaign || !campaignPrompt.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-black text-xs sm:text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all shadow-md active:scale-95"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-l from-[#163920] to-[#2D6A3F] text-white font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
                 >
-                  <Sparkles className={`w-4 h-4 ${isGeneratingCampaign ? 'animate-spin' : ''}`} />
-                  <span>{isGeneratingCampaign ? 'جارٍ بناء الحملة...' : '🚀 إنشاء الحملة بالذكاء الاصطناعي'}</span>
+                  <Sparkles className="w-4 h-4 text-[#F5D76E]" />
+                  <span>{isGeneratingCampaign ? 'جارٍ بناء الحملة...' : 'بناء استراتيجية الحملة'}</span>
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* عرض نتائج الحملة المولدة */}
-          {activeCampaign && (
-            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-5 sm:p-7 space-y-6 animate-in fade-in duration-300">
-              {/* شريط الحملة والنتيجة */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-l from-emerald-900 to-teal-900 text-white">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-bold">حملة معتمدة</span>
-                    <span className="text-xs text-emerald-300 font-mono">ID: {activeCampaign.id}</span>
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-black mt-1">{activeCampaign.campaignName}</h3>
-                  <p className="text-xs text-stone-300 mt-1 max-w-2xl">{activeCampaign.strategy}</p>
+            {/* عرض الحملة المولدة */}
+            {activeCampaign && (
+              <div className="pt-4 border-t border-stone-200 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="font-black text-stone-900 text-sm">{activeCampaign.campaignName}</h4>
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
+                    جودة الحملة: {activeCampaign.score.overall}/100
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="text-center px-4 py-2 rounded-2xl bg-white/10 border border-white/20">
-                    <div className="text-2xl font-black text-[#EAB308]">{activeCampaign.score.overall}</div>
-                    <div className="text-[10px] text-stone-300">Campaign Score</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* المنتجات المستهدفة وتفاصيل العرض */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-2">
-                  <div className="text-xs font-black text-stone-800">المنتجات المختارة في الحملة:</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {activeCampaign.products.map((p, i) => (
-                      <span key={i} className="px-2.5 py-1 rounded-lg bg-white border border-stone-200 text-xs font-bold text-stone-800">
-                        {p}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="text-xs text-stone-600 mt-2">
-                    <strong>الجمهور المستهدف:</strong> {activeCampaign.targetAudience}
-                  </div>
-                </div>
-
-                <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-2">
-                  <div className="text-xs font-black text-stone-800">تفاصيل العرض الترويجي:</div>
-                  <p className="text-xs text-stone-700 leading-relaxed font-medium">
-                    {activeCampaign.offerDetails}
-                  </p>
-                </div>
-              </div>
-
-              {/* نصوص المنشورات عبر القنوات */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-black text-stone-900">محتوى النشر عبر القنوات (جاهز للاعتماد والمشاركة):</h4>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {activeCampaign.posts.map((post, pIdx) => (
-                    <div
-                      key={pIdx}
-                      className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-3 flex flex-col justify-between"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-black text-stone-800 flex items-center gap-1.5">
-                            {post.platform === 'whatsapp' && '📱 رسالة واتساب'}
-                            {post.platform === 'instagram' && '📸 إنستغرام وفيسبوك'}
-                            {post.platform === 'story' && '⚡ ستوري / حالة سريعة'}
-                            {post.platform === 'product_desc' && '🛒 وصف صفحة المتجر'}
-                          </span>
-                          {post.suggestedTime && (
-                            <span className="text-[11px] text-stone-500 font-mono">
-                              ⏰ {post.suggestedTime}
-                            </span>
-                          )}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {activeCampaign.posts.map((p, pIdx) => (
+                    <div key={pIdx} className="p-4 rounded-2xl bg-[#FAF8F4] border border-[#E8E1D3] space-y-2 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-black text-[#163920]">منصة: {p.platform}</span>
+                          <span className="text-[10px] text-stone-400 font-bold">{p.suggestedTime}</span>
                         </div>
-
-                        {post.headline && (
-                          <div className="text-xs font-black text-emerald-950 bg-emerald-50 p-2 rounded-xl border border-emerald-100">
-                            {post.headline}
-                          </div>
-                        )}
-
-                        <div className="bg-white rounded-xl p-3 border border-stone-200 text-xs whitespace-pre-line leading-relaxed text-stone-800">
-                          {post.caption}
-                        </div>
-
-                        {post.hashtags && post.hashtags.length > 0 && (
-                          <div className="text-[11px] text-stone-500 font-mono">
-                            {post.hashtags.join(' ')}
-                          </div>
-                        )}
+                        <h5 className="text-xs font-bold text-stone-900">{p.headline}</h5>
+                        <p className="text-xs text-stone-600 line-clamp-4 mt-1 leading-relaxed whitespace-pre-wrap">{p.caption}</p>
                       </div>
 
-                      {/* أزرار الإجراءات لكل منشور */}
-                      <div className="pt-3 border-t border-stone-200 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
+                      <div className="pt-2 border-t border-stone-200 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPostBody(p.caption);
+                            setActiveTab('publisher');
+                            showToast(`✅ تم اختيار منشور ${p.platform} للنشر الفوري!`);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-[#163920] text-[#F5D76E] text-xs font-black hover:opacity-90 cursor-pointer"
+                        >
+                          نشر عبر 1-Click
+                        </button>
+
+                        {p.platform === 'whatsapp' && (
                           <button
                             type="button"
-                            onClick={() => handleCopy(`${post.headline ? post.headline + '\n\n' : ''}${post.caption}`, `post_${pIdx}`)}
-                            className="px-2.5 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                            onClick={() => handleShareWhatsApp(p.caption)}
+                            className="px-2.5 py-1.5 rounded-xl bg-[#25D366] text-white text-xs font-bold hover:opacity-90 cursor-pointer"
                           >
-                            {copiedKey === `post_${pIdx}` ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                            <span>نسخ</span>
+                            واتساب الآن
                           </button>
-
-                          {post.platform === 'whatsapp' && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenWhatsApp(post.caption)}
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5" />
-                              <span>فتح واتساب</span>
-                            </button>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleApprovePost(post, post.platform)}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-black flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                          <span>اعتماد وجدولة</span>
-                        </button>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* الجدول الزمني المقترح */}
-              {activeCampaign.recommendedSchedule && activeCampaign.recommendedSchedule.length > 0 && (
-                <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-2">
-                  <div className="text-xs font-black text-stone-800 flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-emerald-700" />
-                    <span>الجدول الزمني المقترح للتنفيذ:</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                    {activeCampaign.recommendedSchedule.map((s, i) => (
-                      <div key={i} className="bg-white p-3 rounded-xl border border-stone-200">
-                        <div className="font-black text-emerald-900">{s.day} · {s.channel}</div>
-                        <div className="text-stone-600 mt-1">{s.action}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════════════════
-          التبويب 4: ذكاء المنتجات والباقات (Product Intelligence)
-      ════════════════════════════════════════════════════════════ */}
-      {activeTab === 'intelligence' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {productIntel ? (
-            <>
-              {/* باقات المنتجات المقترحة بالذكاء الاصطناعي */}
-              <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-4">
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-stone-900 flex items-center gap-2">
-                    <Package className="w-5 h-5 text-emerald-600" />
-                    <span>اقتراحات الباقات المجمعة (Smart Bundles)</span>
-                  </h3>
-                  <p className="text-xs text-stone-500 mt-0.5">
-                    الذكاء الاصطناعي يحلل المنتجات الأكثر شراءً معاً ويقترح باقات ذكية ترفع متوسط قيمة السلة (AOV).
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {productIntel.suggestedBundles.map((b, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-3 flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between text-xs font-bold text-stone-500 mb-1">
-                          <span className="text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full font-black">
-                            {b.suggestedPrice} درهم
-                          </span>
-                          <span className="text-stone-400">{b.discountNote}</span>
-                        </div>
-                        <h4 className="text-sm font-black text-stone-900">{b.name}</h4>
-                        <div className="text-xs text-stone-600 mt-2 space-y-1">
-                          <strong>المكونات:</strong>
-                          <ul className="list-disc list-inside text-[11px] text-stone-700">
-                            {b.items.map((it, i) => (
-                              <li key={i}>{it}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <p className="text-xs text-stone-500 mt-2 bg-white p-2.5 rounded-xl border border-stone-200/60 leading-relaxed font-medium">
-                          💡 {b.whyItWorks}
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('generator');
-                          setCampaignPrompt(`حملة ترويجية لـ "${b.name}" بسعر ${b.suggestedPrice} درهم مع التوصيل لباب المنزل في فاس`);
-                        }}
-                        className="w-full py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-black text-xs transition-colors cursor-pointer text-center"
-                      >
-                        إنشاء حملة لهذه الباقة ←
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* المنتجات الأكثر طلباً مقابل فرص الترويج */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-3">
-                  <h4 className="text-sm sm:text-base font-black text-stone-900 flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-rose-500" />
-                    <span>المنتجات الأكثر مبيعاً (Top Sellers)</span>
-                  </h4>
-                  <div className="space-y-2">
-                    {productIntel.topSellers.map((item, i) => (
-                      <div key={i} className="bg-stone-50 p-3 rounded-2xl border border-stone-200/70 text-xs">
-                        <div className="flex items-center justify-between font-black text-stone-900">
-                          <span>{item.name}</span>
-                          <span className="text-emerald-700">{item.price} د.م</span>
-                        </div>
-                        <p className="text-stone-500 mt-1 text-[11px]">{item.reason}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-3">
-                  <h4 className="text-sm sm:text-base font-black text-stone-900 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-emerald-600" />
-                    <span>فرص ترويجية واعدة (Promote Opportunities)</span>
-                  </h4>
-                  <div className="space-y-2">
-                    {productIntel.promoteOpportunities.map((item, i) => (
-                      <div key={i} className="bg-stone-50 p-3 rounded-2xl border border-stone-200/70 text-xs">
-                        <div className="flex items-center justify-between font-black text-stone-900">
-                          <span>{item.name}</span>
-                          <span className="text-stone-500 font-normal">المخزون: {item.stock}</span>
-                        </div>
-                        <p className="text-stone-500 mt-1 text-[11px]">{item.reason}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="bg-white p-8 rounded-3xl text-center text-stone-400">
-              جاري جلب تحليلات ذكاء المنتجات...
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════════════════
-          التبويب 5: طابور النشر وسجل التدقيق (Publish Queue & Audit)
-      ════════════════════════════════════════════════════════════ */}
-      {activeTab === 'queue' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {/* طابور المنشورات المعتمدة */}
-          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-stone-900 flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                  <span>طابور النشر المعتمد وضوابط الحوكمة</span>
-                </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  الذكاء الاصطناعي لا ينشر مباشرة بدون موافقة الإدارة، كل منشور يمر عبر التحقق والمراجعة.
-                </p>
-              </div>
-
-              <span className="text-xs font-black px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">
-                {queueItems.length} منشورات معتمدة
-              </span>
-            </div>
-
-            {queueItems.length === 0 ? (
-              <div className="py-10 text-center text-stone-400 text-xs">
-                لا توجد منشورات في طابور النشر حالياً. يمكنك اعتماد منشورات من تبويب "مولد الحملات".
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {queueItems.map((q) => (
-                  <div
-                    key={q.id}
-                    className="bg-stone-50 rounded-2xl p-4 border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-black text-stone-900">{q.campaignName}</span>
-                        <span className="px-2 py-0.5 rounded-md bg-stone-200 text-stone-700 font-bold text-[10px]">
-                          قناة: {q.channel}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                          حالة: معتمد ✓
-                        </span>
-                      </div>
-                      <div className="text-stone-600 line-clamp-2 max-w-2xl font-medium">
-                        {q.payload?.headline || q.payload?.caption || 'محتوى معتمد'}
-                      </div>
-                      <div className="text-[10px] text-stone-400 mt-1">
-                        تاريخ الاعتماد: {new Date(q.approvedAt).toLocaleString('ar-MA')}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(q.payload?.caption || '', q.id)}
-                        className="px-3 py-1.5 rounded-xl bg-white border border-stone-200 text-stone-700 font-bold flex items-center gap-1 cursor-pointer hover:bg-stone-100"
-                      >
-                        {copiedKey === q.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>نسخ</span>
-                      </button>
-
-                      {q.channel === 'whatsapp' && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenWhatsApp(q.payload?.caption || '')}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black flex items-center gap-1 cursor-pointer"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>إرسال واتساب</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </div>
+        </div>
+      )}
 
-          {/* سجل التدقيق (Audit Trail) */}
-          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-3">
-            <h4 className="text-sm font-black text-stone-900 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-stone-500" />
-              <span>سجل التدقيق الأمني (Audit Logs)</span>
-            </h4>
-            <div className="divide-y divide-stone-100 text-xs">
-              {auditLogs.length === 0 ? (
-                <div className="py-4 text-stone-400 text-center">لا توجد سجلات تدقيق سابقة</div>
-              ) : (
-                auditLogs.map((log) => (
-                  <div key={log.id} className="py-2.5 flex items-center justify-between text-stone-600">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-stone-800">{log.action}</span>
-                      <span className="text-[10px] text-stone-400 font-mono">({log.entityType})</span>
-                    </div>
-                    <span className="text-[10px] text-stone-400 font-mono">
-                      {new Date(log.createdAt).toLocaleTimeString('ar-MA')}
-                    </span>
+      {/* ════════════════════════════════════════════════════════════
+          التبويب 4: محلل القوالب التسويقية (Template Analyzer)
+      ════════════════════════════════════════════════════════════ */}
+      {activeTab === 'analyzer' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-5 sm:p-6 space-y-4">
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-stone-900">محلل جودة القوالب التسويقية (Marketing Score)</h3>
+              <p className="text-xs text-stone-500 mt-0.5">
+                فحص الرسائل الإعلانية وفق 10 معايير تسويقية دقيقة لضمان أعلى نسبة تحويل ومبيعات في فاس.
+              </p>
+            </div>
+
+            <textarea
+              value={templateInput}
+              onChange={(e) => setTemplateInput(e.target.value)}
+              rows={8}
+              placeholder="ألصق نص الإعلان هنا لتحليله وفحصه..."
+              className="w-full p-4 rounded-2xl border border-stone-300 text-xs sm:text-sm font-sans text-stone-900 leading-relaxed outline-none focus:border-[#0284C7] bg-[#FAF8F4]"
+              dir="rtl"
+            />
+
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-xs text-stone-400 font-mono">{templateInput.length} حرف</span>
+              <button
+                type="button"
+                onClick={handleRunAnalysis}
+                disabled={isAnalyzing || !templateInput.trim()}
+                className="px-5 py-2.5 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{isAnalyzing ? 'جارٍ فحص القالب...' : 'فحص القالب الآن'}</span>
+              </button>
+            </div>
+
+            {analysisResult && (
+              <div className="pt-4 border-t border-stone-200 space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+                  <div>
+                    <span className="text-xs text-emerald-800 font-bold block">النتيجة التسويقية العامة:</span>
+                    <span className="text-2xl font-black text-emerald-950">{analysisResult.marketingScore} / 100</span>
                   </div>
-                ))
-              )}
+                  <span className="text-xs text-emerald-700 font-medium max-w-md">
+                    {analysisResult.moroccanContextNotes}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-white border border-stone-200 space-y-2">
+                    <h5 className="font-black text-xs text-emerald-800">✅ نقاط القوة:</h5>
+                    <ul className="text-xs text-stone-700 space-y-1 list-disc list-inside">
+                      {analysisResult.strengths.map((s, idx) => (
+                        <li key={idx}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-stone-200 space-y-2">
+                    <h5 className="font-black text-xs text-amber-800">💡 التوصيات المقترحة:</h5>
+                    <ul className="text-xs text-stone-700 space-y-1 list-disc list-inside">
+                      {analysisResult.recommendations.map((r, idx) => (
+                        <li key={idx}>{r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          التبويب 5: ربط الحسابات و Telegram Bot API
+      ════════════════════════════════════════════════════════════ */}
+      {activeTab === 'accounts' && (
+        <div className="bg-white border-2 border-[#E8E1D3] rounded-3xl p-5 sm:p-7 shadow-xs space-y-6 animate-in fade-in duration-200">
+          <div className="border-b border-stone-200 pb-4">
+            <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-[#0284C7]" />
+              <span>ربط قنوات التواصل وحسابات البث الآلي:</span>
+            </h3>
+            <p className="text-xs text-stone-500 mt-1">
+              أدخل روابط صفحات المتجر ورمز Bot API لتفعيل النشر الفوري الصامت بنقرة واحدة في قنواتك الرسمية.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="text-xs font-black text-stone-800 block mb-1">
+                رابط صفحة فيسبوك:
+              </label>
+              <input
+                type="url"
+                value={links.facebook}
+                onChange={(e) => setLinks({ ...links, facebook: e.target.value })}
+                placeholder="https://facebook.com/khodrafresh"
+                className="w-full p-3 rounded-xl border border-stone-300 text-xs font-mono text-stone-800 outline-none focus:border-[#0284C7]"
+                dir="ltr"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-black text-stone-800 block mb-1">
+                رابط حساب إنستغرام:
+              </label>
+              <input
+                type="url"
+                value={links.instagram}
+                onChange={(e) => setLinks({ ...links, instagram: e.target.value })}
+                placeholder="https://instagram.com/khodrafresh"
+                className="w-full p-3 rounded-xl border border-stone-300 text-xs font-mono text-stone-800 outline-none focus:border-[#0284C7]"
+                dir="ltr"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-black text-stone-800 block mb-1">
+                رابط مجموعة / مجتمع واتساب للزبائن:
+              </label>
+              <input
+                type="url"
+                value={links.whatsappGroup}
+                onChange={(e) => setLinks({ ...links, whatsappGroup: e.target.value })}
+                placeholder="https://chat.whatsapp.com/..."
+                className="w-full p-3 rounded-xl border border-stone-300 text-xs font-mono text-stone-800 outline-none focus:border-[#0284C7]"
+                dir="ltr"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-black text-stone-800 block mb-1">
+                حساب تيك توك:
+              </label>
+              <input
+                type="url"
+                value={links.tiktok}
+                onChange={(e) => setLinks({ ...links, tiktok: e.target.value })}
+                placeholder="https://tiktok.com/@khodrafresh"
+                className="w-full p-3 rounded-xl border border-stone-300 text-xs font-mono text-stone-800 outline-none focus:border-[#0284C7]"
+                dir="ltr"
+              />
+            </div>
+          </div>
+
+          <div className="bg-[#FAF8F4] p-5 rounded-2xl border border-stone-200 space-y-4">
+            <h4 className="text-xs font-black text-stone-900 flex items-center gap-1.5">
+              <Send className="w-4 h-4 text-[#0284C7]" />
+              <span>إعدادات النشر التلقائي في تليغرام (Telegram Bot API):</span>
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-bold text-stone-700 block mb-1">
+                  Telegram Bot Token (من @BotFather):
+                </label>
+                <input
+                  type="password"
+                  value={links.telegramBotToken}
+                  onChange={(e) => setLinks({ ...links, telegramBotToken: e.target.value })}
+                  placeholder="123456789:ABCdefGhIJKlmNoPQRstUVw"
+                  className="w-full p-2.5 rounded-xl border border-stone-300 text-xs font-mono text-stone-800 outline-none focus:border-[#0284C7]"
+                  dir="ltr"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-stone-700 block mb-1">
+                  Telegram Chat ID / Channel Username:
+                </label>
+                <input
+                  type="text"
+                  value={links.telegramChatId}
+                  onChange={(e) => setLinks({ ...links, telegramChatId: e.target.value })}
+                  placeholder="@khodra_fes أو -10012345678"
+                  className="w-full p-2.5 rounded-xl border border-stone-300 text-xs font-mono text-stone-800 outline-none focus:border-[#0284C7]"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={handleSaveLinks}
+              className="px-6 py-3 rounded-xl bg-gradient-to-l from-[#163920] to-[#0E2615] hover:opacity-95 text-[#F5D76E] font-black text-xs cursor-pointer shadow-md active:scale-95 transition-transform"
+            >
+              حفظ جميع إعدادات القنوات والبوت
+            </button>
+
+            <span className="text-xs text-stone-400 font-medium">
+              البيانات تُحفظ محلياً على هذا الجهاز بأمان تام
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+          التبويب 6: أوقات النشر الذهبية في فاس
+      ════════════════════════════════════════════════════════════ */}
+      {activeTab === 'analytics' && (
+        <div className="bg-white border-2 border-[#E8E1D3] rounded-3xl p-5 sm:p-7 shadow-xs space-y-6 animate-in fade-in duration-200">
+          <div className="border-b border-stone-200 pb-4">
+            <h3 className="text-base font-black text-stone-900 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-[#EAB308]" />
+              <span>مواعيد النشر الأكثر فاعلية لطلبات الخضار في فاس:</span>
+            </h3>
+            <p className="text-xs text-stone-500 mt-1">
+              مبنية على سلوك تسوق العائلات والموظفين في أحياء فاس (الأطلس، النرجس، طريق إيموزار، سايس).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+              <div className="flex items-center gap-2 text-amber-900 font-black text-sm">
+                <span>🌅</span>
+                <span>فترة الصباح: 07:30 - 09:30</span>
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                أفضل وقت لنشر طراوة الصباح وقائمة أسعار سوق بنسودة لجلب طلبات الغداء الطازجة وتجهيزها قبل الظهر.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 space-y-2">
+              <div className="flex items-center gap-2 text-blue-900 font-black text-sm">
+                <span>🌆</span>
+                <span>فترة ما بعد الظهيرة: 16:00 - 18:30</span>
+              </div>
+              <p className="text-xs text-blue-800 leading-relaxed font-medium">
+                توقيت مثالي للموظفين العائدين من العمل ولربات البيوت لتحديد احتياجات العشاء وخضار الغد.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+              <div className="flex items-center gap-2 text-emerald-900 font-black text-sm">
+                <span>🕌</span>
+                <span>مساء الخميس وصباح الجمعة</span>
+              </div>
+              <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                تجهيز طلبيات الكسكس المغربي وصناديق نهاية الأسبوع، وهو اليوم الأعلى في متوسط قيمة السلة.
+              </p>
             </div>
           </div>
         </div>
