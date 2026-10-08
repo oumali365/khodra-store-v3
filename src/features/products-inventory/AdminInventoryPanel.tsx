@@ -21,6 +21,8 @@ import {
   DollarSign,
   Layers,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   X,
   Filter,
 } from 'lucide-react';
@@ -45,14 +47,18 @@ export const ADMIN_OFFICIAL_CATEGORIES: { id: ProductCategory; name: string; ico
 interface AdminInventoryPanelProps {
   standalone?: boolean;
   isOpen?: boolean;
+  targetProductId?: number | null;
   onClose?: () => void;
+  onNavigateToPricing?: (productId: number) => void;
   onNavigateToAI?: (prompt?: string) => void;
 }
 
 export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
   standalone = true,
   isOpen = true,
+  targetProductId = null,
   onClose,
+  onNavigateToPricing,
   onNavigateToAI,
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -60,6 +66,11 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('veg');
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>('all');
+
+  // ترقيم الصفحات (Pagination) لمنع التمرير الطويل
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [highlightedProductId, setHighlightedProductId] = useState<number | null>(null);
 
   // نوافذ التعديل والإضافة
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -108,6 +119,27 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     }
   }, [isOpen, loadCatalog]);
 
+  // الاستماع لتحديثات الأسعار الفورية من أداة التسعير الديناميكي (انعكاس فوري دون إعادة تحميل)
+  useEffect(() => {
+    const handlePricesUpdated = (e: any) => {
+      const updates = e?.detail?.updates;
+      if (Array.isArray(updates) && updates.length > 0) {
+        setProducts((prev) =>
+          prev.map((p) => {
+            const found = updates.find((u: any) => Number(u.productId) === p.id);
+            if (found && found.sellingPrice != null) {
+              return { ...p, price: Number(found.sellingPrice) };
+            }
+            return p;
+          })
+        );
+      }
+    };
+
+    window.addEventListener('khodra_prices_updated', handlePricesUpdated);
+    return () => window.removeEventListener('khodra_prices_updated', handlePricesUpdated);
+  }, []);
+
   // إحصائيات المخزون
   const inventoryStats = useMemo(() => {
     const total = products.length;
@@ -119,7 +151,12 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     return { total, inStock, lowStock, outOfStock, totalUnits };
   }, [products]);
 
-  // تصفية المنتجات
+  // إعادة ضبط الصفحة إلى 1 عند تغيير الفئة أو البحث أو تصفية المخزون
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery, stockFilter]);
+
+  // تصفية المنتجات حسب الفئة المختارة وبحث المستخدم
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchSearch =
@@ -139,6 +176,80 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
       return matchSearch && matchCategory && matchStock;
     });
   }, [products, searchQuery, selectedCategory, stockFilter]);
+
+  // حساب الصفحات
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, currentPage, pageSize]);
+
+  // وظيفة التركيز على منتج معين عند الفتح من أداة التسعير الديناميكي
+  const focusProduct = useCallback(
+    (pid: number) => {
+      const target = products.find((p) => p.id === pid);
+      if (!target) return;
+
+      setSelectedCategory(target.category);
+      setStockFilter('all');
+      setSearchQuery('');
+
+      const categoryItems = products.filter((p) => p.category === target.category);
+      const indexInCat = categoryItems.findIndex((p) => p.id === pid);
+      if (indexInCat >= 0) {
+        const targetPage = Math.floor(indexInCat / pageSize) + 1;
+        setCurrentPage(targetPage);
+      }
+
+      setHighlightedProductId(pid);
+      setTimeout(() => {
+        const el = document.getElementById(`inv-product-${pid}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 250);
+
+      setTimeout(() => {
+        setHighlightedProductId((curr) => (curr === pid ? null : curr));
+      }, 4000);
+    },
+    [products, pageSize]
+  );
+
+  useEffect(() => {
+    if (targetProductId && products.length > 0) {
+      focusProduct(Number(targetProductId));
+    }
+  }, [targetProductId, products.length, focusProduct]);
+
+  useEffect(() => {
+    const handleOpenProduct = (e: any) => {
+      const pid = e?.detail?.productId;
+      if (pid != null) {
+        focusProduct(Number(pid));
+      }
+    };
+    window.addEventListener('khodra_open_inventory_for_product', handleOpenProduct);
+    return () => window.removeEventListener('khodra_open_inventory_for_product', handleOpenProduct);
+  }, [focusProduct]);
+
+  // الانتقال المباشر لأداة التسعير الديناميكي لنفس المنتج
+  const handleGoToPricing = (productId: number) => {
+    if (onNavigateToPricing) {
+      onNavigateToPricing(productId);
+    } else {
+      window.dispatchEvent(
+        new CustomEvent('khodra_open_pricing_for_product', {
+          detail: { productId },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent('khodra_admin_route_changed', {
+          detail: 'pricing',
+        })
+      );
+    }
+  };
 
   // تعديل سريع للكمية
   const handleQuickStockChange = async (productId: number, delta: number) => {
@@ -443,7 +554,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                     : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
-                {mode === 'all' && 'الكل'}
+                {mode === 'all' && 'كافة الحالات'}
                 {mode === 'low' && 'قارب على النفاد ⚠️'}
                 {mode === 'out' && 'غير متوفر ❌'}
               </button>
@@ -504,13 +615,20 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
               لا توجد منتجات مطابقة للبحث في فئة {ADMIN_OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
             </div>
           ) : (
-            filteredProducts.map((p) => {
+            paginatedProducts.map((p) => {
               const stock = p.stock ?? 0;
               const isLow = stock > 0 && stock <= 5;
               const isOut = stock === 0 || p.is_available === false;
+              const isHighlighted = highlightedProductId === p.id;
 
               return (
-                <div key={p.id} className="p-3.5 bg-white space-y-2.5">
+                <div
+                  key={p.id}
+                  id={`inv-product-${p.id}`}
+                  className={`p-3.5 bg-white space-y-2.5 transition-all duration-300 ${
+                    isHighlighted ? 'bg-amber-50/70 ring-2 ring-[#EAB308] rounded-2xl shadow-sm' : ''
+                  }`}
+                >
                   <div className="flex items-start justify-between gap-2.5">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-12 h-12 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0 overflow-hidden text-xl shadow-2xs">
@@ -557,7 +675,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-100">
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-100 flex-wrap">
                     {/* تعديل المخزون */}
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs text-stone-500 font-bold ml-1">المخزون:</span>
@@ -591,8 +709,8 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                       </button>
                     </div>
 
-                    {/* الإجراءات الأساسية */}
-                    <div className="flex items-center gap-1.5">
+                    {/* الإجراءات الأساسية + زر الانتقال للتحليل والتسعير */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span
                         className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
                           isOut
@@ -607,8 +725,18 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
 
                       <button
                         type="button"
+                        onClick={() => handleGoToPricing(p.id)}
+                        className="p-1 px-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[11px] font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                        title="فتح تحليل السعر وتوقع الطلب لهذا المنتج"
+                      >
+                        <Sparkles className="w-3 h-3 text-purple-700" />
+                        <span>🧠 تحليل السعر</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => handleOpenEditModal(p)}
-                        className="p-1.5 px-2.5 rounded-lg bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                        className="p-1 px-2.5 rounded-lg bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                         <span>تعديل</span>
@@ -642,13 +770,20 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((p) => {
+                paginatedProducts.map((p) => {
                   const stock = p.stock ?? 0;
                   const isLow = stock > 0 && stock <= 5;
                   const isOut = stock === 0 || p.is_available === false;
+                  const isHighlighted = highlightedProductId === p.id;
 
                   return (
-                    <tr key={p.id} className="hover:bg-stone-50/80 transition-colors">
+                    <tr
+                      key={p.id}
+                      id={`inv-product-${p.id}`}
+                      className={`transition-colors ${
+                        isHighlighted ? 'bg-amber-100/70 font-bold border-r-4 border-r-[#EAB308]' : 'hover:bg-stone-50/80'
+                      }`}
+                    >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0 overflow-hidden text-lg">
@@ -753,6 +888,17 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
 
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-1.5">
+                          {/* زر الانتقال المباشر للتسعير وتوقع الطلب لنفس المنتج */}
+                          <button
+                            type="button"
+                            onClick={() => handleGoToPricing(p.id)}
+                            className="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer ml-1"
+                            title="فتح تحليل السعر وتوقع الطلب لهذا المنتج"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+                            <span>🧠 تحليل السعر والطلب</span>
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(p)}
@@ -778,6 +924,66 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* ═══════ شريط ترقيم الصفحات (Pagination) لمنع التمرير الطويل ═══════ */}
+        {filteredProducts.length > 0 && (
+          <div className="p-4 sm:p-5 bg-stone-50 border-t border-stone-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="text-stone-600 font-bold text-center sm:text-right">
+              <span>
+                عرض {(currentPage - 1) * pageSize + 1} -{' '}
+                {Math.min(currentPage * pageSize, filteredProducts.length)} من أصل {filteredProducts.length} منتج في فئة{' '}
+                {ADMIN_OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
+              </span>
+              <span className="text-stone-400 mr-2 text-[11px] font-medium">
+                (إجمالي أصناف المتجر: {inventoryStats.total})
+              </span>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5" dir="rtl">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-stone-200 text-stone-700 font-bold hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                  <span>السابق</span>
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded-xl font-black text-xs transition-colors cursor-pointer ${
+                          currentPage === pageNum
+                            ? 'bg-[#163920] text-white shadow-2xs'
+                            : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-stone-200 text-stone-700 font-bold hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span>التالي</span>
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ═══════ نافذة إضافة / تعديل منتج ═══════ */}

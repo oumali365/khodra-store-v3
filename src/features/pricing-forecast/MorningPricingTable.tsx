@@ -3,7 +3,7 @@
 // جدول أسعار السوق الصباحي - تصميم عصري ومريح لمتجر "خُضرة"
 // ============================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Search,
   ArrowUpRight,
@@ -23,25 +23,28 @@ import {
   PackageX,
   AlertCircle,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Package,
 } from 'lucide-react';
 import type { ProductPriceRow, Supplier } from './types';
 import { DEFAULT_PROFIT_MARGIN } from './types';
 import {
   calculateSellingPrice,
   determineTrend,
-  updateProductAvailability,
-  updateProductStock,
 } from './pricingService';
 import type { ProductCategory } from '../../types';
 
 interface MorningPricingTableProps {
   rows: ProductPriceRow[];
   suppliers: Supplier[];
+  targetProductId?: number | null;
   onSaveBatch: (
     updates: { productId: number; purchasePrice: number; marginPercentage: number; supplierId: string }[]
   ) => Promise<void>;
   onOpenSuppliersModal: () => void;
   onRefresh: () => void;
+  onNavigateToInventory?: (productId: number) => void;
   isSaving: boolean;
 }
 
@@ -57,9 +60,11 @@ export const OFFICIAL_CATEGORIES: { id: ProductCategory; name: string; icon: str
 export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
   rows: initialRows,
   suppliers,
+  targetProductId = null,
   onSaveBatch,
   onOpenSuppliersModal,
   onRefresh,
+  onNavigateToInventory,
   isSaving,
 }) => {
   const [tableData, setTableData] = useState<ProductPriceRow[]>(initialRows);
@@ -68,9 +73,133 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
   const [savingRowId, setSavingRowId] = useState<number | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  // ترقيم الصفحات (Pagination) لمنع التمرير الطويل
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [highlightedProductId, setHighlightedProductId] = useState<number | null>(null);
+
+  useEffect(() => {
     setTableData(initialRows);
   }, [initialRows]);
+
+  // إعادة ضبط الصفحة إلى 1 عند تغيير الفئة أو البحث
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery]);
+
+  // ─── المزامنة اللحظية الحقيقية: استقبال أي تحديث للمخزون من إدارة المنتجات والمخزون ───
+  useEffect(() => {
+    const handleStockChanged = (e: any) => {
+      const { id, stock, is_available } = e?.detail || {};
+      if (id != null) {
+        setTableData((prev) =>
+          prev.map((row) =>
+            row.id === Number(id)
+              ? {
+                  ...row,
+                  stock: Number(stock),
+                  is_available: Boolean(is_available),
+                }
+              : row
+          )
+        );
+      }
+    };
+
+    const handleProductUpdated = (e: any) => {
+      const updated = e?.detail;
+      if (updated && updated.id) {
+        setTableData((prev) =>
+          prev.map((row) =>
+            row.id === Number(updated.id)
+              ? {
+                  ...row,
+                  name: updated.name || row.name,
+                  category: updated.category || row.category,
+                  unit_label: updated.unit_label || row.unit_label,
+                  stock: updated.stock !== undefined ? Number(updated.stock) : row.stock,
+                  is_available: updated.is_available !== undefined ? Boolean(updated.is_available) : row.is_available,
+                }
+              : row
+          )
+        );
+      }
+    };
+
+    window.addEventListener('khodra_product_stock_changed', handleStockChanged);
+    window.addEventListener('khodra_products_updated', handleProductUpdated);
+
+    return () => {
+      window.removeEventListener('khodra_product_stock_changed', handleStockChanged);
+      window.removeEventListener('khodra_products_updated', handleProductUpdated);
+    };
+  }, []);
+
+  // تركيز وتمييز منتج معين قادم من إدارة المنتجات والمخزون
+  const focusProduct = useCallback(
+    (pid: number) => {
+      const target = tableData.find((r) => r.id === pid);
+      if (!target) return;
+
+      setSelectedCategory(target.category);
+      setSearchQuery('');
+
+      const categoryItems = tableData.filter((r) => r.category === target.category);
+      const indexInCat = categoryItems.findIndex((r) => r.id === pid);
+      if (indexInCat >= 0) {
+        const targetPage = Math.floor(indexInCat / pageSize) + 1;
+        setCurrentPage(targetPage);
+      }
+
+      setHighlightedProductId(pid);
+      setTimeout(() => {
+        const el = document.getElementById(`pricing-row-${pid}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 250);
+
+      setTimeout(() => {
+        setHighlightedProductId((curr) => (curr === pid ? null : curr));
+      }, 4000);
+    },
+    [tableData, pageSize]
+  );
+
+  useEffect(() => {
+    if (targetProductId && tableData.length > 0) {
+      focusProduct(Number(targetProductId));
+    }
+  }, [targetProductId, tableData.length, focusProduct]);
+
+  useEffect(() => {
+    const handleOpenPricing = (e: any) => {
+      const pid = e?.detail?.productId;
+      if (pid != null) {
+        focusProduct(Number(pid));
+      }
+    };
+    window.addEventListener('khodra_open_pricing_for_product', handleOpenPricing);
+    return () => window.removeEventListener('khodra_open_pricing_for_product', handleOpenPricing);
+  }, [focusProduct]);
+
+  // الانتقال إلى إدارة المنتجات والمخزون لنفس المنتج (المصدر الوحيد لإدارة المخزون والتوفر)
+  const handleGoToInventory = (productId: number) => {
+    if (onNavigateToInventory) {
+      onNavigateToInventory(productId);
+    } else {
+      window.dispatchEvent(
+        new CustomEvent('khodra_open_inventory_for_product', {
+          detail: { productId },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent('khodra_admin_route_changed', {
+          detail: 'inventory',
+        })
+      );
+    }
+  };
 
   // تعديل مباشر لسعر الشراء أو الهامش أو المورد
   const handleCellChange = (
@@ -136,48 +265,6 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
     }
   };
 
-  // تبديل حالة التوفر فورياً مع تعديل كمية المخزون (0 = غير متوفر، 10 = متوفر)
-  const handleToggleAvailability = async (productId: number, currentStatus: boolean, currentStock?: number) => {
-    const nextStatus = !currentStatus;
-    const nextStock = nextStatus ? (currentStock && currentStock > 0 ? currentStock : 10) : 0;
-
-    setTableData((prev) =>
-      prev.map((item) =>
-        item.id === productId ? { ...item, is_available: nextStatus, stock: nextStock } : item
-      )
-    );
-
-    await updateProductAvailability(productId, nextStatus, nextStock);
-
-    setSuccessToast(
-      nextStatus
-        ? `🟢 تم تعيين "${tableData.find((p) => p.id === productId)?.name || 'المنتج'}" كـ "متوفر" (مخزون: ${nextStock})`
-        : `🔴 تم تفريغ المخزون وتعيين المنتج كـ "غير متوفر" في المتجر (مخزون: 0)`
-    );
-    setTimeout(() => setSuccessToast(null), 3500);
-  };
-
-  // تعديل كمية المخزون يدوياً (0 = غير متوفر، 1-5 = كمية محدودة، >5 = متوفر)
-  const handleStockQuantityChange = async (productId: number, rawValue: string) => {
-    const num = Math.max(0, parseInt(rawValue, 10) || 0);
-    const isAvail = num > 0;
-
-    setTableData((prev) =>
-      prev.map((item) =>
-        item.id === productId ? { ...item, stock: num, is_available: isAvail } : item
-      )
-    );
-
-    await updateProductStock(productId, num);
-
-    let statusText = 'متوفر في المتجر';
-    if (num === 0) statusText = 'غير متوفر (تم تفريغ المخزون)';
-    else if (num >= 1 && num <= 5) statusText = `كمية محدودة (${num})`;
-
-    setSuccessToast(`تم تحديث مخزون المنتج إلى ${num} • الحالة: ${statusText}`);
-    setTimeout(() => setSuccessToast(null), 3500);
-  };
-
   // حفظ جميع التعديلات دفعة واحدة
   const modifiedRows = useMemo(() => tableData.filter((r) => r.is_modified), [tableData]);
 
@@ -224,7 +311,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
     setTimeout(() => setSuccessToast(null), 4500);
   };
 
-  // تصفية المنتجات بالبحث والفئة
+  // تصفية المنتجات بالبحث والفئة الرسمية فقط
   const filteredData = useMemo(() => {
     return tableData.filter((row) => {
       const matchCat = row.category === selectedCategory;
@@ -236,6 +323,13 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
     });
   }, [tableData, selectedCategory, searchQuery]);
 
+  // حساب الصفحات لمنع التمرير الطويل
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, currentPage, pageSize]);
+
   // حساب الإحصائيات
   const stats = useMemo(() => {
     const totalCount = tableData.length;
@@ -245,8 +339,8 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
     const modifiedCount = tableData.filter((r) => r.is_modified).length;
     const upCount = tableData.filter((r) => r.trend === 'up').length;
     const downCount = tableData.filter((r) => r.trend === 'down').length;
-    const outOfStockCount = tableData.filter((r) => (r.stock ?? 10) === 0).length;
-    const limitedStockCount = tableData.filter((r) => (r.stock ?? 10) >= 1 && (r.stock ?? 10) <= 5).length;
+    const outOfStockCount = tableData.filter((r) => (r.stock ?? 10) === 0 || !r.is_available).length;
+    const limitedStockCount = tableData.filter((r) => (r.stock ?? 10) >= 1 && (r.stock ?? 10) <= 5 && r.is_available).length;
 
     return { totalCount, avgMargin, modifiedCount, upCount, downCount, outOfStockCount, limitedStockCount };
   }, [tableData]);
@@ -475,14 +569,23 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
               لا توجد منتجات مطابقة في فئة {OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
             </div>
           ) : (
-            filteredData.map((row) => {
+            paginatedData.map((row) => {
               const isRowSaving = savingRowId === row.id;
+              const isHighlighted = highlightedProductId === row.id;
+              const currentStock = row.stock !== undefined ? row.stock : (row.is_available ? 10 : 0);
+              const isOutOfStock = currentStock === 0 || !row.is_available;
+              const isLimitedStock = currentStock >= 1 && currentStock <= 5;
 
               return (
                 <div
                   key={row.id}
-                  className={`p-3.5 bg-white space-y-3 transition-colors ${
-                    row.is_modified ? 'bg-amber-50/40 border-r-4 border-r-amber-400' : ''
+                  id={`pricing-row-${row.id}`}
+                  className={`p-3.5 bg-white space-y-3 transition-all duration-300 ${
+                    isHighlighted
+                      ? 'bg-amber-50/70 ring-2 ring-[#EAB308] rounded-2xl shadow-sm'
+                      : row.is_modified
+                      ? 'bg-amber-50/40 border-r-4 border-r-amber-400'
+                      : ''
                   }`}
                 >
                   {/* الرأس: اسم المنتج + السعر للبيع المحسوب */}
@@ -504,14 +607,14 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                         {row.selling_price.toFixed(2)} د.م
                       </div>
                       <span className="text-[9px] text-emerald-700 font-bold block text-center mt-0.5">
-                        سعر البيع
+                        سعر البيع المقترح
                       </span>
                     </div>
                   </div>
 
                   {/* المورد */}
                   <div>
-                    <label className="text-[10px] font-bold text-stone-500 mb-1 block">المورد:</label>
+                    <label className="text-[10px] font-bold text-stone-500 mb-1 block">المورد (سوق بنسودة):</label>
                     <select
                       value={row.supplier_id}
                       onChange={(e) => handleCellChange(row.id, 'supplier_id', e.target.value)}
@@ -578,19 +681,46 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                     </div>
                   </div>
 
-                  {/* الإجراءات وحالة التوفر */}
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-100">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleAvailability(row.id, row.is_available, row.stock)}
-                      className={`text-[10px] font-bold px-2 py-1 rounded-lg border flex items-center gap-1 cursor-pointer ${
-                        row.is_available
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}
-                    >
-                      <span>{row.is_available ? '✓ متوفر' : '✕ غير متوفر'}</span>
-                    </button>
+                  {/* حالة المخزون وزر الفتح في إدارة المخزون (المصدر الأساسي) */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-100 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`text-[10px] font-black px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5 ${
+                          isOutOfStock
+                            ? 'bg-rose-50 text-rose-800 border-rose-200'
+                            : isLimitedStock
+                            ? 'bg-amber-50 text-amber-900 border-amber-300'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isOutOfStock
+                              ? 'bg-rose-600'
+                              : isLimitedStock
+                              ? 'bg-amber-500 animate-pulse'
+                              : 'bg-emerald-600'
+                          }`}
+                        />
+                        <span>
+                          {isOutOfStock
+                            ? 'نفد المخزون (0)'
+                            : isLimitedStock
+                            ? `محدود (${currentStock} ${row.unit_label})`
+                            : `متوفر (${currentStock} ${row.unit_label})`}
+                        </span>
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleGoToInventory(row.id)}
+                        className="px-2.5 py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 text-[11px] font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                        title="فتح هذا المنتج في إدارة المنتجات والمخزون"
+                      >
+                        <Package className="w-3.5 h-3.5 text-[#163920]" />
+                        <span>📦 فتح بالمخزون</span>
+                      </button>
+                    </div>
 
                     <div className="flex items-center gap-1.5">
                       {row.is_modified && (
@@ -601,7 +731,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                           className="px-3 py-1.5 rounded-lg bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
                         >
                           <Save className="w-3.5 h-3.5" />
-                          <span>{isRowSaving ? 'حفظ...' : 'حفظ التعديل'}</span>
+                          <span>{isRowSaving ? 'حفظ...' : 'اعتماد السعر'}</span>
                         </button>
                       )}
                     </div>
@@ -631,13 +761,13 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                   <span className="text-[10px] text-stone-400 font-normal block">(نسبة مئوية %)</span>
                 </th>
                 <th className="py-4 px-3 sm:px-4 min-w-[130px]">
-                  <span className="text-emerald-900 font-black">سعر البيع</span>
+                  <span className="text-emerald-900 font-black">سعر البيع المقترح</span>
                   <span className="text-[10px] text-emerald-700 font-normal block">(محسوب تلقائياً)</span>
                 </th>
                 <th className="py-4 px-3 sm:px-4 min-w-[110px] text-center">مؤشر الاتجاه</th>
-                <th className="py-4 px-3 sm:px-4 min-w-[175px] text-center">
-                  <span>حالة التوفر والمخزون</span>
-                  <span className="text-[10px] text-stone-400 font-normal block">(0 = غير متوفر | 1-5 = محدود)</span>
+                <th className="py-4 px-3 sm:px-4 min-w-[210px] text-center">
+                  <span>حالة المخزون والتوفر</span>
+                  <span className="text-[10px] text-stone-400 font-normal block">(المصدر الأساسي: إدارة المخزون)</span>
                 </th>
                 <th className="py-4 px-3 sm:px-4 w-20 text-center">إجراء</th>
               </tr>
@@ -646,12 +776,13 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
               {filteredData.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-16 text-center text-stone-500">
-                    لم نتمكن من العثور على أي منتج يطابق معايير البحث الحالية.
+                    لم نتمكن من العثور على أي منتج يطابق معايير البحث الحالية في هذه الفئة.
                   </td>
                 </tr>
               ) : (
-                filteredData.map((row, idx) => {
+                paginatedData.map((row, idx) => {
                   const isRowSaving = savingRowId === row.id;
+                  const isHighlighted = highlightedProductId === row.id;
                   const currentStock = row.stock !== undefined ? row.stock : (row.is_available ? 10 : 0);
                   const isOutOfStock = currentStock === 0 || !row.is_available;
                   const isLimitedStock = currentStock >= 1 && currentStock <= 5;
@@ -659,21 +790,24 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                   return (
                     <tr
                       key={row.id}
-                      className={`hover:bg-amber-50/20 transition-colors ${
-                        row.is_modified
+                      id={`pricing-row-${row.id}`}
+                      className={`transition-colors ${
+                        isHighlighted
+                          ? 'bg-amber-100/70 font-bold border-r-4 border-r-[#EAB308]'
+                          : row.is_modified
                           ? 'bg-amber-50/40 border-r-4 border-r-amber-400 font-bold'
-                          : ''
+                          : 'hover:bg-amber-50/20'
                       }`}
                     >
                       {/* الرقم */}
                       <td className="py-4 px-3 sm:px-4 text-center text-stone-400 font-mono text-[11px]">
-                        {idx + 1}
+                        {(currentPage - 1) * pageSize + idx + 1}
                       </td>
 
                       {/* اسم المنتج (Sticky Column) */}
                       <td
                         className={`py-4 px-3 sm:px-4 sticky right-0 z-10 transition-colors ${
-                          row.is_modified ? 'bg-amber-50/70' : 'bg-white'
+                          isHighlighted ? 'bg-amber-100/90' : row.is_modified ? 'bg-amber-50/70' : 'bg-white'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -733,7 +867,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                             max="150"
                             value={row.margin_percentage}
                             onChange={(e) =>
-                              handleCellChange(row.margin_percentage, 'margin_percentage', parseFloat(e.target.value) || 0)
+                              handleCellChange(row.id, 'margin_percentage', parseFloat(e.target.value) || 0)
                             }
                             className={`w-full py-1.5 px-2.5 pr-7 rounded-2xl border font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#163920] focus:border-[#163920] tabular-nums text-center transition-all ${
                               row.margin_percentage < 33
@@ -789,68 +923,47 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                         )}
                       </td>
 
-                      {/* ─── زر التوفر: Toggle صغير مع نقطة ملونة + تحكم المخزون ─── */}
+                      {/* ─── حالة المخزون والتوفر + زر الفتح في إدارة المخزون ─── */}
                       <td className="py-4 px-3 sm:px-4 text-center">
                         <div className="flex flex-col items-center gap-1.5">
-                          <div className="flex items-center justify-center gap-2">
-                            {/* Toggle Switch العصري مع نقطة ملونة */}
-                            <button
-                              type="button"
-                              onClick={() => handleToggleAvailability(row.id, !isOutOfStock, currentStock)}
-                              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#163920] focus:ring-offset-1 ${
-                                !isOutOfStock ? 'bg-[#163920]' : 'bg-stone-300'
-                              }`}
-                              title={
-                                !isOutOfStock
-                                  ? 'المنتج متوفر حالياً • اضغط لتفريغ المخزون وجعله غير متوفر'
-                                  : 'المنتج غير متوفر • اضغط لتوفيره في المتجر'
-                              }
-                            >
-                              <span
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                                  !isOutOfStock ? '-translate-x-5' : 'translate-x-0'
-                                } flex items-center justify-center`}
-                              >
-                                <span
-                                  className={`w-2 h-2 rounded-full ${
-                                    !isOutOfStock ? 'bg-emerald-600' : 'bg-rose-500'
-                                  }`}
-                                />
-                              </span>
-                            </button>
-
-                            {/* شارة التوفر الحالية */}
+                          {/* شارة التوفر الحالية المنقولة من المصدر الأساسي */}
+                          <span
+                            className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border whitespace-nowrap inline-flex items-center gap-1.5 ${
+                              isOutOfStock
+                                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                : isLimitedStock
+                                ? 'bg-amber-50 text-amber-900 border-amber-300'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                            }`}
+                          >
                             <span
-                              className={`text-[10px] font-black px-2 py-0.5 rounded-full border whitespace-nowrap ${
-                                isOutOfStock
-                                  ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                  : isLimitedStock
-                                  ? 'bg-amber-50 text-amber-900 border-amber-300'
-                                  : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isOutOfStock ? 'bg-rose-600' : isLimitedStock ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'
                               }`}
-                            >
-                              {isOutOfStock ? 'غير متوفر' : isLimitedStock ? `محدود (${currentStock})` : 'متوفر'}
-                            </span>
-                          </div>
-
-                          {/* حقل ضبط كمية المخزون بدقة (0 = غير متوفر، 1-5 = محدود، >5 = متوفر) */}
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-stone-400">مخزون:</span>
-                            <input
-                              type="number"
-                              min="0"
-                              max="999"
-                              value={currentStock}
-                              onChange={(e) => handleStockQuantityChange(row.id, e.target.value)}
-                              className="w-14 py-0.5 px-1.5 rounded-xl border border-stone-200 text-center font-mono font-bold text-[11px] text-stone-800 bg-stone-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#163920]"
-                              title="0: غير متوفر بالمتجر | 1-5: كمية محدودة | أكثر من 5: متوفر"
                             />
-                            <span className="text-[10px] text-stone-400">{row.unit_label || 'كجم'}</span>
-                          </div>
+                            <span>
+                              {isOutOfStock
+                                ? 'غير متوفر (0)'
+                                : isLimitedStock
+                                ? `محدود (${currentStock} ${row.unit_label})`
+                                : `متوفر (${currentStock} ${row.unit_label})`}
+                            </span>
+                          </span>
+
+                          {/* زر الانتقال المباشر لإدارة المنتجات والمخزون لهذا المنتج */}
+                          <button
+                            type="button"
+                            onClick={() => handleGoToInventory(row.id)}
+                            className="px-2 py-0.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 text-[10px] font-black flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                            title="فتح هذا المنتج في إدارة المنتجات والمخزون لتعديل المخزون أو الحالة"
+                          >
+                            <Package className="w-3 h-3 text-[#163920]" />
+                            <span>📦 فتح بالمخزون</span>
+                          </button>
                         </div>
                       </td>
 
-                      {/* زر الحفظ الفردي */}
+                      {/* زر اعتماد وحفظ السعر */}
                       <td className="py-4 px-3 sm:px-4 text-center">
                         <button
                           type="button"
@@ -861,7 +974,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                               ? 'bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] shadow-2xs active:scale-95'
                               : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
                           }`}
-                          title={row.is_modified ? 'حفظ تعديل هذا المنتج' : 'السعر محفوظ'}
+                          title={row.is_modified ? 'اعتماد وحفظ تعديل هذا السعر في المتجر' : 'السعر معتمد ومتزامن'}
                         >
                           {isRowSaving ? (
                             <RefreshCw className="w-4 h-4 animate-spin text-[#163920]" />
@@ -877,6 +990,66 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* ═══════ شريط ترقيم الصفحات (Pagination) لمنع التمرير الطويل ═══════ */}
+        {filteredData.length > 0 && (
+          <div className="p-4 sm:p-5 bg-[#FAFAF9] border-t border-stone-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="text-stone-600 font-bold text-center sm:text-right">
+              <span>
+                عرض {(currentPage - 1) * pageSize + 1} -{' '}
+                {Math.min(currentPage * pageSize, filteredData.length)} من أصل {filteredData.length} منتج في فئة{' '}
+                {OFFICIAL_CATEGORIES.find((c) => c.id === selectedCategory)?.name}
+              </span>
+              <span className="text-stone-400 mr-2 text-[11px] font-medium">
+                (إجمالي أصناف المتجر: {tableData.length})
+              </span>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5" dir="rtl">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-stone-200 text-stone-700 font-bold hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                  <span>السابق</span>
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded-xl font-black text-xs transition-colors cursor-pointer ${
+                          currentPage === pageNum
+                            ? 'bg-[#163920] text-white shadow-2xs'
+                            : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-stone-200 text-stone-700 font-bold hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span>التالي</span>
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* تذييل الجدول */}
         <div className="p-4 sm:p-5 bg-[#FAFAF9] border-t border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">

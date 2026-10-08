@@ -229,12 +229,49 @@ export default function App() {
   const [activeAdminRoute, setActiveAdminRoute] = useState<AdminRoute | null>(parseAdminRoute);
   const activeAdminRouteRef = useRef<AdminRoute | null>(activeAdminRoute);
   activeAdminRouteRef.current = activeAdminRoute;
+  const [adminFocusedProductId, setAdminFocusedProductId] = useState<number | null>(null);
 
-  const handleNavigateAdmin = useCallback((route: AdminRoute) => {
+  const handleNavigateAdmin = useCallback((route: AdminRoute, productId?: number) => {
     setActiveAdminRoute(route);
-    window.history.pushState({ admin: route }, '', `/admin/${route}`);
+    if (productId !== undefined && productId !== null) {
+      setAdminFocusedProductId(productId);
+    }
+    window.history.pushState({ admin: route, productId }, '', `/admin/${route}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  useEffect(() => {
+    const handleAdminRouteChanged = (e: any) => {
+      const route = e?.detail;
+      if (route) {
+        handleNavigateAdmin(route as AdminRoute);
+      }
+    };
+    const handleOpenPricing = (e: any) => {
+      const pid = e?.detail?.productId;
+      if (pid != null) {
+        setAdminFocusedProductId(Number(pid));
+        handleNavigateAdmin('pricing', Number(pid));
+      }
+    };
+    const handleOpenInventory = (e: any) => {
+      const pid = e?.detail?.productId;
+      if (pid != null) {
+        setAdminFocusedProductId(Number(pid));
+        handleNavigateAdmin('inventory', Number(pid));
+      }
+    };
+
+    window.addEventListener('khodra_admin_route_changed', handleAdminRouteChanged);
+    window.addEventListener('khodra_open_pricing_for_product', handleOpenPricing);
+    window.addEventListener('khodra_open_inventory_for_product', handleOpenInventory);
+
+    return () => {
+      window.removeEventListener('khodra_admin_route_changed', handleAdminRouteChanged);
+      window.removeEventListener('khodra_open_pricing_for_product', handleOpenPricing);
+      window.removeEventListener('khodra_open_inventory_for_product', handleOpenInventory);
+    };
+  }, [handleNavigateAdmin]);
 
   const handleReturnToStore = useCallback(() => {
     setActiveAdminRoute(null);
@@ -1040,7 +1077,9 @@ export default function App() {
               <AdminInventoryPanel
                 standalone={true}
                 isOpen={true}
+                targetProductId={adminFocusedProductId}
                 onClose={handleReturnToStore}
+                onNavigateToPricing={(pid) => handleNavigateAdmin('pricing', pid)}
                 onNavigateToAI={() => {
                   handleNavigateAdmin('marketing');
                 }}
@@ -1058,7 +1097,9 @@ export default function App() {
               <PricingForecastPanel
                 standalone={true}
                 isOpen={true}
+                targetProductId={adminFocusedProductId}
                 onClose={handleReturnToStore}
+                onNavigateToInventory={(pid) => handleNavigateAdmin('inventory', pid)}
               />
             )}
             {activeAdminRoute === 'finance' && (

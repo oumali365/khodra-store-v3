@@ -33,15 +33,20 @@ import { DemandForecastView } from './DemandForecastView';
 export interface PricingForecastPanelProps {
   standalone?: boolean;
   isOpen?: boolean;
+  targetProductId?: number | null;
   onClose?: () => void;
+  onNavigateToInventory?: (productId: number) => void;
 }
 
 export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
   standalone = true,
   isOpen = true,
+  targetProductId = null,
   onClose,
+  onNavigateToInventory,
 }) => {
   const [activeTab, setActiveTab] = useState<'pricing' | 'forecast'>('pricing');
+  const [currentFocusedProductId, setCurrentFocusedProductId] = useState<number | null>(targetProductId);
   const [rows, setRows] = useState<ProductPriceRow[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [historyData, setHistoryData] = useState<TopProductSalesHistory[]>([]);
@@ -51,6 +56,25 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (targetProductId != null) {
+      setCurrentFocusedProductId(targetProductId);
+      setActiveTab('pricing');
+    }
+  }, [targetProductId]);
+
+  useEffect(() => {
+    const handleOpenPricing = (e: any) => {
+      const pid = e?.detail?.productId;
+      if (pid != null) {
+        setCurrentFocusedProductId(Number(pid));
+        setActiveTab('pricing');
+      }
+    };
+    window.addEventListener('khodra_open_pricing_for_product', handleOpenPricing);
+    return () => window.removeEventListener('khodra_open_pricing_for_product', handleOpenPricing);
+  }, []);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -224,6 +248,29 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
         </div>
       </header>
 
+      {/* ═══════ شريط توضيح المسؤوليات والربط المباشر بالمخزون ═══════ */}
+      <div className="bg-purple-900/5 border border-purple-200/80 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
+        <div className="flex items-center gap-2.5 text-purple-950 font-medium">
+          <Sparkles className="w-5 h-5 text-purple-700 shrink-0" />
+          <span>
+            <strong className="font-black text-purple-900">الطبقة التحليلية الذكية:</strong> تقرأ بيانات الأصناف والمخزون لحظياً من المصدر الأساسي (إدارة المنتجات والمخزون)، وتقدم توصيات التسعير وتوقع الطلب وكميات التموين JIT دون تكرار للبيانات.
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (onNavigateToInventory) {
+              onNavigateToInventory(0);
+            } else {
+              window.dispatchEvent(new CustomEvent('khodra_admin_route_changed', { detail: 'inventory' }));
+            }
+          }}
+          className="px-3.5 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-black text-xs shrink-0 flex items-center justify-center gap-1.5 shadow-2xs transition-all active:scale-95 cursor-pointer"
+        >
+          <span>📦 إدارة المنتجات والمخزون (المصدر الأساسي)</span>
+        </button>
+      </div>
+
       {/* ═══════ إشعار تنبيهي لطيف عند نجاح الإجراءات ═══════ */}
       {notice && (
         <div className="p-3.5 bg-emerald-50 text-[#163920] text-xs sm:text-sm font-bold rounded-2xl border border-emerald-200 shadow-2xs flex items-center justify-between transition-all animate-in fade-in slide-in-from-top-1">
@@ -252,9 +299,11 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
         <MorningPricingTable
           rows={rows}
           suppliers={suppliers}
+          targetProductId={currentFocusedProductId}
           onSaveBatch={handleSaveBatch}
           onOpenSuppliersModal={() => setIsSupplierModalOpen(true)}
           onRefresh={loadData}
+          onNavigateToInventory={onNavigateToInventory}
           isSaving={isSaving}
         />
       ) : (

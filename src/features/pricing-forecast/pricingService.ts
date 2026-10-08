@@ -3,7 +3,7 @@
 // خدمة إدارة الموردين، التسعير التلقائي وحساب توقعات الطلب
 // ============================================================
 
-import { getSupabase } from '../../services/supabaseService';
+import { getSupabase, fetchProducts } from '../../services/supabaseService';
 import { logger } from '../../utils/logger';
 import { INITIAL_PRODUCTS } from '../../data/mockProducts';
 import type {
@@ -204,10 +204,13 @@ export async function getProductPricingRows(): Promise<{
   const suppliers = await getSuppliers();
   const defaultSupplier = suppliers[0] || DEFAULT_SUPPLIERS[0];
 
-  // 1. جلب الأسعار وحالة التوفر المحفوظة محلياً
+  // 1. جلب المصدر الموحد والأساسي لكافة منتجات المتجر والمخزون
+  const baseProducts = await fetchProducts();
+
+  // 2. جلب أحدث أسعار الشراء وهوامش الأمس المسجلة
   let savedPricesMap: Record<
     number,
-    { purchase: number; margin: number; yesterday: number; supplierId: string; is_available?: boolean }
+    { purchase: number; margin: number; yesterday: number; supplierId: string }
   > = {};
 
   try {
@@ -215,44 +218,34 @@ export async function getProductPricingRows(): Promise<{
     if (raw) savedPricesMap = JSON.parse(raw);
   } catch {}
 
-  // 2. جلب حالة التوفر، المخزون والأسعار الحية من قاعدة بيانات Supabase
+  // جلب الأسعار اليومية من Supabase إن وجدت لمزامنتها
   const client = getSupabase();
-  const dbProductsMap = new Map<
-    number,
-    { active?: boolean; is_available?: boolean; price?: number; stock?: number }
-  >();
-
   if (client) {
     try {
-      const { data: dbProds, error: dbErr } = await client
-        .from('products')
-        .select('*');
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { data: dbDailyPrices } = await client
+        .from('daily_prices')
+        .select('*')
+        .eq('recorded_date', todayStr);
 
-      if (!dbErr && dbProds && Array.isArray(dbProds)) {
-        dbProds.forEach((p: any) => {
-          if (p.id != null) {
-            const parsedStock =
-              p.stock !== undefined && p.stock !== null ? Number(p.stock) : undefined;
-            dbProductsMap.set(Number(p.id), {
-              active: p.active !== undefined ? Boolean(p.active) : undefined,
-              is_available:
-                p.is_available !== undefined
-                  ? Boolean(p.is_available)
-                  : p.active !== undefined
-                  ? Boolean(p.active)
-                  : undefined,
-              price: p.price != null ? Number(p.price) : undefined,
-              stock: parsedStock,
-            });
+      if (dbDailyPrices && Array.isArray(dbDailyPrices)) {
+        dbDailyPrices.forEach((dp: any) => {
+          if (dp.product_id != null) {
+            savedPricesMap[Number(dp.product_id)] = {
+              purchase: Number(dp.purchase_price) || 0,
+              margin: Number(dp.margin_percentage) || DEFAULT_PROFIT_MARGIN,
+              yesterday: Number(dp.yesterday_price || dp.purchase_price) || 0,
+              supplierId: String(dp.supplier_id || defaultSupplier.id),
+            };
           }
         });
       }
     } catch (e) {
-      logger.warn('Failed to fetch products from Supabase for pricing table:', e);
+      logger.warn('Failed to fetch daily prices from Supabase in pricingService:', e);
     }
   }
 
-  const rows: ProductPriceRow[] = INITIAL_PRODUCTS.map((prod, index) => {
+  const rows: ProductPriceRow[] = baseProducts.map((prod, index) => {
     // تعيين مورد مناسب حسب فئة المنتج
     let chosenSupplier = defaultSupplier;
     if (prod.category === 'veg') {
@@ -265,64 +258,42 @@ export async function getProductPricingRows(): Promise<{
       chosenSupplier = suppliers.find((s) => s.id === 'sup-5') || defaultSupplier;
     }
 
-    const saved = savedPricesMap[prod.id] as any;
-    const dbProd = dbProductsMap.get(prod.id);
+    const saved = savedPricesMap[prod.id];
 
     // احتساب هامش ربح 33% تلقائياً لتغطية مصاريف النقل، الإتلاف واللوجستيك
     let margin = saved && saved.margin !== undefined ? saved.margin : DEFAULT_PROFIT_MARGIN;
     if (margin === 25) {
-      margin = DEFAULT_PROFIT_MARGIN; // ترقية الهامش القديم 25% تلقائياً إلى 33% المعتمد
+      margin = DEFAULT_PROFIT_MARGIN;
     }
 
-    let purchasePrice = saved && saved.purchase ? saved.purchase : Number((prod.price / (1 + margin / 100)).toFixed(2));
-    let yesterdayPrice = saved && saved.yesterday ? saved.yesterday : Number((purchasePrice * (0.95 + (index % 10) * 0.01)).toFixed(2));
+    let purchasePrice = saved && saved.purchase
+      ? saved.purchase
+      : Number((prod.price / (1 + margin / 100)).toFixed(2));
+    let yesterdayPrice = saved && saved.yesterday
+      ? saved.yesterday
+      : Number((purchasePrice * (0.95 + (index % 10) * 0.01)).toFixed(2));
     let supplierId = saved && saved.supplierId ? saved.supplierId : chosenSupplier.id;
 
     const supplierObj = suppliers.find((s) => s.id === supplierId) || chosenSupplier;
-    const sellingPrice = calculateSellingPrice(purchasePrice, margin);
+    const proposedSellingPrice = calculateSellingPrice(purchasePrice, margin);
     const trend = determineTrend(purchasePrice, yesterdayPrice);
 
-    // ─── تحديد كمية المخزون وحالة التوفر الحقيقية ───
-    // في قاعدة بيانات المتجر:
-    // إذا كان stock = 0 فالمنتج غير متوفر قطعا (false)
-    // إذا كان stock بين 1 و 5: كمية محدودة
-    // إذا كان stock فوق 5: متوفر
-    let currentStock = 10;
-    if (dbProd && dbProd.stock !== undefined) {
-      currentStock = dbProd.stock;
-    } else if (saved && saved.stock !== undefined) {
-      currentStock = Number(saved.stock);
-    } else if (prod.stock !== undefined) {
-      currentStock = Number(prod.stock);
-    }
-
-    let isAvailable = currentStock > 0;
-    if (dbProd) {
-      if (dbProd.stock !== undefined) {
-        isAvailable = dbProd.stock > 0;
-      } else if (dbProd.is_available !== undefined) {
-        isAvailable = Boolean(dbProd.is_available);
-      } else if (dbProd.active !== undefined) {
-        isAvailable = Boolean(dbProd.active);
-      }
-    } else if (saved && saved.stock !== undefined) {
-      isAvailable = Number(saved.stock) > 0;
-    } else if (saved && saved.is_available !== undefined) {
-      isAvailable = Boolean(saved.is_available);
-    }
+    // ─── المصدر الموحد الوحيد للمخزون والتوفر (لا تكرار ولا تعارض) ───
+    const currentStock = prod.stock !== undefined ? Number(prod.stock) : 10;
+    const isAvailable = prod.is_available !== false && prod.active !== false && currentStock > 0;
 
     return {
       id: prod.id,
       name: prod.name,
       category: prod.category,
-      unit_label: prod.unit_label || 'kg',
+      unit_label: prod.unit_label || (prod.type === 'unit' ? 'حبة' : 'kg'),
       icon: prod.icon || '🥬',
       image_url: prod.image_url,
       supplier_id: supplierId,
       supplier_name: supplierObj.name,
       purchase_price: purchasePrice,
       margin_percentage: margin,
-      selling_price: sellingPrice,
+      selling_price: proposedSellingPrice,
       yesterday_price: yesterdayPrice,
       trend,
       is_available: isAvailable,
@@ -448,6 +419,26 @@ export async function saveProductPrices(
     });
 
     localStorage.setItem(LOCAL_PRICES_KEY, JSON.stringify(savedMap));
+
+    // مزامنة السعر الجديد في المنتجات المخزنة محلياً لضمان الانعكاس الفوري في المتجر ولوحة الإدارة
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const rawCustom = localStorage.getItem('khodra_custom_products_v2');
+        if (rawCustom) {
+          const customList = JSON.parse(rawCustom);
+          if (Array.isArray(customList)) {
+            updates.forEach((u) => {
+              const newSelling = calculateSellingPrice(u.purchasePrice, u.marginPercentage);
+              const idx = customList.findIndex((p: any) => p && p.id === u.productId);
+              if (idx >= 0) {
+                customList[idx].price = newSelling;
+              }
+            });
+            localStorage.setItem('khodra_custom_products_v2', JSON.stringify(customList));
+          }
+        }
+      } catch {}
+    }
 
     // مزامنة مع Supabase إذا كان متوفراً
     const client = getSupabase();
