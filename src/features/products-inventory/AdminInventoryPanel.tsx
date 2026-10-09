@@ -34,6 +34,7 @@ import {
   deleteProductFromStore,
 } from '../../services/supabaseService';
 import { CATEGORIES_CONFIG } from '../../data/mockProducts';
+import { useRealtimeStock } from '../../hooks';
 
 export const ADMIN_OFFICIAL_CATEGORIES: { id: ProductCategory; name: string; icon: string }[] = [
   { id: 'veg', name: 'خضار وورقيات', icon: '🥬' },
@@ -118,6 +119,21 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
       loadCatalog();
     }
   }, [isOpen, loadCatalog]);
+
+  // الاشتراك اللحظي في تحديثات المخزون من Supabase Realtime
+  useRealtimeStock({
+    enabled: isOpen,
+    onStockUpdated: (pid, newStock, isAvail) => {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === pid
+            ? { ...p, stock: newStock, is_available: isAvail }
+            : p
+        )
+      );
+    },
+    onProductsReloadNeeded: loadCatalog,
+  });
 
   // الاستماع لتحديثات الأسعار الفورية من أداة التسعير الديناميكي (انعكاس فوري دون إعادة تحميل)
   useEffect(() => {
@@ -255,7 +271,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
   const handleQuickStockChange = async (productId: number, delta: number) => {
     const target = products.find((p) => p.id === productId);
     if (!target) return;
-    const newStock = Math.max(0, (target.stock || 0) + delta);
+    const newStock = Math.max(0, +((target.stock || 0) + delta).toFixed(2));
 
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, stock: newStock, is_available: newStock > 0 } : p))
@@ -681,9 +697,10 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                       <span className="text-xs text-stone-500 font-bold ml-1">المخزون:</span>
                       <button
                         type="button"
-                        onClick={() => handleQuickStockChange(p.id, -1)}
+                        onClick={() => handleQuickStockChange(p.id, p.type === 'weight' ? -0.5 : -1)}
                         disabled={stock <= 0 || savingId === p.id}
                         className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-sm cursor-pointer disabled:opacity-30"
+                        title={p.type === 'weight' ? 'إنقاص 0.5 كغ' : 'إنقاص وحدة'}
                       >
                         -
                       </button>
@@ -700,10 +717,10 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleQuickStockChange(p.id, 5)}
+                        onClick={() => handleQuickStockChange(p.id, p.type === 'weight' ? 0.5 : 1)}
                         disabled={savingId === p.id}
                         className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-sm cursor-pointer"
-                        title="إضافة 5"
+                        title={p.type === 'weight' ? 'إضافة 0.5 كغ' : 'إضافة وحدة'}
                       >
                         +
                       </button>
@@ -838,9 +855,10 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => handleQuickStockChange(p.id, -1)}
+                            onClick={() => handleQuickStockChange(p.id, p.type === 'weight' ? -0.5 : -1)}
                             disabled={stock <= 0 || savingId === p.id}
                             className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold disabled:opacity-30 cursor-pointer"
+                            title={p.type === 'weight' ? 'إنقاص 0.5 كغ' : 'إنقاص وحدة'}
                           >
                             -
                           </button>
@@ -857,10 +875,10 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                           </span>
                           <button
                             type="button"
-                            onClick={() => handleQuickStockChange(p.id, 5)}
+                            onClick={() => handleQuickStockChange(p.id, p.type === 'weight' ? 0.5 : 1)}
                             disabled={savingId === p.id}
                             className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold cursor-pointer"
-                            title="إضافة 5 وحدات"
+                            title={p.type === 'weight' ? 'إضافة 0.5 كغ' : 'إضافة وحدة'}
                           >
                             +
                           </button>
@@ -1056,10 +1074,11 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                   <label className="block text-xs font-bold text-stone-700 mb-1">المخزون الحالي *</label>
                   <input
                     type="number"
+                    step={formData.type === 'weight' ? '0.5' : '1'}
                     min="0"
                     required
                     value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value, 10) || 0 })}
+                    onChange={(e) => setFormData({ ...formData, stock: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs sm:text-sm focus:border-emerald-600 focus:outline-none"
                   />
                 </div>

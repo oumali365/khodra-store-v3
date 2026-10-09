@@ -846,7 +846,7 @@ export default function App() {
       if (index >= 0) {
         const next = [...prev];
         const existing = next[index];
-        const newQty = existing.qty + quantity;
+        const newQty = +(existing.qty + quantity).toFixed(2);
         next[index] = {
           ...existing,
           key,
@@ -858,6 +858,7 @@ export default function App() {
         return next;
       }
 
+      const cleanQuantity = +quantity.toFixed(2);
       const newItem: CartItem = {
         key,
         id: product.id,
@@ -866,8 +867,8 @@ export default function App() {
         image_url: product.image_url,
         variantLabel,
         unitTotal: unitPrice,
-        qty: quantity,
-        lineTotal: +(unitPrice * quantity).toFixed(2),
+        qty: cleanQuantity,
+        lineTotal: +(unitPrice * cleanQuantity).toFixed(2),
       };
       return [...prev, newItem];
     });
@@ -878,7 +879,7 @@ export default function App() {
       return prev
         .map((item) => {
           if (item.key !== key) return item;
-          const newQty = item.qty + delta;
+          const newQty = +(item.qty + delta).toFixed(2);
           if (newQty <= 0) return null;
           const unitPrice = item.unitTotal > 0 ? item.unitTotal : (item.lineTotal / item.qty);
           return {

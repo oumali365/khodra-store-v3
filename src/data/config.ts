@@ -13,7 +13,7 @@ export const STORE_CONFIG = {
   minOrderAmount: 70, // الحد الأدنى للطلب (70 د.م شامل رسوم التوصيل) لتأمين المتجر من الخسارة وتغطية تكاليف الإعداد والتوصيل
   freeDeliveryThreshold: 250,
   freshnessMaxItems: 12,
-  weightStep: 1,
+  weightStep: 0.5,
   weightMax: 10,
   cacheKey: 'khodra_cart_v2',
   adminPin: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ADMIN_PIN) || '',

@@ -60,14 +60,15 @@ function normalizeProduct(row: any): Product {
   // إذا كان stock بين 1 و 5: كمية محدودة
   // إذا كان stock فوق 5: متوفر
   const rawStock = row.stock !== undefined && row.stock !== null ? Number(row.stock) : undefined;
+  const isActive = row.active !== undefined ? Boolean(row.active) : true;
   let isAvail = true;
 
   if (rawStock !== undefined && !isNaN(rawStock)) {
-    isAvail = rawStock > 0 && row.is_available !== false && row.active !== false;
+    isAvail = rawStock > 0 && row.is_available !== false && isActive;
   } else if (row.is_available !== undefined) {
-    isAvail = Boolean(row.is_available);
-  } else if (row.active !== undefined) {
-    isAvail = Boolean(row.active);
+    isAvail = Boolean(row.is_available) && isActive;
+  } else {
+    isAvail = isActive;
   }
 
   const finalStock = rawStock !== undefined && !isNaN(rawStock) ? rawStock : (isAvail ? 10 : 0);
@@ -82,7 +83,7 @@ function normalizeProduct(row: any): Product {
     stock: finalStock,
     icon: row.icon || '🛒',
     image_url: resolveProductImageUrl(row.image_url),
-    active: isAvail,
+    active: isActive,
     is_available: isAvail,
     description: row.description || undefined,
     origin: row.origin || undefined,
@@ -285,7 +286,7 @@ export async function updateProductStockQuick(
   newStock: number
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    const validStock = Math.max(0, Math.floor(newStock));
+    const validStock = Math.max(0, Number(newStock.toFixed(2)));
     const isAvail = validStock > 0;
 
     const client = getSupabase();
@@ -296,7 +297,6 @@ export async function updateProductStockQuick(
           .update({
             stock: validStock,
             is_available: isAvail,
-            active: isAvail,
             updated_at: new Date().toISOString(),
           })
           .eq('id', productId);
@@ -312,13 +312,11 @@ export async function updateProductStockQuick(
       if (idx >= 0) {
         customList[idx].stock = validStock;
         customList[idx].is_available = isAvail;
-        customList[idx].active = isAvail;
       } else {
         customList.push({
           id: productId,
           stock: validStock,
           is_available: isAvail,
-          active: isAvail,
         } as Product);
       }
       localStorage.setItem('khodra_custom_products_v2', JSON.stringify(customList));
@@ -385,10 +383,14 @@ export async function deleteProductFromStore(
 function cleanItemForJson(item: any): Record<string, any> {
   const clean: Record<string, any> = {};
 
-  // الحقول الأساسية المطلوبة
+  // الحقول الأساسية المطلوبة مع معرف الصنف لدعم الخصم الذري
+  if (item?.id != null && !isNaN(Number(item.id))) {
+    clean.id = Number(item.id);
+    clean.product_id = Number(item.id);
+  }
   clean.name = String(item?.name || 'منتج');
   clean.variantLabel = String(item?.variantLabel || '');
-  clean.qty = Number(item?.qty) || 1;
+  clean.qty = Math.max(0.1, Number(item?.qty) || 0.5);
   clean.lineTotal = Number(item?.lineTotal) || 0;
   clean.icon = String(item?.icon || '🛒');
 
@@ -448,15 +450,20 @@ export async function submitOrder(
     if (order.mapsLink) noteParts.push(`رابط الخريطة: ${order.mapsLink}`);
     if (order.notes) noteParts.push(`ملاحظات: ${order.notes}`);
 
-    // ─── تنظيف items ───
+    // ─── تنظيف items مع تضمين معرف المنتج ودعم الكسور ───
     const cleanItems = (order.items || []).map((item) => {
+      const pid = Number(item?.id);
       const clean: Record<string, any> = {
         name: sanitizeInput(String(item?.name || 'منتج')),
         variantLabel: sanitizeInput(String(item?.variantLabel || '')),
-        qty: Math.max(1, Number(item?.qty) || 1),
+        qty: Math.max(0.1, Number(item?.qty) || 0.5),
         lineTotal: Math.max(0, Number(item?.lineTotal) || 0),
         icon: String(item?.icon || '🛒').slice(0, 10),
       };
+      if (!isNaN(pid) && pid > 0) {
+        clean.id = pid;
+        clean.product_id = pid;
+      }
       if (item?.image_url && typeof item.image_url === 'string') {
         clean.image_url = item.image_url;
       }
@@ -496,22 +503,69 @@ export async function submitOrder(
       },
     };
 
-    console.log('📤 إرسال الطلب المؤمن:', JSON.stringify(orderData, null, 2));
+    console.log('📤 إرسال الطلب الذري المؤمن:', JSON.stringify(orderData, null, 2));
 
-    // ─── ✅ الإدراج المباشر في Supabase ───
-    const { error } = await client
-      .from('orders')
-      .insert([orderData]);
+    // ─── ✅ الإدراج والخصم الذري عبر RPC في معاملة واحدة (submit_order_atomic) ───
+    let error: any = null;
+
+    try {
+      const { data: atomicRes, error: rpcErr } = await client.rpc('submit_order_atomic', {
+        p_order_data: orderData,
+      });
+
+      if (rpcErr) {
+        error = rpcErr;
+      } else if (atomicRes && atomicRes.already_submitted) {
+        recordOrderSuccess(order.orderCode);
+        return {
+          success: true,
+          message: 'تم تأكيد طلبك مسبقاً بنجاح',
+        };
+      }
+    } catch (callErr) {
+      error = callErr;
+    }
+
+    // تراجع مرن للإدراج المباشر في حال لم تكن الـ RPC منشورة بعد
+    if (error && (error.message?.includes('schema cache') || error.message?.includes('could not find') || error.message?.includes('submit_order_atomic'))) {
+      console.warn('⚠️ submit_order_atomic غير متاحة بعد، التراجع للإدراج المباشر:', error.message);
+      const { error: directErr } = await client.from('orders').insert([orderData]);
+      error = directErr;
+    }
 
     if (error) {
       // إذا كان الخطأ بسبب تكرار مفتاح Idempotency (رمز 23505)
-      // فهذا يعني أن الطلب مسجل مسبقاً بنفس المعاملات، نعتبره نجاحاً دون تكرار
       if (error.code === '23505' || error.message?.toLowerCase().includes('idempotency')) {
         console.warn('⚠️ كشف طلب مكرر (Idempotency Key) تم تأكيده مسبقاً:', order.idempotencyKey);
         recordOrderSuccess(order.orderCode);
         return {
           success: true,
           message: 'تم تأكيد طلبك مسبقاً بنجاح',
+        };
+      }
+
+      // إذا كان الخطأ بسبب نقص المخزون (INSUFFICIENT_STOCK)
+      if (error.message?.includes('INSUFFICIENT_STOCK')) {
+        let parsedMessage = 'عذراً، نفد مخزون أحد المنتجات المطلوبة أو الكمية المتبقية غير كافية.';
+        const match = error.message.match(/INSUFFICIENT_STOCK:(?:product_id=)?(\d+)?(?::available=([\d.]+))?(?::requested=([\d.]+))?/);
+        if (match) {
+          const pid = match[1] ? Number(match[1]) : null;
+          const available = match[2];
+          const requested = match[3];
+          const matchedItem = order.items?.find((i) => Number(i.id) === pid);
+          const itemName = matchedItem ? matchedItem.name : 'المنتج';
+
+          if (available != null && requested != null) {
+            parsedMessage = `عذراً، الكمية المتوفرة من "${itemName}" هي ${available} فقط، بينما طلبت ${requested}. يرجى تعديل الكمية في السلة للمتابعة.`;
+          } else {
+            parsedMessage = `عذراً، الكمية المتوفرة من "${itemName}" غير كافية حالياً في المخزون.`;
+          }
+        }
+
+        return {
+          success: false,
+          message: parsedMessage,
+          errorCode: 'INSUFFICIENT_STOCK',
         };
       }
 
@@ -541,7 +595,7 @@ export async function submitOrder(
     // تسجيل نجاح الطلب لبدء عداد الـ Cooldown والـ Rate Limit فوراً
     recordOrderSuccess(order.orderCode);
 
-    console.log('✅ تم حفظ الطلب المؤمن بنجاح');
+    console.log('✅ تم حفظ الطلب وخصم المخزون الذري بنجاح');
     return { success: true };
   } catch (err: any) {
     console.error('❌ خطأ في الاتصال:', err);
@@ -1073,9 +1127,11 @@ function normalizeOrderItems(rawItems: any): DbOrder['items'] {
   return parsed
     .filter((it) => it && typeof it === 'object')
     .map((it) => ({
+      id: it.id != null ? Number(it.id) : undefined,
+      product_id: it.product_id != null ? Number(it.product_id) : (it.id != null ? Number(it.id) : undefined),
       name: String(it.name || 'منتج'),
       variantLabel: it.variantLabel ? String(it.variantLabel) : undefined,
-      qty: Math.max(1, Number(it.qty) || 1),
+      qty: Math.max(0.1, Number(it.qty) || 0.5),
       lineTotal: Math.max(0, Number(it.lineTotal) || 0),
       icon: it.icon ? String(it.icon) : '🛒',
     }));
@@ -1347,6 +1403,22 @@ export async function updateOrderStatus(
       console.warn('updateOrderStatus RPC error:', error.message);
       return { success: false, message: error.message };
     }
+
+    // ─── استرجاع المخزون تلقائياً عند إلغاء الطلب ───
+    if (status === 'cancelled') {
+      try {
+        const numId = Number(orderId);
+        if (!isNaN(numId) && numId > 0) {
+          await client.rpc('restore_order_inventory', {
+            p_order_id: numId,
+            p_reason: 'إلغاء الطلب من لوحة الإدارة',
+          });
+        }
+      } catch (restoreErr) {
+        console.warn('Notice: restore_order_inventory call handled gracefully:', restoreErr);
+      }
+    }
+
     return { success: true };
   } catch (err) {
     console.warn('Network error while updating status:', err);
@@ -1433,6 +1505,20 @@ export async function deleteOrder(
       }
       return { success: false, message: error.message };
     }
+
+    // ─── استرجاع المخزون تلقائياً عند حذف الطلب ───
+    try {
+      const numId = Number(orderId);
+      if (!isNaN(numId) && numId > 0) {
+        await client.rpc('restore_order_inventory', {
+          p_order_id: numId,
+          p_reason: 'حذف الطلب من لوحة الإدارة',
+        });
+      }
+    } catch (restoreErr) {
+      console.warn('Notice: restore_order_inventory call on delete handled gracefully:', restoreErr);
+    }
+
     return { success: true, message: 'تم حذف الطلب بنجاح' };
   } catch (err: any) {
     console.warn('Network error while deleting order:', err);

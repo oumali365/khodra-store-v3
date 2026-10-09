@@ -381,6 +381,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       await onSubmitOrder(submission);
     } catch (err: any) {
       console.error('Submit order caught error:', err);
+      const errMsg = err?.message || 'تعذر تأكيد الطلب. يرجى مراجعة الكميات بالسلة.';
+      setErrors((prev) => ({
+        ...prev,
+        cart: errMsg,
+      }));
     } finally {
       setIsSubmitting(false);
     }

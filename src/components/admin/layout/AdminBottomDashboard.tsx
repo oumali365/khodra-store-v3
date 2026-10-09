@@ -20,7 +20,7 @@ import {
   Package,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
-import { clearCachedAdminPin, updateAdminPassword } from '../../../services/supabaseService';
+import { clearCachedAdminPin, updateAdminPassword, fetchProducts } from '../../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
 import { AdminErrorBoundary } from './AdminErrorBoundary';
 

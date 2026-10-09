@@ -172,7 +172,8 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onUpdateQty(item.key, -1);
+              const step = isWeightItem ? (STORE_CONFIG.weightStep || 0.5) : 1;
+              onUpdateQty(item.key, -step);
             }}
             className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#1A3D24] hover:bg-[#2D6A3F] hover:text-[#EAB308] active:scale-90 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-sm border border-[#2D6A3F]/20 hover:border-[#2D6A3F] touch-manipulation select-none"
             aria-label="إنقاص الكمية"
@@ -191,7 +192,8 @@ export const SwipeableCartItem: React.FC<SwipeableCartItemProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onUpdateQty(item.key, 1);
+              const step = isWeightItem ? (STORE_CONFIG.weightStep || 0.5) : 1;
+              onUpdateQty(item.key, step);
             }}
             className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-md bg-white text-[#1A3D24] hover:bg-[#2D6A3F] hover:text-[#EAB308] active:scale-90 flex items-center justify-center font-black text-xs transition-all cursor-pointer shadow-sm border border-[#2D6A3F]/20 hover:border-[#2D6A3F] touch-manipulation select-none"
             aria-label="زيادة الكمية"
