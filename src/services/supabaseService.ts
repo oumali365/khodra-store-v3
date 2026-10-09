@@ -231,20 +231,39 @@ export async function saveProductToStore(
 
       if (isNew) {
         payload.id = targetId;
-        const { error: upsertErr } = await client.from('products').upsert(payload);
+        const { data: insertedData, error: upsertErr } = await client
+          .from('products')
+          .upsert(payload)
+          .select();
+
         if (upsertErr) {
-          console.error('Supabase product save error:', upsertErr);
+          console.error('❌ [Admin Product] فشل إضافة المنتج في Supabase:', upsertErr);
           return { success: false, message: upsertErr.message || 'فشل حفظ المنتج في قاعدة البيانات' };
         }
+        if (!insertedData || insertedData.length === 0) {
+          console.error('❌ [Admin Product] تم رفض إضافة المنتج بواسطة RLS (0 rows inserted)');
+          return { success: false, message: 'رفضت سياسات أمان قاعدة البيانات (RLS) إضافة المنتج' };
+        }
+        console.log('✅ [Admin Product] تم إدراج المنتج بنجاح في Supabase:', insertedData[0]);
       } else {
-        const { error: updateErr } = await client.from('products').update(payload).eq('id', targetId);
+        const { data: updatedData, error: updateErr } = await client
+          .from('products')
+          .update(payload)
+          .eq('id', targetId)
+          .select();
+
         if (updateErr) {
-          console.error('Supabase product update error:', updateErr);
+          console.error('❌ [Admin Product] فشل تحديث بيانات المنتج في Supabase:', updateErr);
           return { success: false, message: updateErr.message || 'فشل تحديث بيانات المنتج' };
         }
+        if (!updatedData || updatedData.length === 0) {
+          console.error('❌ [Admin Product] تم رفض تحديث المنتج بواسطة RLS (0 rows updated)');
+          return { success: false, message: 'لم يتم حفظ التعديل في Supabase؛ يرجى التحقق من سياسات RLS' };
+        }
+        console.log('✅ [Admin Product] تم تحديث بيانات المنتج وسعره بنجاح في Supabase:', updatedData[0]);
       }
     } catch (dbErr: any) {
-      console.error('Supabase product save error:', dbErr);
+      console.error('❌ [Admin Product] استثناء أثناء حفظ المنتج في Supabase:', dbErr);
       return { success: false, message: dbErr?.message || 'خطأ في الاتصال بقاعدة البيانات' };
     }
 
@@ -266,6 +285,7 @@ export async function saveProductToStore(
       message: isNew ? 'تمت إضافة المنتج بنجاح إلى المتجر' : 'تم تحديث بيانات المنتج بنجاح',
     };
   } catch (err: any) {
+    console.error('❌ [Admin Product] خطأ غير متوقع في saveProductToStore:', err);
     return {
       success: false,
       message: err?.message || 'حدث خطأ أثناء حفظ المنتج',
@@ -273,16 +293,26 @@ export async function saveProductToStore(
   }
 }
 
+/**
+ * تحديث سريع لكمية المخزون (Admin Control First)
+ * متطلبات RLS وأمان Supabase:
+ * 1. جدول public.products يجب أن يمتلك سياسة UPDATE تسمح بالتعديل الصريح لدور anon أو authenticated.
+ * 2. إذا كانت السياسة مغلقة (Admin-Only JWT)، تفشل عمليات client.update() بصمت وتعيد 0 صفوف معدلة.
+ * 3. لذلك نستخدم .select() صراحة لكشف الفشل الصامت لـ RLS وعدم خداع الواجهة بـ success وهمي.
+ * 4. كما نقوم بمحاولة استدعاء دالة RPC المحمية update_product_stock_secure برمز المدير p_admin_pin أولاً.
+ */
 export async function updateProductStockQuick(
   productId: number,
   newStock: number
 ): Promise<{ success: boolean; message?: string }> {
   try {
     if (productId == null || isNaN(Number(productId)) || Number(productId) <= 0) {
+      console.error('❌ [Admin Stock] فشل التحقق: معرف المنتج غير صالح:', productId);
       return { success: false, message: 'معرف المنتج غير صالح' };
     }
 
     if (newStock == null || isNaN(Number(newStock)) || Number(newStock) < 0) {
+      console.error('❌ [Admin Stock] فشل التحقق: كمية المخزون سالبة أو غير صالحة:', newStock);
       return { success: false, message: 'قيمة المخزون غير صالحة ولا يمكن أن تكون سالبة' };
     }
 
@@ -291,21 +321,78 @@ export async function updateProductStockQuick(
 
     const client = getSupabase();
     if (!client) {
+      console.error('❌ [Admin Stock] قاعدة بيانات Supabase غير متصلة (العميل غير متوفر)');
       return { success: false, message: 'قاعدة بيانات Supabase غير متصلة' };
     }
 
-    const { error: updateErr } = await client
-      .from('products')
-      .update({
-        stock: validStock,
-        is_available: isAvail,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', Number(productId));
+    // ─── 1. تسجيل البيانات قبل إرسال الطلب (Pre-Request Logging) ───
+    console.log('🔄 [Admin Stock] جاري إرسال طلب تعديل المخزون إلى Supabase...', {
+      productId: Number(productId),
+      newStock: validStock,
+      isAvailable: isAvail,
+      timestamp: new Date().toISOString(),
+    });
 
-    if (updateErr) {
-      console.error('Supabase stock update error:', updateErr);
-      return { success: false, message: updateErr.message || 'فشل تحديث المخزون في قاعدة البيانات' };
+    let stockUpdatedInDb = false;
+
+    // ─── 2. محاولة التحديث عبر دالة RPC الآمنة update_product_stock_secure إن وجدت ───
+    try {
+      const pin = getAdminPin();
+      const { data: rpcData, error: rpcErr } = await client.rpc('update_product_stock_secure', {
+        p_product_id: Number(productId),
+        p_new_stock: validStock,
+        p_admin_pin: pin,
+      });
+
+      if (!rpcErr && rpcData?.success) {
+        stockUpdatedInDb = true;
+        console.log('✅ [Admin Stock] تم حفظ المخزون بنجاح عبر RPC في Supabase:', rpcData);
+      } else if (rpcErr && !rpcErr.message?.includes('could not find') && !rpcErr.message?.includes('schema cache')) {
+        console.warn('⚠️ [Admin Stock] ملاحظة من RPC update_product_stock_secure:', rpcErr.message);
+      }
+    } catch (rpcCallErr) {
+      // التراجع المرن للتحديث المباشر إذا لم تكن الدالة منشأة
+    }
+
+    // ─── 3. التحديث المباشر لجدول products مع .select() لكشف حجب RLS الصامت ───
+    if (!stockUpdatedInDb) {
+      const { data, error: updateErr } = await client
+        .from('products')
+        .update({
+          stock: validStock,
+          is_available: isAvail,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', Number(productId))
+        .select();
+
+      if (updateErr) {
+        // ─── تسجيل الخطأ عند الفشل (Error Logging) ───
+        console.error('❌ [Admin Stock] خطأ مباشر من Supabase أثناء تعديل المخزون:', {
+          error: updateErr,
+          code: updateErr.code,
+          message: updateErr.message,
+          productId,
+          attemptedStock: validStock,
+        });
+        return { success: false, message: updateErr.message || 'فشل تحديث المخزون في قاعدة البيانات' };
+      }
+
+      // التحقق الصارم من عدد الصفوف المعدلة:
+      // إذا كانت المصفوفة فارغة (data.length === 0)، فهذا دليل قاطع على أن RLS رفضت التعديل صامتاً
+      if (!data || data.length === 0) {
+        const rlsBlockMessage =
+          'فشل حفظ التعديل في Supabase! قواعد أمان RLS منعت التحديث (0 صفوف عُدلت). يرجى مراجعة صلاحيات المدير وسياسات جدول products.';
+        console.error('❌ [Admin Stock] رفض أمني من RLS (0 rows updated):', {
+          productId,
+          attemptedStock: validStock,
+          hint: 'RLS UPDATE policy on public.products is missing or denied for current client role',
+        });
+        return { success: false, message: rlsBlockMessage };
+      }
+
+      // ─── تسجيل النجاح بعد اكتمال الطلب (Post-Request Logging) ───
+      console.log('✅ [Admin Stock] تم تأكيد حفظ المخزون في Supabase بنجاح (Direct Update):', data[0]);
     }
 
     // تنظيف أي بيانات قديمة للمنتجات من localStorage
@@ -323,8 +410,10 @@ export async function updateProductStockQuick(
       );
     }
 
-    return { success: true, message: `تم تحديث المخزون إلى ${validStock}` };
+    return { success: true, message: `تم حفظ المخزون في السيرفر: ${validStock}` };
   } catch (err: any) {
+    // ─── تسجيل الاستثناءات غير المتوقعة (Catch Error Logging) ───
+    console.error('❌ [Admin Stock] استثناء غير متوقع أثناء تحديث المخزون:', err);
     return { success: false, message: err?.message || 'فشل تحديث المخزون' };
   }
 }

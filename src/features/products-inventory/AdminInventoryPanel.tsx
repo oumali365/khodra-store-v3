@@ -267,25 +267,56 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     }
   };
 
-  // تعديل سريع للكمية
+  // تعديل سريع للكمية (Admin Control First)
   const handleQuickStockChange = async (productId: number, delta: number) => {
     const target = products.find((p) => p.id === productId);
     if (!target) return;
     const newStock = Math.max(0, +((target.stock || 0) + delta).toFixed(2));
 
+    // 1. تسجيل قبل إرسال الطلب (Pre-Request Logging)
+    console.log('🔄 [AdminInventoryPanel] بدء تعديل كمية المنتج:', {
+      productId,
+      productName: target.name,
+      delta,
+      currentStock: target.stock,
+      targetStock: newStock,
+      timestamp: new Date().toISOString(),
+    });
+
     setSavingId(productId);
     const res = await updateProductStockQuick(productId, newStock);
     setSavingId(null);
 
+    // 2. التحقق من النتيجة: إذا نجح التحديث في Supabase
     if (res.success) {
+      // تسجيل بعد اكتمال الطلب بنجاح (Post-Request Logging)
+      console.log('✅ [AdminInventoryPanel] تم تأكيد حفظ المخزون في Supabase بنجاح:', {
+        productId,
+        newStock,
+      });
+
+      // تحديث الواجهة تماشياً مع قاعدة البيانات
       setProducts((prev) =>
         prev.map((p) => (p.id === productId ? { ...p, stock: newStock, is_available: newStock > 0 } : p))
       );
-      showToast('success', `تم تحديث مخزون ${target.name} إلى ${newStock}`);
+      showToast('success', res.message || `تم حفظ مخزون ${target.name} (${newStock}) في السيرفر`);
+
+      // إعادة الجلب فقط عند النجاح لتحديث الإحصائيات وضمان تزامن السيرفر
       await loadCatalog();
     } else {
-      showToast('error', res.message || 'فشل تحديث المخزون');
-      await loadCatalog();
+      // 3. في حالة الفشل (Error Handling):
+      // تسجيل الخطأ بالكامل (Error Logging)
+      console.error('❌ [AdminInventoryPanel] فشل حفظ المخزون في Supabase:', {
+        productId,
+        productName: target.name,
+        attemptedStock: newStock,
+        errorMessage: res.message,
+      });
+
+      // ⚠️ لا نحدث الواجهة محلياً بالقيمة الخاطئة
+      // ⚠️ لا نقوم بعمل refetch فوري عند الفشل لمنع اهتزاز الشاشة أو محو المدخلات
+      // نظهر رسالة خطأ صريحة للمدير
+      showToast('error', res.message || 'فشل حفظ المخزون في قاعدة البيانات');
     }
   };
 
@@ -362,13 +393,17 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
       is_bestseller: formData.is_bestseller,
     };
 
+    console.log('🔄 [AdminInventoryPanel] إرسال طلب حفظ تفاصيل المنتج إلى Supabase...', payload);
     const res = await saveProductToStore(payload);
     if (res.success && res.data) {
+      console.log('✅ [AdminInventoryPanel] تم حفظ المنتج بنجاح في Supabase:', res.data);
       showToast('success', res.message || 'تم حفظ المنتج بنجاح');
       setIsModalOpen(false);
       await loadCatalog();
     } else {
-      showToast('error', res.message || 'فشل حفظ المنتج');
+      console.error('❌ [AdminInventoryPanel] فشل حفظ المنتج في Supabase:', res.message);
+      showToast('error', res.message || 'فشل حفظ المنتج في قاعدة البيانات');
+      // لا نغلق النموذج ولا نقوم بعمل refetch عند الفشل ليتمكن المدير من تصحيح المدخلات أو المحاولة ثانية
     }
   };
 
@@ -378,11 +413,14 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
       return;
     }
 
+    console.log('🔄 [AdminInventoryPanel] إرسال طلب تعطيل المنتج إلى Supabase:', { id: p.id, name: p.name });
     const res = await deleteProductFromStore(p.id);
     if (res.success) {
+      console.log('✅ [AdminInventoryPanel] تم تعطيل المنتج بنجاح في Supabase:', p.id);
       showToast('success', res.message || 'تم تعطيل المنتج');
       await loadCatalog();
     } else {
+      console.error('❌ [AdminInventoryPanel] فشل تعطيل المنتج في Supabase:', res.message);
       showToast('error', res.message || 'فشل تعطيل المنتج');
     }
   };

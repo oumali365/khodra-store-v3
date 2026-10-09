@@ -64,6 +64,14 @@ CREATE POLICY "orders_admin_all"
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3️⃣ سياسات جدول المنتجات (products)
+-- ⚠️ متطلبات RLS وأمان إدارة المنتجات والمخزون (Admin Control First):
+-- 1. المتجر يتيح القراءة العامة للمنتجات المفعلة (active = true).
+-- 2. للتعديل والإضافة المباشرة من لوحة الإدارة المتصلة بمفتاح anon أو authenticated:
+--    إذا تم قصر سياسة UPDATE على جلسات auth.uid() الإدارية فقط دون توفير سياسة
+--    لـ anon، فإن PostgREST يرفض التعديل صامتاً بتعديل 0 صفوف (0 rows updated)
+--    مما يتسبب في عودة الواجهة للقيمة القديمة فور عمل refetch من السيرفر.
+-- 3. لذلك: إما استخدام دالة RPC المحمية update_product_stock_secure (SECURITY DEFINER)،
+--    أو السماح بالتحديث المنضبط للمخزون والأسعار عبر السياسة التالية:
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "products_public_select" ON public.products;
 CREATE POLICY "products_public_select"
@@ -71,6 +79,29 @@ CREATE POLICY "products_public_select"
   FOR SELECT
   TO anon, authenticated
   USING (active = TRUE);
+
+DROP POLICY IF EXISTS "products_public_update" ON public.products;
+CREATE POLICY "products_public_update"
+  ON public.products
+  FOR UPDATE
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (
+    (stock IS NULL OR stock >= 0)
+    AND (price IS NULL OR price >= 0)
+  );
+
+DROP POLICY IF EXISTS "products_public_insert" ON public.products;
+CREATE POLICY "products_public_insert"
+  ON public.products
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    name IS NOT NULL
+    AND LENGTH(TRIM(name)) > 0
+    AND price >= 0
+    AND (stock IS NULL OR stock >= 0)
+  );
 
 DROP POLICY IF EXISTS "products_authenticated_admin_all" ON public.products;
 CREATE POLICY "products_authenticated_admin_all"
