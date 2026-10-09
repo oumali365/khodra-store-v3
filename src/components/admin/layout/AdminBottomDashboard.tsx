@@ -23,6 +23,8 @@ import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
 import { clearCachedAdminPin, updateAdminPassword, fetchProducts } from '../../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
 import { AdminErrorBoundary } from './AdminErrorBoundary';
+import { AdminNotificationToast } from './AdminNotificationToast';
+import { playOrderAlertSound } from '../../../utils/audioAlert';
 
 export type AdminRoute = 'orders' | 'inventory' | 'marketing' | 'fleet' | 'finance' | 'documents' | 'pricing';
 
@@ -49,9 +51,9 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
     }
   });
 
-  const { totalPending, markAsSeen, refresh: refreshOrders } = useNewOrdersNotifier({
+  const { totalPending, newCount, markAsSeen, refresh: refreshOrders } = useNewOrdersNotifier({
     enabled: isAdmin,
-    pollIntervalMs: 45000,
+    pollIntervalMs: 30000,
   });
 
   const handleToggleSound = useCallback(() => {
@@ -60,6 +62,9 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
       try {
         localStorage.setItem('khodra_notification_sound', String(next));
       } catch {}
+      if (next) {
+        playOrderAlertSound(true);
+      }
       setDashboardNotice(next ? '🔔 تم تفعيل التنبيهات الصوتية' : '🔇 تم كتم التنبيهات الصوتية');
       setTimeout(() => setDashboardNotice(null), 3000);
       return next;
@@ -416,6 +421,25 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
           onSubmit={handleChangePinSubmit}
         />
       )}
+
+      {/* ═══════ إشعار طافٍ للطلبات الجديدة ═══════ */}
+      <AdminNotificationToast
+        newCount={newCount}
+        onOpenOrders={() => {
+          markAsSeen();
+          if (onNavigateAdmin) {
+            onNavigateAdmin('orders');
+          } else {
+            window.history.pushState({ admin: 'orders' }, '', '/admin/orders');
+            window.dispatchEvent(new CustomEvent('khodra_admin_route_changed', { detail: 'orders' }));
+          }
+        }}
+        onDismiss={() => {
+          markAsSeen();
+        }}
+        soundEnabled={soundEnabled}
+        onToggleSound={handleToggleSound}
+      />
     </section>
   );
 };

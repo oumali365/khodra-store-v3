@@ -24,6 +24,8 @@ import {
 import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
 import { updateAdminPassword, verifyAdminPinRemote } from '../../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
+import { AdminNotificationToast } from './AdminNotificationToast';
+import { playOrderAlertSound } from '../../../utils/audioAlert';
 
 export type AdminRoute = 'orders' | 'inventory' | 'marketing' | 'fleet' | 'finance' | 'documents' | 'pricing';
 
@@ -136,9 +138,9 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
   });
 
   // إشعار الطلبات الجديدة
-  const { totalPending } = useNewOrdersNotifier({
+  const { totalPending, newCount, markAsSeen } = useNewOrdersNotifier({
     enabled: isAdmin,
-    pollIntervalMs: 40000,
+    pollIntervalMs: 30000,
   });
 
   const handleToggleSound = useCallback(() => {
@@ -147,6 +149,9 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
       try {
         localStorage.setItem('khodra_notification_sound', String(next));
       } catch {}
+      if (next) {
+        playOrderAlertSound(true);
+      }
       setNotice(next ? '🔔 تم تفعيل التنبيهات الصوتية للطلبات' : '🔇 تم كتم التنبيهات الصوتية');
       setTimeout(() => setNotice(null), 3000);
       return next;
@@ -461,6 +466,22 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
           onSubmit={handleChangePinSubmit}
         />
       )}
+
+      {/* ══════════════════════════════════════════════════════════
+          6. إشعار طافٍ للطلبات الجديدة الواردة
+          ══════════════════════════════════════════════════════════ */}
+      <AdminNotificationToast
+        newCount={currentRoute === 'orders' ? 0 : newCount}
+        onOpenOrders={() => {
+          markAsSeen();
+          onNavigate('orders');
+        }}
+        onDismiss={() => {
+          markAsSeen();
+        }}
+        soundEnabled={soundEnabled}
+        onToggleSound={handleToggleSound}
+      />
     </div>
   );
 };

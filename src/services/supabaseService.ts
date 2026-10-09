@@ -161,7 +161,7 @@ export async function fetchProducts(): Promise<Product[]> {
     console.warn('Notice: Daily prices synchronization handled gracefully:', syncErr);
   }
 
-  // 3. دمج التعديلات والمنتجات المضافة من لوحة الإدارة
+  // 3. دمج المنتجات المضافة محلياً فقط (تلك التي لا توجد في قاعدة بيانات Supabase)
   try {
     if (typeof localStorage !== 'undefined') {
       const savedCustom = localStorage.getItem('khodra_custom_products_v2');
@@ -170,12 +170,26 @@ export async function fetchProducts(): Promise<Product[]> {
         if (Array.isArray(customOverrides)) {
           const map = new Map<number, Product>();
           baseProducts.forEach((p) => map.set(p.id, p));
+
+          // تنظيف التخزين المحلي تدريجياً لضمان أن Supabase هو المصدر الوحيد للمخزون
+          const remainingCustom: Product[] = [];
+
           customOverrides.forEach((p: Product) => {
             if (p && p.id) {
               const existing = map.get(p.id);
-              map.set(p.id, existing ? { ...existing, ...p } : p);
+              // إذا كان المنتج غير موجود أصلاً في Supabase (منتج محلي مضاف في وضع عدم الاتصال)
+              if (!existing) {
+                map.set(p.id, p);
+                remainingCustom.push(p);
+              }
             }
           });
+
+          // تنظيف التخزين المحلي فوراً عند اتصال Supabase لمنع تجميد المخزون القديم
+          if (client && baseProducts.length > 0) {
+            localStorage.setItem('khodra_custom_products_v2', JSON.stringify(remainingCustom));
+          }
+
           baseProducts = Array.from(map.values()).sort((a, b) => a.id - b.id);
         }
       }
@@ -241,24 +255,32 @@ export async function saveProductToStore(
 
         if (isNew) {
           payload.id = targetId;
-          await client.from('products').upsert(payload);
+          const { error: upsertErr } = await client.from('products').upsert(payload);
+          if (upsertErr) console.warn('Supabase product save error:', upsertErr);
         } else {
-          await client.from('products').update(payload).eq('id', targetId);
+          const { error: updateErr } = await client.from('products').update(payload).eq('id', targetId);
+          if (updateErr) console.warn('Supabase product update error:', updateErr);
         }
       } catch (dbErr) {
         console.warn('Supabase product save fallback to local:', dbErr);
       }
     }
 
-    // 2. الحفظ الفوري في التخزين المحلي لضمان الانعكاس المباشر (Instant Local Persistence)
+    // 2. إدارة التخزين المحلي: إذا كان Supabase متصلاً يتم تنظيف المنتج من التخزين المحلي لعدم تجميد بياناته
     if (typeof localStorage !== 'undefined') {
       const savedCustom = localStorage.getItem('khodra_custom_products_v2');
       let customList: Product[] = savedCustom ? JSON.parse(savedCustom) : [];
-      const idx = customList.findIndex((p) => p.id === targetId);
-      if (idx >= 0) {
-        customList[idx] = completeProduct;
+      if (client) {
+        // تنظيف المنتج من التخزين المحلي لأن Supabase هو المصدر الحقيقي
+        customList = customList.filter((p) => p.id !== targetId);
       } else {
-        customList.push(completeProduct);
+        // وضع عدم الاتصال فقط (Offline Fallback)
+        const idx = customList.findIndex((p) => p.id === targetId);
+        if (idx >= 0) {
+          customList[idx] = completeProduct;
+        } else {
+          customList.push(completeProduct);
+        }
       }
       localStorage.setItem('khodra_custom_products_v2', JSON.stringify(customList));
     }
@@ -292,7 +314,7 @@ export async function updateProductStockQuick(
     const client = getSupabase();
     if (client) {
       try {
-        await client
+        const { error: updateErr } = await client
           .from('products')
           .update({
             stock: validStock,
@@ -300,26 +322,28 @@ export async function updateProductStockQuick(
             updated_at: new Date().toISOString(),
           })
           .eq('id', productId);
-      } catch (e) {
+
+        if (updateErr) {
+          console.error('Supabase stock update error:', updateErr);
+          return { success: false, message: updateErr.message };
+        }
+      } catch (e: any) {
         console.warn('Supabase stock update fallback:', e);
       }
     }
 
+    // تنظيف هذا المنتج من التخزين المحلي لضمان عدم تجميد رصيده القديم
     if (typeof localStorage !== 'undefined') {
       const savedCustom = localStorage.getItem('khodra_custom_products_v2');
-      let customList: Product[] = savedCustom ? JSON.parse(savedCustom) : [];
-      const idx = customList.findIndex((p) => p.id === productId);
-      if (idx >= 0) {
-        customList[idx].stock = validStock;
-        customList[idx].is_available = isAvail;
-      } else {
-        customList.push({
-          id: productId,
-          stock: validStock,
-          is_available: isAvail,
-        } as Product);
+      if (savedCustom) {
+        try {
+          const customList: Product[] = JSON.parse(savedCustom);
+          if (Array.isArray(customList)) {
+            const filtered = customList.filter((p) => p.id !== productId);
+            localStorage.setItem('khodra_custom_products_v2', JSON.stringify(filtered));
+          }
+        } catch {}
       }
-      localStorage.setItem('khodra_custom_products_v2', JSON.stringify(customList));
     }
 
     if (typeof window !== 'undefined') {
@@ -352,13 +376,17 @@ export async function deleteProductFromStore(
     if (typeof localStorage !== 'undefined') {
       const savedCustom = localStorage.getItem('khodra_custom_products_v2');
       let customList: Product[] = savedCustom ? JSON.parse(savedCustom) : [];
-      const idx = customList.findIndex((p) => p.id === productId);
-      if (idx >= 0) {
-        customList[idx].active = false;
-        customList[idx].is_available = false;
-        customList[idx].stock = 0;
+      if (client) {
+        customList = customList.filter((p) => p.id !== productId);
       } else {
-        customList.push({ id: productId, active: false, is_available: false, stock: 0 } as Product);
+        const idx = customList.findIndex((p) => p.id === productId);
+        if (idx >= 0) {
+          customList[idx].active = false;
+          customList[idx].is_available = false;
+          customList[idx].stock = 0;
+        } else {
+          customList.push({ id: productId, active: false, is_available: false, stock: 0 } as Product);
+        }
       }
       localStorage.setItem('khodra_custom_products_v2', JSON.stringify(customList));
     }

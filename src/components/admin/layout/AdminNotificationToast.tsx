@@ -4,6 +4,7 @@
 // ============================================================
 import React, { useEffect, useRef } from 'react';
 import { Bell, ShoppingBag, Volume2, VolumeX, X, ArrowLeft } from 'lucide-react';
+import { playOrderAlertSound } from '../../../utils/audioAlert';
 
 export interface AdminNotificationToastProps {
   newCount: number;
@@ -11,49 +12,6 @@ export interface AdminNotificationToastProps {
   onDismiss: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
-}
-
-// دالة تشغيل نغمة تنبيه صوتية لطيفة ونقية عبر Web Audio API
-function playChime() {
-  try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-
-    const ctx = new AudioContextClass();
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-
-    const now = ctx.currentTime;
-
-    // النغمة الأولى (D5 - 587 Hz)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(587.33, now);
-    gain1.gain.setValueAtTime(0.12, now);
-    gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.3);
-
-    // النغمة الثانية (A5 - 880 Hz)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(880, now + 0.12);
-    gain2.gain.setValueAtTime(0.15, now + 0.12);
-    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.12);
-    osc2.stop(now + 0.5);
-  } catch {
-    // تجاهل أخطاء تشغيل الصوت إذا كان المتصفح يقيد التشغيل التلقائي
-  }
 }
 
 export const AdminNotificationToast: React.FC<AdminNotificationToastProps> = ({
@@ -68,7 +26,7 @@ export const AdminNotificationToast: React.FC<AdminNotificationToastProps> = ({
   // تشغيل الصوت عند زيادة عدد الطلبات الجديدة إذا كان الصوت مفعلاً
   useEffect(() => {
     if (newCount > 0 && newCount > previousCountRef.current && soundEnabled) {
-      playChime();
+      playOrderAlertSound(true);
     }
     previousCountRef.current = newCount;
   }, [newCount, soundEnabled]);
