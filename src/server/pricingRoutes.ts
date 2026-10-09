@@ -97,7 +97,8 @@ pricingRouter.get('/api/forecast/30days', async (_req: Request, res: Response) =
 
     const recommendation = {
       dayOfWeek: currentDayName,
-      smartSuggestion: `بناءً على مبيعات آخر 3 أيام (${currentDayName})، يجب عليك تخزين حوالي 145 كجم من البطاطس و 120 كجم من الطماطم و 95 كجم من البصل اليوم من سوق بنسودة.`,
+      isBenchmarkModel: true,
+      smartSuggestion: `نموذج مرجعي لتوقع الطلب ليوم (${currentDayName}): يُوصى بتوفير الخضار الأساسية (بطاطس، طماطم، بصل) من سوق الجملة بنسودة وفق وتيرة التسوق الأسبوعية.`,
       topItemsToStock: [
         { name: 'بطاطس بلدية', quantityKg: 145, unit: 'kg' },
         { name: 'طماطم طازجة', quantityKg: 120, unit: 'kg' },
@@ -106,7 +107,7 @@ pricingRouter.get('/api/forecast/30days', async (_req: Request, res: Response) =
       ],
       aiAlert: {
         detected: true,
-        message: 'تم اكتشاف طلب مرتفع على الفواكه الموسمية والحوامض. يُنصح بزيادة المخزون بنسبة 20% غداً.',
+        message: 'مؤشر موسمي: طلب متزايد على الفواكه والحوامض مع نهاية الأسبوع.',
         suggestedIncrease: 20,
       },
     };

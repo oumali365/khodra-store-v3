@@ -6,12 +6,14 @@
 // ① تحميل متغيرات البيئة أولاً قبل أي استيراد آخر
 import dotenv from 'dotenv';
 dotenv.config();
+dotenv.config({ path: '.env.local' });
 
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { pricingRouter } from './src/server/pricingRoutes';
 import { aiRouter } from './src/server/aiRoutes';
+import { getSupabaseConnectionStatus } from './src/server/supabaseServerClient';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,12 +36,19 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // ④ مسار فحص الصحة — يظهر ما إذا كان المفتاح محملاً
+  // ④ مسار فحص الصحة — يظهر ما إذا كانت الخدمات مهيأة بدون كشف أي أسرار
   app.get('/api/health', (_req: Request, res: Response) => {
+    const supabase = getSupabaseConnectionStatus();
     res.json({
       status: 'ok',
       service: 'Khodra Fès Fullstack Server',
       geminiConfigured: !!process.env.GEMINI_API_KEY,
+      supabaseConfigured: supabase.isConfigured,
+      supabaseStatus: {
+        hasUrl: supabase.hasUrl,
+        keyRole: supabase.keyRole,
+        clientReady: supabase.clientReady,
+      },
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
     });
@@ -83,8 +92,9 @@ async function startServer() {
   });
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 خُضرة — Khodra Server running at http://0.0.0.0:${PORT}`);
     console.log(`🔑 Gemini API Key: ${process.env.GEMINI_API_KEY ? '✅ مُحمّل' : '❌ مفقود'}`);
+    const sb = getSupabaseConnectionStatus();
+    console.log(`🗄️ Supabase Server Client: ${sb.isConfigured ? `✅ مهيأ (${sb.keyRole})` : 'ℹ️ غير مهيأ (وضع الاستعلام الآمن)'}`);
   });
 }
 

@@ -2,6 +2,7 @@
 // src/server/copilotService.ts
 // محرك Khodra AI Copilot v2 — المساعد التشغيلي الذكي
 // يعتمد على Function Calling الحقيقي والربط المباشر بـ Supabase
+// يلتزم بنزاهة البيانات التامة والفصل الصريح بين النجاح/الجدول الفارغ/الفشل
 // ============================================================
 
 import { getGeminiClient, GEMINI_MODEL } from './geminiClient';
@@ -33,9 +34,11 @@ export interface CopilotResponse {
   toolsExecuted: {
     toolName: string;
     source: string;
+    status?: string;
     summary: string;
     isRealData: boolean;
     data?: any;
+    errorMessage?: string;
   }[];
   suggestedActions: CopilotAction[];
   dataContext: string;
@@ -47,12 +50,12 @@ const COPILOT_SYSTEM_INSTRUCTION = `
 أنت "خُضرة AI Copilot v2" — المساعد التشغيلي والإداري الذكي الرسمي لمنصة "خُضرة — فاس" (Khodra Fès).
 أنت شريك حقيقي لمدير المتجر وفريق العمليات في مدينة فاس والمغرب.
 
-القواعد الصارمة والإلزامية:
+القواعد الصارمة والإلزامية لنزاهة البيانات والمصداقية:
 1. 🔒 وضع القراءة فقط والأمان (Read-Only Security):
    أنت في وضع القراءة والتحليل فقط. لا يمكنك أبداً إجراء تعديلات مباشرة أو حذف أو إضافة على المنتجات أو المخزون أو الطلبات.
-   إذا طلب منك المدير تعديل سعر أو تغيير مخزون أو حذف طلب، وضّح له بلطف أن Copilot يعمل بوضع الاستعلام الآمن (Read-Only)، واقترح عليه التوجه للوحة المناسبة (مثلاً لوحة إدارة المخزون أو إدارة الطلبات) وإدخال رمز PIN الإداري.
+   إذا طلب منك المدير تعديل سعر أو تغيير مخزون أو حذف طلب، وضّح له بلطف أن Copilot يعمل بوضع الاستعلام الآمن (Read-Only)، واقترح عليه التوجه للوحة المناسبة وإدخال رمز PIN الإداري.
 
-2. 📊 الدقة والواقعية والربط المباشر (Strict Grounding):
+2. 📊 الدقة والربط المباشر (Strict Grounding):
    يجب أن تعتمد حصرياً على الأدوات المتاحة (Tools) لجلب البيانات الحقيقية من Supabase:
    - get_products: للبحث في الكتالوج، الأسعار، وحالة توفر المنتجات.
    - get_inventory: لتحليل الكميات بالمستودع، المنتجات الناقصة، والمنتجات غير المتوفرة.
@@ -61,14 +64,21 @@ const COPILOT_SYSTEM_INSTRUCTION = `
    - get_inventory_movements: للتحقق من سجل حركات المخزون (inventory_ledger).
    - get_store_info: لمعلومات التوصيل بفاس، الأسعار، وعتبة التوصيل المجاني.
 
-3. 🚫 منع اختلاق البيانات منعاً باتاً (No Hallucinations):
-   لا تخترع أي أرقام أو كميات أو طلبات غير موجودة. إذا كانت نتيجة الأداة فارغة (مثل: عدد الطلبات 0 أو لا توجد حركات مخزون مسجلة)، قل ذلك بكل صدق وشفافية للمدير.
+3. ⚖️ الفصل الصارم بين حالات البيانات (Crucial Integrity Rule):
+   يجب أن تميز بدقة وصراحة بين 4 حالات:
+   أ) نجاح جلب البيانات الحقيقية من Supabase: أجب بالبيانات والأرقام الدقيقة الواردة في الأداة.
+   ب) نجاح الاتصال ولكن الجدول خالٍ (Empty): وضّح للمدير أن قاعدة البيانات متصلة وسليمة، ولكن لا توجد بيانات مسجلة حالياً في هذه الفترة.
+   ج) تعذر الاتصال أو فشل استعلام قاعدة البيانات (Error / Not Configured): صرّح بوضوح وشفافية أن الاتصال بقاعدة البيانات غير متاح حالياً أو حدث خطأ في الاستعلام. لا تدّعِ أبداً أنك حللت بيانات المتجر، ولا تقل أن عدد الطلبات هو صفر أو أن المخزون خالٍ.
+   د) الإجابات العامة أو النصائح التسويقية: إذا أجبت بدون استخدام أدوات المتجر، بيّن أنها إرشادات عامة وليست مبنية على بيانات مخزون متجرك الفعلي.
 
-4. 🇲🇦 اللهجة والأسلوب المهني:
+4. 🚫 منع اختلاق البيانات منعاً باتاً (Zero Hallucinations):
+   لا تخترع أي أرقام أو كميات أو طلبات غير موجودة في نتائج الأدوات.
+
+5. 🇲🇦 اللهجة والأسلوب المهني:
    تحدث بلغة عربية مهنية واضحة مع فهم تام لخصوصية السوق المغربي ومدينة فاس (سوق الجملة بنسودة، أحياء فاس: طريق إيموزار، النرجس، الأطلس، بنسودة، عين الشقف، المدينة القديمة، العملة بالدرهم DH). تفهم تماماً الدارجة المغربية والفرنسية إذا كتب بها المستخدم.
 
-5. 💡 تقديم التوجيه التشغيلي المفيد:
-   لا تكتفِ بسرد الأرقام الجافة، بل قدّم قراءة تشغيلية ذكية (مثلاً: "لدينا 3 طلبات جديدة بحاجة للتجهيز فوراً قبل خروج الموزعين"، أو "الطماطم قاربت على النفاد (مخزون 4 كجم)، أنصح بعدم ترويجها لحين التزويد الصباحي").
+6. 💡 تقديم التوجيه التشغيلي المفيد عند توفر البيانات:
+   عند توفر بيانات حقيقية، قدّم قراءة تشغيلية ذكية ومباشرة تدعم اتخاذ القرار.
 `;
 
 /**
@@ -159,33 +169,36 @@ export async function executeCopilotChat(
           },
         });
 
-        const replyText = finalGen.text || 'تم فحص البيانات بنجاح.';
+        const replyText = finalGen.text || 'تم فحص البيانات.';
         const actions = extractSuggestedActions(userMessage, toolsExecuted);
+        const hasRealData = toolsExecuted.some((t) => t.isRealData && (t.status === 'success' || t.status === 'empty'));
 
         return {
           reply: replyText,
           toolsExecuted: toolsExecuted.map((t) => ({
             toolName: t.toolName,
             source: t.source,
+            status: t.status,
             summary: t.summary,
             isRealData: t.isRealData,
             data: t.data,
+            errorMessage: t.errorMessage,
           })),
           suggestedActions: actions,
           dataContext: buildDataContextSummary(toolsExecuted),
-          isRealData: toolsExecuted.some((t) => t.isRealData),
+          isRealData: hasRealData,
           modelUsed: GEMINI_MODEL,
         };
       }
 
-      // إذا رد النموذج مباشرة بنص دون طلب أدوات
+      // إذا رد النموذج مباشرة بنص دون طلب أدوات (إجابة استشارية عامة)
       if (response.text) {
         return {
           reply: response.text,
           toolsExecuted: [],
           suggestedActions: extractSuggestedActions(userMessage, []),
-          dataContext: 'إجابة إرشادية مباشرة من خُضرة AI Copilot.',
-          isRealData: true,
+          dataContext: 'إجابة إرشادية عامة (لم يتم استعلام بيانات المتجر الفعلية).',
+          isRealData: false,
           modelUsed: GEMINI_MODEL,
         };
       }
@@ -196,15 +209,14 @@ export async function executeCopilotChat(
 
   // ────────────────────────────────────────────────────────────
   // محرك النوايا الحتمي والذاتي (Deterministic Intent Router)
-  // يضمن 100% أن المستخدم يحصل على بيانات Supabase الحية حتى لو
-  // انقطع مفتاح Gemini أو حدث أي استثناء
+  // يضمن 100% الشفافية والنزاهة حتى عند تعذر Gemini
   // ────────────────────────────────────────────────────────────
   return await executeDeterministicCopilot(userMessage);
 }
 
 /**
  * المحرك الحتمي الاحتياطي الذكي:
- * يحلل السؤال، يستدعي نفس أدوات Supabase الحقيقية، وينتج رداً غنياً ومنسقاً
+ * يحلل السؤال، يستدعي نفس الأدوات الحقيقية، وينتج رداً نزيهاً يفرق بين النجاح والفشل
  */
 async function executeDeterministicCopilot(userMessage: string): Promise<CopilotResponse> {
   const q = userMessage.toLowerCase();
@@ -227,35 +239,46 @@ async function executeDeterministicCopilot(userMessage: string): Promise<Copilot
     const inv = await executeGetInventory({ filter: 'all' });
     toolsExecuted.push(inv);
 
-    const { data } = inv;
-    const lowCount = data.low_stock_count || 0;
-    const outCount = data.out_of_stock_count || 0;
+    if (inv.status === 'not_configured') {
+      reply = `⚠️ **تنبيه الاتصال بقاعدة البيانات:**\n\nقاعدة بيانات Supabase غير مهيأة على الخادم لتعذر العثور على مفاتيح الاتصال.\nتعذر جلب المخزون اللحظي لمتجر خُضرة فاس.\n\nيرجى التحقق من متغيرات البيئة (SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY أو SUPABASE_ANON_KEY).`;
+      actions.push({ label: '📦 فتح لوحة المخزون في الإدارة', actionType: 'view_inventory' });
+    } else if (inv.status === 'query_error' || inv.status === 'connection_error') {
+      reply = `❌ **خطأ في استعلام المخزون:**\n\nتعذر الاتصال بقاعدة البيانات أو حدث خطأ أثناء فحص جدول المنتجات:\n${inv.errorMessage || 'خطأ غير معروف'}\n\nيرجى مراجعة إعدادات قاعدة البيانات أو المحاولة لاحقاً.`;
+      actions.push({ label: '📦 فتح لوحة المخزون في الإدارة', actionType: 'view_inventory' });
+    } else if (inv.status === 'empty') {
+      reply = `📦 **تقرير المخزون — خُضرة فاس:**\n\nتم الاتصال بقاعدة بيانات Supabase بنجاح، ولكن جدول المنتجات لا يحتوي على أصناف مسجلة حالياً.\nيمكنك إضافة المنتجات الجديدة من لوحة إدارة المنتجات.`;
+      actions.push({ label: '➕ إضافة منتجات جديدة', actionType: 'view_inventory' });
+    } else {
+      const { data } = inv;
+      const lowCount = data.low_stock_count || 0;
+      const outCount = data.out_of_stock_count || 0;
 
-    reply = `📦 **تقرير المخزون اللحظي لمتجر خُضرة فاس:**\n\n`;
-    reply += `• **إجمالي المنتجات المسجلة:** ${data.total_products} منتج\n`;
-    reply += `• **المتوفر بأمان (> 5 كجم/وحدة):** ${data.available_healthy_count} منتج\n`;
-    reply += `• **المنتجات منخفضة المخزون (1 إلى 5):** ${lowCount} منتجات\n`;
-    reply += `• **المنتجات غير المتوفرة (0):** ${outCount} منتج\n`;
-    reply += `• **مؤشر صحة المخزون:** ${data.inventory_health_percentage}%\n\n`;
+      reply = `📦 **تقرير المخزون اللحظي لمتجر خُضرة فاس (بيانات حية من Supabase):**\n\n`;
+      reply += `• **إجمالي المنتجات المسجلة:** ${data.total_products} منتج\n`;
+      reply += `• **المتوفر بأمان (> 5 كجم/وحدة):** ${data.available_healthy_count} منتج\n`;
+      reply += `• **المنتجات منخفضة المخزون (1 إلى 5):** ${lowCount} منتجات\n`;
+      reply += `• **المنتجات غير المتوفرة (0):** ${outCount} منتج\n`;
+      reply += `• **مؤشر صحة المخزون:** ${data.inventory_health_percentage}%\n\n`;
 
-    if (data.low_stock_list && data.low_stock_list.length > 0) {
-      reply += `⚠️ **تنبيه السلع المقاربة على النفاد:**\n`;
-      data.low_stock_list.slice(0, 6).forEach((item: any) => {
-        reply += `  - ${item.name}: متبقي **${item.stock} ${item.unit}** فقط (سعر: ${item.price} درهم)\n`;
-      });
-      reply += `💡 *توجيه التشغيل:* يرجى الحذر من إطلاق حملات ترويجية مكثفة على هذه السلع لتفادي عجز التوصيل، وبرمجتها في قائمة مشتريات فجر الغد من سوق بنسودة.\n\n`;
+      if (data.low_stock_list && data.low_stock_list.length > 0) {
+        reply += `⚠️ **تنبيه السلع المقاربة على النفاد:**\n`;
+        data.low_stock_list.slice(0, 6).forEach((item: any) => {
+          reply += `  - ${item.name}: متبقي **${item.stock} ${item.unit}** فقط (سعر: ${item.price} درهم)\n`;
+        });
+        reply += `💡 *توجيه التشغيل:* يرجى الحذر من إطلاق حملات ترويجية مكثفة على هذه السلع لتفادي عجز التوصيل، وبرمجتها في قائمة مشتريات فجر الغد من سوق بنسودة.\n\n`;
+      }
+
+      if (data.out_of_stock_list && data.out_of_stock_list.length > 0) {
+        reply += `❌ **المنتجات غير المتوفرة حالياً:**\n`;
+        data.out_of_stock_list.slice(0, 5).forEach((item: any) => {
+          reply += `  - ${item.name} (${item.unit})\n`;
+        });
+        reply += `\n`;
+      }
+
+      actions.push({ label: '📦 فتح لوحة المخزون لإعادة التزويد', actionType: 'view_inventory' });
+      actions.push({ label: '💵 مراجعة أسعار سوق الجملة اليوم', actionType: 'view_pricing' });
     }
-
-    if (data.out_of_stock_list && data.out_of_stock_list.length > 0) {
-      reply += `❌ **المنتجات غير المتوفرة حالياً:**\n`;
-      data.out_of_stock_list.slice(0, 5).forEach((item: any) => {
-        reply += `  - ${item.name} (${item.unit})\n`;
-      });
-      reply += `\n`;
-    }
-
-    actions.push({ label: '📦 فتح لوحة المخزون لإعادة التزويد', actionType: 'view_inventory' });
-    actions.push({ label: '💵 مراجعة أسعار سوق الجملة اليوم', actionType: 'view_pricing' });
   }
 
   // 2) استفسارات المبيعات والمالية (Sales & Revenue)
@@ -275,26 +298,36 @@ async function executeDeterministicCopilot(userMessage: string): Promise<Copilot
     const sales = await executeGetSalesSummary({ period });
     toolsExecuted.push(sales);
 
-    const { data } = sales;
-    reply = `💰 **ملخص المبيعات التشغيلي (${data.period}) — خُضرة فاس:**\n\n`;
-    reply += `• **إجمالي الطلبات:** ${data.total_orders} طلب\n`;
-    reply += `• **طلبات تم تسليمها بنجاح:** ${data.delivered_orders_count} طلب بإيراد مؤكد: **${data.delivered_revenue_dh} درهم**\n`;
-    reply += `• **طلبات قيد الإنجاز (جديدة/مجهزة):** ${data.pending_orders_count} طلب بقيمة: **${data.pending_potential_revenue_dh} درهم**\n`;
-    reply += `• **الطلبات الملغية:** ${data.cancelled_orders_count}\n`;
-    reply += `• **متوسط قيمة الطلب (AOV):** **${data.average_order_value_dh} درهم**\n\n`;
-
-    if (data.top_selling_items && data.top_selling_items.length > 0) {
-      reply += `🔥 **المنتجات الأكثر طلباً في السلات:**\n`;
-      data.top_selling_items.forEach((item: any, i: number) => {
-        reply += `  ${i + 1}. ${item.name}: **${item.total_quantity} ${item.unit}** (في ${item.in_orders_count} طلب)\n`;
-      });
-      reply += `\n`;
+    if (sales.status === 'not_configured') {
+      reply = `⚠️ **تنبيه الاتصال بقاعدة البيانات:**\n\nقاعدة بيانات Supabase غير مهيأة على الخادم. تعذر جلب تقرير المبيعات الحقيقي.\nيرجى التأكد من تهيئة متغيرات الاتصال بـ Supabase.`;
+      actions.push({ label: '🛵 عرض الطلبات الحالية', actionType: 'view_orders' });
+    } else if (sales.status === 'query_error' || sales.status === 'connection_error') {
+      reply = `❌ **خطأ في استعلام المبيعات:**\n\nتعذر حساب تقرير المبيعات بسبب خطأ في قاعدة البيانات:\n${sales.errorMessage || 'خطأ غير معروف'}`;
+      actions.push({ label: '🛵 عرض الطلبات الحالية', actionType: 'view_orders' });
+    } else if (sales.status === 'empty') {
+      reply = `💰 **ملخص المبيعات التشغيلي (${sales.data?.period || 'اليوم'}) — خُضرة فاس:**\n\nتم الاتصال بقاعدة البيانات بنجاح: لا توجد طلبات مسجلة في هذه الفترة المحددة حتى الآن لحساب الإيرادات والمبيعات.`;
+      actions.push({ label: '🛵 عرض الطلبات', actionType: 'view_orders' });
+      actions.push({ label: '📢 إطلاق حملة تسويقية لتنشيط المبيعات', actionType: 'create_campaign' });
     } else {
-      reply += `ℹ️ لم تسجل طلبات مكتملة تحتوي على عناصر في هذه الفترة المحددة.\n\n`;
-    }
+      const { data } = sales;
+      reply = `💰 **ملخص المبيعات التشغيلي (${data.period}) — خُضرة فاس (بيانات حية):**\n\n`;
+      reply += `• **إجمالي الطلبات:** ${data.total_orders} طلب\n`;
+      reply += `• **طلبات تم تسليمها بنجاح:** ${data.delivered_orders_count} طلب بإيراد مؤكد: **${data.delivered_revenue_dh} درهم**\n`;
+      reply += `• **طلبات قيد الإنجاز (جديدة/مجهزة):** ${data.pending_orders_count} طلب بقيمة: **${data.pending_potential_revenue_dh} درهم**\n`;
+      reply += `• **الطلبات الملغية:** ${data.cancelled_orders_count}\n`;
+      reply += `• **متوسط قيمة الطلب (AOV):** **${data.average_order_value_dh} درهم**\n\n`;
 
-    actions.push({ label: '🛵 عرض الطلبات الحالية', actionType: 'view_orders' });
-    actions.push({ label: '📢 إطلاق حملة تسويقية لتنشيط المبيعات', actionType: 'create_campaign' });
+      if (data.top_selling_items && data.top_selling_items.length > 0) {
+        reply += `🔥 **المنتجات الأكثر طلباً في السلات:**\n`;
+        data.top_selling_items.forEach((item: any, i: number) => {
+          reply += `  ${i + 1}. ${item.name}: **${item.total_quantity} ${item.unit}** (في ${item.in_orders_count} طلب)\n`;
+        });
+        reply += `\n`;
+      }
+
+      actions.push({ label: '🛵 عرض الطلبات الحالية', actionType: 'view_orders' });
+      actions.push({ label: '📢 إطلاق حملة تسويقية لتنشيط المبيعات', actionType: 'create_campaign' });
+    }
   }
 
   // 3) استفسارات الطلبات (Orders Tracking)
@@ -311,25 +344,34 @@ async function executeDeterministicCopilot(userMessage: string): Promise<Copilot
     const orders = await executeGetOrders({ status, limit: 15 });
     toolsExecuted.push(orders);
 
-    const { data } = orders;
-    reply = `🛵 **حالة الطلبات الحالية (${data.period_label}):**\n\n`;
-    reply += `• **إجمالي الطلبات:** ${data.total_orders_found} طلب\n`;
-    reply += `• **قيد الانتظار (جديدة تحتاج متابعة):** **${data.counts_by_status.pending}** طلب\n`;
-    reply += `• **تم التجهيز:** ${data.counts_by_status.prepared} طلب\n`;
-    reply += `• **تم التوصيل:** ${data.counts_by_status.delivered} طلب\n`;
-    reply += `• **ملغية:** ${data.counts_by_status.cancelled} طلب\n\n`;
-
-    if (data.orders && data.orders.length > 0) {
-      reply += `📋 **أحدث الطلبات في النظام:**\n`;
-      data.orders.slice(0, 5).forEach((ord: any) => {
-        reply += `  - **${ord.order_code}** (${ord.customer_name}) | ${ord.status_arabic} | **${ord.total_dh} DH**\n    العنوان: ${ord.address} (منطقة ${ord.delivery_zone})\n`;
-      });
-      reply += `\n`;
+    if (orders.status === 'not_configured') {
+      reply = `⚠️ **تنبيه الاتصال بقاعدة البيانات:**\n\nقاعدة بيانات Supabase غير مهيأة على الخادم. تعذر جلب سجل الطلبات الحقيقي للمتجر.\nيرجى التأكد من توفر إعدادات البيئة (SUPABASE_URL و المفاتيح).`;
+      actions.push({ label: '🛵 الذهاب لإدارة الطلبات والأسطول', actionType: 'view_orders' });
+    } else if (orders.status === 'query_error' || orders.status === 'connection_error') {
+      reply = `❌ **خطأ في استعلام الطلبات:**\n\nتعذر جلب الطلبات بسبب خطأ في قاعدة البيانات:\n${orders.errorMessage || 'خطأ غير معروف'}`;
+      actions.push({ label: '🛵 الذهاب لإدارة الطلبات والأسطول', actionType: 'view_orders' });
+    } else if (orders.status === 'empty') {
+      reply = `🛵 **حالة الطلبات الحالية (${orders.data?.period_label || 'اليوم'}):**\n\nتم الاتصال بقاعدة البيانات بنجاح: لا توجد طلبات مسجلة حالياً في النظام تطابق هذا البحث.`;
+      actions.push({ label: '🛵 لوحة إدارة الطلبات', actionType: 'view_orders' });
     } else {
-      reply += `لا توجد طلبات معلقة مسجلة حالياً في قاعدة البيانات.\n\n`;
-    }
+      const { data } = orders;
+      reply = `🛵 **حالة الطلبات الحالية (${data.period_label}) — بيانات حية من Supabase:**\n\n`;
+      reply += `• **إجمالي الطلبات:** ${data.total_orders_found} طلب\n`;
+      reply += `• **قيد الانتظار (جديدة تحتاج متابعة):** **${data.counts_by_status.pending}** طلب\n`;
+      reply += `• **تم التجهيز:** ${data.counts_by_status.prepared} طلب\n`;
+      reply += `• **تم التوصيل:** ${data.counts_by_status.delivered} طلب\n`;
+      reply += `• **ملغية:** ${data.counts_by_status.cancelled} طلب\n\n`;
 
-    actions.push({ label: '🛵 الذهاب لإدارة الطلبات والأسطول', actionType: 'view_orders' });
+      if (data.orders && data.orders.length > 0) {
+        reply += `📋 **أحدث الطلبات في النظام:**\n`;
+        data.orders.slice(0, 5).forEach((ord: any) => {
+          reply += `  - **${ord.order_code}** (${ord.customer_name}) | ${ord.status_arabic} | **${ord.total_dh} DH**\n    العنوان: ${ord.address} (منطقة ${ord.delivery_zone})\n`;
+        });
+        reply += `\n`;
+      }
+
+      actions.push({ label: '🛵 الذهاب لإدارة الطلبات والأسطول', actionType: 'view_orders' });
+    }
   }
 
   // 4) استفسارات حركات وتدقيق المخزون (Inventory Ledger Movements)
@@ -344,21 +386,26 @@ async function executeDeterministicCopilot(userMessage: string): Promise<Copilot
     const movements = await executeGetInventoryMovements({ limit: 10 });
     toolsExecuted.push(movements);
 
-    const { data } = movements;
-    reply = `📋 **سجل حركات وتدقيق المخزون (Inventory Ledger):**\n\n`;
-
-    if (data.movements && data.movements.length > 0) {
+    if (movements.status === 'not_configured') {
+      reply = `⚠️ **تنبيه الاتصال بقاعدة البيانات:**\n\nقاعدة بيانات Supabase غير مهيأة على الخادم. تعذر جلب سجل حركات وتدقيق المخزون (inventory_ledger).`;
+      actions.push({ label: '📦 فحص المخزون الحالي', actionType: 'view_inventory' });
+    } else if (movements.status === 'query_error' || movements.status === 'connection_error') {
+      reply = `❌ **خطأ في استعلام سجل التدقيق:**\n\nتعذر جلب حركات المخزون بسبب خطأ في قاعدة البيانات:\n${movements.errorMessage || 'خطأ غير معروف'}`;
+      actions.push({ label: '📦 فحص المخزون الحالي', actionType: 'view_inventory' });
+    } else if (movements.status === 'empty') {
+      reply = `📋 **سجل حركات وتدقيق المخزون (Inventory Ledger):**\n\nتم الاتصال بقاعدة البيانات بنجاح: سجل التدقيق (inventory_ledger) خالٍ حالياً. يتم تسجيل الحركات تلقائياً عند اعتماد الطلبات أو إرجاعها أو إدخال السلع الصباحية.`;
+      actions.push({ label: '📦 فحص المخزون الحالي', actionType: 'view_inventory' });
+    } else {
+      const { data } = movements;
+      reply = `📋 **سجل حركات وتدقيق المخزون (Inventory Ledger) — بيانات حية:**\n\n`;
       reply += `تم تسجيل **${data.total_movements}** حركة أخيرة:\n\n`;
       data.movements.slice(0, 6).forEach((m: any) => {
         reply += `• **${m.product_name}** (${m.movement_type_arabic}): **${m.delta_formatted}**\n`;
         reply += `  المخزون السابق: ${m.stock_before} ⬅️ المخزون الحالي: **${m.stock_after}**\n`;
         reply += `  السبب: ${m.reason} (${new Date(m.created_at).toLocaleTimeString('ar-MA')})\n\n`;
       });
-    } else {
-      reply += `ℹ️ سجل التدقيق (inventory_ledger) خالٍ حالياً. يتم تسجيل الحركات تلقائياً عند اعتماد الطلبات أو إرجاعها أو إدخال السلع الصباحية.\n\n`;
+      actions.push({ label: '📦 فحص المخزون الحالي', actionType: 'view_inventory' });
     }
-
-    actions.push({ label: '📦 فحص المخزون الحالي', actionType: 'view_inventory' });
   }
 
   // 5) استفسارات المنتجات وأسعارها والتوفر (Products & Pricing)
@@ -377,55 +424,67 @@ async function executeDeterministicCopilot(userMessage: string): Promise<Copilot
     const prods = await executeGetProducts({ limit: 20 });
     toolsExecuted.push(prods);
 
-    const { data } = prods;
-    reply = `🌿 **قائمة المنتجات والأسعار المعتمدة بمتجر خُضرة فاس:**\n\n`;
-    reply += `تم فحص **${data.total_returned}** منتج. عينة من المنتجات المتوفرة:\n\n`;
+    if (prods.status === 'not_configured') {
+      reply = `⚠️ **تنبيه الاتصال بقاعدة البيانات:**\n\nقاعدة بيانات Supabase غير مهيأة على الخادم. تعذر جلب قائمة المنتجات وأسعارها الحقيقية.\nيرجى التأكد من إعدادات الاتصال بـ Supabase.`;
+      actions.push({ label: '💵 مراجعة أسعار السوق في الإدارة', actionType: 'view_pricing' });
+    } else if (prods.status === 'query_error' || prods.status === 'connection_error') {
+      reply = `❌ **خطأ في استعلام المنتجات:**\n\nتعذر جلب المنتجات بسبب خطأ في قاعدة البيانات:\n${prods.errorMessage || 'خطأ غير معروف'}`;
+      actions.push({ label: '💵 مراجعة أسعار السوق في الإدارة', actionType: 'view_pricing' });
+    } else if (prods.status === 'empty') {
+      reply = `🌿 **قائمة المنتجات بمتجر خُضرة فاس:**\n\nتم الاتصال بقاعدة البيانات بنجاح: لا توجد منتجات مسجلة حالياً في جدول products.`;
+      actions.push({ label: '➕ إضافة منتجات جديدة', actionType: 'view_inventory' });
+    } else {
+      const { data } = prods;
+      reply = `🌿 **قائمة المنتجات والأسعار المعتمدة بمتجر خُضرة فاس (بيانات حية من Supabase):**\n\n`;
+      reply += `تم فحص **${data.total_returned}** منتج مسجل. عينة من المنتجات:\n\n`;
 
-    data.products.slice(0, 8).forEach((p: any) => {
-      const availTag = p.is_available ? '✅ متوفر' : '❌ نافد';
-      reply += `• **${p.name}**: **${p.price} درهم** / ${p.unit} (${availTag} - مخزون: ${p.stock})\n`;
-    });
+      data.products.slice(0, 8).forEach((p: any) => {
+        const availTag = p.is_available ? '✅ متوفر' : '❌ نافد';
+        reply += `• **${p.name}**: **${p.price} درهم** / ${p.unit} (${availTag} - مخزون: ${p.stock})\n`;
+      });
 
-    reply += `\n💡 المنتجات منتقاة فجر اليوم مباشرة من سوق الجملة بنسودة.\n\n`;
-
-    actions.push({ label: '✨ إنشاء حملة ترويجية لمنتجات اليوم', actionType: 'create_campaign' });
-    actions.push({ label: '💵 مراجعة أسعار السوق', actionType: 'view_pricing' });
+      reply += `\n💡 يمكنك مراجعة وتعديل الأسعار والمخزون مباشرة من لوحات الإدارة.\n\n`;
+      actions.push({ label: '✨ إنشاء حملة ترويجية لمنتجات اليوم', actionType: 'create_campaign' });
+      actions.push({ label: '💵 مراجعة أسعار السوق', actionType: 'view_pricing' });
+    }
   }
 
   // 6) سؤال عام أو ترحيبي
   else {
     const storeInfo = executeGetStoreInfo();
-    const inv = await executeGetInventory({ filter: 'all' });
     toolsExecuted.push(storeInfo);
-    toolsExecuted.push(inv);
 
     reply = `أهلاً بك سيدي المدير في **Khodra AI Copilot v2** 🌿\n\n`;
-    reply += `أنا مساعدك التشغيلي المتصل مباشرة بقاعدة بيانات Supabase لمتجر خُضرة فاس. يمكنك سؤالي عن أي شيء يخص:\n\n`;
+    reply += `أنا مساعدك التشغيلي المتصل بقاعدة بيانات متجر خُضرة فاس. يمكنك سؤالي عن أي شيء يخص:\n\n`;
     reply += `1. **المخزون اللحظي:** (مثلاً: "شنو الخضار اللي ناقصة؟" أو "شحال بقى فالطماطم؟")\n`;
     reply += `2. **الطلبات والتوصيل:** (مثلاً: "شحال من طلب كاين اليوم؟" أو "الطلبات اللي باقين pending")\n`;
     reply += `3. **المبيعات والأرباح:** (مثلاً: "شحال دخلنا هاد السيمانة؟" أو "أكثر المنتجات مبيعاً")\n`;
     reply += `4. **سجل حركات المخزون:** (مثلاً: "شنو هما آخر تعديلات على المخزون؟")\n`;
-    reply += `5. **معلومات التوصيل بفاس:** (مناطق التوصيل الأربعة، الحد الأدنى 70 DH، والتوصيل المجاني فوق 250 DH).\n\n`;
+    reply += `5. **معلومات وسياسات التوصيل بفاس:** (مناطق التوصيل الأربعة، الحد الأدنى 70 DH، والتوصيل المجاني فوق 250 DH).\n\n`;
     reply += `🔒 **ملاحظة أمان:** أعمل في وضع القراءة فقط (Read-Only) لحماية بيانات المتجر من أي تعديل غير مصرح.\n\n`;
     reply += `كيف يمكنني مساعدتك الآن؟`;
 
-    actions.push({ label: '📦 فحص السلع الناقصة بالمخزون', actionType: 'view_inventory' });
+    actions.push({ label: '📦 فحص المخزون', actionType: 'view_inventory' });
     actions.push({ label: '💰 ملخص مبيعات اليوم', actionType: 'view_sales' });
     actions.push({ label: '🛵 استعلام الطلبات الجديدة', actionType: 'view_orders' });
   }
+
+  const hasRealData = toolsExecuted.some((t) => t.isRealData && (t.status === 'success' || t.status === 'empty'));
 
   return {
     reply,
     toolsExecuted: toolsExecuted.map((t) => ({
       toolName: t.toolName,
       source: t.source,
+      status: t.status,
       summary: t.summary,
       isRealData: t.isRealData,
       data: t.data,
+      errorMessage: t.errorMessage,
     })),
     suggestedActions: actions,
     dataContext: buildDataContextSummary(toolsExecuted),
-    isRealData: toolsExecuted.some((t) => t.isRealData),
+    isRealData: hasRealData,
     modelUsed: 'khodra-deterministic-router',
   };
 }
@@ -466,17 +525,28 @@ function extractSuggestedActions(
 }
 
 /**
- * تلخيص سياق البيانات التي تم استخدامها
+ * تلخيص سياق البيانات ومصدرها الحقيقي بكل شفافية ونزاهة
  */
 function buildDataContextSummary(tools: ToolExecutionResult[]): string {
   if (tools.length === 0) {
-    return 'قاعدة بيانات متجر خُضرة — فاس.';
+    return 'خُضرة فاس — وضع الاستعلام التشغيلي (لم تُنفذ أدوات).';
   }
 
   const summaries = tools.map((t) => {
-    const badge = t.source === 'supabase_live' ? '⚡ بيانات حية من Supabase' : '📋 بيانات الكتالوج المعتمدة';
+    let badge = '📋 غير متوفر';
+    if (t.source === 'supabase_live' && t.status === 'success') {
+      badge = '⚡ بيانات حية من Supabase';
+    } else if (t.source === 'supabase_live' && t.status === 'empty') {
+      badge = 'ℹ️ Supabase متصل (الجدول فارغ)';
+    } else if (t.status === 'query_error' || t.status === 'connection_error') {
+      badge = '❌ خطأ في استعلام Supabase';
+    } else if (t.status === 'not_configured') {
+      badge = '⚠️ Supabase غير مهيأ على الخادم';
+    } else if (t.source === 'store_config') {
+      badge = '⚙️ إعدادات المتجر العامة';
+    }
     return `${t.toolName} (${badge})`;
   });
 
-  return `الأدوات المنفذة: ${summaries.join(' • ')}`;
+  return `الأدوات: ${summaries.join(' • ')}`;
 }

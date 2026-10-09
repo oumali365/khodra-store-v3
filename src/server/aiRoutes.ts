@@ -14,7 +14,11 @@ import {
   getAggregatedStoreStats,
 } from './aiMarketingService';
 import { dispatchCopilotTool } from './copilotTools';
-import { isSupabaseConfigured } from './supabaseServerClient';
+import {
+  isSupabaseConfigured,
+  getSupabaseConnectionStatus,
+  testSupabaseConnection,
+} from './supabaseServerClient';
 
 export const aiRouter = Router();
 
@@ -166,7 +170,7 @@ aiRouter.post('/api/ai/generate-campaign', async (req: Request, res: Response) =
 // ────────────────────────────────────────────────────────────
 aiRouter.get('/api/ai/product-intelligence', async (_req: Request, res: Response) => {
   try {
-    const data = getProductIntelligence();
+    const data = await getProductIntelligence();
     return res.json({
       success: true,
       data,
@@ -193,7 +197,8 @@ aiRouter.post('/api/ai/copilot-chat', async (req: Request, res: Response) => {
       });
     }
 
-    const copilotResponse = await chatWithMarketingCopilot(message.trim());
+    const historyArray = Array.isArray(history) ? history : [];
+    const copilotResponse = await chatWithMarketingCopilot(message.trim(), historyArray);
     const duration = Date.now() - startTime;
 
     recordAudit('copilot_chat', 'ai_assistant', 'v2', {
@@ -246,13 +251,16 @@ aiRouter.post('/api/ai/copilot-tool', async (req: Request, res: Response) => {
 // 5️⃣.2 GET /api/ai/copilot-status - حالة ومؤشرات نظام Copilot v2
 // ────────────────────────────────────────────────────────────
 aiRouter.get('/api/ai/copilot-status', async (_req: Request, res: Response) => {
+  const supabaseStatus = getSupabaseConnectionStatus();
+
   return res.json({
     success: true,
     data: {
       version: 'v2.0-operational',
       store: 'خُضرة — فاس',
       wholesaleMarket: 'سوق الجملة بنسودة فاس',
-      supabaseConfigured: isSupabaseConfigured(),
+      supabase: supabaseStatus,
+      supabaseConfigured: supabaseStatus.isConfigured,
       geminiConfigured: !!process.env.GEMINI_API_KEY,
       readOnlyMode: true,
       activeTools: [
@@ -266,6 +274,24 @@ aiRouter.get('/api/ai/copilot-status', async (_req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     },
   });
+});
+
+// ────────────────────────────────────────────────────────────
+// 5️⃣.3 GET /api/ai/supabase-verify - فحص واختبار اتصال Supabase
+// ────────────────────────────────────────────────────────────
+aiRouter.get('/api/ai/supabase-verify', async (_req: Request, res: Response) => {
+  try {
+    const testResult = await testSupabaseConnection();
+    return res.json({
+      success: testResult.ok,
+      data: testResult,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'فشل فحص الاتصال بقاعدة البيانات',
+    });
+  }
 });
 
 
@@ -353,8 +379,8 @@ aiRouter.get('/api/ai/audit-logs', async (_req: Request, res: Response) => {
 // ────────────────────────────────────────────────────────────
 aiRouter.get('/api/ai/dashboard-insights', async (_req: Request, res: Response) => {
   try {
-    const stats = getAggregatedStoreStats();
-    const intelligence = getProductIntelligence();
+    const stats = await getAggregatedStoreStats();
+    const intelligence = await getProductIntelligence();
 
     return res.json({
       success: true,

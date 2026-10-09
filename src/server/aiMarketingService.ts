@@ -6,7 +6,7 @@
 // ============================================================
 
 import { getGeminiClient, GEMINI_MODEL } from './geminiClient';
-import { INITIAL_PRODUCTS } from '../data/mockProducts';
+import { getServerSupabase } from './supabaseServerClient';
 import { executeCopilotChat, CopilotResponse } from './copilotService';
 
 // ────────────────────────────────────────────────────────────
@@ -137,23 +137,39 @@ export interface ProductIntelligenceData {
 }
 
 // ────────────────────────────────────────────────────────────
-// أدوات توفير البيانات النظيفة (Sanitized Data Providers)
+// أدوات توفير البيانات الحقيقية من قاعدة البيانات (Real Data Providers)
 // ────────────────────────────────────────────────────────────
-export function getSanitizedCatalogSummary() {
-  return INITIAL_PRODUCTS.map((p) => ({
-    id: p.id,
-    name: p.name,
-    category: p.category,
-    price: p.price,
-    unit: p.unit_label || (p.type === 'weight' ? 'kg' : 'وحدة'),
-    stock: p.stock ?? 10,
-    isAvailable: p.active !== false && (p.stock === undefined || p.stock > 0),
-    origin: p.origin || 'المغرب',
-  }));
+export async function getSanitizedCatalogSummary(): Promise<any[]> {
+  const supabase = getServerSupabase();
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, category, price, unit_label, type, stock, active, is_available, origin')
+      .order('id', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      return data.map((p) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        price: Number(p.price) || 0,
+        unit: p.unit_label || (p.type === 'weight' ? 'kg' : 'وحدة'),
+        stock: Number(p.stock) || 0,
+        isAvailable: Boolean(p.is_available && p.active !== false && Number(p.stock) > 0),
+        origin: p.origin || 'المغرب',
+      }));
+    }
+  } catch (err) {
+    console.warn('[getSanitizedCatalogSummary] Supabase fetch error:', err);
+  }
+  return [];
 }
 
-export function getAggregatedStoreStats() {
-  const catalog = getSanitizedCatalogSummary();
+export async function getAggregatedStoreStats() {
+  const catalog = await getSanitizedCatalogSummary();
+  const isReal = catalog.length > 0;
   const lowStock = catalog.filter((p) => p.stock > 0 && p.stock <= 5);
   const outOfStock = catalog.filter((p) => p.stock === 0 || !p.isAvailable);
   const availableCount = catalog.filter((p) => p.isAvailable).length;
@@ -166,6 +182,7 @@ export function getAggregatedStoreStats() {
     lowStockNames: lowStock.slice(0, 5).map((p) => p.name),
     outOfStockCount: outOfStock.length,
     currency: 'درهم مغربي (DH)',
+    isRealData: isReal,
     paymentMethod: 'الدفع عند الاستلام (COD) والتحويل البنكي',
     deliveryFeatures: 'توصيل فوري وباب المنزل بمدينة فاس ونواحيها، مجاني فوق 250 درهم',
   };
@@ -179,7 +196,7 @@ export async function analyzeMarketingTemplate(
   templateTitle?: string
 ): Promise<TemplateAnalysisResult> {
   const gemini = getGeminiClient();
-  const stats = getAggregatedStoreStats();
+  const stats = await getAggregatedStoreStats();
 
   if (gemini) {
     try {
@@ -296,7 +313,7 @@ export async function generateMarketingIdeas(
   objective?: string
 ): Promise<MarketingIdea[]> {
   const gemini = getGeminiClient();
-  const catalog = getSanitizedCatalogSummary();
+  const catalog = await getSanitizedCatalogSummary();
   const inStock = catalog.filter((p) => p.isAvailable && p.stock > 0);
   const sampleProducts = inStock.slice(0, 15).map((p) => `${p.name} (${p.price} درهم/${p.unit})`);
 
@@ -466,7 +483,7 @@ export async function generateMarketingCampaign(
   focusCategory: string = 'all'
 ): Promise<GeneratedCampaign> {
   const gemini = getGeminiClient();
-  const catalog = getSanitizedCatalogSummary();
+  const catalog = await getSanitizedCatalogSummary();
   const availableItems = catalog.filter((p) => p.isAvailable && p.stock > 0);
   const lowStockItems = catalog.filter((p) => p.stock > 0 && p.stock <= 5);
 
@@ -641,58 +658,55 @@ ${lowStockItems.map((p) => p.name).join('، ') || 'لا توجد'}
 // ────────────────────────────────────────────────────────────
 // 4️⃣ ذكاء المنتجات والباقات (AI Product Intelligence)
 // ────────────────────────────────────────────────────────────
-export function getProductIntelligence(): ProductIntelligenceData {
-  const catalog = getSanitizedCatalogSummary();
+// 4️⃣ ذكاء المنتجات والباقات (AI Product Intelligence)
+// ────────────────────────────────────────────────────────────
+export async function getProductIntelligence(): Promise<ProductIntelligenceData & { isRealData: boolean }> {
+  const catalog = await getSanitizedCatalogSummary();
 
-  const topSellers = [
-    { name: 'بطاطس بلدية', category: 'veg', price: 7.0, reason: 'عنصر أساسي يومي ومبيعاتها تشكل 22% من حجم الطلبات الإجمالي.' },
-    { name: 'طماطم طازجة', category: 'veg', price: 7.0, reason: 'طلب متكرر في 85% من سلات الشراء بالمتجر.' },
-    { name: 'بصل أحمر', category: 'veg', price: 6.0, reason: 'مبيعات مستقرة ومخزون ممتاز في سوق بنسودة.' },
-    { name: 'برتقال عصير', category: 'fruit', price: 7.5, reason: 'إقبال مرتفع في طلبات نهاية الأسبوع والعصائر الطبيعية.' },
-  ];
+  if (catalog.length === 0) {
+    return {
+      topSellers: [],
+      promoteOpportunities: [],
+      lowStockWarnings: [],
+      underperforming: [],
+      suggestedBundles: [],
+      isRealData: false,
+    };
+  }
 
-  const promoteOpportunities = [
-    { name: 'جزر طازج', category: 'veg', price: 6.0, stock: 90, reason: 'وفرة عالية في المخزون وهامش ربح ممتاز، مناسب لدمجه في باقات الخضر.' },
-    { name: 'تفاح بلدي', category: 'fruit', price: 14.0, stock: 65, reason: 'جودة استثنائية هذا الأسبوع ويمكن إبرازه كفاكهة طازجة للمائدة.' },
-    { name: 'باذنجان بلدي', category: 'veg', price: 6.5, stock: 45, reason: 'مناسب لحملة وصفة الزعلوك الفاسي لرفع الطلب.' },
-  ];
+  const inStock = catalog.filter((p) => p.isAvailable && p.stock > 0);
+  const lowStock = catalog.filter((p) => p.stock > 0 && p.stock <= 5);
 
-  const lowStockWarnings = catalog
-    .filter((p) => p.stock > 0 && p.stock <= 5)
-    .slice(0, 5)
-    .map((p) => ({
-      name: p.name,
-      stock: p.stock,
-      minThreshold: 8,
-      advice: `المخزون (${p.stock} وحدة) حرج! لا تطلق حملة ترويجية مكثفة لهذا المنتج حتى إعادة التزويد فجر الغد من سوق بنسودة.`,
-    }));
+  const topSellers = inStock.slice(0, 4).map((p) => ({
+    name: p.name,
+    category: p.category,
+    price: p.price,
+    reason: 'منتج أساسي متوفر في الكتالوج ذو إقبال يومي.',
+  }));
 
-  const underperforming = [
-    { name: 'لفت أصفر بلدي', price: 5.5, advice: 'يُباع بشكل أساسي أيام الجمعة، اقترح دمجه في باقة الكسكس لتسريع دورانه.' },
-    { name: 'سفرجل بلدي', price: 12.0, advice: 'منتج موسمي ذو مدة بقاء محددة، اقترح وصفة طاجين السفرجل المعسل مع خصم 10% لتصريفه.' },
-  ];
+  const promoteOpportunities = inStock.slice(4, 7).map((p) => ({
+    name: p.name,
+    category: p.category,
+    price: p.price,
+    stock: p.stock,
+    reason: `متوفر بالمخزون (${p.stock} ${p.unit})، مناسب للترويج.`,
+  }));
 
+  const lowStockWarnings = lowStock.slice(0, 5).map((p) => ({
+    name: p.name,
+    stock: p.stock,
+    minThreshold: 5,
+    advice: `المخزون (${p.stock} ${p.unit}) حرج، يوصى ببرمجته في التزويد الصباحي.`,
+  }));
+
+  const underperforming: any[] = [];
   const suggestedBundles = [
     {
-      name: 'باقة الطبخ اليومي الفاسي',
-      items: ['بطاطس بلدية (3 كجم)', 'طماطم طازجة (2 كجم)', 'بصل أحمر (2 كجم)', 'قزبر ومعدنوس (ربطة)'],
-      suggestedPrice: 48,
-      discountNote: 'توفير 6 دراهم مقارنة بالشراء المنفرد',
-      whyItWorks: 'تغطي أساسيات المطبخ لـ 4 إلى 5 أيام لأسرة متوسطة بفاس، وترفع متوسط قيمة السلة بسهولة.',
-    },
-    {
-      name: 'صندوق كسكس الجمعة المباركة',
-      items: ['قرع أحمر (1 كجم)', 'لفت أبيض وأصفر (1 كجم)', 'جزر (1 كجم)', 'كوسا كرجيت (1 كجم)', 'حمص طري'],
-      suggestedPrice: 38,
-      discountNote: 'شامل هدية القزبر والكرفس',
-      whyItWorks: 'طلب مؤكد وموسمي كل يوم جمعة، يريح الزبون من اختيار المكونات واحداً تلو الآخر.',
-    },
-    {
-      name: 'سلة الفواكه وفيتامين C',
-      items: ['برتقال عصير (3 كجم)', 'موز مغربي (1.5 كجم)', 'تفاح بلدي (1.5 كجم)'],
-      suggestedPrice: 55,
-      discountNote: 'توصيل مجاني عند إضافة أي خضار إضافية',
-      whyItWorks: 'تشكيلة صحية مرغوبة للعائلات، تزيد من تكرار الشراء الأسبوعي.',
+      name: 'باقة الطبخ اليومي',
+      items: inStock.slice(0, 4).map((p) => `${p.name} (${p.unit})`),
+      suggestedPrice: inStock.slice(0, 4).reduce((s, p) => s + p.price, 0),
+      discountNote: 'سلة متكاملة للطهي المنزلي',
+      whyItWorks: 'توفر على الزبون الوقت وتجمع الخضر الأساسية في طلب واحد.',
     },
   ];
 
@@ -702,6 +716,7 @@ export function getProductIntelligence(): ProductIntelligenceData {
     lowStockWarnings,
     underperforming,
     suggestedBundles,
+    isRealData: true,
   };
 }
 
@@ -709,6 +724,10 @@ export function getProductIntelligence(): ProductIntelligenceData {
 // 5️⃣ المساعد الإداري التشغيلي الذكي (AI Copilot v2 Chat)
 // يعتمد على Function Calling الحقيقي وبيانات Supabase الحية
 // ────────────────────────────────────────────────────────────
-export async function chatWithMarketingCopilot(userQuery: string): Promise<CopilotResponse> {
-  return await executeCopilotChat(userQuery);
+export async function chatWithMarketingCopilot(
+  userQuery: string,
+  history: any[] = []
+): Promise<CopilotResponse> {
+  return await executeCopilotChat(userQuery, history);
 }
+

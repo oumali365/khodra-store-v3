@@ -1,22 +1,24 @@
 // ============================================================
 // src/server/copilotTools.ts
 // الأدوات التشغيلية الحقيقية لـ Khodra AI Copilot v2
-// ترتبط بقاعدة بيانات Supabase (وضع القراءة فقط الصارم Read-Only)
+// ترتبط حصرياً بقاعدة بيانات Supabase الحقيقية (وضع القراءة فقط الصارم Read-Only)
+// تلتزم بالنزاهة التامة: لا fallbacks وهمية، فصل واضح بين النجاح/الجدول الفارغ/الفشل
 // ============================================================
 
 import { FunctionDeclaration, Type } from '@google/genai';
 import { getServerSupabase } from './supabaseServerClient';
-import { INITIAL_PRODUCTS } from '../data/mockProducts';
 import { STORE_CONFIG } from '../data/config';
 import { FEZ_DELIVERY_ZONES } from '../data/deliveryZones';
 
 export interface ToolExecutionResult {
   toolName: string;
-  source: 'supabase_live' | 'local_fallback' | 'store_config';
+  source: 'supabase_live' | 'store_config' | 'unavailable' | 'error';
+  status: 'success' | 'empty' | 'connection_error' | 'query_error' | 'not_configured';
   data: any;
   timestamp: string;
   isRealData: boolean;
   summary: string;
+  errorMessage?: string;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -34,7 +36,7 @@ function maskPhone(phone?: string | null): string {
 // ────────────────────────────────────────────────────────────
 function getDateRange(period?: string): { startDate?: string; endDate?: string; label: string } {
   const now = new Date();
-  
+
   if (period === 'today') {
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     return { startDate: start.toISOString(), label: 'اليوم' };
@@ -71,98 +73,121 @@ export async function executeGetProducts(args: {
   const supabase = getServerSupabase();
   const limit = Math.min(100, Math.max(1, args.limit || 30));
 
-  if (supabase) {
-    try {
-      let query = supabase
-        .from('products')
-        .select('id, name, category, type, price, unit_label, stock, icon, active, is_available, description, origin, updated_at')
-        .order('id', { ascending: true })
-        .limit(limit);
+  if (!supabase) {
+    return {
+      toolName: 'get_products',
+      source: 'unavailable',
+      status: 'not_configured',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: 'قاعدة بيانات Supabase غير مهيأة على الخادم. تعذر جلب قائمة المنتجات الحقيقية للمتجر.',
+      data: {
+        error: 'SUPABASE_NOT_CONFIGURED',
+        message: 'متغيرات الاتصال بـ Supabase غير مهيأة على الخادم.',
+        total_returned: 0,
+        products: [],
+      },
+      errorMessage: 'Supabase credentials not configured in environment',
+    };
+  }
 
-      if (args.category && args.category !== 'all') {
-        query = query.eq('category', args.category);
-      }
-      if (args.is_available !== undefined) {
-        query = query.eq('is_available', args.is_available);
-      }
-      if (args.search && args.search.trim()) {
-        query = query.ilike('name', `%${args.search.trim()}%`);
-      }
+  try {
+    let query = supabase
+      .from('products')
+      .select('id, name, category, type, price, unit_label, stock, icon, active, is_available, description, origin, updated_at')
+      .order('id', { ascending: true })
+      .limit(limit);
 
-      const { data, error } = await query;
-
-      if (!error && data) {
-        const products = data.map((p) => ({
-          id: p.id,
-          name: p.name,
-          category: p.category,
-          price: Number(p.price) || 0,
-          unit: p.unit_label || (p.type === 'unit' ? 'وحدة' : 'كجم'),
-          stock: Number(p.stock) || 0,
-          is_available: Boolean(p.is_available && p.active !== false && Number(p.stock) > 0),
-          origin: p.origin || 'المغرب',
-          icon: p.icon || '🛒',
-        }));
-
-        return {
-          toolName: 'get_products',
-          source: 'supabase_live',
-          isRealData: true,
-          timestamp: new Date().toISOString(),
-          summary: `تم جلب ${products.length} منتج مباشرة من جدول products في Supabase.`,
-          data: {
-            total_returned: products.length,
-            category_filter: args.category || 'all',
-            search_query: args.search || null,
-            products,
-          },
-        };
-      } else if (error) {
-        console.warn('[executeGetProducts] Supabase error:', error.message);
-      }
-    } catch (err) {
-      console.warn('[executeGetProducts] Network error:', err);
+    if (args.category && args.category !== 'all') {
+      query = query.eq('category', args.category);
     }
-  }
+    if (args.is_available !== undefined) {
+      query = query.eq('is_available', args.is_available);
+    }
+    if (args.search && args.search.trim()) {
+      query = query.ilike('name', `%${args.search.trim()}%`);
+    }
 
-  // Fallback إلى INITIAL_PRODUCTS
-  let local = INITIAL_PRODUCTS.map((p) => ({
-    id: p.id,
-    name: p.name,
-    category: p.category,
-    price: p.price,
-    unit: p.unit_label || (p.type === 'unit' ? 'وحدة' : 'كجم'),
-    stock: p.stock ?? 10,
-    is_available: p.active !== false && (p.stock === undefined || p.stock > 0),
-    origin: p.origin || 'المغرب',
-    icon: p.icon || '🛒',
-  }));
+    const { data, error } = await query;
 
-  if (args.category && args.category !== 'all') {
-    local = local.filter((p) => p.category === args.category);
-  }
-  if (args.is_available !== undefined) {
-    local = local.filter((p) => p.is_available === args.is_available);
-  }
-  if (args.search && args.search.trim()) {
-    const s = args.search.trim().toLowerCase();
-    local = local.filter((p) => p.name.toLowerCase().includes(s));
-  }
+    if (error) {
+      console.warn('[executeGetProducts] Supabase error:', error.message);
+      return {
+        toolName: 'get_products',
+        source: 'error',
+        status: 'query_error',
+        isRealData: false,
+        timestamp: new Date().toISOString(),
+        summary: `تعذر جلب المنتجات بسبب خطأ في استعلام قاعدة البيانات: ${error.message}`,
+        data: {
+          error: error.message,
+          total_returned: 0,
+          products: [],
+        },
+        errorMessage: error.message,
+      };
+    }
 
-  const sliced = local.slice(0, limit);
-  return {
-    toolName: 'get_products',
-    source: 'local_fallback',
-    isRealData: false,
-    timestamp: new Date().toISOString(),
-    summary: `تم جلب ${sliced.length} منتج من الكتالوج الاحتياطي (تعذر الاتصال بـ Supabase).`,
-    data: {
-      total_returned: sliced.length,
-      category_filter: args.category || 'all',
-      products: sliced,
-      note: 'ملاحظة: البيانات معروضة من الكتالوج الاحتياطي لتعذر الاتصال بقاعدة البيانات.',
-    },
-  };
+    if (!data || data.length === 0) {
+      return {
+        toolName: 'get_products',
+        source: 'supabase_live',
+        status: 'empty',
+        isRealData: true,
+        timestamp: new Date().toISOString(),
+        summary: 'تم الاتصال بقاعدة البيانات بنجاح: لا توجد منتجات مسجلة تطابق شروط البحث.',
+        data: {
+          total_returned: 0,
+          category_filter: args.category || 'all',
+          search_query: args.search || null,
+          products: [],
+        },
+      };
+    }
+
+    const products = data.map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      price: Number(p.price) || 0,
+      unit: p.unit_label || (p.type === 'unit' ? 'وحدة' : 'كجم'),
+      stock: Number(p.stock) || 0,
+      is_available: Boolean(p.is_available && p.active !== false && Number(p.stock) > 0),
+      origin: p.origin || 'المغرب',
+      icon: p.icon || '🛒',
+    }));
+
+    return {
+      toolName: 'get_products',
+      source: 'supabase_live',
+      status: 'success',
+      isRealData: true,
+      timestamp: new Date().toISOString(),
+      summary: `تم جلب ${products.length} منتج مباشرة من جدول products في Supabase.`,
+      data: {
+        total_returned: products.length,
+        category_filter: args.category || 'all',
+        search_query: args.search || null,
+        products,
+      },
+    };
+  } catch (err: any) {
+    console.warn('[executeGetProducts] Exception:', err?.message || err);
+    return {
+      toolName: 'get_products',
+      source: 'error',
+      status: 'connection_error',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: `حدث خطأ غير متوقع أثناء استعلام المنتجات: ${err?.message || 'خطأ غير معروف'}`,
+      data: {
+        error: err?.message || 'Unknown network error',
+        total_returned: 0,
+        products: [],
+      },
+      errorMessage: err?.message,
+    };
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -174,108 +199,126 @@ export async function executeGetInventory(args: {
 }): Promise<ToolExecutionResult> {
   const supabase = getServerSupabase();
 
-  if (supabase) {
-    try {
-      let query = supabase
-        .from('products')
-        .select('id, name, category, price, unit_label, stock, is_available, active')
-        .order('stock', { ascending: true });
-
-      if (args.category && args.category !== 'all') {
-        query = query.eq('category', args.category);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        const items = data.map((p) => {
-          const stock = Number(p.stock) || 0;
-          const isAvail = Boolean(p.is_available && p.active !== false && stock > 0);
-          return {
-            id: p.id,
-            name: p.name,
-            category: p.category,
-            stock,
-            unit: p.unit_label || 'كجم',
-            price: Number(p.price) || 0,
-            is_available: isAvail,
-            status: stock <= 0 || !isAvail ? 'out_of_stock' : stock <= 5 ? 'low_stock' : 'healthy',
-          };
-        });
-
-        const outOfStock = items.filter((i) => i.status === 'out_of_stock');
-        const lowStock = items.filter((i) => i.status === 'low_stock');
-        const healthy = items.filter((i) => i.status === 'healthy');
-
-        let filteredItems = items;
-        if (args.filter === 'out_of_stock') filteredItems = outOfStock;
-        else if (args.filter === 'low_stock') filteredItems = lowStock;
-        else if (args.filter === 'healthy') filteredItems = healthy;
-
-        const healthPercentage = items.length > 0 ? Math.round(((items.length - outOfStock.length) / items.length) * 100) : 100;
-
-        return {
-          toolName: 'get_inventory',
-          source: 'supabase_live',
-          isRealData: true,
-          timestamp: new Date().toISOString(),
-          summary: `المخزون الحي: ${items.length} منتج. المتوفر بأمان: ${healthy.length}، منخفض: ${lowStock.length}، غير متوفر: ${outOfStock.length}. صحة المخزون: ${healthPercentage}%.`,
-          data: {
-            total_products: items.length,
-            available_healthy_count: healthy.length,
-            low_stock_count: lowStock.length,
-            out_of_stock_count: outOfStock.length,
-            inventory_health_percentage: healthPercentage,
-            critical_warnings: [
-              ...lowStock.map((i) => `⚠️ ${i.name}: كمية محدودة (${i.stock} ${i.unit}) - يوصى بالحذر عند الترويج`),
-              ...outOfStock.map((i) => `❌ ${i.name}: غير متوفر حالياً (${i.stock} ${i.unit})`),
-            ],
-            low_stock_list: lowStock.slice(0, 10),
-            out_of_stock_list: outOfStock.slice(0, 10),
-            healthy_sample: healthy.slice(0, 10),
-          },
-        };
-      }
-    } catch (err) {
-      console.warn('[executeGetInventory] error:', err);
-    }
+  if (!supabase) {
+    return {
+      toolName: 'get_inventory',
+      source: 'unavailable',
+      status: 'not_configured',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: 'قاعدة بيانات Supabase غير مهيأة على الخادم. تعذر فحص المخزون اللحظي للمتجر.',
+      data: {
+        error: 'SUPABASE_NOT_CONFIGURED',
+        message: 'متغيرات الاتصال بـ Supabase غير متوفرة على الخادم.',
+      },
+      errorMessage: 'Supabase credentials not configured in environment',
+    };
   }
 
-  // Fallback
-  const fallbackProducts = INITIAL_PRODUCTS.map((p) => {
-    const stock = p.stock ?? 10;
-    const isAvail = p.active !== false && stock > 0;
+  try {
+    let query = supabase
+      .from('products')
+      .select('id, name, category, price, unit_label, stock, is_available, active')
+      .order('stock', { ascending: true });
+
+    if (args.category && args.category !== 'all') {
+      query = query.eq('category', args.category);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn('[executeGetInventory] error:', error.message);
+      return {
+        toolName: 'get_inventory',
+        source: 'error',
+        status: 'query_error',
+        isRealData: false,
+        timestamp: new Date().toISOString(),
+        summary: `تعذر فحص المخزون بسبب خطأ في قاعدة البيانات: ${error.message}`,
+        data: { error: error.message },
+        errorMessage: error.message,
+      };
+    }
+
+    if (!data || data.length === 0) {
+      return {
+        toolName: 'get_inventory',
+        source: 'supabase_live',
+        status: 'empty',
+        isRealData: true,
+        timestamp: new Date().toISOString(),
+        summary: 'تم الاتصال بقاعدة البيانات بنجاح: لا توجد منتجات مسجلة في جدول products لحساب مخزونها.',
+        data: {
+          total_products: 0,
+          available_healthy_count: 0,
+          low_stock_count: 0,
+          out_of_stock_count: 0,
+          inventory_health_percentage: 100,
+          critical_warnings: [],
+          low_stock_list: [],
+          out_of_stock_list: [],
+          healthy_sample: [],
+        },
+      };
+    }
+
+    const items = data.map((p) => {
+      const stock = Number(p.stock) || 0;
+      const isAvail = Boolean(p.is_available && p.active !== false && stock > 0);
+      return {
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        stock,
+        unit: p.unit_label || 'كجم',
+        price: Number(p.price) || 0,
+        is_available: isAvail,
+        status: stock <= 0 || !isAvail ? 'out_of_stock' : stock <= 5 ? 'low_stock' : 'healthy',
+      };
+    });
+
+    const outOfStock = items.filter((i) => i.status === 'out_of_stock');
+    const lowStock = items.filter((i) => i.status === 'low_stock');
+    const healthy = items.filter((i) => i.status === 'healthy');
+
+    const healthPercentage = items.length > 0 ? Math.round(((items.length - outOfStock.length) / items.length) * 100) : 100;
+
     return {
-      id: p.id,
-      name: p.name,
-      category: p.category,
-      stock,
-      unit: p.unit_label || (p.type === 'unit' ? 'وحدة' : 'كجم'),
-      price: p.price,
-      is_available: isAvail,
-      status: stock <= 0 || !isAvail ? 'out_of_stock' : stock <= 5 ? 'low_stock' : 'healthy',
+      toolName: 'get_inventory',
+      source: 'supabase_live',
+      status: 'success',
+      isRealData: true,
+      timestamp: new Date().toISOString(),
+      summary: `المخزون الحي: ${items.length} منتج. المتوفر بأمان: ${healthy.length}، منخفض: ${lowStock.length}، غير متوفر: ${outOfStock.length}. صحة المخزون: ${healthPercentage}%.`,
+      data: {
+        total_products: items.length,
+        available_healthy_count: healthy.length,
+        low_stock_count: lowStock.length,
+        out_of_stock_count: outOfStock.length,
+        inventory_health_percentage: healthPercentage,
+        critical_warnings: [
+          ...lowStock.map((i) => `⚠️ ${i.name}: كمية محدودة (${i.stock} ${i.unit}) - يوصى بالحذر عند الترويج`),
+          ...outOfStock.map((i) => `❌ ${i.name}: غير متوفر حالياً (${i.stock} ${i.unit})`),
+        ],
+        low_stock_list: lowStock.slice(0, 10),
+        out_of_stock_list: outOfStock.slice(0, 10),
+        healthy_sample: healthy.slice(0, 10),
+      },
     };
-  });
-
-  const lowStock = fallbackProducts.filter((i) => i.status === 'low_stock');
-  const outOfStock = fallbackProducts.filter((i) => i.status === 'out_of_stock');
-
-  return {
-    toolName: 'get_inventory',
-    source: 'local_fallback',
-    isRealData: false,
-    timestamp: new Date().toISOString(),
-    summary: `تقرير المخزون المرجعي: إجمالي ${fallbackProducts.length} منتج، المتوفر: ${fallbackProducts.length - outOfStock.length}.`,
-    data: {
-      total_products: fallbackProducts.length,
-      available_healthy_count: fallbackProducts.length - lowStock.length - outOfStock.length,
-      low_stock_count: lowStock.length,
-      out_of_stock_count: outOfStock.length,
-      inventory_health_percentage: 95,
-      low_stock_list: lowStock,
-      out_of_stock_list: outOfStock,
-    },
-  };
+  } catch (err: any) {
+    console.warn('[executeGetInventory] Exception:', err?.message || err);
+    return {
+      toolName: 'get_inventory',
+      source: 'error',
+      status: 'connection_error',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: `حدث خطأ أثناء فحص المخزون: ${err?.message || 'خطأ غير معروف'}`,
+      data: { error: err?.message },
+      errorMessage: err?.message,
+    };
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -292,112 +335,161 @@ export async function executeGetOrders(args: {
   const limit = Math.min(50, Math.max(1, args.limit || 20));
   const range = getDateRange(args.period);
 
-  if (supabase) {
-    try {
-      let query = supabase
-        .from('orders')
-        .select('id, order_code, customer_name, phone, address, delivery_zone, items, subtotal, delivery_fee, total, status, note, created_at, updated_at')
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (args.status && args.status !== 'all') {
-        query = query.eq('status', args.status);
-      }
-      if (args.delivery_zone && args.delivery_zone !== 'all') {
-        query = query.eq('delivery_zone', args.delivery_zone);
-      }
-      if (args.search_code && args.search_code.trim()) {
-        query = query.ilike('order_code', `%${args.search_code.trim()}%`);
-      }
-      if (range.startDate) {
-        query = query.gte('created_at', range.startDate);
-      }
-      if (range.endDate) {
-        query = query.lte('created_at', range.endDate);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        const sanitizedOrders = data.map((o) => {
-          const itemsArr = Array.isArray(o.items) ? o.items : [];
-          const itemSummary = itemsArr
-            .map((it: any) => `${it.name || 'منتج'} (${it.quantity || 1} ${it.unit_label || 'كجم'})`)
-            .join('، ');
-
-          return {
-            id: o.id,
-            order_code: o.order_code,
-            customer_name: o.customer_name || 'عميل',
-            phone_masked: maskPhone(o.phone),
-            address: o.address,
-            delivery_zone: o.delivery_zone,
-            total_dh: Number(o.total) || 0,
-            subtotal_dh: Number(o.subtotal) || 0,
-            delivery_fee_dh: Number(o.delivery_fee) || 0,
-            status: o.status,
-            status_arabic:
-              o.status === 'pending'
-                ? 'قيد الانتظار (جديد)'
-                : o.status === 'prepared'
-                ? 'تم التجهيز'
-                : o.status === 'delivered'
-                ? 'تم التوصيل'
-                : 'ملغي',
-            items_count: itemsArr.length,
-            items_summary: itemSummary || 'لا توجد تفاصيل',
-            created_at: o.created_at,
-          };
-        });
-
-        const pendingCount = sanitizedOrders.filter((o) => o.status === 'pending').length;
-        const preparedCount = sanitizedOrders.filter((o) => o.status === 'prepared').length;
-        const deliveredCount = sanitizedOrders.filter((o) => o.status === 'delivered').length;
-        const cancelledCount = sanitizedOrders.filter((o) => o.status === 'cancelled').length;
-
-        return {
-          toolName: 'get_orders',
-          source: 'supabase_live',
-          isRealData: true,
-          timestamp: new Date().toISOString(),
-          summary: `تم العثور على ${sanitizedOrders.length} طلب (${range.label}). قيد الانتظار: ${pendingCount}، مجهز: ${preparedCount}، تم التوصيل: ${deliveredCount}، ملغي: ${cancelledCount}.`,
-          data: {
-            period_label: range.label,
-            total_orders_found: sanitizedOrders.length,
-            counts_by_status: {
-              pending: pendingCount,
-              prepared: preparedCount,
-              delivered: deliveredCount,
-              cancelled: cancelledCount,
-            },
-            needs_action_count: pendingCount,
-            orders: sanitizedOrders,
-          },
-        };
-      } else if (error) {
-        console.warn('[executeGetOrders] error:', error.message);
-      }
-    } catch (err) {
-      console.warn('[executeGetOrders] network error:', err);
-    }
+  if (!supabase) {
+    return {
+      toolName: 'get_orders',
+      source: 'unavailable',
+      status: 'not_configured',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: 'قاعدة بيانات Supabase غير مهيأة على الخادم. تعذر جلب بيانات الطلبات الحقيقية.',
+      data: {
+        error: 'SUPABASE_NOT_CONFIGURED',
+        period_label: range.label,
+        total_orders_found: 0,
+        counts_by_status: { pending: 0, prepared: 0, delivered: 0, cancelled: 0 },
+        needs_action_count: 0,
+        orders: [],
+        note: 'تنبيه: قاعدة البيانات غير متصلة، لا توجد بيانات للطلبات.',
+      },
+      errorMessage: 'Supabase credentials not configured in environment',
+    };
   }
 
-  return {
-    toolName: 'get_orders',
-    source: 'supabase_live',
-    isRealData: true,
-    timestamp: new Date().toISOString(),
-    summary: `قاعدة بيانات Supabase لا تحتوي على طلبات مطابقة لهذا البحث أو لم يتم تسجيل طلبات بعد (${range.label}).`,
-    data: {
-      period_label: range.label,
-      total_orders_found: 0,
-      counts_by_status: { pending: 0, prepared: 0, delivered: 0, cancelled: 0 },
-      needs_action_count: 0,
-      orders: [],
-      message: 'لا توجد طلبات مسجلة في قاعدة البيانات تطابق هذا الاستعلام.',
-    },
-  };
+  try {
+    let query = supabase
+      .from('orders')
+      .select('id, order_code, customer_name, phone, address, delivery_zone, items, subtotal, delivery_fee, total, status, note, created_at, updated_at')
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (args.status && args.status !== 'all') {
+      query = query.eq('status', args.status);
+    }
+    if (args.delivery_zone && args.delivery_zone !== 'all') {
+      query = query.eq('delivery_zone', args.delivery_zone);
+    }
+    if (args.search_code && args.search_code.trim()) {
+      query = query.ilike('order_code', `%${args.search_code.trim()}%`);
+    }
+    if (range.startDate) {
+      query = query.gte('created_at', range.startDate);
+    }
+    if (range.endDate) {
+      query = query.lte('created_at', range.endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn('[executeGetOrders] Supabase query error:', error.message);
+      return {
+        toolName: 'get_orders',
+        source: 'error',
+        status: 'query_error',
+        isRealData: false,
+        timestamp: new Date().toISOString(),
+        summary: `تعذر استعلام الطلبات من قاعدة البيانات: ${error.message}`,
+        data: {
+          period_label: range.label,
+          total_orders_found: 0,
+          counts_by_status: { pending: 0, prepared: 0, delivered: 0, cancelled: 0 },
+          needs_action_count: 0,
+          orders: [],
+          error: error.message,
+        },
+        errorMessage: error.message,
+      };
+    }
+
+    if (!data || data.length === 0) {
+      return {
+        toolName: 'get_orders',
+        source: 'supabase_live',
+        status: 'empty',
+        isRealData: true,
+        timestamp: new Date().toISOString(),
+        summary: `تم الاتصال بقاعدة البيانات بنجاح: لا توجد طلبات مسجلة (${range.label}).`,
+        data: {
+          period_label: range.label,
+          total_orders_found: 0,
+          counts_by_status: { pending: 0, prepared: 0, delivered: 0, cancelled: 0 },
+          needs_action_count: 0,
+          orders: [],
+        },
+      };
+    }
+
+    const sanitizedOrders = data.map((o) => {
+      const itemsArr = Array.isArray(o.items) ? o.items : [];
+      const itemSummary = itemsArr
+        .map((it: any) => `${it.name || 'منتج'} (${it.quantity || 1} ${it.unit_label || 'كجم'})`)
+        .join('، ');
+
+      return {
+        id: o.id,
+        order_code: o.order_code,
+        customer_name: o.customer_name || 'عميل',
+        phone_masked: maskPhone(o.phone),
+        address: o.address,
+        delivery_zone: o.delivery_zone,
+        total_dh: Number(o.total) || 0,
+        subtotal_dh: Number(o.subtotal) || 0,
+        delivery_fee_dh: Number(o.delivery_fee) || 0,
+        status: o.status,
+        status_arabic:
+          o.status === 'pending'
+            ? 'قيد الانتظار (جديد)'
+            : o.status === 'prepared'
+            ? 'تم التجهيز'
+            : o.status === 'delivered'
+            ? 'تم التوصيل'
+            : 'ملغي',
+        items_count: itemsArr.length,
+        items_summary: itemSummary || 'لا توجد تفاصيل',
+        created_at: o.created_at,
+      };
+    });
+
+    const pendingCount = sanitizedOrders.filter((o) => o.status === 'pending').length;
+    const preparedCount = sanitizedOrders.filter((o) => o.status === 'prepared').length;
+    const deliveredCount = sanitizedOrders.filter((o) => o.status === 'delivered').length;
+    const cancelledCount = sanitizedOrders.filter((o) => o.status === 'cancelled').length;
+
+    return {
+      toolName: 'get_orders',
+      source: 'supabase_live',
+      status: 'success',
+      isRealData: true,
+      timestamp: new Date().toISOString(),
+      summary: `تم العثور على ${sanitizedOrders.length} طلب (${range.label}). قيد الانتظار: ${pendingCount}، مجهز: ${preparedCount}، تم التوصيل: ${deliveredCount}، ملغي: ${cancelledCount}.`,
+      data: {
+        period_label: range.label,
+        total_orders_found: sanitizedOrders.length,
+        counts_by_status: {
+          pending: pendingCount,
+          prepared: preparedCount,
+          delivered: deliveredCount,
+          cancelled: cancelledCount,
+        },
+        needs_action_count: pendingCount,
+        orders: sanitizedOrders,
+      },
+    };
+  } catch (err: any) {
+    console.warn('[executeGetOrders] Exception:', err?.message || err);
+    return {
+      toolName: 'get_orders',
+      source: 'error',
+      status: 'connection_error',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: `حدث خطأ أثناء استعلام الطلبات: ${err?.message || 'خطأ غير معروف'}`,
+      data: { error: err?.message, orders: [] },
+      errorMessage: err?.message,
+    };
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -409,121 +501,183 @@ export async function executeGetSalesSummary(args: {
   const supabase = getServerSupabase();
   const range = getDateRange(args.period || 'today');
 
-  if (supabase) {
-    try {
-      let query = supabase
-        .from('orders')
-        .select('id, total, subtotal, delivery_fee, status, items, delivery_zone, created_at')
-        .eq('is_deleted', false);
-
-      if (range.startDate) {
-        query = query.gte('created_at', range.startDate);
-      }
-      if (range.endDate) {
-        query = query.lte('created_at', range.endDate);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        const totalOrders = data.length;
-        const deliveredOrders = data.filter((o) => o.status === 'delivered');
-        const pendingOrders = data.filter((o) => o.status === 'pending' || o.status === 'prepared');
-        const cancelledOrders = data.filter((o) => o.status === 'cancelled');
-
-        const deliveredRevenue = deliveredOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-        const pendingRevenue = pendingOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-        const totalActiveRevenue = deliveredRevenue + pendingRevenue;
-
-        const averageOrderValue =
-          deliveredOrders.length > 0
-            ? Math.round((deliveredRevenue / deliveredOrders.length) * 100) / 100
-            : totalOrders > 0
-            ? Math.round((totalActiveRevenue / (totalOrders - cancelledOrders.length || 1)) * 100) / 100
-            : 0;
-
-        // تحليل المنتجات الأكثر طلباً عبر تجميع سلات items
-        const itemFrequency: Record<string, { name: string; quantity: number; unit: string; ordersCount: number }> = {};
-        for (const order of data) {
-          if (order.status === 'cancelled') continue;
-          if (Array.isArray(order.items)) {
-            for (const it of order.items) {
-              const name = it.name || 'منتج';
-              const qty = Number(it.quantity) || 1;
-              const unit = it.unit_label || 'كجم';
-              if (!itemFrequency[name]) {
-                itemFrequency[name] = { name, quantity: 0, unit, ordersCount: 0 };
-              }
-              itemFrequency[name].quantity += qty;
-              itemFrequency[name].ordersCount += 1;
-            }
-          }
-        }
-
-        const topSellingProducts = Object.values(itemFrequency)
-          .sort((a, b) => b.quantity - a.quantity)
-          .slice(0, 5)
-          .map((i) => ({
-            name: i.name,
-            total_quantity: Math.round(i.quantity * 10) / 10,
-            unit: i.unit,
-            in_orders_count: i.ordersCount,
-          }));
-
-        // توزيع المناطق
-        const zonesBreakdown: Record<string, number> = { north: 0, central: 0, south: 0, east: 0 };
-        for (const order of data) {
-          const z = order.delivery_zone || 'central';
-          if (zonesBreakdown[z] !== undefined) zonesBreakdown[z]++;
-        }
-
-        return {
-          toolName: 'get_sales_summary',
-          source: 'supabase_live',
-          isRealData: true,
-          timestamp: new Date().toISOString(),
-          summary: `تقرير مبيعات (${range.label}): ${totalOrders} طلب. إيرادات التوصيل الناجحة: ${deliveredRevenue} درهم. طلبات قيد الإنجاز: ${pendingOrders.length} بقيمة ${pendingRevenue} درهم. متوسط السلة: ${averageOrderValue} درهم.`,
-          data: {
-            period: range.label,
-            total_orders: totalOrders,
-            delivered_orders_count: deliveredOrders.length,
-            delivered_revenue_dh: deliveredRevenue,
-            pending_orders_count: pendingOrders.length,
-            pending_potential_revenue_dh: pendingRevenue,
-            cancelled_orders_count: cancelledOrders.length,
-            total_active_revenue_dh: totalActiveRevenue,
-            average_order_value_dh: averageOrderValue,
-            currency: 'درهم مغربي (DH)',
-            top_selling_items: topSellingProducts,
-            zone_distribution: zonesBreakdown,
-          },
-        };
-      }
-    } catch (err) {
-      console.warn('[executeGetSalesSummary] error:', err);
-    }
+  if (!supabase) {
+    return {
+      toolName: 'get_sales_summary',
+      source: 'unavailable',
+      status: 'not_configured',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: `قاعدة بيانات Supabase غير مهيأة على الخادم. تعذر حساب تقرير المبيعات الحقيقي (${range.label}).`,
+      data: {
+        error: 'SUPABASE_NOT_CONFIGURED',
+        period: range.label,
+        total_orders: 0,
+        delivered_orders_count: 0,
+        delivered_revenue_dh: 0,
+        pending_orders_count: 0,
+        pending_potential_revenue_dh: 0,
+        cancelled_orders_count: 0,
+        average_order_value_dh: 0,
+        currency: 'درهم مغربي (DH)',
+        top_selling_items: [],
+      },
+      errorMessage: 'Supabase credentials not configured in environment',
+    };
   }
 
-  return {
-    toolName: 'get_sales_summary',
-    source: 'supabase_live',
-    isRealData: true,
-    timestamp: new Date().toISOString(),
-    summary: `تقرير المبيعات (${range.label}): 0 درهم (لا توجد طلبات مسجلة بعد في هذه الفترة).`,
-    data: {
-      period: range.label,
-      total_orders: 0,
-      delivered_orders_count: 0,
-      delivered_revenue_dh: 0,
-      pending_orders_count: 0,
-      pending_potential_revenue_dh: 0,
-      cancelled_orders_count: 0,
-      average_order_value_dh: 0,
-      currency: 'درهم مغربي (DH)',
-      top_selling_items: [],
-      message: 'قاعدة البيانات لم تسجل أي طلبات خلال هذه الفترة حتى الآن.',
-    },
-  };
+  try {
+    let query = supabase
+      .from('orders')
+      .select('id, total, subtotal, delivery_fee, status, items, delivery_zone, created_at')
+      .eq('is_deleted', false);
+
+    if (range.startDate) {
+      query = query.gte('created_at', range.startDate);
+    }
+    if (range.endDate) {
+      query = query.lte('created_at', range.endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn('[executeGetSalesSummary] Supabase error:', error.message);
+      return {
+        toolName: 'get_sales_summary',
+        source: 'error',
+        status: 'query_error',
+        isRealData: false,
+        timestamp: new Date().toISOString(),
+        summary: `تعذر حساب تقرير المبيعات بسبب خطأ في قاعدة البيانات: ${error.message}`,
+        data: {
+          period: range.label,
+          total_orders: 0,
+          delivered_orders_count: 0,
+          delivered_revenue_dh: 0,
+          pending_orders_count: 0,
+          pending_potential_revenue_dh: 0,
+          cancelled_orders_count: 0,
+          average_order_value_dh: 0,
+          currency: 'درهم مغربي (DH)',
+          top_selling_items: [],
+          error: error.message,
+        },
+        errorMessage: error.message,
+      };
+    }
+
+    if (!data || data.length === 0) {
+      return {
+        toolName: 'get_sales_summary',
+        source: 'supabase_live',
+        status: 'empty',
+        isRealData: true,
+        timestamp: new Date().toISOString(),
+        summary: `تم الاتصال بقاعدة البيانات بنجاح: لا توجد طلبات مسجلة في هذه الفترة (${range.label}) لحساب المبيعات.`,
+        data: {
+          period: range.label,
+          total_orders: 0,
+          delivered_orders_count: 0,
+          delivered_revenue_dh: 0,
+          pending_orders_count: 0,
+          pending_potential_revenue_dh: 0,
+          cancelled_orders_count: 0,
+          total_active_revenue_dh: 0,
+          average_order_value_dh: 0,
+          currency: 'درهم مغربي (DH)',
+          top_selling_items: [],
+          zone_distribution: { north: 0, central: 0, south: 0, east: 0 },
+        },
+      };
+    }
+
+    const totalOrders = data.length;
+    const deliveredOrders = data.filter((o) => o.status === 'delivered');
+    const pendingOrders = data.filter((o) => o.status === 'pending' || o.status === 'prepared');
+    const cancelledOrders = data.filter((o) => o.status === 'cancelled');
+
+    const deliveredRevenue = deliveredOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const pendingRevenue = pendingOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const totalActiveRevenue = deliveredRevenue + pendingRevenue;
+
+    const averageOrderValue =
+      deliveredOrders.length > 0
+        ? Math.round((deliveredRevenue / deliveredOrders.length) * 100) / 100
+        : totalOrders > 0
+        ? Math.round((totalActiveRevenue / (totalOrders - cancelledOrders.length || 1)) * 100) / 100
+        : 0;
+
+    // تحليل المنتجات الأكثر طلباً عبر تجميع سلات items
+    const itemFrequency: Record<string, { name: string; quantity: number; unit: string; ordersCount: number }> = {};
+    for (const order of data) {
+      if (order.status === 'cancelled') continue;
+      if (Array.isArray(order.items)) {
+        for (const it of order.items) {
+          const name = it.name || 'منتج';
+          const qty = Number(it.quantity) || 1;
+          const unit = it.unit_label || 'كجم';
+          if (!itemFrequency[name]) {
+            itemFrequency[name] = { name, quantity: 0, unit, ordersCount: 0 };
+          }
+          itemFrequency[name].quantity += qty;
+          itemFrequency[name].ordersCount += 1;
+        }
+      }
+    }
+
+    const topSellingProducts = Object.values(itemFrequency)
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5)
+      .map((i) => ({
+        name: i.name,
+        total_quantity: Math.round(i.quantity * 10) / 10,
+        unit: i.unit,
+        in_orders_count: i.ordersCount,
+      }));
+
+    // توزيع المناطق
+    const zonesBreakdown: Record<string, number> = { north: 0, central: 0, south: 0, east: 0 };
+    for (const order of data) {
+      const z = order.delivery_zone || 'central';
+      if (zonesBreakdown[z] !== undefined) zonesBreakdown[z]++;
+    }
+
+    return {
+      toolName: 'get_sales_summary',
+      source: 'supabase_live',
+      status: 'success',
+      isRealData: true,
+      timestamp: new Date().toISOString(),
+      summary: `تقرير مبيعات (${range.label}): ${totalOrders} طلب. إيرادات التوصيل الناجحة: ${deliveredRevenue} درهم. طلبات قيد الإنجاز: ${pendingOrders.length} بقيمة ${pendingRevenue} درهم. متوسط السلة: ${averageOrderValue} درهم.`,
+      data: {
+        period: range.label,
+        total_orders: totalOrders,
+        delivered_orders_count: deliveredOrders.length,
+        delivered_revenue_dh: deliveredRevenue,
+        pending_orders_count: pendingOrders.length,
+        pending_potential_revenue_dh: pendingRevenue,
+        cancelled_orders_count: cancelledOrders.length,
+        total_active_revenue_dh: totalActiveRevenue,
+        average_order_value_dh: averageOrderValue,
+        currency: 'درهم مغربي (DH)',
+        top_selling_items: topSellingProducts,
+        zone_distribution: zonesBreakdown,
+      },
+    };
+  } catch (err: any) {
+    console.warn('[executeGetSalesSummary] Exception:', err?.message || err);
+    return {
+      toolName: 'get_sales_summary',
+      source: 'error',
+      status: 'connection_error',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: `حدث خطأ أثناء حساب تقرير المبيعات: ${err?.message || 'خطأ غير معروف'}`,
+      data: { error: err?.message },
+      errorMessage: err?.message,
+    };
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -537,109 +691,151 @@ export async function executeGetInventoryMovements(args: {
   const supabase = getServerSupabase();
   const limit = Math.min(50, Math.max(1, args.limit || 15));
 
-  if (supabase) {
-    try {
-      let query = supabase
-        .from('inventory_ledger')
-        .select(`
-          id,
-          product_id,
-          order_id,
-          quantity_delta,
-          movement_type,
-          stock_before,
-          stock_after,
-          reason,
-          created_by,
-          created_at
-        `)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (args.product_id) {
-        query = query.eq('product_id', args.product_id);
-      }
-      if (args.movement_type && args.movement_type !== 'all') {
-        query = query.eq('movement_type', args.movement_type);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        // جلب أسماء المنتجات لربطها بالحركات
-        const productIds = Array.from(new Set(data.map((m) => m.product_id)));
-        let productNamesMap: Record<number, string> = {};
-
-        if (productIds.length > 0) {
-          const { data: prodData } = await supabase
-            .from('products')
-            .select('id, name')
-            .in('id', productIds);
-          if (prodData) {
-            prodData.forEach((p) => {
-              productNamesMap[p.id] = p.name;
-            });
-          }
-        }
-
-        const movements = data.map((m) => {
-          const prodName = productNamesMap[m.product_id] || `منتج #${m.product_id}`;
-          const delta = Number(m.quantity_delta);
-          const typeLabel =
-            m.movement_type === 'order_deduct'
-              ? 'خصم تلقائي لطلب'
-              : m.movement_type === 'order_restore'
-              ? 'استرجاع كمية لطلب ملغي'
-              : m.movement_type === 'morning_stockin'
-              ? 'تزويد صباحي من سوق بنسودة'
-              : 'تعديل يدوي للمخزون';
-
-          return {
-            id: m.id,
-            product_id: m.product_id,
-            product_name: prodName,
-            delta_formatted: delta > 0 ? `+${delta}` : `${delta}`,
-            movement_type: m.movement_type,
-            movement_type_arabic: typeLabel,
-            stock_before: Number(m.stock_before),
-            stock_after: Number(m.stock_after),
-            reason: m.reason || 'بدون سبب مسجل',
-            created_by: m.created_by || 'system',
-            created_at: m.created_at,
-          };
-        });
-
-        return {
-          toolName: 'get_inventory_movements',
-          source: 'supabase_live',
-          isRealData: true,
-          timestamp: new Date().toISOString(),
-          summary: `تم العثور على ${movements.length} حركة مخزون مسجلة في سجل inventory_ledger.`,
-          data: {
-            total_movements: movements.length,
-            movements,
-          },
-        };
-      } else if (error) {
-        console.warn('[executeGetInventoryMovements] error:', error.message);
-      }
-    } catch (err) {
-      console.warn('[executeGetInventoryMovements] network error:', err);
-    }
+  if (!supabase) {
+    return {
+      toolName: 'get_inventory_movements',
+      source: 'unavailable',
+      status: 'not_configured',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: 'قاعدة بيانات Supabase غير مهيأة على الخادم. تعذر جلب سجل حركات وتدقيق المخزون.',
+      data: {
+        error: 'SUPABASE_NOT_CONFIGURED',
+        total_movements: 0,
+        movements: [],
+      },
+      errorMessage: 'Supabase credentials not configured in environment',
+    };
   }
 
-  return {
-    toolName: 'get_inventory_movements',
-    source: 'supabase_live',
-    isRealData: true,
-    timestamp: new Date().toISOString(),
-    summary: 'لا توجد حركات مخزون مسجلة حتى الآن في جدول inventory_ledger.',
-    data: {
-      total_movements: 0,
-      movements: [],
-      message: 'سجل حركات المخزون فارغ حالياً أو لم يتم إجراء أي عمليات خصم/إضافة عليه بعد.',
-    },
-  };
+  try {
+    let query = supabase
+      .from('inventory_ledger')
+      .select(`
+        id,
+        product_id,
+        order_id,
+        quantity_delta,
+        movement_type,
+        stock_before,
+        stock_after,
+        reason,
+        created_by,
+        created_at
+      `)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (args.product_id) {
+      query = query.eq('product_id', args.product_id);
+    }
+    if (args.movement_type && args.movement_type !== 'all') {
+      query = query.eq('movement_type', args.movement_type);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn('[executeGetInventoryMovements] Supabase error:', error.message);
+      return {
+        toolName: 'get_inventory_movements',
+        source: 'error',
+        status: 'query_error',
+        isRealData: false,
+        timestamp: new Date().toISOString(),
+        summary: `تعذر استعلام سجل حركات المخزون: ${error.message}`,
+        data: {
+          total_movements: 0,
+          movements: [],
+          error: error.message,
+        },
+        errorMessage: error.message,
+      };
+    }
+
+    if (!data || data.length === 0) {
+      return {
+        toolName: 'get_inventory_movements',
+        source: 'supabase_live',
+        status: 'empty',
+        isRealData: true,
+        timestamp: new Date().toISOString(),
+        summary: 'سجل حركات وتدقيق المخزون (inventory_ledger) خالٍ حالياً في قاعدة البيانات.',
+        data: {
+          total_movements: 0,
+          movements: [],
+        },
+      };
+    }
+
+    // جلب أسماء المنتجات لربطها بالحركات
+    const productIds = Array.from(new Set(data.map((m) => m.product_id)));
+    let productNamesMap: Record<number, string> = {};
+
+    if (productIds.length > 0) {
+      const { data: prodData } = await supabase
+        .from('products')
+        .select('id, name')
+        .in('id', productIds);
+      if (prodData) {
+        prodData.forEach((p) => {
+          productNamesMap[p.id] = p.name;
+        });
+      }
+    }
+
+    const movements = data.map((m) => {
+      const prodName = productNamesMap[m.product_id] || `منتج #${m.product_id}`;
+      const delta = Number(m.quantity_delta);
+      const typeLabel =
+        m.movement_type === 'order_deduct'
+          ? 'خصم تلقائي لطلب'
+          : m.movement_type === 'order_restore'
+          ? 'استرجاع كمية لطلب ملغي'
+          : m.movement_type === 'morning_stockin'
+          ? 'تزويد صباحي من سوق بنسودة'
+          : 'تعديل يدوي للمخزون';
+
+      return {
+        id: m.id,
+        product_id: m.product_id,
+        product_name: prodName,
+        delta_formatted: delta > 0 ? `+${delta}` : `${delta}`,
+        movement_type: m.movement_type,
+        movement_type_arabic: typeLabel,
+        stock_before: Number(m.stock_before),
+        stock_after: Number(m.stock_after),
+        reason: m.reason || 'بدون سبب مسجل',
+        created_by: m.created_by || 'system',
+        created_at: m.created_at,
+      };
+    });
+
+    return {
+      toolName: 'get_inventory_movements',
+      source: 'supabase_live',
+      status: 'success',
+      isRealData: true,
+      timestamp: new Date().toISOString(),
+      summary: `تم العثور على ${movements.length} حركة مخزون مسجلة في سجل inventory_ledger.`,
+      data: {
+        total_movements: movements.length,
+        movements,
+      },
+    };
+  } catch (err: any) {
+    console.warn('[executeGetInventoryMovements] Exception:', err?.message || err);
+    return {
+      toolName: 'get_inventory_movements',
+      source: 'error',
+      status: 'connection_error',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: `حدث خطأ أثناء استعلام حركات المخزون: ${err?.message || 'خطأ غير معروف'}`,
+      data: { error: err?.message, movements: [] },
+      errorMessage: err?.message,
+    };
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -649,6 +845,7 @@ export function executeGetStoreInfo(): ToolExecutionResult {
   return {
     toolName: 'get_store_info',
     source: 'store_config',
+    status: 'success',
     isRealData: true,
     timestamp: new Date().toISOString(),
     summary: 'معلومات وتشغيل متجر خُضرة فاس، مناطق التوصيل، والسياسات المعتمدة.',
@@ -820,11 +1017,13 @@ export async function dispatchCopilotTool(toolName: string, args: any): Promise<
     default:
       return {
         toolName,
-        source: 'local_fallback',
+        source: 'unavailable',
+        status: 'not_configured',
         isRealData: false,
         timestamp: new Date().toISOString(),
         summary: `أداة غير معروفة: ${toolName}`,
         data: { error: `الأداة ${toolName} غير مدعومة.` },
+        errorMessage: `Unknown tool ${toolName}`,
       };
   }
 }

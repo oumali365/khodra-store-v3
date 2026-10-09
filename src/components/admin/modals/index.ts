@@ -8,4 +8,4 @@ export {
 export { OrderInvoiceModal, OrderBordereauModal } from '../orders';
 export { TourManifestModal } from '../fleet';
 export { AdminDocumentsModal } from '../documents';
-export { AdminSocialPublisherModal } from '../marketing';
+

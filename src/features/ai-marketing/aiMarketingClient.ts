@@ -118,13 +118,14 @@ export async function fetchDashboardInsights(): Promise<DashboardInsightsRespons
         },
       ],
       storeStats: {
-        totalProducts: 125,
-        availableProducts: 120,
-        lowStockCount: 3,
+        totalProducts: 0,
+        availableProducts: 0,
+        lowStockCount: 0,
         currency: 'درهم مغربي (DH)',
+        offline: true,
       },
-      recentRunsCount: 12,
-      approvedCampaignsCount: 5,
+      recentRunsCount: 0,
+      approvedCampaignsCount: 0,
     })
   );
 }
@@ -381,67 +382,14 @@ export async function sendCopilotChatApi(
       body: JSON.stringify({ message, history }),
     },
     () => {
-      // ذكاء اصطناعي محلي فوري خبير في سوق فاس ومتجر خُضرة
-      const lower = message.toLowerCase();
-
-      if (lower.includes('نسوق') || lower.includes('اليوم') || lower.includes('نروج') || lower.includes('شنو')) {
-        return {
-          reply: `أهلاً سيدي المدير! بناءً على تحليل حركة سوق بنسودة ومخزون المتجر اليوم:
-1️⃣ **خضار الطهي اليومي:** بطاطس، بصل أحمر، وطماطم كتشهد أعلى طلب صباحي. كنقترح تنشر "قالب طراوة الصباح" قبل 10:00 صباحاً.
-2️⃣ **باقة الطاجين الفاسي:** الطلب عليها قوي فاحياء طريق إيموزار والنرجس.
-3️⃣ **الفواكه الموسمية:** البرتقال والتفاح محققين هوامش ممتازة (أكثر من 35%).
-شنو رأيك نولدو حملة سريعة بنقرة واحدة لواتساب؟`,
-          suggestedActions: [
-            { label: '🚀 فتح محرر النشر بنقرة واحدة', actionType: 'switch_publisher' },
-            { label: '🔥 إنشاء حملة لباقة الطبخ', actionType: 'create_campaign', payload: { category: 'خضار' } },
-            { label: '📊 فحص المنتجات الأكثر طلباً', actionType: 'product_intelligence' },
-          ],
-          dataContext: 'تحليل مباشر لـ 120 صنف ومبيعات سوق بنسودة بفاس.',
-        };
-      }
-
-      if (lower.includes('جمعة') || lower.includes('كسكس') || lower.includes('نهاية الأسبوع')) {
-        return {
-          reply: `جمعة مباركة مقدماً سيدي المدير! 🕌
-ليوم الجمعة كنوصي بالتركيز 100% على:
-• **باقة الكسكس الفاسي السبعة:** (قرع أحمر، لفت، جزر، كوسا، حمص، قزبر وكرفس).
-• إطلاق حملة واتساب وفيسبوك مساء الخميس وصباح الجمعة قبل 10:30 صباحاً لضمان وصول الطلب قبل صلاة الجمعة.
-• عرض التوصيل المجاني للطلبات فوق 120 درهم كيزيد حجم السلة بنسبة 40%.`,
-          suggestedActions: [
-            { label: '📝 استخدام قالب عروض الجمعة', actionType: 'use_template', payload: 'weekend_deals' },
-            { label: '🚀 نشر فوري على واتساب', actionType: 'switch_publisher' },
-          ],
-          dataContext: 'سلوك تسوق يوم الجمعة في فاس.',
-        };
-      }
-
-      if (lower.includes('مخزون') || lower.includes('نفاد') || lower.includes('كمية')) {
-        return {
-          reply: `نظام حماية المخزون الذكي شغال بنجاح:
-✅ الأصناف الوفيرة (أكثر من 10 كجم) مفعلة في كل القوالب التسويقية.
-⚠️ الأصناف اللي قريبة تنفد (أقل من 5 كجم) تم استبعادها تلقائياً من الإعلانات الترويجية الكبرى حتى لا نخيب أمل الزبائن.
-تقدر تعدل المخزون الفعلي فأي وقت من لوحة "المنتجات والمخزون".`,
-          suggestedActions: [
-            { label: '📦 فتح لوحة المنتجات والمخزون', actionType: 'open_inventory' },
-            { label: '✨ توليد أفكار للمنتجات الوفيرة', actionType: 'generate_ideas' },
-          ],
-          dataContext: 'ربط مباشر مع قاعدة بيانات المخزون الحية.',
-        };
-      }
-
-      // إجابة عامة ذكية
       return {
-        reply: `مرحبا بك سيدي المدير! 🌿 أنا هنا لمساعدتك في كل ما يخص التسويق الذكي لمتجر خُضرة بفاس:
-• يمكنك نشر الإعلانات الجاهزة بنقرة واحدة عبر واتساب وفيسبوك وتليغرام.
-• إدراج الأسعار الحية تلقائياً من المتجر.
-• توليد أفكار جديدة لعروض الصناديق والتوصيل المجاني.
-شنو الخطوة اللي تحب نركز عليها دابا؟`,
+        reply: '⚠️ تعذر الاتصال بخادم خُضرة AI Copilot (تأكد من اتصال الشبكة وتشغيل الخادم). يرجى إعادة المحاولة أو الاستعلام مباشرة من لوحات الإدارة.',
         suggestedActions: [
-          { label: '🚀 نشر إعلان فوري (1-Click)', actionType: 'switch_publisher' },
-          { label: '💡 توليد 5 أفكار تسويقية', actionType: 'generate_ideas' },
-          { label: '📱 فحص قوالب واتساب', actionType: 'use_template', payload: 'fresh_morning' },
+          { label: '📦 لوحة المنتجات والمخزون', actionType: 'open_inventory' },
+          { label: '🛵 لوحة إدارة الطلبات', actionType: 'view_orders' },
         ],
-        dataContext: 'خُضرة AI Marketing Copilot — فاس.',
+        dataContext: 'غير متصل بالخادم الخلفي.',
+        isRealData: false,
       };
     }
   );
