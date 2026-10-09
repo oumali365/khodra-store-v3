@@ -7,6 +7,7 @@
 
 import { getGeminiClient, GEMINI_MODEL } from './geminiClient';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
+import { executeCopilotChat, CopilotResponse } from './copilotService';
 
 // ────────────────────────────────────────────────────────────
 // دالة مساعدة: تحليل JSON بأمان مع تنظيف النص
@@ -705,127 +706,9 @@ export function getProductIntelligence(): ProductIntelligenceData {
 }
 
 // ────────────────────────────────────────────────────────────
-// 5️⃣ المساعد الإداري الذكي (AI Copilot Chat)
+// 5️⃣ المساعد الإداري التشغيلي الذكي (AI Copilot v2 Chat)
+// يعتمد على Function Calling الحقيقي وبيانات Supabase الحية
 // ────────────────────────────────────────────────────────────
-export async function chatWithMarketingCopilot(userQuery: string): Promise<{
-  reply: string;
-  suggestedActions: { label: string; actionType: string; payload?: any }[];
-  dataContext: string;
-}> {
-  const gemini = getGeminiClient();
-  const stats = getAggregatedStoreStats();
-  const intelligence = getProductIntelligence();
-
-  if (gemini) {
-    try {
-      const prompt = `
-أنت المساعد التسويقي الذكي الرسمي لمنصة "خُضرة — فاس" (Khodra AI Copilot).
-المدير الإداري يسألك السؤال التالي:
-"${userQuery}"
-
-البيانات التشغيلية الحقيقية للمتجر (لا تخترع بيانات خارجها):
-- إحصائيات المتجر: ${JSON.stringify(stats)}
-- المنتجات الأكثر مبيعاً: ${intelligence.topSellers.map((p) => p.name).join('، ')}
-- فرص الترويج: ${intelligence.promoteOpportunities.map((p) => `${p.name} (مخزون: ${p.stock})`).join('، ')}
-- منتجات قاربت على النفاد: ${intelligence.lowStockWarnings.map((p) => `${p.name} (${p.stock})`).join('، ') || 'لا توجد'}
-- الباقات المقترحة: ${intelligence.suggestedBundles.map((b) => b.name).join('، ')}
-
-المعايير الصارمة:
-1. أجب بلغة عربية واضحة ومباشرة مع لمسات مهنية مغربية ملائمة لمدينة فاس.
-2. كن مفسراً لأسباب اختياراتك (Explainable AI): وضّح لماذا توصي بهذا المنتج أو الإجراء بدقة (مثلاً: المخزون متوفر، أو مبيعاته مرتفعة).
-3. إذا سأل عن شيء لا تتوفر له بيانات كافية، قل بصدق "البيانات غير متوفرة حالياً".
-4. اقترح في النهاية إجراءات سريعة يمكن للمدير اتخاذها بضغطة زر.
-
-أرجع كائن JSON بالهيكل الآتي حصراً:
-{
-  "reply": "نص الإجابة التفصيلي والمفسر للمدير",
-  "suggestedActions": [
-    {"label": "اسم الإجراء 1", "actionType": "create_campaign" | "view_inventory" | "analyze_template"},
-    {"label": "اسم الإجراء 2", "actionType": "create_bundle" | "publish_whatsapp"}
-  ],
-  "dataContext": "البيانات التي تم الاستناد عليها في هذه الإجابة"
-}
-`;
-
-      const response = await gemini.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          temperature: 0.35,
-        },
-      });
-
-      const parsed = safeParseJson<any>(response.text || '', null);
-      if (parsed?.reply) {
-        return parsed;
-      }
-    } catch (err) {
-      console.warn('Gemini chatWithMarketingCopilot fallback:', err);
-    }
-  }
-
-  // ─── محرك الإجابات التفاعلي الاحتياطي ───
-  const q = userQuery.toLowerCase();
-
-  if (q.includes('نسوق') || q.includes('حملة') || q.includes('اليوم')) {
-    return {
-      reply: `صباح الخير سيدي المدير! 👋
-بناءً على مخزون اليوم ومبيعات الأسبوع في فاس، أنصح بالتركيز الفوري على:
-1. **باقة الطبخ اليومي (بطاطس + طماطم + بصل + جزر)**: لأنها المنتجات الأكثر مبيعاً ونسبة الطلب عليها تتجاوز 80% من السلات، كما أن المخزون وفير ويتيح تحقيق دورة سريعة.
-2. **برتقال العصير**: يحقق نمواً بنسبة ممتازة ومرغوب جداً في طقس اليوم.
-⚠️ **تنبيه**: يرجى عدم تكثيف الإعلانات على المنتجات التي يقل مخزونها عن 5 وحدات حتى يتم التزويد غداً من سوق بنسودة.`,
-      suggestedActions: [
-        { label: '✨ إنشاء حملة سريعة لباقة الطبخ', actionType: 'create_campaign', payload: { category: 'veg' } },
-        { label: '📦 الاطلاع على المخزون الحالي', actionType: 'view_inventory' },
-        { label: '📱 إرسال تنبيه واتساب للزبائن', actionType: 'publish_whatsapp' },
-      ],
-      dataContext: 'مستند إلى تحليل المخزون المتاح وسجل أكثر 10 منتجات مبيعاً بالمتجر.',
-    };
-  }
-
-  if (q.includes('فواكه') || q.includes('عصير')) {
-    return {
-      reply: `بالنسبة لقسم الفواكه 🍎:
-- **برتقال العصير** (7.5 درهم) و**الموز المغربي** و**التفاح البلدي** هي الركائز الأساسية حالياً.
-- أنصح بإنشاء عرض "صندوق الفيتامينات الصباحي" مع التوصيل المجاني للطلبات فوق 250 درهم، لأن عملاء هذا الصندوق غالباً ما يضيفون الخضروات الورقية لطلبهم أيضاً.`,
-      suggestedActions: [
-        { label: '✨ إنشاء حملة لفواكه الموسم', actionType: 'create_campaign', payload: { category: 'fruit' } },
-        { label: '🔍 تحليل قالب الفواكه', actionType: 'analyze_template' },
-      ],
-      dataContext: 'مستند إلى أسعار اليوم وهامش ربح الفواكه الموسمية بفاس.',
-    };
-  }
-
-  if (q.includes('مخزون') || q.includes('نفاد') || q.includes('stock')) {
-    return {
-      reply: `تقرير المخزون اللحظي ⚠️:
-- إجمالي المنتجات المعروضة: ${stats.totalProducts} منتج.
-- المنتجات المتوفرة بأمان: ${stats.availableProducts} منتج.
-- المنتجات القريبة من الحد الأدنى (أقل من 5 كجم/وحدة): ${intelligence.lowStockWarnings.length} منتجات.
-💡 **توجيه الذكاء الاصطناعي**: تم تفعيل الحظر التلقائي للترويج على السلع منخفضة المخزون لحماية تجربة العملاء من الإلغاء.`,
-      suggestedActions: [
-        { label: '📋 إدارة وتعديل المخزون', actionType: 'view_inventory' },
-        { label: '💵 مراجعة أسعار السوق الصباحي', actionType: 'view_pricing' },
-      ],
-      dataContext: 'مستند إلى جدول المنتجات وقاعدة بيانات daily_prices في فاس.',
-    };
-  }
-
-  return {
-    reply: `أهلاً بك في خُضرة AI Copilot 🌿!
-أنا جاهز لمساعدتك في:
-- تحليل وتطوير القوالب التسويقية مع حساب Marketing Score.
-- إنشاء حملات إعلانية متكاملة لـ WhatsApp و Instagram و Stories.
-- تحديد المنتجات الأكثر ربحية والفرص التسويقية بناءً على مبيعات فاس.
-- مراقبة وتنبيهات المخزون ومنع ترويج المنتجات القريبة من النفاد.
-
-كيف يمكنني مساعدتك الآن؟`,
-    suggestedActions: [
-      { label: '✨ شنو خاصنا نسوقو اليوم؟', actionType: 'create_campaign' },
-      { label: '🔥 فرز فرص المبيعات', actionType: 'product_intelligence' },
-      { label: '📝 فحص قالب تسويقي', actionType: 'analyze_template' },
-    ],
-    dataContext: 'نظام التشغيل الذكي لمتجر خُضرة — فاس.',
-  };
+export async function chatWithMarketingCopilot(userQuery: string): Promise<CopilotResponse> {
+  return await executeCopilotChat(userQuery);
 }

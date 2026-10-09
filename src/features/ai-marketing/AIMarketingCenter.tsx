@@ -324,24 +324,51 @@ export const AIMarketingCenter: React.FC = () => {
   // وضع الهاتف في المعاينة (للشاشات الصغيرة)
   const [mobileViewMode, setMobileViewMode] = useState<'editor' | 'preview'>('editor');
 
-  // بيانات المساعد الذكي Copilot
+  // بيانات المساعد الذكي Copilot v2
   const [insights, setInsights] = useState<DashboardInsightsResponse | null>(null);
   const [chatMessages, setChatMessages] = useState<
-    { role: 'user' | 'assistant'; text: string; actions?: any[]; dataContext?: string }[]
+    {
+      role: 'user' | 'assistant';
+      text: string;
+      actions?: any[];
+      dataContext?: string;
+      toolsExecuted?: {
+        toolName: string;
+        source: string;
+        summary: string;
+        isRealData: boolean;
+        data?: any;
+      }[];
+      isRealData?: boolean;
+    }[]
   >([
     {
       role: 'assistant',
-      text: 'صباح الخير والبركة سيدي المدير! 👋 أنا خُضرة AI Marketing Copilot المساعد التسويقي لمتجرك في فاس. حللت المخزون ومبيعات اليوم، والطلب مرتفع جداً على خضار الطهي اليومي وفواكه الصباح. شنو تحب نركزوا عليه دابا؟',
+      text: `مرحباً بك سيدي المدير في Khodra AI Copilot v2 🌿
+
+أنا مساعدك التشغيلي المتصل مباشرة بقاعدة بيانات Supabase لمتجر خُضرة فاس، مع تطبيق نظام الأدوات الحية (Tool-Based Architecture) ووضع القراءة فقط الصارم (Read-Only) لحماية بيانات المتجر.
+
+يمكنك سؤالي بحرية عن:
+1. 📦 المخزون اللحظي والسلع الناقصة أو غير المتوفرة.
+2. 🛵 حالة الطلبات والطلبات المعلقة (pending) وربطها بالمناطق.
+3. 💰 ملخص المبيعات والإيرادات الدقيقة ومتوسط السلة اليوم وهاد الأسبوع.
+4. 📋 سجل وتدقيق حركات المخزون (inventory_ledger).
+5. 📢 اقتراحات تسويقية مبنية على وفرة المخزون والطلب الفعلي.
+
+كيف يمكنني مساعدتك الآن؟`,
       actions: [
-        { label: '✨ شنو خاصنا نسوقو اليوم؟', actionType: 'query', payload: 'شنو خاصنا نسوقو اليوم؟' },
-        { label: '🚀 فتح محرر النشر بنقرة واحدة', actionType: 'switch_publisher' },
-        { label: '🔥 إنشاء حملة سريعة لباقة الطبخ', actionType: 'create_campaign' },
+        { label: '📦 واش كاين شي خصاص فالمخزون؟', actionType: 'query', payload: 'واش كاين شي خصاص فالمخزون؟' },
+        { label: '💰 ملخص مبيعات اليوم وهاد الأسبوع', actionType: 'query', payload: 'ملخص مبيعات اليوم وهاد الأسبوع' },
+        { label: '🛵 الطلبات اللي باقين pending', actionType: 'query', payload: 'شنو هما الطلبات اللي باقين pending وبحاجة متابعة؟' },
+        { label: '📋 آخر حركات وتعديلات المخزون', actionType: 'query', payload: 'شنو هما آخر حركات وتعديلات المخزون في السجل؟' },
       ],
-      dataContext: 'مستند إلى تحليل مخزون المتجر ومبيعات سوق بنسودة بفاس.',
+      dataContext: 'متصل مباشرة بـ Supabase • وضع القراءة فقط الآمن (Read-Only) • سوق بنسودة فاس',
+      isRealData: true,
     },
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [expandedToolIndex, setExpandedToolIndex] = useState<number | null>(null);
 
   // مولد الأفكار والحملات
   const [ideasCount, setIdeasCount] = useState<number>(5);
@@ -557,17 +584,24 @@ export const AIMarketingCenter: React.FC = () => {
     }
   };
 
-  // محادثة المساعد الذكي Copilot
+  // محادثة المساعد التشغيلي الذكي Copilot v2
   const handleSendChat = async (textToSend?: string) => {
     const query = (textToSend || chatInput).trim();
     if (!query || isChatLoading) return;
+
+    const newHistory = [
+      ...chatMessages.slice(-4).map((m) => ({
+        role: m.role === 'user' ? ('user' as const) : ('model' as const),
+        text: m.text,
+      })),
+    ];
 
     setChatMessages((prev) => [...prev, { role: 'user', text: query }]);
     setChatInput('');
     setIsChatLoading(true);
 
     try {
-      const res = await sendCopilotChatApi(query);
+      const res = await sendCopilotChatApi(query, newHistory);
       setChatMessages((prev) => [
         ...prev,
         {
@@ -575,6 +609,8 @@ export const AIMarketingCenter: React.FC = () => {
           text: res.reply,
           actions: res.suggestedActions,
           dataContext: res.dataContext,
+          toolsExecuted: res.toolsExecuted,
+          isRealData: res.isRealData,
         },
       ]);
     } catch (err: any) {
@@ -582,8 +618,9 @@ export const AIMarketingCenter: React.FC = () => {
         ...prev,
         {
           role: 'assistant',
-          text: 'أهلاً سيدي المدير! حللت بيانات متجر خُضرة: اليوم الطلب مرتفع على خضار الطهي الأساسية وباقات العائلة. يمكنك الانتقال إلى محرر النشر بنقرة واحدة لاختيار قالب الصباح المعتمد.',
+          text: 'تعذر الاتصال بالخادم مؤقتاً، يرجى المحاولة بعد قليل أو مراجعة لوحة المخزون مباشرة.',
           actions: [
+            { label: '📦 فحص المخزون الحالي', actionType: 'view_inventory' },
             { label: '🚀 فتح محرر النشر بنقرة واحدة', actionType: 'switch_publisher' },
           ],
         },
@@ -605,6 +642,16 @@ export const AIMarketingCenter: React.FC = () => {
     } else if (action.actionType === 'generate_ideas') {
       setActiveTab('generator');
       handleGenerateIdeas();
+    } else if (action.actionType === 'view_inventory' || action.actionType === 'open_inventory') {
+      window.dispatchEvent(new CustomEvent('khodra_admin_route_changed', { detail: 'inventory' }));
+    } else if (action.actionType === 'view_orders') {
+      window.dispatchEvent(new CustomEvent('khodra_admin_route_changed', { detail: 'orders' }));
+    } else if (action.actionType === 'view_pricing') {
+      window.dispatchEvent(new CustomEvent('khodra_admin_route_changed', { detail: 'pricing' }));
+    } else if (action.actionType === 'view_sales') {
+      handleSendChat('ملخص مبيعات اليوم وهاد الأسبوع');
+    } else if (action.actionType === 'publish_whatsapp') {
+      handleShareWhatsApp();
     } else if (action.actionType === 'query' && action.payload) {
       handleSendChat(action.payload);
     }
@@ -1099,10 +1146,40 @@ export const AIMarketingCenter: React.FC = () => {
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          التبويب 2: خُضرة AI Marketing Copilot (المساعد الذكي)
+          التبويب 2: خُضرة AI Copilot v2 (المساعد التشغيلي الذكي)
       ════════════════════════════════════════════════════════════ */}
       {activeTab === 'copilot' && (
         <div className="space-y-5 animate-in fade-in duration-200">
+          {/* شريط حالة الاتصال والأمان اللحظي */}
+          <div className="bg-gradient-to-l from-emerald-900 via-[#163920] to-[#0E2615] rounded-2xl p-3.5 sm:p-4 text-white border border-emerald-700/60 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-black text-emerald-100">
+                    Khodra AI Copilot v2 — النظام التشغيلي المباشر
+                  </span>
+                  <span className="text-[10px] bg-emerald-600/80 text-white font-bold px-2 py-0.5 rounded-full border border-emerald-400/30">
+                    Tool-Based
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-200/80">
+                  متصل بقاعدة بيانات Supabase الحية • استعلامات لحظية • سوق الجملة بنسودة فاس
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold bg-white/10 text-emerald-200 px-2.5 py-1 rounded-xl border border-white/10 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>وضع القراءة فقط الآمن (Read-Only)</span>
+              </span>
+            </div>
+          </div>
+
           {/* بطاقات المؤشرات الذكية اللحظية */}
           {insights && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
@@ -1119,9 +1196,13 @@ export const AIMarketingCenter: React.FC = () => {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-black text-sm">{item.title}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/70 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => handleSendChat(item.description)}
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/70 shadow-2xs hover:bg-white transition-colors cursor-pointer"
+                    >
                       {item.action}
-                    </span>
+                    </button>
                   </div>
                   <p className="text-xs text-stone-700 leading-relaxed font-medium">{item.description}</p>
                 </div>
@@ -1129,7 +1210,7 @@ export const AIMarketingCenter: React.FC = () => {
             </div>
           )}
 
-          {/* محادثة المساعد الإداري الذكي */}
+          {/* محادثة المساعد الإداري الذكي v2 */}
           <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-stone-100 flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
@@ -1137,25 +1218,59 @@ export const AIMarketingCenter: React.FC = () => {
                   🤖
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-black text-stone-900">مساعد خُضرة التسويقي الذكي (Copilot)</h3>
-                  <p className="text-[11px] text-stone-400">استشر المساعد حول المبيعات، عروض الصباح، أو خطط نهاية الأسبوع بفاس</p>
+                  <h3 className="text-sm sm:text-base font-black text-stone-900">
+                    محادثة المساعد التشغيلي الذكي (AI Copilot v2)
+                  </h3>
+                  <p className="text-[11px] text-stone-400">
+                    استفسر بحرية عن المخزون، الطلبات، المبيعات الدقيقة، وحركات التدقيق في فاس
+                  </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('publisher');
-                  setSelectedTemplate('fresh_morning');
-                }}
-                className="px-3.5 py-1.5 rounded-xl bg-[#EAB308] hover:bg-[#d8a304] text-[#163920] font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>🚀 فتح مركز النشر بنقرة واحدة</span>
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('publisher');
+                    setSelectedTemplate('fresh_morning');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-[#FAF8F4] hover:bg-stone-100 text-stone-700 border border-stone-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-[#0284C7]" />
+                  <span>مركز النشر</span>
+                </button>
+              </div>
+            </div>
+
+            {/* أزرار الاستفسارات التشغيلية السريعة بنقرة واحدة */}
+            <div className="bg-[#FAF8F4] p-3 rounded-2xl border border-stone-200/70 space-y-2">
+              <span className="text-[11px] font-bold text-stone-600 block">
+                ⚡ استفسارات سريعة ومباشرة على بيانات Supabase:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: '📦 واش كاين شي خصاص فالمخزون؟', q: 'واش كاين شي خصاص فالمخزون حالياً؟' },
+                  { label: '💰 ملخص مبيعات اليوم وهاد الأسبوع', q: 'عطيني ملخص مبيعات اليوم وهاد الأسبوع مع إجمالي الإيرادات' },
+                  { label: '🛵 الطلبات اللي باقين pending', q: 'شنو هما الطلبات اللي باقين pending وبحاجة متابعة فورية؟' },
+                  { label: '📋 آخر حركات وتعديلات المخزون', q: 'شنو هما آخر حركات وتعديلات المخزون في السجل inventory_ledger؟' },
+                  { label: '🌿 أكثر الخضار والفواكه المتوفرة', q: 'شنو هما أكثر الخضار والفواكه المتوفرة حالياً بالأسعار؟' },
+                  { label: '📢 خطة تسويق اليوم بناءً على المخزون', q: 'شنو خاصنا نسوقو اليوم بناءً على المخزون الوفير بسوق بنسودة؟' },
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSendChat(item.q)}
+                    disabled={isChatLoading}
+                    className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 border border-stone-200 hover:border-emerald-300 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-40"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* سجل المحادثة */}
-            <div className="space-y-3 max-h-[420px] overflow-y-auto p-1 text-xs sm:text-sm">
+            <div className="space-y-4 max-h-[460px] overflow-y-auto p-1 text-xs sm:text-sm">
               {chatMessages.map((msg, i) => (
                 <div
                   key={i}
@@ -1164,16 +1279,67 @@ export const AIMarketingCenter: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-2xl p-3.5 whitespace-pre-line leading-relaxed ${
+                    className={`max-w-[90%] sm:max-w-[85%] rounded-2xl p-4 whitespace-pre-line leading-relaxed shadow-2xs ${
                       msg.role === 'user'
                         ? 'bg-[#163920] text-white rounded-br-xs'
-                        : 'bg-stone-100 text-stone-900 rounded-bl-xs border border-stone-200/60'
+                        : 'bg-[#FDFCFA] text-stone-900 rounded-bl-xs border border-stone-200/80'
                     }`}
                   >
                     {msg.text}
+
+                    {/* عرض الأدوات التشغيلية المنفذة إن وجدت */}
+                    {msg.toolsExecuted && msg.toolsExecuted.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-stone-200/70 space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2 text-[11px] text-stone-600 font-bold">
+                          <span className="flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>الأدوات المنفذة لقراءة البيانات الحية ({msg.toolsExecuted.length}):</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedToolIndex(expandedToolIndex === i ? null : i)}
+                            className="text-emerald-700 hover:underline cursor-pointer text-[10px]"
+                          >
+                            {expandedToolIndex === i ? 'إخفاء التفاصيل ▲' : 'معاينة تفاصيل الاستعلام ▼'}
+                          </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {msg.toolsExecuted.map((tool, tIdx) => (
+                            <span
+                              key={tIdx}
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 ${
+                                tool.source === 'supabase_live'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  : 'bg-stone-100 text-stone-700 border-stone-300'
+                              }`}
+                            >
+                              <span>⚡ {tool.toolName}</span>
+                              <span className="opacity-75">
+                                ({tool.source === 'supabase_live' ? 'Supabase' : 'الكتالوج'})
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* الصندوق المنبثق لتفاصيل الأداة */}
+                        {expandedToolIndex === i && (
+                          <div className="p-2.5 rounded-xl bg-stone-100 text-[11px] font-mono text-stone-700 border border-stone-200 space-y-1.5 max-h-48 overflow-y-auto">
+                            {msg.toolsExecuted.map((tool, tIdx) => (
+                              <div key={tIdx} className="border-b border-stone-200/60 pb-1.5 last:border-0">
+                                <div className="font-bold text-emerald-900 font-sans">
+                                  📌 {tool.toolName}:
+                                </div>
+                                <div className="font-sans text-stone-600">{tool.summary}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* أزرار الإجراءات السريعة */}
+                  {/* أزرار الإجراءات السريعة المقترحة من Copilot */}
                   {msg.actions && msg.actions.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2 max-w-[90%]">
                       {msg.actions.map((act, actIdx) => (
@@ -1181,7 +1347,7 @@ export const AIMarketingCenter: React.FC = () => {
                           key={actIdx}
                           type="button"
                           onClick={() => handleActionClick(act)}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-colors cursor-pointer active:scale-95 shadow-2xs"
                         >
                           {act.label}
                         </button>
@@ -1197,28 +1363,28 @@ export const AIMarketingCenter: React.FC = () => {
                 </div>
               ))}
               {isChatLoading && (
-                <div className="flex items-center gap-2 text-stone-500 text-xs p-2">
+                <div className="flex items-center gap-2.5 text-stone-600 text-xs p-3 bg-stone-50 rounded-2xl border border-stone-200 max-w-sm animate-pulse">
                   <span className="w-4 h-4 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
-                  <span>الذكاء الاصطناعي يحلل بيانات المتجر وسوق بنسودة...</span>
+                  <span>الذكاء الاصطناعي يستعلم قاعدة بيانات Supabase وينفذ الأدوات...</span>
                 </div>
               )}
             </div>
 
-            {/* حقل الإدخال */}
+            {/* حقل الإدخال والإرسال */}
             <div className="pt-2 border-t border-stone-100 flex items-center gap-2">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
-                placeholder="اسأل المساعد (مثلاً: شنو نروج اليوم؟، عطيني فكرة لرفع مبيعات الفواكه)..."
-                className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 text-xs sm:text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                placeholder="اسأل المساعد بحرية (مثلاً: واش كاين شي خصاص فالمخزون؟، شحال من طلب مسجل اليوم؟، مبيعات هاد السيمانة)..."
+                className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 text-xs sm:text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
               />
               <button
                 type="button"
                 onClick={() => handleSendChat()}
                 disabled={!chatInput.trim() || isChatLoading}
-                className="px-4 py-2.5 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-40 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-40 transition-all shadow-xs active:scale-95"
               >
                 <Send className="w-4 h-4" />
                 <span className="hidden sm:inline">إرسال</span>
@@ -1227,6 +1393,7 @@ export const AIMarketingCenter: React.FC = () => {
           </div>
         </div>
       )}
+
 
       {/* ════════════════════════════════════════════════════════════
           التبويب 3: مولد الأفكار والحملات (AI Generator)

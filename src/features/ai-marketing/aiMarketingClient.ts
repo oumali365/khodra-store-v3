@@ -29,6 +29,15 @@ export interface CopilotChatResponse {
   reply: string;
   suggestedActions: { label: string; actionType: string; payload?: any }[];
   dataContext: string;
+  toolsExecuted?: {
+    toolName: string;
+    source: string;
+    summary: string;
+    isRealData: boolean;
+    data?: any;
+  }[];
+  isRealData?: boolean;
+  modelUsed?: string;
 }
 
 export interface PublishQueueItem {
@@ -360,13 +369,16 @@ export async function fetchProductIntelligenceApi(): Promise<ProductIntelligence
   );
 }
 
-export async function sendCopilotChatApi(message: string): Promise<CopilotChatResponse> {
+export async function sendCopilotChatApi(
+  message: string,
+  history?: { role: 'user' | 'model'; text: string }[]
+): Promise<CopilotChatResponse> {
   return safeFetchJson<CopilotChatResponse>(
     '/api/ai/copilot-chat',
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, history }),
     },
     () => {
       // ذكاء اصطناعي محلي فوري خبير في سوق فاس ومتجر خُضرة

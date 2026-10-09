@@ -13,6 +13,8 @@ import {
   chatWithMarketingCopilot,
   getAggregatedStoreStats,
 } from './aiMarketingService';
+import { dispatchCopilotTool } from './copilotTools';
+import { isSupabaseConfigured } from './supabaseServerClient';
 
 export const aiRouter = Router();
 
@@ -178,11 +180,12 @@ aiRouter.get('/api/ai/product-intelligence', async (_req: Request, res: Response
 });
 
 // ────────────────────────────────────────────────────────────
-// 5️⃣ POST /api/ai/copilot-chat - محادثة المساعد الإداري الذكي
+// 5️⃣ POST /api/ai/copilot-chat - محادثة المساعد التشغيلي الذكي v2
 // ────────────────────────────────────────────────────────────
 aiRouter.post('/api/ai/copilot-chat', async (req: Request, res: Response) => {
+  const startTime = Date.now();
   try {
-    const { message } = req.body;
+    const { message, history } = req.body;
     if (!message || typeof message !== 'string') {
       return res.status(400).json({
         success: false,
@@ -191,9 +194,19 @@ aiRouter.post('/api/ai/copilot-chat', async (req: Request, res: Response) => {
     }
 
     const copilotResponse = await chatWithMarketingCopilot(message.trim());
+    const duration = Date.now() - startTime;
+
+    recordAudit('copilot_chat', 'ai_assistant', 'v2', {
+      query: message.slice(0, 120),
+      toolsUsed: copilotResponse.toolsExecuted?.map((t) => t.toolName) || [],
+      isRealData: copilotResponse.isRealData,
+      durationMs: duration,
+    });
+
     return res.json({
       success: true,
       data: copilotResponse,
+      durationMs: duration,
     });
   } catch (err: any) {
     return res.status(500).json({
@@ -202,6 +215,59 @@ aiRouter.post('/api/ai/copilot-chat', async (req: Request, res: Response) => {
     });
   }
 });
+
+// ────────────────────────────────────────────────────────────
+// 5️⃣.1 POST /api/ai/copilot-tool - تنفيذ أداة تشغيلية مباشرة
+// ────────────────────────────────────────────────────────────
+aiRouter.post('/api/ai/copilot-tool', async (req: Request, res: Response) => {
+  try {
+    const { toolName, args } = req.body;
+    if (!toolName || typeof toolName !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'يرجى تحديد اسم الأداة المراد تنفيذها',
+      });
+    }
+
+    const result = await dispatchCopilotTool(toolName, args);
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'فشل في تنفيذ الأداة التشغيلية',
+    });
+  }
+});
+
+// ────────────────────────────────────────────────────────────
+// 5️⃣.2 GET /api/ai/copilot-status - حالة ومؤشرات نظام Copilot v2
+// ────────────────────────────────────────────────────────────
+aiRouter.get('/api/ai/copilot-status', async (_req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    data: {
+      version: 'v2.0-operational',
+      store: 'خُضرة — فاس',
+      wholesaleMarket: 'سوق الجملة بنسودة فاس',
+      supabaseConfigured: isSupabaseConfigured(),
+      geminiConfigured: !!process.env.GEMINI_API_KEY,
+      readOnlyMode: true,
+      activeTools: [
+        'get_products',
+        'get_inventory',
+        'get_orders',
+        'get_sales_summary',
+        'get_inventory_movements',
+        'get_store_info',
+      ],
+      timestamp: new Date().toISOString(),
+    },
+  });
+});
+
 
 // ────────────────────────────────────────────────────────────
 // 6️⃣ POST /api/ai/publish-queue - اعتماد وجدولة النشر مع التدقيق
