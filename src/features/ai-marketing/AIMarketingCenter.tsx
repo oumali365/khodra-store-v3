@@ -290,7 +290,7 @@ export const AIMarketingCenter: React.FC = () => {
   const whatsappNumber = STORE_CONFIG.whatsappNumber || '212704274830';
 
   // التبويب النشط
-  const [activeTab, setActiveTab] = useState<'publisher' | 'copilot' | 'generator' | 'analyzer' | 'accounts' | 'analytics'>('publisher');
+  const [activeTab, setActiveTab] = useState<'publisher' | 'generator' | 'analyzer' | 'accounts' | 'analytics'>('publisher');
 
   // بيانات النشر والمحرر
   const [selectedTemplate, setSelectedTemplate] = useState<MarketingTemplateId>('fresh_morning');
@@ -757,15 +757,14 @@ export const AIMarketingCenter: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setActiveTab('copilot')}
-            className={`min-h-[40px] px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'copilot'
-                ? 'bg-white text-[#0C2D48] shadow-md font-black'
-                : 'bg-black/30 hover:bg-black/50 text-white/90 border border-white/10'
-            }`}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('khodra_open_copilot_modal'));
+            }}
+            className="min-h-[40px] px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap bg-cyan-950/70 hover:bg-cyan-900/90 text-cyan-200 hover:text-white border border-cyan-400/50 shadow-sm font-black active:scale-95"
+            title="فتح خُضرة AI Copilot في نافذة مستقلة"
           >
-            <Sparkles className="w-4 h-4 text-[#FEF08A]" />
-            <span>خُضرة AI Copilot (المساعد الذكي)</span>
+            <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
+            <span>خُضرة AI Copilot (نافذة مستقلة 🤖)</span>
           </button>
 
           <button
@@ -1146,257 +1145,7 @@ export const AIMarketingCenter: React.FC = () => {
       )}
 
       {/* ════════════════════════════════════════════════════════════
-          التبويب 2: خُضرة AI Copilot v2 (المساعد التشغيلي الذكي)
-      ════════════════════════════════════════════════════════════ */}
-      {activeTab === 'copilot' && (
-        <div className="space-y-5 animate-in fade-in duration-200">
-          {/* شريط حالة الاتصال والأمان اللحظي */}
-          <div className="bg-gradient-to-l from-emerald-900 via-[#163920] to-[#0E2615] rounded-2xl p-3.5 sm:p-4 text-white border border-emerald-700/60 shadow-sm flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
-              </span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-black text-emerald-100">
-                    Khodra AI Copilot v2 — النظام التشغيلي المباشر
-                  </span>
-                  <span className="text-[10px] bg-emerald-600/80 text-white font-bold px-2 py-0.5 rounded-full border border-emerald-400/30">
-                    Tool-Based
-                  </span>
-                </div>
-                <p className="text-[11px] text-emerald-200/80">
-                  متصل بقاعدة بيانات Supabase الحية • استعلامات لحظية • سوق الجملة بنسودة فاس
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold bg-white/10 text-emerald-200 px-2.5 py-1 rounded-xl border border-white/10 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>وضع القراءة فقط الآمن (Read-Only)</span>
-              </span>
-            </div>
-          </div>
-
-          {/* بطاقات المؤشرات الذكية اللحظية */}
-          {insights && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-              {insights.insights.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`rounded-2xl p-4 border transition-all ${
-                    item.type === 'opportunity'
-                      ? 'bg-emerald-50/80 border-emerald-200/90 text-emerald-950'
-                      : item.type === 'warning'
-                      ? 'bg-amber-50/80 border-amber-200/90 text-amber-950'
-                      : 'bg-sky-50/80 border-sky-200/90 text-sky-950'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-black text-sm">{item.title}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleSendChat(item.description)}
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/70 shadow-2xs hover:bg-white transition-colors cursor-pointer"
-                    >
-                      {item.action}
-                    </button>
-                  </div>
-                  <p className="text-xs text-stone-700 leading-relaxed font-medium">{item.description}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* محادثة المساعد الإداري الذكي v2 */}
-          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xs p-4 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100 flex-wrap gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-                  🤖
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-black text-stone-900">
-                    محادثة المساعد التشغيلي الذكي (AI Copilot v2)
-                  </h3>
-                  <p className="text-[11px] text-stone-400">
-                    استفسر بحرية عن المخزون، الطلبات، المبيعات الدقيقة، وحركات التدقيق في فاس
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('publisher');
-                    setSelectedTemplate('fresh_morning');
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-[#FAF8F4] hover:bg-stone-100 text-stone-700 border border-stone-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-[#0284C7]" />
-                  <span>مركز النشر</span>
-                </button>
-              </div>
-            </div>
-
-            {/* أزرار الاستفسارات التشغيلية السريعة بنقرة واحدة */}
-            <div className="bg-[#FAF8F4] p-3 rounded-2xl border border-stone-200/70 space-y-2">
-              <span className="text-[11px] font-bold text-stone-600 block">
-                ⚡ استفسارات سريعة ومباشرة على بيانات Supabase:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { label: '📦 واش كاين شي خصاص فالمخزون؟', q: 'واش كاين شي خصاص فالمخزون حالياً؟' },
-                  { label: '💰 ملخص مبيعات اليوم وهاد الأسبوع', q: 'عطيني ملخص مبيعات اليوم وهاد الأسبوع مع إجمالي الإيرادات' },
-                  { label: '🛵 الطلبات اللي باقين pending', q: 'شنو هما الطلبات اللي باقين pending وبحاجة متابعة فورية؟' },
-                  { label: '📋 آخر حركات وتعديلات المخزون', q: 'شنو هما آخر حركات وتعديلات المخزون في السجل inventory_ledger؟' },
-                  { label: '🌿 أكثر الخضار والفواكه المتوفرة', q: 'شنو هما أكثر الخضار والفواكه المتوفرة حالياً بالأسعار؟' },
-                  { label: '📢 خطة تسويق اليوم بناءً على المخزون', q: 'شنو خاصنا نسوقو اليوم بناءً على المخزون الوفير بسوق بنسودة؟' },
-                ].map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSendChat(item.q)}
-                    disabled={isChatLoading}
-                    className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-stone-800 hover:text-emerald-900 border border-stone-200 hover:border-emerald-300 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-40"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* سجل المحادثة */}
-            <div className="space-y-4 max-h-[460px] overflow-y-auto p-1 text-xs sm:text-sm">
-              {chatMessages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex flex-col ${
-                    msg.role === 'user' ? 'items-end' : 'items-start'
-                  }`}
-                >
-                  <div
-                    className={`max-w-[90%] sm:max-w-[85%] rounded-2xl p-4 whitespace-pre-line leading-relaxed shadow-2xs ${
-                      msg.role === 'user'
-                        ? 'bg-[#163920] text-white rounded-br-xs'
-                        : 'bg-[#FDFCFA] text-stone-900 rounded-bl-xs border border-stone-200/80'
-                    }`}
-                  >
-                    {msg.text}
-
-                    {/* عرض الأدوات التشغيلية المنفذة إن وجدت */}
-                    {msg.toolsExecuted && msg.toolsExecuted.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-stone-200/70 space-y-2">
-                        <div className="flex items-center justify-between flex-wrap gap-2 text-[11px] text-stone-600 font-bold">
-                          <span className="flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>الأدوات المنفذة لقراءة البيانات الحية ({msg.toolsExecuted.length}):</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setExpandedToolIndex(expandedToolIndex === i ? null : i)}
-                            className="text-emerald-700 hover:underline cursor-pointer text-[10px]"
-                          >
-                            {expandedToolIndex === i ? 'إخفاء التفاصيل ▲' : 'معاينة تفاصيل الاستعلام ▼'}
-                          </button>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1.5">
-                          {msg.toolsExecuted.map((tool, tIdx) => (
-                            <span
-                              key={tIdx}
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 ${
-                                tool.source === 'supabase_live'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : 'bg-stone-100 text-stone-700 border-stone-300'
-                              }`}
-                            >
-                              <span>⚡ {tool.toolName}</span>
-                              <span className="opacity-75">
-                                ({tool.source === 'supabase_live' ? 'Supabase' : 'الكتالوج'})
-                              </span>
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* الصندوق المنبثق لتفاصيل الأداة */}
-                        {expandedToolIndex === i && (
-                          <div className="p-2.5 rounded-xl bg-stone-100 text-[11px] font-mono text-stone-700 border border-stone-200 space-y-1.5 max-h-48 overflow-y-auto">
-                            {msg.toolsExecuted.map((tool, tIdx) => (
-                              <div key={tIdx} className="border-b border-stone-200/60 pb-1.5 last:border-0">
-                                <div className="font-bold text-emerald-900 font-sans">
-                                  📌 {tool.toolName}:
-                                </div>
-                                <div className="font-sans text-stone-600">{tool.summary}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* أزرار الإجراءات السريعة المقترحة من Copilot */}
-                  {msg.actions && msg.actions.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2 max-w-[90%]">
-                      {msg.actions.map((act, actIdx) => (
-                        <button
-                          key={actIdx}
-                          type="button"
-                          onClick={() => handleActionClick(act)}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                        >
-                          {act.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {msg.dataContext && (
-                    <span className="text-[10px] text-stone-400 mt-1 mr-1">
-                      {msg.dataContext}
-                    </span>
-                  )}
-                </div>
-              ))}
-              {isChatLoading && (
-                <div className="flex items-center gap-2.5 text-stone-600 text-xs p-3 bg-stone-50 rounded-2xl border border-stone-200 max-w-sm animate-pulse">
-                  <span className="w-4 h-4 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
-                  <span>الذكاء الاصطناعي يستعلم قاعدة بيانات Supabase وينفذ الأدوات...</span>
-                </div>
-              )}
-            </div>
-
-            {/* حقل الإدخال والإرسال */}
-            <div className="pt-2 border-t border-stone-100 flex items-center gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
-                placeholder="اسأل المساعد بحرية (مثلاً: واش كاين شي خصاص فالمخزون؟، شحال من طلب مسجل اليوم؟، مبيعات هاد السيمانة)..."
-                className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 text-xs sm:text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
-              />
-              <button
-                type="button"
-                onClick={() => handleSendChat()}
-                disabled={!chatInput.trim() || isChatLoading}
-                className="px-4 py-2.5 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] font-black text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-40 transition-all shadow-xs active:scale-95"
-              >
-                <Send className="w-4 h-4" />
-                <span className="hidden sm:inline">إرسال</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {/* ════════════════════════════════════════════════════════════
-          التبويب 3: مولد الأفكار والحملات (AI Generator)
+          التبويب 2: مولد الأفكار والحملات (AI Generator)
       ════════════════════════════════════════════════════════════ */}
       {activeTab === 'generator' && (
         <div className="space-y-6 animate-in fade-in duration-200">

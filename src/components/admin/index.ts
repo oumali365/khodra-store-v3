@@ -31,4 +31,7 @@ export * from './layout';
 // 7. النوافذ والملحقات المنبثقة والرمز السري
 export * from './modals';
 
+// 8. المساعد الذكي خُضرة AI Copilot
+export * from './copilot';
+
 

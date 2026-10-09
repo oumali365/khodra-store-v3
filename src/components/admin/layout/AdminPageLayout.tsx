@@ -27,7 +27,7 @@ import { ChangePinModal } from '../modals/AdminReviewModals';
 import { AdminNotificationToast } from './AdminNotificationToast';
 import { playOrderAlertSound } from '../../../utils/audioAlert';
 
-export type AdminRoute = 'orders' | 'inventory' | 'marketing' | 'fleet' | 'finance' | 'documents' | 'pricing';
+export type AdminRoute = 'orders' | 'fleet' | 'inventory' | 'pricing' | 'marketing' | 'finance' | 'documents';
 
 interface AdminPageLayoutProps {
   currentRoute: AdminRoute;
@@ -52,58 +52,50 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'orders',
     href: '/admin/orders',
-    label: 'الطلبات',
+    label: 'إدارة الطلبات',
     sublabel: 'Commandes',
     Icon: ShoppingBag,
-    accentColor: 'text-[#EAB308]',
-  },
-  {
-    id: 'inventory',
-    href: '/admin/inventory',
-    label: 'المنتجات',
-    sublabel: 'Stock',
-    Icon: Package,
     accentColor: 'text-[#10B981]',
-  },
-  {
-    id: 'marketing',
-    href: '/admin/marketing',
-    label: 'التسويق',
-    sublabel: 'Marketing AI',
-    Icon: Sparkles,
-    accentColor: 'text-[#0284C7]',
   },
   {
     id: 'fleet',
     href: '/admin/fleet',
-    label: 'التوصيل',
+    label: 'مسارات التوصيل',
     sublabel: 'Flotte',
     Icon: Bike,
     accentColor: 'text-[#38BDF8]',
   },
   {
+    id: 'inventory',
+    href: '/admin/inventory',
+    label: 'المنتجات والمخزون',
+    sublabel: 'Stock',
+    Icon: Package,
+    accentColor: 'text-[#14B8A6]',
+  },
+  {
     id: 'pricing',
     href: '/admin/pricing',
-    label: 'التسعير',
+    label: 'التسعير وتوقع الطلب',
     sublabel: 'Tarifs JIT',
     Icon: DollarSign,
-    accentColor: 'text-[#FEF08A]',
+    accentColor: 'text-[#FACC15]',
+  },
+  {
+    id: 'marketing',
+    href: '/admin/marketing',
+    label: 'النشر والتسويق',
+    sublabel: 'Marketing',
+    Icon: Share2,
+    accentColor: 'text-[#C084FC]',
   },
   {
     id: 'finance',
     href: '/admin/finance',
-    label: 'المالية',
+    label: 'اللوحة المالية',
     sublabel: 'Finance',
     Icon: BarChart3,
-    accentColor: 'text-[#EA580C]',
-  },
-  {
-    id: 'documents',
-    href: '/admin/documents',
-    label: 'الوثائق',
-    sublabel: 'Contrats',
-    Icon: FileText,
-    accentColor: 'text-[#10B981]',
+    accentColor: 'text-[#FB923C]',
   },
 ];
 
