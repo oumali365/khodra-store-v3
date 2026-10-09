@@ -27,7 +27,7 @@ import { ChangePinModal } from '../modals/AdminReviewModals';
 import { AdminNotificationToast } from './AdminNotificationToast';
 import { playOrderAlertSound } from '../../../utils/audioAlert';
 
-export type AdminRoute = 'orders' | 'fleet' | 'inventory' | 'pricing' | 'marketing' | 'finance' | 'documents';
+export type AdminRoute = 'orders' | 'fleet' | 'inventory' | 'pricing' | 'marketing' | 'finance';
 
 interface AdminPageLayoutProps {
   currentRoute: AdminRoute;

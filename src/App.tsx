@@ -83,6 +83,9 @@ const PricingForecastPanel = React.lazy(() =>
 const PinModal = React.lazy(() =>
   import('./components/admin/modals/AdminReviewModals').then((m) => ({ default: m.PinModal }))
 );
+const KhodraAICopilotModal = React.lazy(() =>
+  import('./components/admin/copilot/KhodraAICopilotModal').then((m) => ({ default: m.KhodraAICopilotModal }))
+);
 
 // ─── تحميل مؤجل للصفحات الإضافية ───
 const InfoPages = React.lazy(() =>
@@ -99,17 +102,16 @@ function parseAdminRoute(): AdminRoute | null {
   try {
     const params = new URLSearchParams(window.location.search);
     const adminParam = params.get('admin') as AdminRoute | null;
-    if (adminParam && ['orders', 'inventory', 'marketing', 'fleet', 'finance', 'documents', 'pricing'].includes(adminParam)) {
+    if (adminParam && ['orders', 'fleet', 'inventory', 'pricing', 'marketing', 'finance'].includes(adminParam)) {
       return adminParam;
     }
     const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
     if (path === 'admin' || path === 'admin/orders') return 'orders';
-    if (path === 'admin/inventory' || path === 'admin/stock' || path === 'admin/products') return 'inventory';
-    if (path === 'admin/marketing' || path === 'admin/ai') return 'marketing';
     if (path === 'admin/fleet' || path === 'admin/delivery' || path === 'admin/routes') return 'fleet';
-    if (path === 'admin/finance') return 'finance';
-    if (path === 'admin/documents') return 'documents';
+    if (path === 'admin/inventory' || path === 'admin/stock' || path === 'admin/products') return 'inventory';
     if (path === 'admin/pricing') return 'pricing';
+    if (path === 'admin/marketing' || path === 'admin/ai') return 'marketing';
+    if (path === 'admin/finance') return 'finance';
   } catch {}
   return null;
 }
@@ -231,6 +233,28 @@ export default function App() {
   activeAdminRouteRef.current = activeAdminRoute;
   const [adminFocusedProductId, setAdminFocusedProductId] = useState<number | null>(null);
 
+  // حالتا فتح النافذتين المستقلتين للأداتين 7 (Copilot) و 8 (Documents)
+  const [isCopilotModalOpen, setIsCopilotModalOpen] = useState<boolean>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('admin') === 'copilot') return true;
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      return path === 'admin/copilot' || path === 'admin/ai-copilot';
+    } catch {
+      return false;
+    }
+  });
+  const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState<boolean>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('admin') === 'documents') return true;
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      return path === 'admin/documents' || path === 'admin/contrats';
+    } catch {
+      return false;
+    }
+  });
+
   const handleNavigateAdmin = useCallback((route: AdminRoute, productId?: number) => {
     setActiveAdminRoute(route);
     if (productId !== undefined && productId !== null) {
@@ -238,6 +262,19 @@ export default function App() {
     }
     window.history.pushState({ admin: route, productId }, '', `/admin/${route}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    const handleOpenCopilot = () => setIsCopilotModalOpen(true);
+    const handleOpenDocs = () => setIsDocumentsModalOpen(true);
+
+    window.addEventListener('khodra_open_copilot_modal', handleOpenCopilot);
+    window.addEventListener('khodra_open_documents_modal', handleOpenDocs);
+
+    return () => {
+      window.removeEventListener('khodra_open_copilot_modal', handleOpenCopilot);
+      window.removeEventListener('khodra_open_documents_modal', handleOpenDocs);
+    };
   }, []);
 
   useEffect(() => {
@@ -315,10 +352,14 @@ export default function App() {
           pageTitle = 'اللوحة المالية والتوقعات | خُضرة فاس';
           pageDesc = 'توقعات التدفقات النقدية ونموذج عمل متجر خُضرة بفاس وخطة 12 شهراً.';
           canonicalPath = '/admin/finance';
-        } else if (activeAdminRoute === 'documents') {
-          pageTitle = 'وثائق وعقود المشروع | خُضرة فاس';
-          pageDesc = 'ملف التمويل والاحتضان وعقود الشراكة والتشغيل الرسمية لشركة خُضرة SARL.';
-          canonicalPath = '/admin/documents';
+        } else if (activeAdminRoute === 'inventory') {
+          pageTitle = 'المنتجات والمخزون الحي | خُضرة فاس';
+          pageDesc = 'لوحة إدارة المخزون اللحظي وتحديث السلع والكميات والأسعار بمتجر خُضرة.';
+          canonicalPath = '/admin/inventory';
+        } else if (activeAdminRoute === 'pricing') {
+          pageTitle = 'التسعير وتوقع الطلب | خُضرة فاس';
+          pageDesc = 'لوحة التسعير الصباحي اليومي من سوق بنسودة وتوقعات الطلب الذكية JIT.';
+          canonicalPath = '/admin/pricing';
         } else if (activeAdminRoute === 'marketing') {
           pageTitle = 'مركز النشر والتسويق | خُضرة فاس';
           pageDesc = 'توليد ونشر عروض اليوم الذكية من سوق بنسودة وإرسالها لواتساب وشبكات التواصل.';
@@ -1110,13 +1151,6 @@ export default function App() {
                 onClose={handleReturnToStore}
               />
             )}
-            {activeAdminRoute === 'documents' && (
-              <AdminDocumentsModal
-                standalone={true}
-                isOpen={true}
-                onClose={handleReturnToStore}
-              />
-            )}
           </AdminErrorBoundary>
         </AdminPageLayout>
       </Suspense>
@@ -1423,6 +1457,27 @@ export default function App() {
             }}
             cartCount={cartCount}
             cartTotal={cartTotal}
+          />
+        )}
+
+        {/* ─── النافذة المستقلة للأداة 7: خُضرة AI Copilot ─── */}
+        {isCopilotModalOpen && (
+          <KhodraAICopilotModal
+            isOpen={isCopilotModalOpen}
+            onClose={() => setIsCopilotModalOpen(false)}
+            onNavigateAdmin={(route) => {
+              setIsCopilotModalOpen(false);
+              handleNavigateAdmin(route);
+            }}
+          />
+        )}
+
+        {/* ─── النافذة المستقلة للأداة 8: وثائق وعقود المشروع ─── */}
+        {isDocumentsModalOpen && (
+          <AdminDocumentsModal
+            isOpen={isDocumentsModalOpen}
+            standalone={false}
+            onClose={() => setIsDocumentsModalOpen(false)}
           />
         )}
       </Suspense>

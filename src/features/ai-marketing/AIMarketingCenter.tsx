@@ -757,18 +757,6 @@ export const AIMarketingCenter: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('khodra_open_copilot_modal'));
-            }}
-            className="min-h-[40px] px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap bg-cyan-950/70 hover:bg-cyan-900/90 text-cyan-200 hover:text-white border border-cyan-400/50 shadow-sm font-black active:scale-95"
-            title="فتح خُضرة AI Copilot في نافذة مستقلة"
-          >
-            <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
-            <span>خُضرة AI Copilot (نافذة مستقلة 🤖)</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab('generator')}
             className={`min-h-[40px] px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'generator'
