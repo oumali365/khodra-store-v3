@@ -420,23 +420,10 @@ export async function saveProductPrices(
 
     localStorage.setItem(LOCAL_PRICES_KEY, JSON.stringify(savedMap));
 
-    // مزامنة السعر الجديد في المنتجات المخزنة محلياً لضمان الانعكاس الفوري في المتجر ولوحة الإدارة
+    // تنظيف أي بيانات قديمة للمنتجات المخزنة محلياً لضمان الاعتماد الحصري على Supabase
     if (typeof localStorage !== 'undefined') {
       try {
-        const rawCustom = localStorage.getItem('khodra_custom_products_v2');
-        if (rawCustom) {
-          const customList = JSON.parse(rawCustom);
-          if (Array.isArray(customList)) {
-            updates.forEach((u) => {
-              const newSelling = calculateSellingPrice(u.purchasePrice, u.marginPercentage);
-              const idx = customList.findIndex((p: any) => p && p.id === u.productId);
-              if (idx >= 0) {
-                customList[idx].price = newSelling;
-              }
-            });
-            localStorage.setItem('khodra_custom_products_v2', JSON.stringify(customList));
-          }
-        }
+        localStorage.removeItem('khodra_custom_products_v2');
       } catch {}
     }
 

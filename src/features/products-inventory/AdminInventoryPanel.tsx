@@ -273,18 +273,19 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     if (!target) return;
     const newStock = Math.max(0, +((target.stock || 0) + delta).toFixed(2));
 
-    setProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, stock: newStock, is_available: newStock > 0 } : p))
-    );
-
     setSavingId(productId);
     const res = await updateProductStockQuick(productId, newStock);
     setSavingId(null);
 
     if (res.success) {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, stock: newStock, is_available: newStock > 0 } : p))
+      );
       showToast('success', `تم تحديث مخزون ${target.name} إلى ${newStock}`);
+      await loadCatalog();
     } else {
       showToast('error', res.message || 'فشل تحديث المخزون');
+      await loadCatalog();
     }
   };
 
@@ -365,7 +366,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     if (res.success && res.data) {
       showToast('success', res.message || 'تم حفظ المنتج بنجاح');
       setIsModalOpen(false);
-      loadCatalog();
+      await loadCatalog();
     } else {
       showToast('error', res.message || 'فشل حفظ المنتج');
     }
@@ -380,7 +381,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     const res = await deleteProductFromStore(p.id);
     if (res.success) {
       showToast('success', res.message || 'تم تعطيل المنتج');
-      loadCatalog();
+      await loadCatalog();
     } else {
       showToast('error', res.message || 'فشل تعطيل المنتج');
     }
@@ -1061,7 +1062,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                   <label className="block text-xs font-bold text-stone-700 mb-1">سعر البيع (DH) *</label>
                   <input
                     type="number"
-                    step="0.25"
+                    step="0.01"
                     min="0"
                     required
                     value={formData.price}

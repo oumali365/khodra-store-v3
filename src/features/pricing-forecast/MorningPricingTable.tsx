@@ -635,7 +635,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                       <div className="relative">
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.01"
                           min="0"
                           value={row.purchase_price}
                           onChange={(e) => handleCellChange(row.id, 'purchase_price', parseFloat(e.target.value) || 0)}
@@ -843,7 +843,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                         <div className="relative">
                           <input
                             type="number"
-                            step="0.1"
+                            step="0.01"
                             min="0"
                             value={row.purchase_price}
                             onChange={(e) =>
