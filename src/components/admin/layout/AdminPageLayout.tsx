@@ -52,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'orders',
     href: '/admin/orders',
-    label: 'إدارة الطلبات',
+    label: 'الطلبات',
     sublabel: 'Commandes',
     Icon: ShoppingBag,
     accentColor: 'text-[#10B981]',
@@ -60,7 +60,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'fleet',
     href: '/admin/fleet',
-    label: 'مسارات التوصيل',
+    label: 'التوصيل',
     sublabel: 'Flotte',
     Icon: Bike,
     accentColor: 'text-[#38BDF8]',
@@ -68,7 +68,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'inventory',
     href: '/admin/inventory',
-    label: 'المنتجات والمخزون',
+    label: 'المخزون',
     sublabel: 'Stock',
     Icon: Package,
     accentColor: 'text-[#14B8A6]',
@@ -76,7 +76,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'pricing',
     href: '/admin/pricing',
-    label: 'التسعير وتوقع الطلب',
+    label: 'التسعير',
     sublabel: 'Tarifs JIT',
     Icon: DollarSign,
     accentColor: 'text-[#FACC15]',
@@ -84,7 +84,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'marketing',
     href: '/admin/marketing',
-    label: 'النشر والتسويق',
+    label: 'التسويق',
     sublabel: 'Marketing',
     Icon: Share2,
     accentColor: 'text-[#C084FC]',
@@ -92,7 +92,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'finance',
     href: '/admin/finance',
-    label: 'اللوحة المالية',
+    label: 'المالية',
     sublabel: 'Finance',
     Icon: BarChart3,
     accentColor: 'text-[#FB923C]',
