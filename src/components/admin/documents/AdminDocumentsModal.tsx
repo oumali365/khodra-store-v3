@@ -45,13 +45,13 @@ interface DocItem {
 const TECH_ARCHITECTURE_DOC: DocItem = {
   id: 'system-architecture',
   code: '05_System_Architecture',
-  title: 'الدليل التقني الشامل وهندسة المنصة وآليات الاشتغال (A4 PDF)',
-  subtitle: 'دليل معماري وهندسي مستقل لمالك المتجر وفريق التطوير',
-  description:
-    'وثيقة تقنية مستقلة ومختصرة توضح بنية المشروع وهندسته المعمارية، البنية الداخلية لإدارة المتجر ووحداتها الست (الطلبات، مسارات التوصيل، اللوحة المالية، العقود، التسويق، والتسعير JIT)، دورة حياة الطلبات، الأدوات والتقنيات البرمجية المتقدمة (React 19 + Supabase + PWA + GPS)، وإرشادات التوسعة والتحديثات المستقبلية بأمان.',
+  title: 'الدليل التقني الشامل وهندسة الآليات (PDF)',
+
+    description:
+    'دليل تقني مستقل يشرح بنية المشروع وهندسته المعمارية، وحدات إدارة المتجر (الطلبات، التوصيل، المالية، العقود، التسويق، التسعير JIT)، دورة حياة الطلبات، التقنيات المستخدمة (React 19 + Supabase + PWA + GPS)، وإرشادات مستقبلية.',
   url: '/docs/system-architecture.html',
-  badge: 'دليل تقني مستقل • A4 PDF',
-  buttonLabel: 'فتح وطباعة الدليل التقني والهندسي (PDF)',
+  badge: 'دليل تقني • PDF',
+  buttonLabel: 'فتح وطباعة الدليل التقني (PDF)',
   accent: 'emerald',
   Icon: Cpu,
 };
@@ -65,7 +65,7 @@ const PROJECT_DOCS: DocItem[] = [
     description:
       'ملخص تنفيذي في 6 شرائح مركزة يعرض المشكلة والحل، الجاهزية التقنية الكاملة للمنصة (MVP)، حجم سوق فاس، والاحتياج التمويلي.',
     url: '/docs/pitch-deck.html',
-    badge: 'وثيقة 01 • A4 PDF',
+    badge: 'وثيقة 01 • PDF',
     buttonLabel: 'فتح وطباعة العرض التقديمي (PDF)',
     accent: 'amber',
     Icon: Sparkles,
@@ -78,8 +78,8 @@ const PROJECT_DOCS: DocItem[] = [
     description:
       'توثيق البنية المعمارية (React 19 + PWA + Supabase + 6 طبقات أمان + خرائط GPS)، الدورة اليومية من بنسودة، مؤشرات الأداء KPIs، وإطار شركة SARL.',
     url: '/docs/business-plan.html',
-    badge: 'وثيقة 02 • A4 PDF',
-    buttonLabel: 'فتح وطباعة خطة العمل والتقنية (PDF)',
+    badge: 'وثيقة 02 • PDF',
+    buttonLabel: 'فتح وطباعة خطة العمل (PDF)',
     accent: 'emerald',
     Icon: Briefcase,
   },
@@ -91,7 +91,7 @@ const PROJECT_DOCS: DocItem[] = [
     description:
       'جدول استثماري متكامل، حساب نقطة التعادل واقتصاديات الطلب الواحد، وجدول التدفقات النقدية الشهري للسنة الأولى والآفاق الثلاثية.',
     url: '/docs/financial-study.html',
-    badge: 'وثيقة 03 • A4 PDF',
+    badge: 'وثيقة 03 • PDF',
     buttonLabel: 'فتح وطباعة الدراسة المالية (PDF)',
     accent: 'orange',
     Icon: TrendingUp,
@@ -107,7 +107,7 @@ const LEGAL_CONTRACTS: DocItem[] = [
     description:
       'طباعة أو حفظ عقد الشراكة المعتمد لسائقي التوصيل بفاس بصيغة PDF جاهز للتوقيع والمصادقة (شامل التزامات الصندوق العازل وتحصيل مبالغ COD).',
     url: '/docs/driver-contract.html',
-    badge: 'عقد تشغيلي • A4 PDF',
+    badge: 'عقد تشغيلي • PDF',
     buttonLabel: 'طباعة عقد السائق (PDF)',
     accent: 'emerald',
     Icon: Bike,
@@ -115,7 +115,7 @@ const LEGAL_CONTRACTS: DocItem[] = [
   {
     id: 'b2b-contract',
     code: 'KH-B2B-A4',
-    title: 'عقد توريد بالجملة للمطاعم والفنادق (B2B — نموذج رسمي A4)',
+    title: 'عقد توريد بالجملة للمطاعم والفنادق (B2B — نموذج رسمي)',
     subtitle: 'توريد دوري للخضر والفواكه الطازجة للمؤسسات بفاس',
     description:
       'صيغة تعاقدية رسمية باسم شركة خُضرة (SARL) لتزويد المطاعم، الفنادق، المقاهي، والمصحات بالمنتجات الطازجة مع جدول الكميات والفوترة.',
@@ -133,7 +133,7 @@ const LEGAL_CONTRACTS: DocItem[] = [
     description:
       'ينظم علاقة الشريك المؤسس (حامل المنصة التقنية والإدارة) مع الشريك المستثمر، نسب الحصص الاجتماعية (Parts Sociales)، وتوزيع الأرباح.',
     url: '/docs/partner-contract.html',
-    badge: 'عقد شراكة • A4 PDF',
+    badge: 'عقد شراكة • PDF',
     buttonLabel: 'طباعة عقد الشراكة (PDF)',
     accent: 'blue',
     Icon: Handshake,
