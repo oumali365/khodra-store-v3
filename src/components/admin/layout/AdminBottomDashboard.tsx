@@ -21,7 +21,6 @@ import {
   LogOut,
   Bell,
   BellOff,
-  Sparkles,
   ExternalLink,
   Bike,
   DollarSign,
@@ -66,7 +65,7 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
     }
   });
 
-  const { totalPending, newCount, markAsSeen } = useNewOrdersNotifier({
+  const { newCount, markAsSeen } = useNewOrdersNotifier({
     enabled: isAdmin,
     pollIntervalMs: 30000,
   });
@@ -232,32 +231,19 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-800 border border-emerald-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-emerald-100">
                 <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-[#F5D76E]" strokeWidth={2.5} />
               </div>
-              <div className="flex items-center gap-1">
-                {totalPending > 0 ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-[#EA580C] text-white border border-white/30 shadow-md animate-pulse">
-                    <span>{totalPending}</span>
-                    <span>جديد</span>
-                  </span>
-                ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    محدّثة
-                  </span>
-                )}
-              </div>
+              {/* تم حذف الشارة */}
             </div>
 
             <div className="mt-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white group-hover:text-emerald-300 transition-colors leading-tight">
-                  1. إدارة الطلبات
+                  إدارة الطلبات
                 </h3>
                 <span className="text-[10px] sm:text-[11px] text-emerald-400/80 font-mono">
                   Commandes
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium line-clamp-2">
-                متابعة وتجهيز الطلبات، وطباعة بوليصة الشحن (Bordereau 80mm).
-              </p>
+              {/* تم حذف الوصف */}
             </div>
 
             <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-300 font-bold mt-2">
@@ -276,23 +262,19 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-sky-600 to-blue-800 border border-sky-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-sky-100">
                 <Bike className="w-5 h-5 sm:w-6 sm:h-6 text-sky-200" strokeWidth={2.5} />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-sky-500/20 text-sky-300 border border-sky-500/40">
-                4 مناطق بفاس
-              </span>
+              {/* تم حذف الشارة */}
             </div>
 
             <div className="mt-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white group-hover:text-sky-300 transition-colors leading-tight">
-                  2. مسارات التوصيل
+                  مسارات التوصيل
                 </h3>
                 <span className="text-[10px] sm:text-[11px] text-sky-400/80 font-mono">
                   Flotte
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium line-clamp-2">
-                جولات التوصيل، سائقو الفريق، وكباتن التطبيقات السريعة بفاس.
-              </p>
+              {/* تم حذف الوصف */}
             </div>
 
             <div className="pt-2 border-t border-sky-500/20 flex items-center justify-between text-[11px] text-sky-300 font-bold mt-2">
@@ -311,23 +293,19 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-800 border border-teal-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-teal-100">
                 <Package className="w-5 h-5 sm:w-6 sm:h-6 text-[#F5D76E]" strokeWidth={2.5} />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-teal-500/20 text-teal-300 border border-teal-500/40">
-                مخزون حي
-              </span>
+              {/* تم حذف الشارة */}
             </div>
 
             <div className="mt-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white group-hover:text-teal-300 transition-colors leading-tight">
-                  3. المنتجات والمخزون
+                  المنتجات والمخزون
                 </h3>
                 <span className="text-[10px] sm:text-[11px] text-teal-400/80 font-mono">
                   Stock
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium line-clamp-2">
-                تحديث الكميات اللحظي، إضافة السلع، وحظر الترويج عند النفاد.
-              </p>
+              {/* تم حذف الوصف */}
             </div>
 
             <div className="pt-2 border-t border-teal-500/20 flex items-center justify-between text-[11px] text-teal-300 font-bold mt-2">
@@ -346,23 +324,19 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-700 border border-amber-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-amber-100">
                 <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-[#FEF08A]" strokeWidth={2.5} />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                أسعار بنسودة JIT
-              </span>
+              {/* تم حذف الشارة */}
             </div>
 
             <div className="mt-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white group-hover:text-amber-300 transition-colors leading-tight">
-                  4. التسعير وتوقع الطلب
+                  التسعير وتوقع الطلب
                 </h3>
                 <span className="text-[10px] sm:text-[11px] text-amber-400/80 font-mono">
                   Tarifs JIT
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium line-clamp-2">
-                أسعار سوق بنسودة الصباحية، هوامش الربح، وتوقعات الشراء الذكية.
-              </p>
+              {/* تم حذف الوصف */}
             </div>
 
             <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[11px] text-amber-300 font-bold mt-2">
@@ -381,23 +355,19 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-800 border border-purple-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-purple-100">
                 <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-200" strokeWidth={2.5} />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                1-Click
-              </span>
+              {/* تم حذف الشارة */}
             </div>
 
             <div className="mt-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white group-hover:text-purple-300 transition-colors leading-tight">
-                  5. النشر والتسويق
+                  النشر والتسويق
                 </h3>
                 <span className="text-[10px] sm:text-[11px] text-purple-400/80 font-mono">
                   Marketing
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium line-clamp-2">
-                توليد ونشر عروض اليوم آلياً إلى واتساب وشبكات التواصل.
-              </p>
+              {/* تم حذف الوصف */}
             </div>
 
             <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between text-[11px] text-purple-300 font-bold mt-2">
@@ -416,23 +386,19 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-orange-600 to-rose-800 border border-orange-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-orange-100">
                 <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-[#F5D76E]" strokeWidth={2.5} />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-orange-500/20 text-orange-300 border border-orange-500/40">
-                Bilan & CA
-              </span>
+              {/* تم حذف الشارة */}
             </div>
 
             <div className="mt-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white group-hover:text-orange-300 transition-colors leading-tight">
-                  6. اللوحة المالية
+                  اللوحة المالية
                 </h3>
                 <span className="text-[10px] sm:text-[11px] text-orange-400/80 font-mono">
                   Finance
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium line-clamp-2">
-                CA، نقطة التعادل، وميزانية التدفقات النقدية التقديرية 12 شهراً.
-              </p>
+              {/* تم حذف الوصف */}
             </div>
 
             <div className="pt-2 border-t border-orange-500/20 flex items-center justify-between text-[11px] text-orange-300 font-bold mt-2">
@@ -451,25 +417,20 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-600 border border-cyan-400/50 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(59,130,246,0.4)] group-hover:scale-105 transition-transform text-cyan-200">
                 <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={2.5} />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-blue-500/25 text-cyan-200 border border-blue-400/50 inline-flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-cyan-300 animate-pulse" />
-                <span>نافذة مستقلة</span>
-              </span>
+              {/* تم حذف الشارة */}
             </div>
 
             <div className="mt-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white group-hover:text-cyan-300 transition-colors leading-tight flex items-center gap-1.5">
-                  <span>7. خُضرة AI Copilot</span>
+                  <span>خُضرة AI Copilot</span>
                   <span className="text-xs">🤖</span>
                 </h3>
                 <span className="text-[10px] sm:text-[11px] text-cyan-400/80 font-mono">
                   Copilot v2
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium line-clamp-2">
-                المساعد التشغيلي الذكي المتصل بقاعدة البيانات الحية للإجابة اللحظية وتحليل المبيعات.
-              </p>
+              {/* تم حذف الوصف */}
             </div>
 
             <div className="pt-2 border-t border-cyan-500/20 flex items-center justify-between text-[11px] text-cyan-300 font-bold mt-2">
@@ -488,24 +449,20 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-stone-700 to-zinc-900 border border-yellow-500/50 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(234,179,8,0.25)] group-hover:scale-105 transition-transform text-yellow-400">
                 <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-[#EAB308]" strokeWidth={2.5} />
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
-                A4 PDF • نافذة مستقلة
-              </span>
+              {/* تم حذف الشارة */}
             </div>
 
             <div className="mt-3">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white group-hover:text-yellow-300 transition-colors leading-tight flex items-center gap-1.5">
-                  <span>8. وثائق وعقود المشروع</span>
+                  <span>وثائق وعقود المشروع</span>
                   <span className="text-xs">📑</span>
                 </h3>
                 <span className="text-[10px] sm:text-[11px] text-yellow-400/80 font-mono">
                   Contrats SARL
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-300 mt-1 leading-snug font-medium line-clamp-2">
-                ملف التمويل، Pitch Deck، عقود السائق والتوريد، والدليل التقني A4 PDF.
-              </p>
+              {/* تم حذف الوصف */}
             </div>
 
             <div className="pt-2 border-t border-yellow-500/20 flex items-center justify-between text-[11px] text-yellow-300 font-bold mt-2">
