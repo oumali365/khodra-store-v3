@@ -898,13 +898,9 @@ export async function deleteCustomerReview(
         error = retryPin.error;
       }
     }
-    if (error && error.message?.includes('INVALID_ADMIN_PIN') && pin !== DEFAULT_FALLBACK_PIN) {
-      const fallbackRetry = await client.rpc('delete_review_secure', {
-        p_review_id: reviewId,
-        p_admin_pin: DEFAULT_FALLBACK_PIN,
-        p_hard_delete: false,
-      });
-      error = fallbackRetry.error;
+    if (error && error.message?.includes('INVALID_ADMIN_PIN')) {
+      invalidateAdminSession('الرمز السري غير صحيح أو تم تغييره');
+      return { success: false, message: 'الرمز السري غير صحيح أو تم تغييره من جهاز آخر' };
     }
 
     if (error) {
@@ -1013,10 +1009,14 @@ function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
 let cachedAdminPin: string | null = null;
 const ADMIN_PIN_SESSION_KEY = 'khodra_admin_pin_session';
 const ADMIN_PIN_CUSTOM_KEY = 'khodra_admin_custom_pin_v2';
-const DEFAULT_FALLBACK_PIN = '090909';
 
+/**
+ * جلب الرمز السري الحالي من جلسة المتصفح النشطة فقط (في الذاكرة أو sessionStorage)
+ * تم إلغاء القراءة من localStorage نهائياً لمنع أي تباين بين المتصفحات
+ */
 export function getAdminPin(): string {
-  if (cachedAdminPin && cachedAdminPin.trim()) return cachedAdminPin;
+  if (cachedAdminPin && cachedAdminPin.trim()) return cachedAdminPin.trim();
+
   try {
     const sessionVal = sessionStorage.getItem(ADMIN_PIN_SESSION_KEY);
     if (sessionVal && sessionVal.trim()) {
@@ -1026,16 +1026,15 @@ export function getAdminPin(): string {
   } catch {
     // ignore
   }
+
+  // تنظيف أي بقايا للرمز المخصص القديم من localStorage لضمان الاعتماد الحصري على السيرفر
   try {
-    const customVal = localStorage.getItem(ADMIN_PIN_CUSTOM_KEY);
-    if (customVal && customVal.trim()) {
-      cachedAdminPin = customVal.trim();
-      return cachedAdminPin;
-    }
+    localStorage.removeItem(ADMIN_PIN_CUSTOM_KEY);
   } catch {
     // ignore
   }
-  return STORE_CONFIG.adminPin || DEFAULT_FALLBACK_PIN;
+
+  return '';
 }
 
 export function setCachedAdminPin(newPin: string): void {
@@ -1044,6 +1043,8 @@ export function setCachedAdminPin(newPin: string): void {
   cachedAdminPin = clean;
   try {
     sessionStorage.setItem(ADMIN_PIN_SESSION_KEY, clean);
+    // إزالة تامة من localStorage لمنع الاحتفاظ بأي رمز محلي قديم
+    localStorage.removeItem(ADMIN_PIN_CUSTOM_KEY);
   } catch {
     // ignore
   }
@@ -1053,14 +1054,100 @@ export function clearCachedAdminPin(): void {
   cachedAdminPin = null;
   try {
     sessionStorage.removeItem(ADMIN_PIN_SESSION_KEY);
+    sessionStorage.removeItem('khodra_admin_auth');
+    sessionStorage.removeItem('khodra_admin_session_version');
+    sessionStorage.removeItem('khodra_admin_token');
+    localStorage.removeItem(ADMIN_PIN_CUSTOM_KEY);
+    localStorage.removeItem('khodra_admin_auth');
+    localStorage.removeItem('khodra_admin_session_version');
   } catch {
     // ignore
   }
 }
 
 /**
- * التحقق الآمن من رمز المدير (PIN) على الخادم عبر RPC محمي ضد التخمين (Brute-Force)
- * مع دعم الرمز المحدث محلياً لضمان عدم قفل لوحة الإدارة
+ * إبطال جلسة المدير محلياً عند اكتشاف تغيير الرمز أو انتهاء الصلاحية من الخادم
+ */
+export function invalidateAdminSession(reason?: string): void {
+  clearCachedAdminPin();
+  try {
+    window.dispatchEvent(
+      new CustomEvent('khodra_admin_auth_revoked', {
+        detail: { reason: reason || 'تم إبطال الجلسة أو تغيير الرمز السري من جهاز آخر' },
+      })
+    );
+    window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * التحقق المركزي من استمرار صلاحية جلسة المدير النشطة مع الخادم
+ * يفحص إصدار الجلسة والرمز السري ويبطل الجلسة فوراً إذا تم تغيير الرمز من جهاز آخر
+ */
+export async function validateAdminSessionRemote(): Promise<boolean> {
+  const currentPin = getAdminPin();
+  let sessionVersion: string | null = null;
+  try {
+    sessionVersion = sessionStorage.getItem('khodra_admin_session_version');
+  } catch {}
+
+  // إذا لم يكن هناك رمز سري ولا إصدار جلسة في sessionStorage، فالجلسة غير نشطة
+  if (!currentPin && !sessionVersion) {
+    invalidateAdminSession('لا توجد جلسة نشطة');
+    return false;
+  }
+
+  try {
+    const res = await fetch('/api/admin/validate-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pin: currentPin || undefined,
+        sessionVersion: sessionVersion || undefined,
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (res.ok && data?.valid) {
+      if (data.sessionVersion) {
+        try {
+          sessionStorage.setItem('khodra_admin_session_version', data.sessionVersion);
+        } catch {}
+      }
+      return true;
+    }
+
+    // إذا رفض الخادم الجلسة (تم تغيير الرمز السري من جهاز آخر أو إبطالها)
+    console.warn('Admin session rejected by central authority:', data?.reason);
+    invalidateAdminSession(
+      data?.reason === 'PIN_MISMATCH'
+        ? 'تم تغيير الرمز السري للمتجر من جهاز آخر. يرجى تسجيل الدخول بالرمز الجديد.'
+        : 'انتهت صلاحية جلسة الإدارة أو تم تغيير الرمز السري. يرجى تسجيل الدخول مجدداً.'
+    );
+    return false;
+  } catch (netErr) {
+    console.warn('Backend validate-session unreachable, checking direct Supabase RPC:', netErr);
+    const client = getSupabase();
+    if (client && currentPin) {
+      try {
+        const { data, error } = await client.rpc('verify_admin_pin', { p_pin: currentPin });
+        if (!error && data === true) {
+          return true;
+        }
+        invalidateAdminSession('الرمز السري الحالي غير صالح');
+        return false;
+      } catch {}
+    }
+    return false;
+  }
+}
+
+/**
+ * التحقق المركزي الصارم من رمز المدير (PIN) عبر الخادم وقاعدة البيانات المركزية
+ * لا يتم الاعتماد نهائياً على التخزين المحلي (localStorage)
  */
 export async function verifyAdminPinRemote(
   pinInput: string
@@ -1070,25 +1157,50 @@ export async function verifyAdminPinRemote(
     return { valid: false, message: 'يرجى إدخال رمز سري مكون من 4 أرقام على الأقل' };
   }
 
-  let localCustomPin: string | null = null;
+  // تنظيف أي بقايا لقيم قديمة في localStorage
   try {
-    localCustomPin = localStorage.getItem(ADMIN_PIN_CUSTOM_KEY);
-  } catch {
-    // ignore
+    localStorage.removeItem(ADMIN_PIN_CUSTOM_KEY);
+  } catch {}
+
+  // 1. الأولوية الأولى: استدعاء خادم الـ API المركزي لضمان حماية Brute-force والحصول على إصدار الجلسة
+  try {
+    const apiRes = await fetch('/api/admin/verify-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: trimmed }),
+    });
+
+    const data = await apiRes.json().catch(() => null);
+
+    if (apiRes.ok && data?.valid) {
+      setCachedAdminPin(trimmed);
+      try {
+        sessionStorage.setItem('khodra_admin_auth', 'true');
+        if (data.sessionVersion) {
+          sessionStorage.setItem('khodra_admin_session_version', data.sessionVersion);
+        }
+      } catch {}
+      return { valid: true };
+    }
+
+    if (data?.locked) {
+      return {
+        valid: false,
+        message: data.error || 'تم قفل التحقق مؤقتاً بسبب كثرة المحاولات الخاطئة. يرجى الانتظار 15 دقيقة.',
+      };
+    }
+
+    if (apiRes.status === 401 || (data && data.valid === false)) {
+      return { valid: false, message: data?.error || 'الرمز السري غير صحيح' };
+    }
+  } catch (netErr) {
+    console.warn('Backend /api/admin/verify-pin unreachable, attempting direct Supabase RPC:', netErr);
   }
 
-  // إذا قام المدير بتحديث الرمز السري وحفظه، نتحقق من مطابقته مباشرة
-  if (localCustomPin && localCustomPin.trim() === trimmed) {
-    setCachedAdminPin(trimmed);
-    return { valid: true };
-  }
-
+  // 2. المحاولة الثانوية: استدعاء Supabase RPC مباشرة في حال انقطاع الـ API الوسيط
   const client = getSupabase();
   if (!client) {
-    const fallbackPin = (localCustomPin && localCustomPin.trim()) || STORE_CONFIG.adminPin || DEFAULT_FALLBACK_PIN;
-    const isValid = trimmed === fallbackPin;
-    if (isValid) setCachedAdminPin(trimmed);
-    return { valid: isValid, message: isValid ? undefined : 'الرمز السري غير صحيح' };
+    return { valid: false, message: 'تعذّر الاتصال بخادم قاعدة البيانات المركزية' };
   }
 
   try {
@@ -1103,118 +1215,138 @@ export async function verifyAdminPinRemote(
           message: 'تم قفل التحقق مؤقتاً بسبب كثرة المحاولات الخاطئة. يرجى الانتظار 15 دقيقة.',
         };
       }
-      console.warn('verify_admin_pin RPC warning, using fallback verification:', error.message);
-      const expectedPin = (localCustomPin && localCustomPin.trim()) || STORE_CONFIG.adminPin || DEFAULT_FALLBACK_PIN;
-      if (trimmed === expectedPin) {
-        setCachedAdminPin(trimmed);
-        return { valid: true };
-      }
       return { valid: false, message: 'الرمز السري غير صحيح' };
     }
 
     if (data === true) {
       setCachedAdminPin(trimmed);
       try {
-        localStorage.setItem(ADMIN_PIN_CUSTOM_KEY, trimmed);
+        sessionStorage.setItem('khodra_admin_auth', 'true');
       } catch {}
       return { valid: true };
     }
 
-    // في حال لم يكن جدول store_settings مهيأ بـ admin_pin بعد وكان الرمز المدخل هو الافتراضي
-    if (!localCustomPin && trimmed === (STORE_CONFIG.adminPin || DEFAULT_FALLBACK_PIN)) {
-      setCachedAdminPin(trimmed);
-      return { valid: true };
-    }
-
     return { valid: false, message: 'الرمز السري غير صحيح' };
-  } catch (err) {
-    console.warn('Network error during verifyAdminPinRemote:', err);
-    const expectedPin = (localCustomPin && localCustomPin.trim()) || STORE_CONFIG.adminPin || DEFAULT_FALLBACK_PIN;
-    if (trimmed === expectedPin) {
-      setCachedAdminPin(trimmed);
-      return { valid: true };
-    }
-    return { valid: false, message: 'تعذّر الاتصال بالخادم للتحقق من الرمز' };
+  } catch (err: any) {
+    console.error('Remote PIN verification failed:', err);
+    return { valid: false, message: 'تعذّر التحقق من الرمز السري عبر الخادم' };
   }
 }
 
 /**
- * تحديث الرمز السري للمدير (updateAdminPassword / updateAdminPinRemote)
- * يحدث القيمة في Supabase عبر RPC أو الجدول مع حفظ فوري للجلسة لضمان عمل الزر دائماً
+ * تحديث الرمز السري للمدير مركزياً على الخادم (updateAdminPassword)
+ * يفرض التحقق من الرمز الحالي وتحديثه في Supabase / Server
+ * ولا يُعرض نجاح التحديث للمستخدم إلا بعد التأكيد القطعي من الخادم المركزي
  */
 export async function updateAdminPassword(
-  newPin: string
+  newPin: string,
+  currentPinInput?: string
 ): Promise<{ success: boolean; message?: string }> {
-  const trimmed = String(newPin || '').trim();
-  if (!trimmed || trimmed.length < 4) {
-    return { success: false, message: 'الرمز السري يجب ألا يقل عن 4 أرقام' };
+  const trimmedNew = String(newPin || '').trim();
+  if (!trimmedNew || trimmedNew.length < 4) {
+    return { success: false, message: 'الرمز السري الجديد يجب ألا يقل عن 4 أرقام' };
   }
 
-  const currentPin = getAdminPin();
+  const effectiveCurrentPin = String(currentPinInput || getAdminPin() || '').trim();
+  if (!effectiveCurrentPin || effectiveCurrentPin.length < 4) {
+    return { success: false, message: 'يرجى إدخال الرمز السري الحالي للتأكيد' };
+  }
 
-  // حفظ الرمز الجديد محلياً وفي الجلسة فوراً لضمان استمرار صلاحية المدير دون انقطاع
-  setCachedAdminPin(trimmed);
+  if (trimmedNew === effectiveCurrentPin) {
+    return { success: false, message: 'الرمز الجديد مطابق للرمز الحالي، يرجى اختيار رمز جديد' };
+  }
+
+  // تنظيف أي بقايا محلية قديمة
   try {
-    localStorage.setItem(ADMIN_PIN_CUSTOM_KEY, trimmed);
-  } catch {
-    // ignore
-  }
+    localStorage.removeItem(ADMIN_PIN_CUSTOM_KEY);
+  } catch {}
 
-  const client = getSupabase();
-  if (!client) {
-    return { success: true, message: 'تم تحديث وحفظ الرمز السري الجديد بنجاح' };
-  }
-
+  // 1. المحاولة المركزية عبر خادم API الموثوق
   try {
-    // 1. المحاولة الأولى عبر الدالة الآمنة بالمعامل القياسي p_admin_pin
-    let rpcRes = await client.rpc('update_store_setting_secure', {
-      p_key: 'admin_pin',
-      p_value: trimmed,
-      p_admin_pin: currentPin,
+    const apiRes = await fetch('/api/admin/change-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        currentPin: effectiveCurrentPin,
+        newPin: trimmedNew,
+      }),
     });
 
-    // 2. المحاولة الثانية إذا كان اسم المعامل في قاعدة البيانات p_pin
+    const data = await apiRes.json().catch(() => null);
+
+    if (apiRes.ok && data?.success) {
+      // تم التحديث الفعلي المؤكد في قاعدة البيانات المركزية!
+      setCachedAdminPin(trimmedNew);
+      try {
+        sessionStorage.setItem('khodra_admin_auth', 'true');
+        if (data.sessionVersion) {
+          sessionStorage.setItem('khodra_admin_session_version', data.sessionVersion);
+        }
+      } catch {}
+
+      return {
+        success: true,
+        message: data.message || 'تم تحديث الرمز السري بنجاح ومزامنته في الخادم المركزي',
+      };
+    }
+
+    if (apiRes.status === 401 || (data && !data.success)) {
+      // الخادم رفض التغيير (الرمز الحالي غير صحيح) — نُرجع الخطأ مباشرة ونمنع أي حفظ محلي
+      return {
+        success: false,
+        message: data?.error || 'الرمز السري الحالي غير صحيح. تعذر حفظ الرمز الجديد.',
+      };
+    }
+  } catch (netErr) {
+    console.warn('Backend /api/admin/change-pin error, attempting direct Supabase RPC:', netErr);
+  }
+
+  // 2. المحاولة البديلة عبر Supabase RPC مباشرة (في حال تعذر استدعاء مسار Express)
+  const client = getSupabase();
+  if (!client) {
+    return {
+      success: false,
+      message: 'تعذر الاتصال بالخادم المركزي لتحديث كلمة المرور. يرجى المحاولة لاحقاً.',
+    };
+  }
+
+  try {
+    const rpcRes = await client.rpc('update_store_setting_secure', {
+      p_key: 'admin_pin',
+      p_value: trimmedNew,
+      p_admin_pin: effectiveCurrentPin,
+    });
+
     if (rpcRes.error) {
-      const retryPinParam = await client.rpc('update_store_setting_secure', {
-        p_key: 'admin_pin',
-        p_value: trimmed,
-        p_pin: currentPin,
-      });
-      if (!retryPinParam.error) {
-        rpcRes = retryPinParam;
-      }
+      console.error('Supabase update_store_setting_secure error:', rpcRes.error.message);
+      const isAuthError =
+        rpcRes.error.message?.includes('UNAUTHORIZED_ACCESS') ||
+        rpcRes.error.message?.includes('admin_pin');
+
+      return {
+        success: false,
+        message: isAuthError
+          ? 'الرمز السري الحالي غير صحيح. تعذر تغيير الرمز.'
+          : (rpcRes.error.message || 'فشل تحديث الرمز السري في قاعدة البيانات المركزية'),
+      };
     }
 
-    // 3. المحاولة الثالثة باستخدام الرمز الافتراضي في حال اختلاف الرمز السابق في السيرفر
-    if (rpcRes.error && currentPin !== DEFAULT_FALLBACK_PIN) {
-      const retryDefault = await client.rpc('update_store_setting_secure', {
-        p_key: 'admin_pin',
-        p_value: trimmed,
-        p_admin_pin: DEFAULT_FALLBACK_PIN,
-      });
-      if (!retryDefault.error) {
-        rpcRes = retryDefault;
-      }
-    }
+    // تأكيد نجاح التحديث في Supabase
+    setCachedAdminPin(trimmedNew);
+    try {
+      sessionStorage.setItem('khodra_admin_auth', 'true');
+    } catch {}
 
-    // 4. المحاولة الرابعة عبر التحديث المباشر في جدول store_settings إن كان مسموحاً
-    if (rpcRes.error) {
-      const { error: upsertErr } = await client
-        .from('store_settings')
-        .upsert(
-          { key: 'admin_pin', value: trimmed, updated_at: new Date().toISOString() },
-          { onConflict: 'key' }
-        );
-      if (!upsertErr) {
-        return { success: true, message: 'تم تحديث الرمز السري ومزامنته مع السيرفر بنجاح' };
-      }
-      console.warn('Supabase remote PIN sync warning (saved locally):', rpcRes.error.message);
-    }
-
-    return { success: true, message: 'تم تحديث الرمز السري ومزامنته بنجاح' };
+    return {
+      success: true,
+      message: 'تم تحديث الرمز السري ومزامنته بنجاح على الخادم المركزي',
+    };
   } catch (err: any) {
-    console.warn('updateAdminPassword network warning (saved locally):', err);
-    return { success: true, message: 'تم حفظ الرمز السري الجديد بنجاح' };
+    console.error('Network error during updateAdminPassword:', err);
+    return {
+      success: false,
+      message: 'حدث خطأ في الشبكة أثناء إرسال الرمز الجديد إلى الخادم المركزي',
+    };
   }
 }
 
@@ -1439,12 +1571,9 @@ export async function fetchOrders(): Promise<DbOrder[]> {
       data = retry.data;
       error = retry.error;
     }
-    if (error && error.message?.includes('INVALID_ADMIN_PIN') && pin !== DEFAULT_FALLBACK_PIN) {
-      const fallbackRetry = await client.rpc('get_orders_secure', {
-        p_admin_pin: DEFAULT_FALLBACK_PIN,
-      });
-      data = fallbackRetry.data;
-      error = fallbackRetry.error;
+    if (error && error.message?.includes('INVALID_ADMIN_PIN')) {
+      invalidateAdminSession('الرمز السري غير صحيح أو تم تغييره');
+      return [];
     }
 
     if (error) {
@@ -1498,13 +1627,9 @@ export async function updateOrderStatus(
       });
       error = retry.error;
     }
-    if (error && error.message?.includes('INVALID_ADMIN_PIN') && pin !== DEFAULT_FALLBACK_PIN) {
-      const fallbackRetry = await client.rpc('update_order_status_secure', {
-        p_order_id: String(orderId),
-        p_new_status: status,
-        p_admin_pin: DEFAULT_FALLBACK_PIN,
-      });
-      error = fallbackRetry.error;
+    if (error && error.message?.includes('INVALID_ADMIN_PIN')) {
+      invalidateAdminSession('الرمز السري غير صحيح أو تم تغييره');
+      return { success: false, message: 'الرمز السري غير صحيح أو تم تغييره من جهاز آخر' };
     }
 
     if (error) {
@@ -1574,13 +1699,9 @@ export async function deleteOrder(
       }
     }
 
-    if (error && error.message?.includes('INVALID_ADMIN_PIN') && pin !== DEFAULT_FALLBACK_PIN) {
-      const fallbackRetry = await client.rpc('delete_order_secure', {
-        p_order_id: String(orderId),
-        p_admin_pin: DEFAULT_FALLBACK_PIN,
-        p_hard_delete: false,
-      });
-      error = fallbackRetry.error;
+    if (error && error.message?.includes('INVALID_ADMIN_PIN')) {
+      invalidateAdminSession('الرمز السري غير صحيح أو تم تغييره');
+      return { success: false, message: 'الرمز السري غير صحيح أو تم تغييره من جهاز آخر' };
     }
 
     // إذا استمر الخطأ بسبب تضارب توقيعات الدالة على قاعدة البيانات، نقوم بالحذف/الأرشفة مباشرة عبر الجدول
@@ -1678,13 +1799,9 @@ export async function updateOrderDispatch(
         p_dispatch: dispatch,
         p_admin_pin: pin,
       });
-      if (error && error.message?.includes('INVALID_ADMIN_PIN') && pin !== DEFAULT_FALLBACK_PIN) {
-        const retry = await client.rpc('update_order_dispatch_secure', {
-          p_order_id: String(orderId),
-          p_dispatch: dispatch,
-          p_admin_pin: DEFAULT_FALLBACK_PIN,
-        });
-        error = retry.error;
+      if (error && error.message?.includes('INVALID_ADMIN_PIN')) {
+        invalidateAdminSession('الرمز السري غير صحيح أو تم تغييره');
+        return { success: false, message: 'الرمز السري غير صحيح أو تم تغييره من جهاز آخر' };
       }
       if (error) {
         console.warn('update_order_dispatch_secure RPC warning:', error.message);
@@ -1711,12 +1828,9 @@ export async function fetchPendingOrdersCount(): Promise<number> {
     let { data, error } = await client.rpc('get_orders_secure', {
       p_admin_pin: pin,
     });
-    if (error && error.message?.includes('INVALID_ADMIN_PIN') && pin !== DEFAULT_FALLBACK_PIN) {
-      const retry = await client.rpc('get_orders_secure', {
-        p_admin_pin: DEFAULT_FALLBACK_PIN,
-      });
-      data = retry.data;
-      error = retry.error;
+    if (error && error.message?.includes('INVALID_ADMIN_PIN')) {
+      invalidateAdminSession('الرمز السري غير صحيح أو تم تغييره');
+      return 0;
     }
 
     if (error || !Array.isArray(data)) {

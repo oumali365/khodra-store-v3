@@ -27,68 +27,101 @@ import { AdminErrorBoundary } from './components/admin/layout/AdminErrorBoundary
 import {
   verifyAdminPinRemote,
   clearCachedAdminPin,
+  validateAdminSessionRemote,
 } from './services/supabaseService';
 
+// ─── دالة مساعدة لتحميل المكونات المؤجلة بأمان مع محاولة إعادة تلقائية في حال انقطاع الشبكة ───
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return React.lazy(async () => {
+    try {
+      return await factory();
+    } catch (error) {
+      console.warn('Chunk import failed, retrying in 350ms...', error);
+      await new Promise((r) => setTimeout(r, 350));
+      return await factory();
+    }
+  });
+}
+
+// ─── عازل أخطاء خفيف لحماية قسم آراء الزبائن دون التأثير على بقية المتجر ───
+class ReviewsSectionBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(err: any) {
+    console.warn('⚠️ تعذر تحميل قسم آراء الزبائن مؤقتاً:', err);
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
 // ─── تحميل مؤجل للمودالات لتقليص الحجم الأولي وتسريع ظهور الصفحة الرئيسية ───
-const CartDrawer = React.lazy(() =>
+const CartDrawer = lazyWithRetry(() =>
   import('./components/cart/CartDrawer').then((m) => ({ default: m.CartDrawer }))
 );
-const CheckoutModal = React.lazy(() =>
+const CheckoutModal = lazyWithRetry(() =>
   import('./components/checkout/CheckoutModal').then((m) => ({ default: m.CheckoutModal }))
 );
-const ConfirmationModal = React.lazy(() =>
+const ConfirmationModal = lazyWithRetry(() =>
   import('./components/checkout/ConfirmationModal').then((m) => ({ default: m.ConfirmationModal }))
 );
-const ExitConfirmationModal = React.lazy(() =>
+const ExitConfirmationModal = lazyWithRetry(() =>
   import('./components/common/ExitConfirmationModal').then((m) => ({ default: m.ExitConfirmationModal }))
 );
-const SortFilterModal = React.lazy(() =>
+const SortFilterModal = lazyWithRetry(() =>
   import('./components/shop/SortFilterModal').then((m) => ({ default: m.SortFilterModal }))
 );
 
+import { CustomerReviews } from './components/reviews/CustomerReviews';
+
 // ─── تحميل مؤجل للمكونات الثقيلة واللوحة الإدارية والتقييمات ───
-const FamilyBoxesSection = React.lazy(() =>
+const FamilyBoxesSection = lazyWithRetry(() =>
   import('./components/shop/FamilyBoxesSection').then((m) => ({ default: m.FamilyBoxesSection }))
 );
-const CustomerReviews = React.lazy(() =>
-  import('./components/reviews/CustomerReviews').then((m) => ({ default: m.CustomerReviews }))
-);
-const AdminBottomDashboard = React.lazy(() =>
+const AdminBottomDashboard = lazyWithRetry(() =>
   import('./components/admin/layout/AdminBottomDashboard').then((m) => ({ default: m.AdminBottomDashboard }))
 );
-const AdminOrdersPanel = React.lazy(() =>
+const AdminOrdersPanel = lazyWithRetry(() =>
   import('./components/admin/orders/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
 );
-const AdminPageLayout = React.lazy(() =>
+const AdminPageLayout = lazyWithRetry(() =>
   import('./components/admin/layout/AdminPageLayout').then((m) => ({ default: m.AdminPageLayout }))
 );
-const FinancePanel = React.lazy(() =>
+const FinancePanel = lazyWithRetry(() =>
   import('./components/admin/finance/FinancePanel').then((m) => ({ default: m.FinancePanel }))
 );
-const AdminDeliveryFleetTab = React.lazy(() =>
+const AdminDeliveryFleetTab = lazyWithRetry(() =>
   import('./components/admin/fleet/AdminDeliveryFleetTab').then((m) => ({ default: m.AdminDeliveryFleetTab }))
 );
-const AdminDocumentsModal = React.lazy(() =>
+const AdminDocumentsModal = lazyWithRetry(() =>
   import('./components/admin/documents/AdminDocumentsModal').then((m) => ({ default: m.AdminDocumentsModal }))
 );
-const AdminInventoryPanel = React.lazy(() =>
+const AdminInventoryPanel = lazyWithRetry(() =>
   import('./features/products-inventory/AdminInventoryPanel').then((m) => ({ default: m.AdminInventoryPanel }))
 );
-const AIMarketingCenter = React.lazy(() =>
+const AIMarketingCenter = lazyWithRetry(() =>
   import('./features/ai-marketing/AIMarketingCenter').then((m) => ({ default: m.AIMarketingCenter }))
 );
-const PricingForecastPanel = React.lazy(() =>
+const PricingForecastPanel = lazyWithRetry(() =>
   import('./features/pricing-forecast').then((m) => ({ default: m.PricingForecastPanel }))
 );
-const PinModal = React.lazy(() =>
+const PinModal = lazyWithRetry(() =>
   import('./components/admin/modals/AdminReviewModals').then((m) => ({ default: m.PinModal }))
 );
-const KhodraAICopilotModal = React.lazy(() =>
+const KhodraAICopilotModal = lazyWithRetry(() =>
   import('./components/admin/copilot/KhodraAICopilotModal').then((m) => ({ default: m.KhodraAICopilotModal }))
 );
 
 // ─── تحميل مؤجل للصفحات الإضافية ───
-const InfoPages = React.lazy(() =>
+const InfoPages = lazyWithRetry(() =>
   import('./components/common/InfoPages').then((module) => ({ default: module.InfoPages }))
 );
 
@@ -429,14 +462,63 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     try {
       return (
-        sessionStorage.getItem('khodra_admin_auth') === 'true' ||
-        localStorage.getItem('khodra_admin_auth') === 'true'
+        sessionStorage.getItem('khodra_admin_auth') === 'true' &&
+        Boolean(sessionStorage.getItem('khodra_admin_pin_session'))
       );
     } catch {
       return false;
     }
   });
   const [isAdminPinModalOpen, setIsAdminPinModalOpen] = useState(false);
+
+  // التحقق المركزي الصارم عند إقلاع التطبيق وعند العودة إلى التبويب
+  useEffect(() => {
+    const verifyCurrentSession = async () => {
+      // تنظيف أي بقايا محلية قديمة في localStorage دائماً
+      try {
+        localStorage.removeItem('khodra_admin_auth');
+        localStorage.removeItem('khodra_admin_custom_pin_v2');
+      } catch {}
+
+      const isMarked =
+        sessionStorage.getItem('khodra_admin_auth') === 'true' &&
+        Boolean(sessionStorage.getItem('khodra_admin_pin_session'));
+
+      if (isMarked) {
+        const isValid = await validateAdminSessionRemote();
+        if (!isValid) {
+          setIsAdmin(false);
+          setIsAdminOrdersOpen(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    verifyCurrentSession();
+
+    const handleVisibilityOrFocus = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        sessionStorage.getItem('khodra_admin_auth') === 'true'
+      ) {
+        validateAdminSessionRemote().then((isValid) => {
+          if (!isValid) {
+            setIsAdmin(false);
+            setIsAdminOrdersOpen(false);
+          }
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+    };
+  }, []);
 
   useEffect(() => {
     const handleAdminTrigger = () => {
@@ -453,17 +535,26 @@ export default function App() {
     const handleAuthChanged = () => {
       try {
         const isAuthed =
-          sessionStorage.getItem('khodra_admin_auth') === 'true' ||
-          localStorage.getItem('khodra_admin_auth') === 'true';
+          sessionStorage.getItem('khodra_admin_auth') === 'true' &&
+          Boolean(sessionStorage.getItem('khodra_admin_pin_session'));
         setIsAdmin(isAuthed);
-      } catch {}
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+
+    const handleRevoked = () => {
+      setIsAdmin(false);
+      setIsAdminOrdersOpen(false);
     };
 
     window.addEventListener('khodra_trigger_admin_modal', handleAdminTrigger);
     window.addEventListener('khodra_admin_auth_changed', handleAuthChanged);
+    window.addEventListener('khodra_admin_auth_revoked', handleRevoked);
     return () => {
       window.removeEventListener('khodra_trigger_admin_modal', handleAdminTrigger);
       window.removeEventListener('khodra_admin_auth_changed', handleAuthChanged);
+      window.removeEventListener('khodra_admin_auth_revoked', handleRevoked);
     };
   }, [isAdmin]);
 
@@ -473,7 +564,7 @@ export default function App() {
       setIsAdmin(true);
       try {
         sessionStorage.setItem('khodra_admin_auth', 'true');
-        localStorage.setItem('khodra_admin_auth', 'true');
+        localStorage.removeItem('khodra_admin_auth');
       } catch {}
       window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
       setIsAdminPinModalOpen(false);
@@ -490,11 +581,8 @@ export default function App() {
 
   const handleAdminLogout = () => {
     setIsAdmin(false);
+    setIsAdminOrdersOpen(false);
     clearCachedAdminPin();
-    try {
-      sessionStorage.removeItem('khodra_admin_auth');
-      localStorage.removeItem('khodra_admin_auth');
-    } catch {}
     window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
   };
 
@@ -1346,15 +1434,9 @@ export default function App() {
             <TrustBadges />
 
             {/* ─── Customer Reviews ─── */}
-            <Suspense
-              fallback={
-                <div className="py-12 text-center text-[#524B3E]/60 text-xs font-bold animate-pulse">
-                  جاري تحميل آراء الزبائن...
-                </div>
-              }
-            >
+            <ReviewsSectionBoundary>
               <CustomerReviews onOpenOrdersPanel={() => setIsAdminOrdersOpen(true)} />
-            </Suspense>
+            </ReviewsSectionBoundary>
           </>
         )}
       </main>

@@ -37,7 +37,16 @@ export default defineConfig(() => {
       dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
-      include: ['react', 'react-dom', 'motion/react', 'leaflet', 'canvas-confetti'],
+      include: [
+        'react',
+        'react-dom',
+        'motion/react',
+        'leaflet',
+        'canvas-confetti',
+        'swiper',
+        'swiper/react',
+        'swiper/modules',
+      ],
     },
     build: {
       rollupOptions: {
@@ -51,6 +60,9 @@ export default defineConfig(() => {
             }
             if (id.includes('node_modules/canvas-confetti')) {
               return 'confetti';
+            }
+            if (id.includes('node_modules/swiper')) {
+              return 'vendor-swiper';
             }
             if (id.includes('node_modules/motion')) {
               return 'vendor-motion';

@@ -113,10 +113,10 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
     }
   };
 
-  const handleChangePinSubmit = async (newPin: string) => {
-    const res = await updateAdminPassword(newPin);
+  const handleChangePinSubmit = async (newPin: string, currentPin?: string) => {
+    const res = await updateAdminPassword(newPin, currentPin);
     if (res.success) {
-      setDashboardNotice('✅ تم تحديث الرمز السري للمدير بنجاح');
+      setDashboardNotice('✅ تم تحديث الرمز السري للمدير بنجاح على الخادم');
       setTimeout(() => setDashboardNotice(null), 3500);
       setIsChangePinOpen(false);
       return { success: true };

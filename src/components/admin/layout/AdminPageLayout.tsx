@@ -150,10 +150,22 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
     });
   }, []);
 
-  const handleChangePinSubmit = async (newPin: string) => {
-    const res = await updateAdminPassword(newPin);
+  useEffect(() => {
+    const handleRevoked = (e: any) => {
+      const reason = e?.detail?.reason || 'تم إبطال الجلسة أو تغيير الرمز السري من جهاز آخر';
+      setNotice(`⚠️ ${reason}`);
+      onReturnToStore();
+    };
+    window.addEventListener('khodra_admin_auth_revoked', handleRevoked);
+    return () => {
+      window.removeEventListener('khodra_admin_auth_revoked', handleRevoked);
+    };
+  }, [onReturnToStore]);
+
+  const handleChangePinSubmit = async (newPin: string, currentPin?: string) => {
+    const res = await updateAdminPassword(newPin, currentPin);
     if (res.success) {
-      setNotice('✅ تم تحديث الرمز السري للمدير بنجاح');
+      setNotice('✅ تم تحديث الرمز السري للمدير بنجاح على الخادم');
       setTimeout(() => setNotice(null), 3500);
       setIsChangePinOpen(false);
       return { success: true };
@@ -190,7 +202,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
       if (res.valid) {
         try {
           sessionStorage.setItem('khodra_admin_auth', 'true');
-          localStorage.setItem('khodra_admin_auth', 'true');
+          localStorage.removeItem('khodra_admin_auth');
         } catch {}
         window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
       } else {

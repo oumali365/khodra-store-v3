@@ -37,7 +37,7 @@ import {
   type CustomerReview,
 } from '../../data/initialReviews';
 import { AddReviewModal } from './AddReviewModal';
-import { DeleteReviewModal } from '../admin';
+import { DeleteReviewModal } from '../admin/modals/AdminReviewModals';
 
 export type { CustomerReview };
 
@@ -97,7 +97,10 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
   // ─── Admin mode ───
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     try {
-      return sessionStorage.getItem('khodra_admin_auth') === 'true';
+      return (
+        sessionStorage.getItem('khodra_admin_auth') === 'true' &&
+        Boolean(sessionStorage.getItem('khodra_admin_pin_session'))
+      );
     } catch {
       return false;
     }
@@ -110,12 +113,19 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
   useEffect(() => {
     const handleAuthChanged = () => {
       try {
-        setIsAdmin(sessionStorage.getItem('khodra_admin_auth') === 'true');
-      } catch {}
+        setIsAdmin(
+          sessionStorage.getItem('khodra_admin_auth') === 'true' &&
+          Boolean(sessionStorage.getItem('khodra_admin_pin_session'))
+        );
+      } catch {
+        setIsAdmin(false);
+      }
     };
     window.addEventListener('khodra_admin_auth_changed', handleAuthChanged);
+    window.addEventListener('khodra_admin_auth_revoked', handleAuthChanged);
     return () => {
       window.removeEventListener('khodra_admin_auth_changed', handleAuthChanged);
+      window.removeEventListener('khodra_admin_auth_revoked', handleAuthChanged);
     };
   }, []);
 
