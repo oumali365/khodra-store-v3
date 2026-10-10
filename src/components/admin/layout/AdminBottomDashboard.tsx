@@ -136,34 +136,26 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
 
       <div className="relative max-w-6xl mx-auto space-y-6">
 
-        {/* ═══════ الرأس العلوي لقسم المدير ═══════ */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-5 border-b border-zinc-800 text-center sm:text-right">
+        {/* ═══════ الرأس العلوي لقسم المدير (مُعدّل) ═══════ */}
+        <div className="flex flex-col gap-4 pb-5 border-b border-zinc-800 text-right">
+          
+          {/* الصف الأول: الأيقونة والعنوان فقط */}
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border-2 border-[#EAB308]/50 flex items-center justify-center shadow-[0_4px_16px_rgba(234,179,8,0.20)] shrink-0">
               <ShieldCheck className="w-7 h-7 text-[#EAB308]" strokeWidth={2.5} />
             </div>
-            <div>
-              <div className="flex items-center gap-2.5 justify-center sm:justify-start flex-wrap">
-                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight font-['Almarai']">
-                  لوحة إدارة متجر خُضرة
-                </h2>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  مباشر En ligne
-                </span>
-              </div>
-              <p className="text-xs text-stone-400 mt-0.5 font-medium">
-                8 أدوات تشغيلية متكاملة لإدارة الطلبات والأسطول والمخزون والتسويق بسوق فاس
-              </p>
-            </div>
+            <h2 className="text-lg sm:text-xl font-black text-white tracking-tight font-['Almarai']">
+              إدارة المتجر
+            </h2>
           </div>
 
-          {/* أزرار سريعة في الشريط العلوي */}
-          <div className="flex items-center gap-2 flex-wrap justify-center">
+          {/* الصف الثاني: الأزرار الثلاثة في شبكة grid-cols-3 */}
+          <div className="grid grid-cols-3 gap-2 w-full">
+            {/* زر التنبيهات الصوتية */}
             <button
               type="button"
               onClick={handleToggleSound}
-              className={`px-3 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 border shadow-xs active:scale-95 ${
+              className={`px-3 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 border shadow-xs active:scale-95 ${
                 soundEnabled
                   ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/90'
                   : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
@@ -183,19 +175,21 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
               )}
             </button>
 
+            {/* زر الرمز السري */}
             <button
               type="button"
               onClick={() => setIsChangePinOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 hover:border-amber-400/50 text-zinc-100 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs"
+              className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 hover:border-amber-400/50 text-zinc-100 text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-xs"
             >
               <KeyRound className="w-3.5 h-3.5 text-[#F5D76E]" />
               <span>الرمز السري</span>
             </button>
 
+            {/* زر تسجيل الخروج */}
             <button
               type="button"
               onClick={onLogout}
-              className="px-3.5 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 hover:text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-xs"
+              className="px-3 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 hover:text-white text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-xs"
             >
               <LogOut className="w-3.5 h-3.5 text-rose-400" />
               <span>تسجيل الخروج</span>
