@@ -21,7 +21,6 @@ import {
   LogOut,
   Bell,
   BellOff,
-  ExternalLink,
   Bike,
   DollarSign,
   Package,
@@ -227,23 +226,21 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             onClick={(e) => handleNavigate(e, 'orders')}
             className="group relative bg-gradient-to-br from-[#123820] via-[#0d2b18] to-[#07180d] hover:from-[#194c2c] hover:to-[#10341c] border-2 border-emerald-500/60 hover:border-emerald-400 rounded-2xl p-4 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_12px_32px_rgba(16,185,129,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[175px] sm:min-h-[190px]"
           >
+            {/* النص الفرنسي في الزاوية العلوية اليسرى */}
+            <span className="absolute top-4 left-4 text-[10px] sm:text-[11px] text-emerald-400/80 font-mono">
+              Commandes
+            </span>
+
             <div className="flex items-start justify-between gap-2 w-full">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-800 border border-emerald-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-emerald-100">
                 <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-[#F5D76E]" strokeWidth={2.5} />
               </div>
-              {/* تم حذف الشارة */}
             </div>
 
-            <div className="mt-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-black text-white group-hover:text-emerald-300 transition-colors leading-tight">
-                  إدارة الطلبات
-                </h3>
-                <span className="text-[10px] sm:text-[11px] text-emerald-400/80 font-mono">
-                  Commandes
-                </span>
-              </div>
-              {/* تم حذف الوصف */}
+            <div className="mt-4 sm:mt-5">
+              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-emerald-300 transition-colors leading-tight">
+                إدارة الطلبات
+              </h3>
             </div>
 
             <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-300 font-bold mt-2">
@@ -258,23 +255,21 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             onClick={(e) => handleNavigate(e, 'fleet')}
             className="group relative bg-gradient-to-br from-[#0c2f45] via-[#072436] to-[#04141f] hover:from-[#11405e] hover:to-[#0c2f45] border-2 border-sky-500/60 hover:border-sky-400 rounded-2xl p-4 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_12px_32px_rgba(14,165,233,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[175px] sm:min-h-[190px]"
           >
+            {/* النص الفرنسي في الزاوية العلوية اليسرى */}
+            <span className="absolute top-4 left-4 text-[10px] sm:text-[11px] text-sky-400/80 font-mono">
+              Flotte
+            </span>
+
             <div className="flex items-start justify-between gap-2 w-full">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-sky-600 to-blue-800 border border-sky-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-sky-100">
                 <Bike className="w-5 h-5 sm:w-6 sm:h-6 text-sky-200" strokeWidth={2.5} />
               </div>
-              {/* تم حذف الشارة */}
             </div>
 
-            <div className="mt-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-black text-white group-hover:text-sky-300 transition-colors leading-tight">
-                  مسارات التوصيل
-                </h3>
-                <span className="text-[10px] sm:text-[11px] text-sky-400/80 font-mono">
-                  Flotte
-                </span>
-              </div>
-              {/* تم حذف الوصف */}
+            <div className="mt-4 sm:mt-5">
+              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-sky-300 transition-colors leading-tight">
+                مسارات التوصيل
+              </h3>
             </div>
 
             <div className="pt-2 border-t border-sky-500/20 flex items-center justify-between text-[11px] text-sky-300 font-bold mt-2">
@@ -289,23 +284,21 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             onClick={(e) => handleNavigate(e, 'inventory')}
             className="group relative bg-gradient-to-br from-[#133b31] via-[#0d2a23] to-[#061814] hover:from-[#1b4e41] hover:to-[#133b31] border-2 border-teal-500/60 hover:border-teal-400 rounded-2xl p-4 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_12px_32px_rgba(20,184,166,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[175px] sm:min-h-[190px]"
           >
+            {/* النص الفرنسي في الزاوية العلوية اليسرى */}
+            <span className="absolute top-4 left-4 text-[10px] sm:text-[11px] text-teal-400/80 font-mono">
+              Stock
+            </span>
+
             <div className="flex items-start justify-between gap-2 w-full">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-800 border border-teal-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-teal-100">
                 <Package className="w-5 h-5 sm:w-6 sm:h-6 text-[#F5D76E]" strokeWidth={2.5} />
               </div>
-              {/* تم حذف الشارة */}
             </div>
 
-            <div className="mt-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-black text-white group-hover:text-teal-300 transition-colors leading-tight">
-                  المنتجات والمخزون
-                </h3>
-                <span className="text-[10px] sm:text-[11px] text-teal-400/80 font-mono">
-                  Stock
-                </span>
-              </div>
-              {/* تم حذف الوصف */}
+            <div className="mt-4 sm:mt-5">
+              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-teal-300 transition-colors leading-tight">
+                المنتجات والمخزون
+              </h3>
             </div>
 
             <div className="pt-2 border-t border-teal-500/20 flex items-center justify-between text-[11px] text-teal-300 font-bold mt-2">
@@ -320,23 +313,21 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             onClick={(e) => handleNavigate(e, 'pricing')}
             className="group relative bg-gradient-to-br from-[#3a2806] via-[#2a1d04] to-[#171002] hover:from-[#4d3609] hover:to-[#3a2806] border-2 border-amber-500/60 hover:border-amber-400 rounded-2xl p-4 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_12px_32px_rgba(245,158,11,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[175px] sm:min-h-[190px]"
           >
+            {/* النص الفرنسي في الزاوية العلوية اليسرى */}
+            <span className="absolute top-4 left-4 text-[10px] sm:text-[11px] text-amber-400/80 font-mono">
+              Tarifs JIT
+            </span>
+
             <div className="flex items-start justify-between gap-2 w-full">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-700 border border-amber-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-amber-100">
                 <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-[#FEF08A]" strokeWidth={2.5} />
               </div>
-              {/* تم حذف الشارة */}
             </div>
 
-            <div className="mt-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-black text-white group-hover:text-amber-300 transition-colors leading-tight">
-                  التسعير وتوقع الطلب
-                </h3>
-                <span className="text-[10px] sm:text-[11px] text-amber-400/80 font-mono">
-                  Tarifs JIT
-                </span>
-              </div>
-              {/* تم حذف الوصف */}
+            <div className="mt-4 sm:mt-5">
+              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-amber-300 transition-colors leading-tight">
+                التسعير وتوقع الطلب
+              </h3>
             </div>
 
             <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[11px] text-amber-300 font-bold mt-2">
@@ -351,23 +342,21 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             onClick={(e) => handleNavigate(e, 'marketing')}
             className="group relative bg-gradient-to-br from-[#2a1748] via-[#1f1035] to-[#120921] hover:from-[#3a2062] hover:to-[#2a1748] border-2 border-purple-500/60 hover:border-purple-400 rounded-2xl p-4 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_12px_32px_rgba(168,85,247,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[175px] sm:min-h-[190px]"
           >
+            {/* النص الفرنسي في الزاوية العلوية اليسرى */}
+            <span className="absolute top-4 left-4 text-[10px] sm:text-[11px] text-purple-400/80 font-mono">
+              Marketing
+            </span>
+
             <div className="flex items-start justify-between gap-2 w-full">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-800 border border-purple-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-purple-100">
                 <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-200" strokeWidth={2.5} />
               </div>
-              {/* تم حذف الشارة */}
             </div>
 
-            <div className="mt-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-black text-white group-hover:text-purple-300 transition-colors leading-tight">
-                  النشر والتسويق
-                </h3>
-                <span className="text-[10px] sm:text-[11px] text-purple-400/80 font-mono">
-                  Marketing
-                </span>
-              </div>
-              {/* تم حذف الوصف */}
+            <div className="mt-4 sm:mt-5">
+              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-purple-300 transition-colors leading-tight">
+                النشر والتسويق
+              </h3>
             </div>
 
             <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between text-[11px] text-purple-300 font-bold mt-2">
@@ -382,23 +371,21 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             onClick={(e) => handleNavigate(e, 'finance')}
             className="group relative bg-gradient-to-br from-[#3b170e] via-[#2b1009] to-[#180805] hover:from-[#4d1f14] hover:to-[#3b170e] border-2 border-orange-500/60 hover:border-orange-400 rounded-2xl p-4 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_12px_32px_rgba(249,115,22,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[175px] sm:min-h-[190px]"
           >
+            {/* النص الفرنسي في الزاوية العلوية اليسرى */}
+            <span className="absolute top-4 left-4 text-[10px] sm:text-[11px] text-orange-400/80 font-mono">
+              Finance
+            </span>
+
             <div className="flex items-start justify-between gap-2 w-full">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-orange-600 to-rose-800 border border-orange-400/40 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform text-orange-100">
                 <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-[#F5D76E]" strokeWidth={2.5} />
               </div>
-              {/* تم حذف الشارة */}
             </div>
 
-            <div className="mt-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-black text-white group-hover:text-orange-300 transition-colors leading-tight">
-                  اللوحة المالية
-                </h3>
-                <span className="text-[10px] sm:text-[11px] text-orange-400/80 font-mono">
-                  Finance
-                </span>
-              </div>
-              {/* تم حذف الوصف */}
+            <div className="mt-4 sm:mt-5">
+              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-orange-300 transition-colors leading-tight">
+                اللوحة المالية
+              </h3>
             </div>
 
             <div className="pt-2 border-t border-orange-500/20 flex items-center justify-between text-[11px] text-orange-300 font-bold mt-2">
@@ -413,24 +400,22 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             onClick={() => setIsCopilotOpen(true)}
             className="group relative bg-gradient-to-br from-[#0c224a] via-[#071735] to-[#040e21] hover:from-[#13326b] hover:to-[#0c224a] border-2 border-blue-400/70 hover:border-cyan-300 rounded-2xl p-4 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_12px_36px_rgba(59,130,246,0.40)] active:scale-[0.98] flex flex-col justify-between min-h-[175px] sm:min-h-[190px]"
           >
+            {/* النص الفرنسي في الزاوية العلوية اليسرى */}
+            <span className="absolute top-4 left-4 text-[10px] sm:text-[11px] text-cyan-400/80 font-mono">
+              Copilot v2
+            </span>
+
             <div className="flex items-start justify-between gap-2 w-full">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-600 border border-cyan-400/50 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(59,130,246,0.4)] group-hover:scale-105 transition-transform text-cyan-200">
                 <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={2.5} />
               </div>
-              {/* تم حذف الشارة */}
             </div>
 
-            <div className="mt-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-black text-white group-hover:text-cyan-300 transition-colors leading-tight flex items-center gap-1.5">
-                  <span>خُضرة AI Copilot</span>
-                  <span className="text-xs">🤖</span>
-                </h3>
-                <span className="text-[10px] sm:text-[11px] text-cyan-400/80 font-mono">
-                  Copilot v2
-                </span>
-              </div>
-              {/* تم حذف الوصف */}
+            <div className="mt-4 sm:mt-5">
+              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-cyan-300 transition-colors leading-tight flex items-center gap-1.5">
+                <span>خُضرة AI Copilot</span>
+                <span className="text-xs">🤖</span>
+              </h3>
             </div>
 
             <div className="pt-2 border-t border-cyan-500/20 flex items-center justify-between text-[11px] text-cyan-300 font-bold mt-2">
@@ -445,24 +430,22 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
             onClick={() => setIsDocumentsOpen(true)}
             className="group relative bg-gradient-to-br from-[#22252a] via-[#181a1f] to-[#0e1013] hover:from-[#31353c] hover:to-[#22252a] border-2 border-stone-400/60 hover:border-yellow-400 rounded-2xl p-4 sm:p-5 text-right transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_12px_36px_rgba(234,179,8,0.30)] active:scale-[0.98] flex flex-col justify-between min-h-[175px] sm:min-h-[190px]"
           >
+            {/* النص الفرنسي في الزاوية العلوية اليسرى */}
+            <span className="absolute top-4 left-4 text-[10px] sm:text-[11px] text-yellow-400/80 font-mono">
+              Contrats SARL
+            </span>
+
             <div className="flex items-start justify-between gap-2 w-full">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-stone-700 to-zinc-900 border border-yellow-500/50 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(234,179,8,0.25)] group-hover:scale-105 transition-transform text-yellow-400">
                 <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-[#EAB308]" strokeWidth={2.5} />
               </div>
-              {/* تم حذف الشارة */}
             </div>
 
-            <div className="mt-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-base sm:text-lg font-black text-white group-hover:text-yellow-300 transition-colors leading-tight flex items-center gap-1.5">
-                  <span>وثائق وعقود المشروع</span>
-                  <span className="text-xs">📑</span>
-                </h3>
-                <span className="text-[10px] sm:text-[11px] text-yellow-400/80 font-mono">
-                  Contrats SARL
-                </span>
-              </div>
-              {/* تم حذف الوصف */}
+            <div className="mt-4 sm:mt-5">
+              <h3 className="text-base sm:text-lg font-black text-white group-hover:text-yellow-300 transition-colors leading-tight flex items-center gap-1.5">
+                <span>وثائق وعقود المشروع</span>
+                <span className="text-xs">📑</span>
+              </h3>
             </div>
 
             <div className="pt-2 border-t border-yellow-500/20 flex items-center justify-between text-[11px] text-yellow-300 font-bold mt-2">
