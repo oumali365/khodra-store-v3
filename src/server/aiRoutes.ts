@@ -394,12 +394,23 @@ aiRouter.get('/api/ai/dashboard-insights', async (_req: Request, res: Response) 
             description: 'الطلب على خضار الطهي الفاسي (طماطم، بطاطس، بصل) في ذروته، مع وفرة ممتازة في سوق بنسودة.',
             action: 'إنشاء باقة الطبخ',
           },
-          {
-            type: 'warning',
-            title: `⚠️ ${intelligence.lowStockWarnings.length} منتجات تقترب من النفاد`,
-            description: 'تم تقييد الترويج لها تلقائياً لحين تجديد المخزون فجر الغد لتفادي إلغاء الطلبات.',
-            action: 'فحص المخزون',
-          },
+          ...(intelligence.lowStockWarnings.length > 0
+            ? [
+                {
+                  type: 'warning' as const,
+                  title: `⚠️ ${intelligence.lowStockWarnings.length} سلع خضار تقترب من النفاد`,
+                  description: 'تم حجب هذه السلع تلقائياً من الحملات الإعلانية لحماية مخزون المستودع وتفادي إلغاء طلبات الزبائن.',
+                  action: 'فحص المخزون',
+                },
+              ]
+            : [
+                {
+                  type: 'growth' as const,
+                  title: '✅ استقرار كامل لمخزون المستودع',
+                  description: 'كافة الخضار متوفرة بوفرة في المستودع ومتاحة للحملات الإعلانية بدون أي حجب.',
+                  action: 'فحص المخزون',
+                },
+              ]),
           {
             type: 'growth',
             title: '📈 إقبال مرتفع على الفواكه وعصائر الصباح',

@@ -302,17 +302,34 @@ export const KhodraAICopilotModal: React.FC<KhodraAICopilotModalProps> = ({
         <div className="bg-[#0b171c]/95 border-b border-cyan-900/40 p-2.5 sm:p-3 space-y-2 shrink-0">
           {/* إظهار أهم تنبيه فقط عند توفره */}
           {topAlert && (
-            <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs">
-              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="font-bold truncate">{topAlert.title}:</span>
-                <span className="text-[11px] text-amber-100/80 truncate">{topAlert.description}</span>
+            <div
+              className={`flex items-center justify-between gap-2 p-2 rounded-xl text-xs border ${
+                topAlert.type === 'warning'
+                  ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+                  : 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+              }`}
+            >
+              <div
+                className="flex items-center gap-1.5 min-w-0 flex-1 cursor-default"
+                title={`${topAlert.title}: ${topAlert.description}`}
+              >
+                {topAlert.type === 'warning' ? (
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                )}
+                <span className="font-bold shrink-0">{topAlert.title}:</span>
+                <span className="text-[11px] opacity-90 truncate">{topAlert.description}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => handleSendChat(topAlert.description)}
-                  className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold border border-amber-400/30 cursor-pointer"
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border cursor-pointer ${
+                    topAlert.type === 'warning'
+                      ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-400/30'
+                      : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-400/30'
+                  }`}
                 >
                   فحص الآن
                 </button>

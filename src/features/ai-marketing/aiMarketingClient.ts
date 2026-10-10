@@ -64,25 +64,44 @@ export interface AuditLogItem {
   createdAt: string;
 }
 
-// ─── دالة مساعدة لجلب JSON بأمان مع منع توقف التطبيق عند تعذر الاتصال ───
+// ─── دالة مساعدة لجلب JSON بأمان مع منع توقف التطبيق عند تعذر الاتصال وإعادة المحاولة التلقائية ───
 async function safeFetchJson<T>(
   url: string,
   options?: RequestInit,
-  fallback?: () => T
+  fallback?: () => T,
+  retries = 1
 ): Promise<T> {
-  try {
-    const res = await fetch(url, options);
-    if (res.ok) {
-      const text = await res.text();
-      if (text && text.trim().startsWith('{')) {
-        const json = JSON.parse(text);
-        if (json.success && json.data) {
-          return json.data as T;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // مهلة 25 ثانية تكفي لاستعلام Gemini وقاعدة البيانات
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.trim().startsWith('{')) {
+          const json = JSON.parse(text);
+          if (json.success && json.data) {
+            return json.data as T;
+          }
         }
       }
+      // إذا فشل الطلب وكان هناك محاولة متبقية، ننتظر قليلاً ثم نعيد المحاولة
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 600));
+        continue;
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 600));
+        continue;
+      }
+      console.warn(`[aiMarketingClient] API request to ${url} failed on attempt ${attempt + 1}:`, err);
     }
-  } catch (err) {
-    console.warn(`[aiMarketingClient] API request to ${url} failed, using local engine:`, err);
   }
 
   if (fallback) {
@@ -106,9 +125,9 @@ export async function fetchDashboardInsights(): Promise<DashboardInsightsRespons
           action: 'إنشاء باقة الطبخ',
         },
         {
-          type: 'warning',
-          title: '⚠️ حماية المخزون الذكية نشطة',
-          description: 'المنتجات التي يقل مخزونها عن 5 كجم تُستبعد تلقائياً من الإعلانات الترويجية الضخمة لمنع خيبة أمل الزبائن.',
+          type: 'growth',
+          title: '✅ استقرار كامل لمخزون المستودع',
+          description: 'نظام حماية السلع نشط: تُستبعد أي خضار يقل مخزونها عن 5 كجم تلقائياً من الإعلانات لتفادي نفادها.',
           action: 'فحص المخزون',
         },
         {

@@ -46,6 +46,7 @@ const TECH_ARCHITECTURE_DOC: DocItem = {
   id: 'system-architecture',
   code: '05_System_Architecture',
   title: 'الدليل التقني الشامل وهندسة الآليات (PDF)',
+  subtitle: 'دليل شامل لهندسة النظام ووحدات الإدارة وقواعد البيانات',
   description:
     'دليل تقني مستقل يشرح بنية المشروع وهندسته المعمارية، وحدات إدارة المتجر (الطلبات، التوصيل، المالية، العقود، التسويق، التسعير JIT)، دورة حياة الطلبات، التقنيات المستخدمة (React 19 + Supabase + PWA + GPS)، وإرشادات مستقبلية.',
   url: '/docs/system-architecture.html',
