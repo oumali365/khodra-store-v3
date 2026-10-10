@@ -38,6 +38,7 @@ export interface CopilotChatResponse {
   }[];
   isRealData?: boolean;
   modelUsed?: string;
+  metadata?: any;
 }
 
 export interface PublishQueueItem {

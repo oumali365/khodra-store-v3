@@ -34,7 +34,19 @@ function maskPhone(phone?: string | null): string {
 // ────────────────────────────────────────────────────────────
 // دالة مساعدة لحساب بداية ونهاية الفترات الزمنية
 // ────────────────────────────────────────────────────────────
-function getDateRange(period?: string): { startDate?: string; endDate?: string; label: string } {
+export function getDateRange(
+  period?: string,
+  customStart?: string,
+  customEnd?: string
+): { startDate?: string; endDate?: string; label: string } {
+  if (customStart || customEnd) {
+    return {
+      startDate: customStart,
+      endDate: customEnd,
+      label: `فترة مخصصة (${customStart ? customStart.slice(0, 10) : 'البداية'} إلى ${customEnd ? customEnd.slice(0, 10) : 'الآن'})`,
+    };
+  }
+
   const now = new Date();
 
   if (period === 'today') {
@@ -44,7 +56,7 @@ function getDateRange(period?: string): { startDate?: string; endDate?: string; 
 
   if (period === 'yesterday') {
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
     return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'أمس' };
   }
 
@@ -53,9 +65,21 @@ function getDateRange(period?: string): { startDate?: string; endDate?: string; 
     return { startDate: start.toISOString(), label: 'آخر 7 أيام' };
   }
 
+  if (period === 'previous_7_days') {
+    const start = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const end = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'الـ 7 أيام السابقة' };
+  }
+
   if (period === 'this_month') {
     const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
     return { startDate: start.toISOString(), label: 'هذا الشهر' };
+  }
+
+  if (period === 'last_month') {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'الشهر الماضي' };
   }
 
   return { label: 'جميع الفترات' };
@@ -133,7 +157,7 @@ export async function executeGetProducts(args: {
         toolName: 'get_products',
         source: 'supabase_live',
         status: 'empty',
-        isRealData: true,
+        isRealData: false,
         timestamp: new Date().toISOString(),
         summary: 'تم الاتصال بقاعدة البيانات بنجاح: لا توجد منتجات مسجلة تطابق شروط البحث.',
         data: {
@@ -157,15 +181,20 @@ export async function executeGetProducts(args: {
       icon: p.icon || '🛒',
     }));
 
+    const availableCount = products.filter((p) => p.is_available).length;
+    const outOfStockCount = products.length - availableCount;
+
     return {
       toolName: 'get_products',
       source: 'supabase_live',
       status: 'success',
       isRealData: true,
       timestamp: new Date().toISOString(),
-      summary: `تم جلب ${products.length} منتج مباشرة من جدول products في Supabase.`,
+      summary: `تم جلب ${products.length} منتج مباشرة من جدول products في Supabase (المتوفر: ${availableCount}، غير المتوفر: ${outOfStockCount}).`,
       data: {
         total_returned: products.length,
+        total_available_in_batch: availableCount,
+        total_out_of_stock_in_batch: outOfStockCount,
         category_filter: args.category || 'all',
         search_query: args.search || null,
         products,
@@ -246,7 +275,7 @@ export async function executeGetInventory(args: {
         toolName: 'get_inventory',
         source: 'supabase_live',
         status: 'empty',
-        isRealData: true,
+        isRealData: false,
         timestamp: new Date().toISOString(),
         summary: 'تم الاتصال بقاعدة البيانات بنجاح: لا توجد منتجات مسجلة في جدول products لحساب مخزونها.',
         data: {
@@ -297,12 +326,31 @@ export async function executeGetInventory(args: {
         low_stock_count: lowStock.length,
         out_of_stock_count: outOfStock.length,
         inventory_health_percentage: healthPercentage,
+        needs_reorder_count: outOfStock.length + lowStock.length,
         critical_warnings: [
           ...lowStock.map((i) => `⚠️ ${i.name}: كمية محدودة (${i.stock} ${i.unit}) - يوصى بالحذر عند الترويج`),
           ...outOfStock.map((i) => `❌ ${i.name}: غير متوفر حالياً (${i.stock} ${i.unit})`),
         ],
-        low_stock_list: lowStock.slice(0, 10),
-        out_of_stock_list: outOfStock.slice(0, 10),
+        reorder_recommendations: [
+          ...outOfStock.map((i) => ({
+            id: i.id,
+            name: i.name,
+            stock: i.stock,
+            unit: i.unit,
+            priority: 'عاجل جداً (نافد 0 كجم)',
+            action: `برمجة شراء فوري فجر الغد من سوق بنسودة (${i.name})`,
+          })),
+          ...lowStock.map((i) => ({
+            id: i.id,
+            name: i.name,
+            stock: i.stock,
+            unit: i.unit,
+            priority: 'مرتفع (مخزون منخفض <= 5 كجم)',
+            action: `إعادة التزويد لتفادي العجز (${i.name} - متبقي ${i.stock} ${i.unit})`,
+          })),
+        ],
+        low_stock_list: lowStock.slice(0, 15),
+        out_of_stock_list: outOfStock.slice(0, 15),
         healthy_sample: healthy.slice(0, 10),
       },
     };
@@ -408,7 +456,7 @@ export async function executeGetOrders(args: {
         toolName: 'get_orders',
         source: 'supabase_live',
         status: 'empty',
-        isRealData: true,
+        isRealData: false,
         timestamp: new Date().toISOString(),
         summary: `تم الاتصال بقاعدة البيانات بنجاح: لا توجد طلبات مسجلة (${range.label}).`,
         data: {
@@ -496,10 +544,12 @@ export async function executeGetOrders(args: {
 // 4️⃣ أداة تحليل المبيعات والإحصائيات: get_sales_summary
 // ════════════════════════════════════════════════════════════
 export async function executeGetSalesSummary(args: {
-  period?: 'today' | 'yesterday' | 'last_7_days' | 'this_month' | 'all_time';
+  period?: 'today' | 'yesterday' | 'last_7_days' | 'previous_7_days' | 'this_month' | 'last_month' | 'all_time';
+  start_date?: string;
+  end_date?: string;
 }): Promise<ToolExecutionResult> {
   const supabase = getServerSupabase();
-  const range = getDateRange(args.period || 'today');
+  const range = getDateRange(args.period || 'today', args.start_date, args.end_date);
 
   if (!supabase) {
     return {
@@ -572,7 +622,7 @@ export async function executeGetSalesSummary(args: {
         toolName: 'get_sales_summary',
         source: 'supabase_live',
         status: 'empty',
-        isRealData: true,
+        isRealData: false,
         timestamp: new Date().toISOString(),
         summary: `تم الاتصال بقاعدة البيانات بنجاح: لا توجد طلبات مسجلة في هذه الفترة (${range.label}) لحساب المبيعات.`,
         data: {
@@ -663,6 +713,10 @@ export async function executeGetSalesSummary(args: {
         currency: 'درهم مغربي (DH)',
         top_selling_items: topSellingProducts,
         zone_distribution: zonesBreakdown,
+        limitations: [
+          'حساب الإيراد مبني حصراً على الطلبات المسلمة (Delivered Orders).',
+          'لا تسجل قاعدة البيانات الحالية تكلفة الشراء بسوق الجملة (COGS) أو مصاريف التوصيل والتشغيل، لذا لا يمكن احتساب صافي الربح.',
+        ],
       },
     };
   } catch (err: any) {
@@ -758,7 +812,7 @@ export async function executeGetInventoryMovements(args: {
         toolName: 'get_inventory_movements',
         source: 'supabase_live',
         status: 'empty',
-        isRealData: true,
+        isRealData: false,
         timestamp: new Date().toISOString(),
         summary: 'سجل حركات وتدقيق المخزون (inventory_ledger) خالٍ حالياً في قاعدة البيانات.',
         data: {
@@ -846,7 +900,7 @@ export function executeGetStoreInfo(): ToolExecutionResult {
     toolName: 'get_store_info',
     source: 'store_config',
     status: 'success',
-    isRealData: true,
+    isRealData: false,
     timestamp: new Date().toISOString(),
     summary: 'معلومات وتشغيل متجر خُضرة فاس، مناطق التوصيل، والسياسات المعتمدة.',
     data: {
@@ -960,7 +1014,7 @@ export const COPILOT_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
       properties: {
         period: {
           type: Type.STRING,
-          description: 'الفترة المطلوبة: today (اليوم), yesterday (أمس), last_7_days (آخر 7 أيام), this_month (هذا الشهر), all_time (كامل الفترة)',
+          description: 'الفترة المطلوبة: today (اليوم), yesterday (أمس), last_7_days (آخر 7 أيام), previous_7_days (الـ 7 أيام السابقة للمقارنة), this_month (هذا الشهر), last_month (الشهر الماضي للمقارنة), all_time (كامل الفترة)',
         },
       },
     },

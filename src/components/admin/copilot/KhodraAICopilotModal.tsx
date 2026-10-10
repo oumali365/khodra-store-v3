@@ -63,6 +63,7 @@ export const KhodraAICopilotModal: React.FC<KhodraAICopilotModalProps> = ({
         data?: any;
       }[];
       isRealData?: boolean;
+      metadata?: any;
     }[]
   >([
     {
@@ -77,8 +78,8 @@ export const KhodraAICopilotModal: React.FC<KhodraAICopilotModalProps> = ({
         { label: '💰 مبيعات اليوم والأسبوع', actionType: 'query', payload: 'عطيني ملخص مبيعات اليوم وهاد الأسبوع مع إجمالي الإيرادات' },
         { label: '🛵 طلبات pending', actionType: 'query', payload: 'شنو هما الطلبات اللي باقين pending وبحاجة متابعة فورية؟' },
       ],
-      dataContext: 'متصل مباشرة بـ Supabase • سوق بنسودة فاس',
-      isRealData: true,
+      dataContext: 'جاهز للاستعلام التشغيلي • خُضرة فاس',
+      isRealData: false,
     },
   ]);
 
@@ -161,6 +162,7 @@ export const KhodraAICopilotModal: React.FC<KhodraAICopilotModalProps> = ({
           dataContext: res.dataContext,
           toolsExecuted: res.toolsExecuted,
           isRealData: res.isRealData,
+          metadata: res.metadata,
         },
       ]);
     } catch {
@@ -261,10 +263,10 @@ export const KhodraAICopilotModal: React.FC<KhodraAICopilotModalProps> = ({
                   خُضرة AI Copilot v2
                 </h2>
 
-                {/* شارة Supabase Live المحفوظة */}
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Supabase Live
+                {/* شارة وضع القراءة فقط المحمي */}
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 shrink-0">
+                  <ShieldCheck className="w-3 h-3 text-cyan-400" />
+                  وضع القراءة فقط الآمن
                 </span>
               </div>
               <p className="text-[11px] text-cyan-100/70 truncate mt-0.5 font-medium hidden xs:block">
@@ -409,13 +411,33 @@ export const KhodraAICopilotModal: React.FC<KhodraAICopilotModalProps> = ({
                             >
                               <div className="flex items-center justify-between font-bold text-white flex-wrap gap-1">
                                 <span>🛠️ {tool.toolName}</span>
-                                <span className="text-emerald-400">بيانات Supabase حية ✓</span>
+                                {tool.isRealData ? (
+                                  <span className="text-emerald-400">بيانات Supabase حية ✓</span>
+                                ) : tool.source === 'store_config' ? (
+                                  <span className="text-cyan-400">إعدادات المتجر ⚙️</span>
+                                ) : (
+                                  <span className="text-amber-400">غير متوفر / خالٍ ⚠️</span>
+                                )}
                               </div>
                               <p className="text-stone-300 mt-0.5">{tool.summary}</p>
                             </div>
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* قيود وحدود المخطط والبيانات إن وجدت */}
+                  {msg.metadata?.limitations && msg.metadata.limitations.length > 0 && (
+                    <div className="mt-2 pt-1.5 border-t border-amber-900/40 text-[10px] text-amber-300 font-mono space-y-1 bg-amber-950/20 p-2 rounded-xl">
+                      <div className="font-bold flex items-center gap-1 text-amber-400">
+                        <span>⚠️ قيود وحدود التحليل:</span>
+                      </div>
+                      {msg.metadata.limitations.map((lim: string, lIdx: number) => (
+                        <p key={lIdx} className="text-amber-200/90 leading-tight">
+                          • {lim}
+                        </p>
+                      ))}
                     </div>
                   )}
 
