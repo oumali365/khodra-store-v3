@@ -46,8 +46,7 @@ const TECH_ARCHITECTURE_DOC: DocItem = {
   id: 'system-architecture',
   code: '05_System_Architecture',
   title: 'الدليل التقني الشامل وهندسة الآليات (PDF)',
-
-    description:
+  description:
     'دليل تقني مستقل يشرح بنية المشروع وهندسته المعمارية، وحدات إدارة المتجر (الطلبات، التوصيل، المالية، العقود، التسويق، التسعير JIT)، دورة حياة الطلبات، التقنيات المستخدمة (React 19 + Supabase + PWA + GPS)، وإرشادات مستقبلية.',
   url: '/docs/system-architecture.html',
   badge: 'دليل تقني • PDF',
@@ -237,59 +236,8 @@ export const AdminDocumentsModal: React.FC<AdminDocumentsModalProps> = ({
 
         {/* ═══════ المحتوى القابل للتمرير ═══════ */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
-          {/* بطاقة الدليل التقني الشامل وهندسة المنصة (مستقل تماماً) */}
-          <div className="bg-gradient-to-l from-[#163920] via-[#1A3D24] to-[#122A1A] border-2 border-[#EAB308]/70 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm text-white">
-            <div className="flex items-start gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-white/15 text-[#F5D76E] border border-[#EAB308]/40 flex items-center justify-center shrink-0 shadow-inner mt-0.5">
-                <Cpu className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-sm sm:text-base font-black text-white">
-                    الدليل التقني الشامل وهندسة المنصة وآليات الاشتغال (A4 PDF)
-                  </h3>
-                  <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#EAB308] text-[#1A3D24]">
-                    مستقل • لصاحب المتجر والمطورين
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-100/90 font-semibold mt-1 leading-relaxed">
-                  وثيقة معمارية مستقلة توضح بنية الكود (React 19 + Supabase)، آليات اشتغال المنصة، دورة حياة الطلب، الأدوات البرمجية المتقدمة، وإرشادات التوسعة والتحديثات المستقبلية بدون تشتيت.
-                </p>
-                <div className="text-[11px] text-emerald-300 font-mono mt-1 dir-ltr inline-block">
-                  /docs/system-architecture.html
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-              <button
-                type="button"
-                onClick={() => handleCopyUrl('tech-guide-top', '/docs/system-architecture.html')}
-                className="px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-black inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                title="نسخ الرابط المباشر للدليل التقني"
-              >
-                {copiedId === 'tech-guide-top' ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-300" />
-                    <span>تم النسخ</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 text-emerald-200" />
-                    <span>نسخ الرابط</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => window.open('/docs/system-architecture.html', '_blank')}
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-[#EAB308] to-[#CA8A04] hover:from-[#FACC15] hover:to-[#EAB308] text-[#1A3D24] text-xs font-black cursor-pointer shadow-sm transition-all active:scale-95"
-              >
-                <Printer className="w-4 h-4 text-[#1A3D24]" />
-                <span>فتح وطباعة الدليل التقني (PDF)</span>
-              </button>
-            </div>
-          </div>
+          
+          {/* ⚠️ تم حذف بطاقة الدليل التقني المكررة من هنا ⚠️ */}
 
           {/* بطاقة الملف الشامل الموحد (Hero Banner) */}
           <div className="bg-gradient-to-l from-[#FEF3C7] via-[#FFFBEB] to-white border-2 border-[#EAB308]/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
