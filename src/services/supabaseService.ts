@@ -660,11 +660,29 @@ export async function submitOrder(
       }
 
       // إذا كان الخطأ متعلقاً بـ Rate Limit من الخادم (Trigger أو RPC)
-      if (error.message?.includes('RATE_LIMIT_EXCEEDED') || error.code === 'P0001') {
+      if (error.message?.includes('RATE_LIMIT_EXCEEDED')) {
         return {
           success: false,
           message: 'تجاوزت الحد المسموح به للطلبات مؤقتاً (3 طلبات في الساعة). يرجى الانتظار أو التواصل عبر واتساب للمساعدة.',
           errorCode: 'RATE_LIMIT_EXCEEDED',
+        };
+      }
+
+      // إذا كان الخطأ متعلقاً بفترة التهدئة (Cooldown 3 دقائق)
+      if (error.message?.includes('COOLDOWN_ACTIVE')) {
+        return {
+          success: false,
+          message: 'يرجى الانتظار قليلاً (3 دقائق) قبل إرسال طلب جديد لنفس الرقم أو العنوان.',
+          errorCode: 'COOLDOWN_ACTIVE',
+        };
+      }
+
+      // إذا كان الخطأ بسبب منتج غير موجود في قاعدة البيانات
+      if (error.message?.includes('PRODUCT_NOT_FOUND')) {
+        return {
+          success: false,
+          message: 'عذراً، أحد الأصناف المطلوبة غير مسجل حالياً في قاعدة بيانات المتجر. يرجى تعديل السلة والمتابعة.',
+          errorCode: 'PRODUCT_NOT_FOUND',
         };
       }
 

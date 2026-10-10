@@ -168,7 +168,10 @@ VALUES
   (109, 'لويزة خضراء طازجة', 'veg', 'unit', 3.00, 'باقة', 40, '🌿', '/images/products/vegetables/verbena.webp', TRUE, 'لويزة خضراء عطرة ومهدئة للأعصاب، رائعة مع الشاي أو الحليب.', 'مزارع فاس'),
   (110, 'بقدونس طازج (معدنوس)', 'veg', 'unit', 2.50, 'باقة', 60, '🌿', '/images/products/vegetables/parcley.webp', TRUE, 'معدنوس أخضر طازج مقطوف صبيحة اليوم للسلطات والطبخ.', 'مزارع فاس'),
   (111, 'فلفل أخضر حلو', 'veg', 'weight', 8.50, 'kg', 50, '🫑', '/images/products/vegetables/pepper-green.webp', TRUE, 'فلفل أخضر حلو طازج ومقرمش، مثالي للسلطات، الشكشوكة والتكتوكة المغربية.', 'سوس ماسة'),
-  (112, 'فلفل أصفر حلو', 'veg', 'weight', 11.00, 'kg', 35, '🫑', '/images/products/vegetables/pepper-yellow.webp', TRUE, 'فلفل أصفر حلو زاهي وغني بفيتامين C، رائع للسلطات الراقية والأطباق المشوية.', 'سوس ماسة')
+  (112, 'فلفل أصفر حلو', 'veg', 'weight', 11.00, 'kg', 35, '🫑', '/images/products/vegetables/pepper-yellow.webp', TRUE, 'فلفل أصفر حلو زاهي وغني بفيتامين C، رائع للسلطات الراقية والأطباق المشوية.', 'سوس ماسة'),
+  (901, 'صندوق عائلة صغيرة', 'veg', 'unit', 89.00, 'صندوق', 100, '🥬', '/images/family-boxes/family-box-small.webp', TRUE, 'تشكيلة متوازنة ومختارة بعناية من الخضار والفواكه لـ 2-3 أفراد.', 'مزارع مغربية ممتازة'),
+  (902, 'صندوق عائلة متوسطة', 'veg', 'unit', 139.00, 'صندوق', 100, '🥬', '/images/family-boxes/family-box-medium.webp', TRUE, 'سلة أسبوعية غنية تغطي احتياجات 4-5 أفراد خضار وفواكه طازجة.', 'مزارع مغربية ممتازة'),
+  (903, 'صندوق عائلة كبيرة (VIP)', 'veg', 'unit', 199.00, 'صندوق', 100, '👑', '/images/family-boxes/family-box-large.webp', TRUE, 'سلة ملكية شاملة وكاملة لـ 6-8 أفراد تكفي الأسبوع كاملاً.', 'مزارع مغربية ممتازة')
 ON CONFLICT (id) DO UPDATE
 SET name = EXCLUDED.name,
   category = EXCLUDED.category,
