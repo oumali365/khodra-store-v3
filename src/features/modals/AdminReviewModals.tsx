@@ -9,8 +9,8 @@ import {
   Loader2,
   ShieldAlert,
 } from 'lucide-react';
-import { CustomerReview } from '../../../data/initialReviews';
-import { getAdminPin } from '../../../services/supabaseService';
+import { CustomerReview } from '../../data/initialReviews';
+import { getAdminPin } from '../../services/supabaseService';
 
 // ─── مودال إدخال الرمز السري (PIN) ───
 interface PinModalProps {

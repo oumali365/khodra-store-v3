@@ -23,7 +23,7 @@ import {
   SortOption,
 } from './components/shop';
 import { ExitScreen } from './components/common';
-import { AdminErrorBoundary } from './components/admin/layout/AdminErrorBoundary';
+import { AdminErrorBoundary } from './features/layout/AdminErrorBoundary';
 import {
   verifyAdminPinRemote,
   clearCachedAdminPin,
@@ -87,22 +87,22 @@ const FamilyBoxesSection = lazyWithRetry(() =>
   import('./components/shop/FamilyBoxesSection').then((m) => ({ default: m.FamilyBoxesSection }))
 );
 const AdminBottomDashboard = lazyWithRetry(() =>
-  import('./components/admin/layout/AdminBottomDashboard').then((m) => ({ default: m.AdminBottomDashboard }))
+  import('./features/layout/AdminBottomDashboard').then((m) => ({ default: m.AdminBottomDashboard }))
 );
 const AdminOrdersPanel = lazyWithRetry(() =>
-  import('./components/admin/orders/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
+  import('./features/admin-orders/AdminOrdersPanel').then((m) => ({ default: m.AdminOrdersPanel }))
 );
 const AdminPageLayout = lazyWithRetry(() =>
-  import('./components/admin/layout/AdminPageLayout').then((m) => ({ default: m.AdminPageLayout }))
+  import('./features/layout/AdminPageLayout').then((m) => ({ default: m.AdminPageLayout }))
 );
 const FinancePanel = lazyWithRetry(() =>
-  import('./components/admin/finance/FinancePanel').then((m) => ({ default: m.FinancePanel }))
+  import('./features/finance/FinancePanel').then((m) => ({ default: m.FinancePanel }))
 );
 const AdminDeliveryFleetTab = lazyWithRetry(() =>
-  import('./components/admin/fleet/AdminDeliveryFleetTab').then((m) => ({ default: m.AdminDeliveryFleetTab }))
+  import('./features/delivery-fleet/AdminDeliveryFleetTab').then((m) => ({ default: m.AdminDeliveryFleetTab }))
 );
 const AdminDocumentsModal = lazyWithRetry(() =>
-  import('./components/admin/documents/AdminDocumentsModal').then((m) => ({ default: m.AdminDocumentsModal }))
+  import('./features/documents/AdminDocumentsModal').then((m) => ({ default: m.AdminDocumentsModal }))
 );
 const AdminInventoryPanel = lazyWithRetry(() =>
   import('./features/products-inventory/AdminInventoryPanel').then((m) => ({ default: m.AdminInventoryPanel }))
@@ -114,10 +114,10 @@ const PricingForecastPanel = lazyWithRetry(() =>
   import('./features/pricing-forecast').then((m) => ({ default: m.PricingForecastPanel }))
 );
 const PinModal = lazyWithRetry(() =>
-  import('./components/admin/modals/AdminReviewModals').then((m) => ({ default: m.PinModal }))
+  import('./features/modals/AdminReviewModals').then((m) => ({ default: m.PinModal }))
 );
 const KhodraAICopilotModal = lazyWithRetry(() =>
-  import('./components/admin/copilot/KhodraAICopilotModal').then((m) => ({ default: m.KhodraAICopilotModal }))
+  import('./features/copilot/KhodraAICopilotModal').then((m) => ({ default: m.KhodraAICopilotModal }))
 );
 
 // ─── تحميل مؤجل للصفحات الإضافية ───
@@ -129,7 +129,7 @@ import { Product, CartItem, ProductCategory, OrderSubmission } from './types';
 import { fetchProducts, submitOrder, getSupabase } from './services/supabaseService';
 import { STORE_CONFIG } from './data/config';
 import { CATEGORIES_CONFIG } from './data/mockProducts';
-import type { AdminRoute } from './components/admin';
+import type { AdminRoute } from './features';
 
 function parseAdminRoute(): AdminRoute | null {
   try {

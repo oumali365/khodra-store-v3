@@ -2,17 +2,10 @@
 -- 🚀 00_master_setup.sql – التثبيت الشامل والموحد لمتجر خُضرة (All-in-One Master)
 -- متجر خُضرة - فاس (Khodra Store)
 --
--- هذا الملف يحتوي على كل ما تحتاجه قاعدة بيانات Supabase مدمجاً في سكريبت واحد:
--- 1. تنظيف وإزالة الدوال والسياسات القديمة المتضاربة الـ 19
--- 2. بناء وتحديث الجداول (products, orders, reviews, store_settings, order_security_logs)
--- 3. تفعيل نظام الحماية المتقدم ومكافحة السبام وفترة التهدئة (Cooldown) والـ Idempotency
--- 4. الدوال والعمليات المحمية (get_orders_secure, delete_order_secure) عبر Supabase Auth JWT أو PIN الخادم
--- 5. تفعيل سياسات الأمان RLS المحصنة
--- 6. تعبئة البيانات الأولية (المنتجات، التقييمات، الإعدادات العامة بدون كشف PIN)
--- 7. تفعيل التزامن اللحظي (Supabase Realtime)
---
--- كيفية الاستخدام:
--- افتح Supabase Dashboard -> اختر مشروعك -> SQL Editor -> الصق هذا الملف واضغط RUN.
+-- ⚠️ تحذير أمان ومزامنة قواعد البيانات (Database Migration Warning):
+-- لا تُشغّل هذا الملف على أي قاعدة بيانات قائمة أو بيئة إنتاجية مشتركة!
+-- القواعد الحية تُدار حصراً عبر ملفات الترحيل المتتابعة في مجلد: supabase/migrations/
+-- هذا الملف مخصص فقط لتهيئة بيئة تطوير جديدة وفارغة تماماً (Bootstrap Only).
 -- ==============================================================================
 
 BEGIN;
@@ -29,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   type TEXT NOT NULL DEFAULT 'weight' CHECK (type IN ('weight', 'unit')),
   price NUMERIC(10,2) NOT NULL DEFAULT 0,
   unit_label TEXT,
-  stock INTEGER NOT NULL DEFAULT 0,
+  stock NUMERIC(10,2) NOT NULL DEFAULT 0,
   icon TEXT DEFAULT '🛒',
   image_url TEXT,
   active BOOLEAN DEFAULT TRUE,

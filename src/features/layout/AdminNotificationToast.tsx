@@ -4,7 +4,7 @@
 // ============================================================
 import React, { useEffect, useRef } from 'react';
 import { Bell, ShoppingBag, Volume2, VolumeX, X, ArrowLeft } from 'lucide-react';
-import { playOrderAlertSound } from '../../../utils/audioAlert';
+import { playOrderAlertSound } from '../../utils/audioAlert';
 
 export interface AdminNotificationToastProps {
   newCount: number;

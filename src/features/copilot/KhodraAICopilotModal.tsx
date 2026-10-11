@@ -25,7 +25,7 @@ import {
   sendCopilotChatApi,
   fetchDashboardInsights,
   type DashboardInsightsResponse,
-} from '../../../features/ai-marketing/aiMarketingClient';
+} from '../ai-marketing/aiMarketingClient';
 import type { AdminRoute } from '../layout/AdminPageLayout';
 
 export interface KhodraAICopilotModalProps {

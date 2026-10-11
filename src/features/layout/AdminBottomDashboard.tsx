@@ -29,11 +29,11 @@ import {
   Bot,
   ArrowUpRight,
 } from 'lucide-react';
-import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
-import { updateAdminPassword } from '../../../services/supabaseService';
+import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
+import { updateAdminPassword } from '../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
 import { AdminNotificationToast } from './AdminNotificationToast';
-import { playOrderAlertSound } from '../../../utils/audioAlert';
+import { playOrderAlertSound } from '../../utils/audioAlert';
 import { KhodraAICopilotModal } from '../copilot/KhodraAICopilotModal';
 import { AdminDocumentsModal } from '../documents/AdminDocumentsModal';
 

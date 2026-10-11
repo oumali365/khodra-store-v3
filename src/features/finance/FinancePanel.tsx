@@ -14,7 +14,7 @@ import {
   subscribeToOrdersChanges,
   unsubscribeFromOrdersChanges,
   type DbOrder,
-} from '../../../services/supabaseService';
+} from '../../services/supabaseService';
 
 export interface FinancePanelProps {
   isOpen?: boolean;

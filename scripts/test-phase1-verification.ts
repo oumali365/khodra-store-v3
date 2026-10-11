@@ -12,16 +12,16 @@ import {
   executeGetInventoryMovements,
   executeGetStoreInfo,
   dispatchCopilotTool,
-} from './src/server/copilotTools';
+} from '../src/server/copilotTools';
 
 import {
   getServerSupabase,
   getSupabaseConnectionStatus,
   testSupabaseConnection,
   isSupabaseConfigured,
-} from './src/server/supabaseServerClient';
+} from '../src/server/supabaseServerClient';
 
-import { executeCopilotChat } from './src/server/copilotService';
+import { executeCopilotChat } from '../src/server/copilotService';
 
 async function runComprehensiveVerification() {
   console.log('======================================================================');

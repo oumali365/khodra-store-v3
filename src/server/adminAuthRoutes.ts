@@ -74,7 +74,7 @@ function clearFailedAttempts(ip: string): void {
 /**
  * جلب الرمز السري وإصدار الجلسة الحالي من قاعدة البيانات المركزية Supabase
  */
-async function getStoredAdminCredentials(): Promise<{
+export async function getStoredAdminCredentials(): Promise<{
   adminPin: string | null;
   sessionVersion: string;
   updatedAt: string | null;

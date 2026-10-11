@@ -37,7 +37,7 @@ import {
   type CustomerReview,
 } from '../../data/initialReviews';
 import { AddReviewModal } from './AddReviewModal';
-import { DeleteReviewModal } from '../admin/modals/AdminReviewModals';
+import { DeleteReviewModal } from '../../features/modals/AdminReviewModals';
 
 export type { CustomerReview };
 

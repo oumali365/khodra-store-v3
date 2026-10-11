@@ -9,7 +9,9 @@
     "start": "node server.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:acceptance": "tsx scripts/acceptance-test.ts",
+    "test:verify": "tsx scripts/test-phase1-verification.ts && tsx scripts/test-phase2-verification.ts"
   },
   "dependencies": {
     "@google/genai": ">=1.0.0",

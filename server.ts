@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 import { pricingRouter } from './src/server/pricingRoutes';
 import { aiRouter } from './src/server/aiRoutes';
 import { adminAuthRouter } from './src/server/adminAuthRoutes';
+import { securityRouter } from './src/server/securityRoutes';
 import { getSupabaseConnectionStatus } from './src/server/supabaseServerClient';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -59,6 +60,7 @@ async function startServer() {
   app.use(pricingRouter);
   app.use(aiRouter);
   app.use(adminAuthRouter);
+  app.use(securityRouter);
 
   if (!isProduction) {
     // وضع التطوير: تركيب وسائط Vite داخل Express

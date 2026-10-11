@@ -5,8 +5,11 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
 import type { DbOrder } from './types';
-import { OrderInvoiceModal as BaseInvoiceModal } from '../../components/admin/orders/OrderInvoiceModal';
-import { OrderBordereauModal as BaseBordereauModal } from '../../components/admin/orders/OrderBordereauModal';
+import { OrderInvoiceModal as BaseInvoiceModal } from './OrderInvoiceModal';
+import { OrderBordereauModal as BaseBordereauModal } from './OrderBordereauModal';
+
+export { OrderInvoiceModal } from './OrderInvoiceModal';
+export { OrderBordereauModal } from './OrderBordereauModal';
 
 export interface DeleteConfirmModalProps {
   isOpen: boolean;

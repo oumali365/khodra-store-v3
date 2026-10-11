@@ -8,19 +8,19 @@
 import {
   executeCopilotChat,
   classifyQuestionIntent,
-} from './src/server/copilotService';
+} from '../src/server/copilotService';
 
 import {
   executeGetProducts,
   executeGetInventory,
   executeGetSalesSummary,
-} from './src/server/copilotTools';
+} from '../src/server/copilotTools';
 
 import {
   getServerSupabase,
   getSupabaseConnectionStatus,
   testSupabaseConnection,
-} from './src/server/supabaseServerClient';
+} from '../src/server/supabaseServerClient';
 
 async function runPhase2VerificationSuite() {
   console.log('======================================================================');

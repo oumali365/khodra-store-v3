@@ -26,7 +26,8 @@ import type {
   DriverStatus,
   FastDeliveryApp,
 } from './types';
-import { TourManifestModal } from '../../components/admin/fleet/TourManifestModal';
+import { TourManifestModal } from './TourManifestModal';
+export { TourManifestModal } from './TourManifestModal';
 import { FEZ_DELIVERY_ZONES } from '../../data/deliveryZones';
 import { DEFAULT_DRIVER_FORM, DEFAULT_FAST_COURIER_FORM } from './constants';
 import {

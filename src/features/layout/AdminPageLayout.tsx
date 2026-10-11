@@ -21,11 +21,11 @@ import {
   Package,
   Sparkles,
 } from 'lucide-react';
-import { useNewOrdersNotifier } from '../../../hooks/useNewOrdersNotifier';
-import { updateAdminPassword, verifyAdminPinRemote } from '../../../services/supabaseService';
+import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
+import { updateAdminPassword, verifyAdminPinRemote } from '../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
 import { AdminNotificationToast } from './AdminNotificationToast';
-import { playOrderAlertSound } from '../../../utils/audioAlert';
+import { playOrderAlertSound } from '../../utils/audioAlert';
 
 export type AdminRoute = 'orders' | 'fleet' | 'inventory' | 'pricing' | 'marketing' | 'finance';
 

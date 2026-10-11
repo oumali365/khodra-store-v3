@@ -325,6 +325,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     setIsSubmitting(true);
 
+    // 🛡️ فحص صارم لرمز التحقق الأمني (Turnstile) ومنع الرموز الافتراضية
+    if (!turnstileToken || turnstileToken.trim() === '' || turnstileToken === 'verified_token') {
+      setErrors((prev) => ({
+        ...prev,
+        security: 'يرجى إكمال اختبار التحقق الأمني البشري قبل تأكيد الطلب.',
+      }));
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const verifyRes = await fetch('/api/security/verify-turnstile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken.trim() }),
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyData.success || !verifyData.verified) {
+        setErrors((prev) => ({
+          ...prev,
+          security: verifyData.error || 'فشل التحقق الأمني من كاشف الروبوتات. يرجى إعادة الاختبار.',
+        }));
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (vErr) {
+      console.warn('[Security] Notice on Turnstile verification call:', vErr);
+    }
+
     const orderCode = '#' + Math.floor(1000 + Math.random() * 9000);
     const chosenSlot =
       DELIVERY_SLOTS.find((s) => s.id === deliverySlot)?.label || deliverySlot;
@@ -367,7 +396,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       clientId,
       deviceFingerprint,
       ipAddress: ipAddress || undefined,
-      turnstileToken: turnstileToken || 'verified_token',
+      turnstileToken: turnstileToken.trim(),
       securityFlags: {
         verified_at: new Date().toISOString(),
         client_cooldown_passed: true,

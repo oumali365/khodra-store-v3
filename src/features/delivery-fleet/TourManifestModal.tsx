@@ -16,9 +16,9 @@ import {
   CheckCircle,
   ExternalLink,
 } from 'lucide-react';
-import { DbOrder } from '../../../services/supabaseService';
-import { STORE_CONFIG, STORE_PICKUP_HUB, FEZ_DELIVERY_ZONES } from '../../../data/config';
-import { FezZoneId, StoreDriver } from '../../../types';
+import { DbOrder } from '../../services/supabaseService';
+import { STORE_CONFIG, STORE_PICKUP_HUB, FEZ_DELIVERY_ZONES } from '../../data/config';
+import { FezZoneId, StoreDriver } from '../../types';
 
 interface TourManifestModalProps {
   isOpen: boolean;
