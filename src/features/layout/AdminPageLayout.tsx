@@ -25,6 +25,7 @@ import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
 import { updateAdminPassword, verifyAdminPinRemote } from '../../services/supabaseService';
 import { ChangePinModal } from '../modals/AdminReviewModals';
 import { AdminNotificationToast } from './AdminNotificationToast';
+import { useBackHandler } from '../../utils/backNavigation';
 import { playOrderAlertSound } from '../../utils/audioAlert';
 
 export type AdminRoute = 'orders' | 'fleet' | 'inventory' | 'pricing' | 'marketing' | 'finance';
@@ -110,6 +111,9 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
 }) => {
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // 🛡️ معالجة زر الرجوع في الهاتف لإغلاق نافذة تغيير الرمز السري
+  useBackHandler('admin-change-pin-modal', isChangePinOpen, () => setIsChangePinOpen(false), 25);
 
   // الخروج والعودة التلقائية إلى لوحة الإدارة السفلية
   const handleExit = useCallback(() => {

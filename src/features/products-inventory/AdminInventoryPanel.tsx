@@ -35,6 +35,7 @@ import {
 } from '../../services/supabaseService';
 import { CATEGORIES_CONFIG } from '../../data/mockProducts';
 import { useRealtimeStock } from '../../hooks';
+import { useBackHandler } from '../../utils/backNavigation';
 
 export const ADMIN_OFFICIAL_CATEGORIES: { id: ProductCategory; name: string; icon: string }[] = [
   { id: 'veg', name: 'خضار وورقيات', icon: '🥬' },
@@ -76,6 +77,9 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
   // نوافذ التعديل والإضافة
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // 🛡️ معالجة زر الرجوع في الهاتف لإغلاق نافذة المنتج
+  useBackHandler('inventory-product-modal', isModalOpen, () => setIsModalOpen(false), 25);
   const [formData, setFormData] = useState({
     name: '',
     category: 'veg' as ProductCategory,

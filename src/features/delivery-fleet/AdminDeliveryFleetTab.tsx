@@ -33,6 +33,7 @@ import {
   generateGoogleMapsMultiStopUrl,
 } from './utils';
 import { FEZ_DELIVERY_ZONES } from '../../data/deliveryZones';
+import { useBackHandler } from '../../utils/backNavigation';
 
 export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   orders,
@@ -101,6 +102,14 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean; type: 'driver' | 'courier' | 'tour'; target: StoreDriver | FastAppCourier | null;
   }>({ isOpen: false, type: 'driver', target: null });
+
+  // 🛡️ معالجة زر الرجوع في الهاتف لإغلاق نوافذ أسطول التوصيل
+  useBackHandler('fleet-cod-modal', Boolean(codZone), () => setCodZone(null), 25);
+  useBackHandler('fleet-copy-modal', Boolean(copyZone), () => setCopyZone(null), 25);
+  useBackHandler('fleet-close-modal', Boolean(closeZone), () => setCloseZone(null), 25);
+  useBackHandler('fleet-manifest-modal', Boolean(manifestZone), () => setManifestZone(null), 25);
+  useBackHandler('fleet-driver-modal', driverModal.isOpen, () => setDriverModal((p) => ({ ...p, isOpen: false })), 25);
+  useBackHandler('fleet-delete-modal', deleteModal.isOpen, () => setDeleteModal((p) => ({ ...p, isOpen: false })), 30);
 
   const handleSendWhatsApp = (zoneKey: FezZoneId) => {
     const driver = drivers.find((d) => d.id === selectedDriverForZone[zoneKey]);
