@@ -12,8 +12,6 @@ import {
   ToolExecutionResult,
   executeGetInventory,
   executeGetSalesSummary,
-  executeCompareSalesPeriods,
-  executeGetProductAnalytics,
   executeGetOrders,
   executeGetProducts,
   executeGetInventoryMovements,
@@ -36,7 +34,6 @@ export type QuestionIntent =
   | 'schema_limitation'
   | 'sales_comparison'
   | 'compound_multi_tool'
-  | 'product_analytics'
   | 'products_pricing'
   | 'inventory_health'
   | 'orders_tracking'
@@ -90,29 +87,22 @@ const COPILOT_SYSTEM_INSTRUCTION = `
    - المخزون وإعادة التوريد: استدعِ get_inventory (لحساب الكميات، النواقص، وقائمة التوريد من سوق بنسودة).
    - الطلبات وحالاتها: استدعِ get_orders (للطلبات الجديدة pending، المجهزة، المسلمة، والملغية).
    - المبيعات والإيرادات: استدعِ get_sales_summary مع تحديد الفترة (today, yesterday, last_7_days, this_month).
-   - المقارنة بين فترتين: استدعِ compare_sales_periods مباشرة (مثال: اليوم وأمس، هذا الأسبوع والسابق، هذا الشهر والماضي).
-   - أداء المنتجات المتقدم: استدعِ get_product_analytics (للأكثر مبيعاً بالكمية، الأعلى مساهمة في القيمة، المنتجات المتراجعة، والأصناف بدون مبيعات).
-   - الأسئلة المركبة: استدعِ كل الأدوات الضرورية فقط (مثل get_product_analytics + get_inventory) وادمج النتائج دون تضارب.
+   - المقارنة بين فترتين: استدعِ get_sales_summary مرتين (الفترة الأولى والثانية) وقارن بينهما بوضوح.
+   - الأسئلة المركبة: استدعِ كل الأدوات الضرورية فقط (مثل get_sales_summary لمعرفة الأكثر مبيعاً + get_inventory لفحص مخزونها اللحظي) وادمج النتائج دون تضارب.
    - حركات المخزون والتدقيق: استدعِ get_inventory_movements.
    - سياسات ومناطق المتجر: استدعِ get_store_info.
 
-3. 📐 قواعد الحساب الرياضي الموثوق (Phase 3 Strict Math & Attribution):
-   - الحسابات الرياضية الدقيقة تُنفذ عبر الأدوات البرمجية فقط. لا تعيد الحساب ذهنياً ولا تعدل أي قيمة محسوبة مستلمة من الأداة.
-   - صيغة التغير المئوي المعتمدة: ((الحالية − السابقة) / السابقة) × 100.
-   - عند وجود مقام صفري (مثلاً إيراد الفترة السابقة 0 واليوم 450 DH)، اذكر صراحةً: "نمو من 0 إلى 450 DH (المقام صفر: نسبة غير معرفة رياضياً)"، ولا تذكر أنها 0% أو رقم وهمي.
-   - وضّح دائماً مصدر البيانات: الطلبات المسلمة المؤكدة (Delivered Orders) في قاعدة بيانات Supabase.
-
-4. ⚠️ حدود المخطط والبيانات (Schema Limitations):
+3. ⚠️ حدود المخطط والبيانات (Schema Limitations):
    - لا تدّعِ أبداً إمكانية حساب "الربح الصافي (Net Profit)"، لأن جدول الطلبات يسجل سعر البيع الإجمالي ومصاريف التوصيل، بينما تكلفة شراء السلع بالجملة (COGS) ومصاريف الوقود ورواتب السائقين غير متوفرة في قاعدة البيانات الحالية. صرّح بهذه الحدود بشفافية كاملة وقدم الإيرادات المؤكدة المتاحة فقط.
    - لا تخلط بين عدد الطلبات وإجمالي المبيعات، ولا تخلط الطلبات الملغاة أو قيد الإنجاز بالإيرادات المؤكدة للطلبات المسلمة.
 
-5. ❓ الأسئلة الغامضة (Ambiguity):
+4. ❓ الأسئلة الغامضة (Ambiguity):
    إذا كان السؤال مقتضباً أو غامضاً جداً (مثل "شحال؟" أو "تقرير" أو "قارن")، فاطلب توضيحاً بلطف وحدد الخيارات المتاحة.
 
-6. 🌿 الإجابات الإرشادية العامة:
+5. 🌿 الإجابات الإرشادية العامة:
    إذا كان السؤال عن نصائح تخزين أو حفظ الخضر دون الحاجة لبيانات المتجر، قدم نصائح عملية مفيدة ووضّح أنها إرشادات عامة وليست مبنية على بيانات مخزون حية.
 
-7. 🚫 منع اختلاق البيانات منعاً باتاً (Zero Hallucinations):
+6. 🚫 منع اختلاق البيانات منعاً باتاً (Zero Hallucinations):
    لا تخترع أي أرقام، وفي حال فشل الاتصال بقاعدة البيانات، صرّح بالخطأ بوضوح ولا تستبدله بأصفار أو تخمينات.
 `;
 
@@ -142,24 +132,21 @@ export function classifyQuestionIntent(userMessage: string): QuestionIntent {
     return 'ambiguous_clarification';
   }
 
-  // تطبيع الحروف العربية للبحث الدقيق
-  const norm = q.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
-
   // 2. الأسئلة التي تتطلب بيانات غير موجودة في المخطط (الربح الصافي، تكاليف الشراء، مصاريف الوقود)
   if (
-    (norm.includes('صافي') && (norm.includes('ربح') || norm.includes('ارباح'))) ||
-    norm.includes('ربح صافي') ||
-    norm.includes('الربح الصافي') ||
-    norm.includes('صافي الربح') ||
-    norm.includes('net profit') ||
-    norm.includes('تكلفه الشراء') ||
-    norm.includes('راس مال') ||
-    norm.includes('سعر الشراء من الفلاح') ||
-    norm.includes('cogs') ||
-    norm.includes('مصاريف الديزل') ||
-    norm.includes('مصاريف الوقود') ||
-    norm.includes('رواتب السائقين') ||
-    norm.includes('مصاريف التشغيل')
+    q.includes('ربح صافي') ||
+    q.includes('الربح الصافي') ||
+    q.includes('صافي الأرباح') ||
+    q.includes('صافي الربح') ||
+    q.includes('net profit') ||
+    q.includes('تكلفة الشراء') ||
+    q.includes('رأس مال السلعة') ||
+    q.includes('سعر الشراء من الفلاح') ||
+    q.includes('cogs') ||
+    q.includes('مصاريف الديزل') ||
+    q.includes('مصاريف الوقود') ||
+    q.includes('رواتب السائقين') ||
+    q.includes('مصاريف التشغيل')
   ) {
     return 'schema_limitation';
   }
@@ -179,21 +166,7 @@ export function classifyQuestionIntent(userMessage: string): QuestionIntent {
     return 'sales_comparison';
   }
 
-  // 4. أداء المنتجات المتقدم (المساهمة في القيمة، المنتجات المتراجعة، المنتجات بدون مبيعات)
-  if (
-    q.includes('مساهمة في القيمة') ||
-    q.includes('أعلى مساهمة') ||
-    q.includes('أعلى قيمة') ||
-    q.includes('الأكثر مبيعاً بالقيمة') ||
-    q.includes('منتجات متراجعة') ||
-    q.includes('تراجعت مبيعاتها') ||
-    q.includes('بدون مبيعات') ||
-    q.includes('لم تسجل مبيعات')
-  ) {
-    return 'product_analytics';
-  }
-
-  // 5. الأسئلة المركبة (تتطلب أكثر من أداة: مبيعات + مخزون، أو توريد + أسعار، إلخ)
+  // 4. الأسئلة المركبة (تتطلب أكثر من أداة: مبيعات + مخزون، أو توريد + أسعار، إلخ)
   const isTopSellers = q.includes('أكثر مبيع') || q.includes('الأكثر مبيع') || q.includes('top selling') || q.includes('أكثر طلباً');
   const isStockCheck = q.includes('مخزون') || q.includes('متوفر') || q.includes('ستوك') || q.includes('كافي') || q.includes('نافد');
   const isReorderCheck = q.includes('إعادة التوريد') || q.includes('إعادة توريد') || q.includes('الناقصة') || q.includes('نقص');
@@ -368,11 +341,6 @@ export async function executeCopilotChat(
   // إذا كان السؤال غامضاً جداً، نقوم بالرد التوجيهي المباشر لطلب التوضيح دون إهدار مكالمات Gemini
   if (detectedIntent === 'ambiguous_clarification') {
     return handleAmbiguousQuestion(userMessage);
-  }
-
-  // إذا كان السؤال يطلب بيانات غير موجودة في المخطط (الربح الصافي، تكاليف الشراء، مصاريف الوقود)، ننفذ الرد الحتمي الموثق فوراً لمنع أي اختلاق
-  if (detectedIntent === 'schema_limitation') {
-    return await executeDeterministicCopilot(userMessage);
   }
 
   // إذا كان عميل Gemini متاحاً، ننفذ دورة Function Calling مع مهلة أمان
@@ -591,8 +559,8 @@ async function executeDeterministicCopilot(userMessage: string): Promise<Copilot
     // ══════════════════════════════════════════════════════════
     case 'sales_comparison': {
       const q = userMessage.toLowerCase();
-      let p1 = 'today';
-      let p2 = 'yesterday';
+      let p1: any = 'today';
+      let p2: any = 'yesterday';
       let labelComp = 'اليوم مقارنة بأمس';
 
       if (q.includes('أسبوع') || q.includes('سيمانة')) {
@@ -606,113 +574,55 @@ async function executeDeterministicCopilot(userMessage: string): Promise<Copilot
       }
 
       timePeriodLabel = labelComp;
+      limitations = [
+        'المقارنة مبنية حصراً على الطلبات المسلمة (Delivered Orders).',
+        'الطلبات الملغاة تم استبعادها من حساب الإيرادات المقارنة.',
+      ];
 
-      const compResult = await executeCompareSalesPeriods({
-        current_period: p1,
-        previous_period: p2,
-      });
-      toolsExecuted.push(compResult);
+      const [res1, res2] = await Promise.all([
+        executeGetSalesSummary({ period: p1 }),
+        executeGetSalesSummary({ period: p2 }),
+      ]);
+      toolsExecuted.push(res1, res2);
 
-      if (compResult.status === 'not_configured') {
+      if (res1.status === 'not_configured' || res2.status === 'not_configured') {
         reply = `⚠️ **تنبيه الاتصال بقاعدة البيانات:**\n\nقاعدة بيانات Supabase غير مهيأة على الخادم. تعذر إجراء مقارنة المبيعات بين الفترتين.`;
         actions.push({ label: '🛵 عرض الطلبات', actionType: 'view_orders' });
-      } else if (compResult.status === 'query_error') {
-        reply = `❌ **خطأ في استعلام المقارنة:**\n\nحدث خطأ أثناء جلب بيانات إحدى الفترتين من قاعدة البيانات: ${compResult.errorMessage}`;
+      } else if (res1.status === 'query_error' || res2.status === 'query_error') {
+        reply = `❌ **خطأ في استعلام المقارنة:**\n\nحدث خطأ أثناء جلب بيانات إحدى الفترتين من قاعدة البيانات.`;
         actions.push({ label: '🛵 عرض الطلبات', actionType: 'view_orders' });
       } else {
-        const comp = compResult.data.comparison;
-        limitations = comp.limitations || [];
+        const d1 = res1.data;
+        const d2 = res2.data;
 
-        reply = `📊 **تقرير مقارنة المبيعات التشغيلية (${comp.currentPeriodLabel} مقابل ${comp.previousPeriodLabel}) — بيانات حية:**\n\n`;
-        reply += `• **الفترة الحالية (${comp.currentPeriodLabel}):**\n`;
-        reply += `  - إيراد التسليم المؤكد: **${comp.revenueComparison.currentValue} درهم** (${comp.ordersComparison.currentValue} طلب مسلّم)\n`;
-        reply += `  - متوسط السلة (AOV): **${comp.aovComparison.currentValue} درهم**\n\n`;
+        const rev1 = d1.delivered_revenue_dh || 0;
+        const rev2 = d2.delivered_revenue_dh || 0;
+        const diffRev = Math.round((rev1 - rev2) * 100) / 100;
 
-        reply += `• **الفترة المرجعية (${comp.previousPeriodLabel}):**\n`;
-        reply += `  - إيراد التسليم المؤكد: **${comp.revenueComparison.previousValue} درهم** (${comp.ordersComparison.previousValue} طلب مسلّم)\n`;
-        reply += `  - متوسط السلة (AOV): **${comp.aovComparison.previousValue} درهم**\n\n`;
+        const ord1 = d1.delivered_orders_count || 0;
+        const ord2 = d2.delivered_orders_count || 0;
+        const diffOrd = ord1 - ord2;
+
+        reply = `📊 **تقرير مقارنة المبيعات التشغيلية (${labelComp}) — بيانات حية:**\n\n`;
+        reply += `• **الفترة الحالية (${d1.period}):**\n`;
+        reply += `  - إيراد التسليم المؤكد: **${rev1} درهم** (${ord1} طلب مسلّم)\n`;
+        reply += `  - متوسط السلة (AOV): **${d1.average_order_value_dh || 0} درهم**\n\n`;
+
+        reply += `• **الفترة المرجعية (${d2.period}):**\n`;
+        reply += `  - إيراد التسليم المؤكد: **${rev2} درهم** (${ord2} طلب مسلّم)\n`;
+        reply += `  - متوسط السلة (AOV): **${d2.average_order_value_dh || 0} درهم**\n\n`;
 
         reply += `📈 **خلاصة الفروقات والتحليل:**\n`;
-        const revDiff = comp.revenueComparison.absoluteDifference;
-        const revSign = revDiff >= 0 ? '+' : '';
-        const revIcon = revDiff > 0 ? '🟢 ارتفاع' : revDiff < 0 ? '🔴 انخفاض' : '⚪ استقرار';
-        reply += `• التغير في الإيراد المؤكد: **${revIcon} بمقدار ${Math.abs(revDiff)} درهم** (${revSign}${revDiff} DH) — ${comp.revenueComparison.summaryArabic}\n`;
-        
-        const ordDiff = comp.ordersComparison.absoluteDifference;
-        const ordSign = ordDiff >= 0 ? '+' : '';
-        reply += `• التغير في الطلبات المسلمة: **${ordSign}${ordDiff} طلب** (${comp.ordersComparison.summaryArabic})\n`;
-        reply += `• التغير في متوسط السلة (AOV): **${comp.aovComparison.summaryArabic}**\n\n`;
+        const revIcon = diffRev > 0 ? '🟢 ارتفاع' : diffRev < 0 ? '🔴 انخفاض' : '⚪ استقرار';
+        reply += `• التغير في الإيراد المؤكد: **${revIcon} بمقدار ${Math.abs(diffRev)} درهم** (${diffRev >= 0 ? '+' : ''}${diffRev} DH)\n`;
+        reply += `• التغير في الطلبات المسلمة: **${diffOrd >= 0 ? '+' : ''}${diffOrd} طلب**\n\n`;
 
-        if (compResult.data.durationNotice) {
-          reply += `ℹ️ *${compResult.data.durationNotice}*\n\n`;
+        if (d1.top_selling_items?.length > 0) {
+          reply += `🔥 أكثر صنف طلباً في الفترة الحالية: **${d1.top_selling_items[0].name}** (${d1.top_selling_items[0].total_quantity} ${d1.top_selling_items[0].unit})\n`;
         }
-
-        reply += `🔍 **صيغة الحساب والمصدر:** تم احتساب الفارق النسبي بالصيغة: \`((الحالية − السابقة) / السابقة) × 100\` بناءً على الطلبات المسلمة المؤكدة (\`status = 'delivered'\`) في جدول orders.\n`;
 
         actions.push({ label: '📢 إطلاق حملة لتنشيط المبيعات', actionType: 'create_campaign' });
         actions.push({ label: '🛵 استعلام الطلبات الحالية', actionType: 'view_orders' });
-      }
-      break;
-    }
-
-    // ══════════════════════════════════════════════════════════
-    // 2️⃣-ب أداء المنتجات المتقدم (Product Analytics)
-    // ══════════════════════════════════════════════════════════
-    case 'product_analytics': {
-      timePeriodLabel = 'جميع الفترات';
-      const prodResult = await executeGetProductAnalytics({
-        period: 'all_time',
-        compare_with_previous: true,
-      });
-      toolsExecuted.push(prodResult);
-
-      if (prodResult.status === 'not_configured') {
-        reply = `⚠️ **تنبيه الاتصال بقاعدة البيانات:**\n\nتعذر جلب تقرير أداء المنتجات لأن قاعدة بيانات Supabase غير مهيأة.`;
-        actions.push({ label: '📦 فتح لوحة المخزون', actionType: 'view_inventory' });
-      } else if (prodResult.status === 'query_error') {
-        reply = `❌ **خطأ استعلام:** حدث خطأ أثناء جلب بيانات أداء المنتجات: ${prodResult.errorMessage}`;
-        actions.push({ label: '📦 فتح لوحة المخزون', actionType: 'view_inventory' });
-      } else {
-        const analytics = prodResult.data.analytics;
-        limitations = analytics.limitations || [];
-
-        reply = `📊 **تقرير أداء المنتجات المتقدم — خُضرة فاس (بيانات حية):**\n\n`;
-
-        reply += `🥇 **المنتجات الأكثر مبيعاً (بالكمية):**\n`;
-        if (analytics.topByQuantity.length > 0) {
-          analytics.topByQuantity.slice(0, 5).forEach((p: any, i: number) => {
-            reply += `  ${i + 1}. **${p.name}**: ${p.quantitySold} ${p.unit} (في ${p.ordersCount} طلب)\n`;
-          });
-        } else {
-          reply += `  - لا توجد مبيعات مسجلة بعد.\n`;
-        }
-        reply += `\n`;
-
-        reply += `💰 **المنتجات الأعلى مساهمة في قيمة المبيعات (بالدرهم):**\n`;
-        if (analytics.topByRevenue.length > 0) {
-          analytics.topByRevenue.slice(0, 5).forEach((p: any, i: number) => {
-            reply += `  ${i + 1}. **${p.name}**: **${p.revenueContributedDh} درهم** (${p.quantitySold} ${p.unit})\n`;
-          });
-        } else {
-          reply += `  - لا توجد بيانات إيرادات متاحة.\n`;
-        }
-        reply += `\n`;
-
-        if (analytics.decliningProducts?.length > 0) {
-          reply += `📉 **المنتجات المتراجعة بين الفترتين:**\n`;
-          analytics.decliningProducts.slice(0, 3).forEach((p: any) => {
-            reply += `  • **${p.name}**: انخفاض بمقدار ${p.declineAbsolute} (تراجع -${p.declinePercentage}%)\n`;
-          });
-          reply += `\n`;
-        }
-
-        if (analytics.zeroSalesCount > 0) {
-          reply += `ℹ️ **أصناف مسجلة بالكتالوج لم تسجل مبيعات:** **${analytics.zeroSalesCount} صنفاً** (عينة: ${analytics.zeroSalesProductsSample.slice(0, 4).join('، ')}).\n`;
-          reply += `💡 *ملاحظة:* عدم تسجيل مبيعات لا يعني ضعف المنتج، بل قد يعود لنفاد المخزون أو عدم إدراجه في العروض الترويجية.\n`;
-        }
-
-        actions.push({ label: '📦 فحص مخزون الأكثر طلباً', actionType: 'view_inventory' });
-        actions.push({ label: '💵 مراجعة الأسعار', actionType: 'view_pricing' });
       }
       break;
     }
