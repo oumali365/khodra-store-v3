@@ -9,6 +9,13 @@ import { FunctionDeclaration, Type } from '@google/genai';
 import { getServerSupabase } from './supabaseServerClient';
 import { STORE_CONFIG } from '../data/config';
 import { FEZ_DELIVERY_ZONES } from '../data/deliveryZones';
+import {
+  calculateSalesMetrics,
+  calculatePeriodComparison,
+  calculateProductPerformance,
+  roundToTwoDecimals,
+  computePercentageChange,
+} from './businessAnalytics';
 
 export interface ToolExecutionResult {
   toolName: string;
@@ -38,12 +45,23 @@ export function getDateRange(
   period?: string,
   customStart?: string,
   customEnd?: string
-): { startDate?: string; endDate?: string; label: string } {
+): {
+  startDate?: string;
+  endDate?: string;
+  label: string;
+  durationHours?: number;
+  isComplete?: boolean;
+} {
   if (customStart || customEnd) {
+    const startMs = customStart ? new Date(customStart).getTime() : 0;
+    const endMs = customEnd ? new Date(customEnd).getTime() : Date.now();
+    const durationHours = startMs && endMs ? Math.round((endMs - startMs) / (1000 * 60 * 60)) : undefined;
     return {
       startDate: customStart,
       endDate: customEnd,
       label: `فترة مخصصة (${customStart ? customStart.slice(0, 10) : 'البداية'} إلى ${customEnd ? customEnd.slice(0, 10) : 'الآن'})`,
+      durationHours,
+      isComplete: Boolean(customEnd),
     };
   }
 
@@ -51,35 +69,54 @@ export function getDateRange(
 
   if (period === 'today') {
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    return { startDate: start.toISOString(), label: 'اليوم' };
+    const durationHours = Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60));
+    return { startDate: start.toISOString(), label: 'اليوم', durationHours, isComplete: false };
   }
 
   if (period === 'yesterday') {
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-    return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'أمس' };
+    return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'أمس', durationHours: 24, isComplete: true };
   }
 
   if (period === 'last_7_days') {
     const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return { startDate: start.toISOString(), label: 'آخر 7 أيام' };
+    return { startDate: start.toISOString(), label: 'آخر 7 أيام', durationHours: 168, isComplete: true };
   }
 
   if (period === 'previous_7_days') {
     const start = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const end = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'الـ 7 أيام السابقة' };
+    return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'الـ 7 أيام السابقة', durationHours: 168, isComplete: true };
+  }
+
+  if (period === 'this_week') {
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday as start of week
+    const start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0);
+    const durationHours = Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60));
+    return { startDate: start.toISOString(), label: 'هذا الأسبوع', durationHours, isComplete: false };
+  }
+
+  if (period === 'last_week' || period === 'previous_week') {
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
+    const start = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0);
+    const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+    return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'الأسبوع الماضي', durationHours: 168, isComplete: true };
   }
 
   if (period === 'this_month') {
     const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-    return { startDate: start.toISOString(), label: 'هذا الشهر' };
+    const durationHours = Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60));
+    return { startDate: start.toISOString(), label: 'هذا الشهر', durationHours, isComplete: false };
   }
 
   if (period === 'last_month') {
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
     const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'الشهر الماضي' };
+    const durationHours = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60));
+    return { startDate: start.toISOString(), endDate: end.toISOString(), label: 'الشهر الماضي', durationHours, isComplete: true };
   }
 
   return { label: 'جميع الفترات' };
@@ -642,56 +679,25 @@ export async function executeGetSalesSummary(args: {
       };
     }
 
-    const totalOrders = data.length;
-    const deliveredOrders = data.filter((o) => o.status === 'delivered');
-    const pendingOrders = data.filter((o) => o.status === 'pending' || o.status === 'prepared');
-    const cancelledOrders = data.filter((o) => o.status === 'cancelled');
+    const metrics = calculateSalesMetrics(data, range.label);
+    const prodPerf = calculateProductPerformance(data, [], [], range.label);
 
-    const deliveredRevenue = deliveredOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-    const pendingRevenue = pendingOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-    const totalActiveRevenue = deliveredRevenue + pendingRevenue;
+    const totalOrders = metrics.totalOrdersCount.value;
+    const deliveredOrdersCount = metrics.qualifyingOrdersCount.value;
+    const deliveredRevenue = metrics.deliveredRevenueDh.value;
+    const pendingOrdersCount = metrics.pendingOrdersCount.value + metrics.preparedOrdersCount.value;
+    const pendingRevenue = metrics.pendingPotentialRevenueDh.value;
+    const cancelledOrdersCount = metrics.cancelledOrdersCount.value;
+    const totalActiveRevenue = roundToTwoDecimals(deliveredRevenue + pendingRevenue);
+    const averageOrderValue = metrics.averageOrderValueDh.value;
 
-    const averageOrderValue =
-      deliveredOrders.length > 0
-        ? Math.round((deliveredRevenue / deliveredOrders.length) * 100) / 100
-        : totalOrders > 0
-        ? Math.round((totalActiveRevenue / (totalOrders - cancelledOrders.length || 1)) * 100) / 100
-        : 0;
-
-    // تحليل المنتجات الأكثر طلباً عبر تجميع سلات items
-    const itemFrequency: Record<string, { name: string; quantity: number; unit: string; ordersCount: number }> = {};
-    for (const order of data) {
-      if (order.status === 'cancelled') continue;
-      if (Array.isArray(order.items)) {
-        for (const it of order.items) {
-          const name = it.name || 'منتج';
-          const qty = Number(it.quantity) || 1;
-          const unit = it.unit_label || 'كجم';
-          if (!itemFrequency[name]) {
-            itemFrequency[name] = { name, quantity: 0, unit, ordersCount: 0 };
-          }
-          itemFrequency[name].quantity += qty;
-          itemFrequency[name].ordersCount += 1;
-        }
-      }
-    }
-
-    const topSellingProducts = Object.values(itemFrequency)
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 5)
-      .map((i) => ({
-        name: i.name,
-        total_quantity: Math.round(i.quantity * 10) / 10,
-        unit: i.unit,
-        in_orders_count: i.ordersCount,
-      }));
-
-    // توزيع المناطق
-    const zonesBreakdown: Record<string, number> = { north: 0, central: 0, south: 0, east: 0 };
-    for (const order of data) {
-      const z = order.delivery_zone || 'central';
-      if (zonesBreakdown[z] !== undefined) zonesBreakdown[z]++;
-    }
+    const topSellingProducts = prodPerf.topByQuantity.slice(0, 5).map((i) => ({
+      name: i.name,
+      total_quantity: i.quantitySold,
+      unit: i.unit,
+      in_orders_count: i.ordersCount,
+      revenue_dh: i.revenueContributedDh,
+    }));
 
     return {
       toolName: 'get_sales_summary',
@@ -699,24 +705,33 @@ export async function executeGetSalesSummary(args: {
       status: 'success',
       isRealData: true,
       timestamp: new Date().toISOString(),
-      summary: `تقرير مبيعات (${range.label}): ${totalOrders} طلب. إيرادات التوصيل الناجحة: ${deliveredRevenue} درهم. طلبات قيد الإنجاز: ${pendingOrders.length} بقيمة ${pendingRevenue} درهم. متوسط السلة: ${averageOrderValue} درهم.`,
+      summary: `تقرير مبيعات (${range.label}): ${totalOrders} طلب. إيرادات التوصيل الناجحة: ${deliveredRevenue} درهم. طلبات قيد الإنجاز: ${pendingOrdersCount} بقيمة ${pendingRevenue} درهم. متوسط السلة: ${averageOrderValue} درهم.`,
       data: {
         period: range.label,
         total_orders: totalOrders,
-        delivered_orders_count: deliveredOrders.length,
+        delivered_orders_count: deliveredOrdersCount,
         delivered_revenue_dh: deliveredRevenue,
-        pending_orders_count: pendingOrders.length,
+        pending_orders_count: pendingOrdersCount,
         pending_potential_revenue_dh: pendingRevenue,
-        cancelled_orders_count: cancelledOrders.length,
+        cancelled_orders_count: cancelledOrdersCount,
         total_active_revenue_dh: totalActiveRevenue,
         average_order_value_dh: averageOrderValue,
+        subtotal_revenue_dh: metrics.subtotalRevenueDh.value,
+        delivery_fees_revenue_dh: metrics.deliveryFeesRevenueDh.value,
+        qualifying_orders_count: deliveredOrdersCount,
         currency: 'درهم مغربي (DH)',
         top_selling_items: topSellingProducts,
-        zone_distribution: zonesBreakdown,
-        limitations: [
-          'حساب الإيراد مبني حصراً على الطلبات المسلمة (Delivered Orders).',
-          'لا تسجل قاعدة البيانات الحالية تكلفة الشراء بسوق الجملة (COGS) أو مصاريف التوصيل والتشغيل، لذا لا يمكن احتساب صافي الربح.',
-        ],
+        top_by_revenue: prodPerf.topByRevenue.slice(0, 5),
+        zone_distribution: metrics.zoneDistribution,
+        metrics,
+        provenance: {
+          sourceTable: 'orders',
+          ordersAnalyzed: data.length,
+          qualifyingDeliveredOrders: deliveredOrdersCount,
+          computedAt: metrics.computedAt,
+          formulaAov: 'delivered_revenue_dh / delivered_orders_count',
+        },
+        limitations: metrics.limitations,
       },
     };
   } catch (err: any) {
@@ -728,6 +743,215 @@ export async function executeGetSalesSummary(args: {
       isRealData: false,
       timestamp: new Date().toISOString(),
       summary: `حدث خطأ أثناء حساب تقرير المبيعات: ${err?.message || 'خطأ غير معروف'}`,
+      data: { error: err?.message },
+      errorMessage: err?.message,
+    };
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// 4️⃣-ب أداة مقارنة المبيعات بين فترتين: compare_sales_periods
+// ════════════════════════════════════════════════════════════
+export async function executeCompareSalesPeriods(args: {
+  current_period?: string;
+  previous_period?: string;
+  current_start?: string;
+  current_end?: string;
+  previous_start?: string;
+  previous_end?: string;
+}): Promise<ToolExecutionResult> {
+  const supabase = getServerSupabase();
+
+  let curPeriodKey = args.current_period || 'today';
+  let prevPeriodKey = args.previous_period;
+  if (!prevPeriodKey) {
+    if (curPeriodKey === 'today') prevPeriodKey = 'yesterday';
+    else if (curPeriodKey === 'last_7_days' || curPeriodKey === 'this_week') prevPeriodKey = 'previous_7_days';
+    else if (curPeriodKey === 'this_month') prevPeriodKey = 'last_month';
+    else prevPeriodKey = 'yesterday';
+  }
+
+  const rangeCur = getDateRange(curPeriodKey, args.current_start, args.current_end);
+  const rangePrev = getDateRange(prevPeriodKey, args.previous_start, args.previous_end);
+
+  if (!supabase) {
+    return {
+      toolName: 'compare_sales_periods',
+      source: 'unavailable',
+      status: 'not_configured',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: 'قاعدة بيانات Supabase غير مهيأة على الخادم. تعذر إجراء المقارنة الزمنية للمبيعات.',
+      data: {
+        error: 'SUPABASE_NOT_CONFIGURED',
+        current_period: rangeCur.label,
+        previous_period: rangePrev.label,
+      },
+      errorMessage: 'Supabase credentials not configured in environment',
+    };
+  }
+
+  try {
+    let qCur = supabase
+      .from('orders')
+      .select('id, total, subtotal, delivery_fee, status, items, delivery_zone, created_at')
+      .eq('is_deleted', false);
+    if (rangeCur.startDate) qCur = qCur.gte('created_at', rangeCur.startDate);
+    if (rangeCur.endDate) qCur = qCur.lte('created_at', rangeCur.endDate);
+
+    let qPrev = supabase
+      .from('orders')
+      .select('id, total, subtotal, delivery_fee, status, items, delivery_zone, created_at')
+      .eq('is_deleted', false);
+    if (rangePrev.startDate) qPrev = qPrev.gte('created_at', rangePrev.startDate);
+    if (rangePrev.endDate) qPrev = qPrev.lte('created_at', rangePrev.endDate);
+
+    const [resCur, resPrev] = await Promise.all([qCur, qPrev]);
+
+    if (resCur.error || resPrev.error) {
+      const errMsg = resCur.error?.message || resPrev.error?.message;
+      return {
+        toolName: 'compare_sales_periods',
+        source: 'error',
+        status: 'query_error',
+        isRealData: false,
+        timestamp: new Date().toISOString(),
+        summary: `تعذر استعلام بيانات المقارنة بسبب خطأ في قاعدة البيانات: ${errMsg}`,
+        data: { error: errMsg },
+        errorMessage: errMsg,
+      };
+    }
+
+    const curOrders = resCur.data || [];
+    const prevOrders = resPrev.data || [];
+
+    const durationNotice =
+      rangeCur.durationHours && rangePrev.durationHours && rangeCur.durationHours !== rangePrev.durationHours
+        ? `تنبيه مدة المقارنة: الفترة الحالية تمتد لـ ${rangeCur.durationHours} ساعة بينما الفترة المرجعية تمتد لـ ${rangePrev.durationHours} ساعة.`
+        : undefined;
+
+    const comparison = calculatePeriodComparison(
+      curOrders,
+      prevOrders,
+      rangeCur.label,
+      rangePrev.label,
+      {
+        isEqualDuration: rangeCur.durationHours === rangePrev.durationHours,
+        durationNotice,
+      }
+    );
+
+    const summaryText = `مقارنة المبيعات (${rangeCur.label} مقابل ${rangePrev.label}): إيراد الحالية ${comparison.revenueComparison.currentValue} DH (${comparison.revenueComparison.summaryArabic}) | الطلبات المسلمة: ${comparison.ordersComparison.currentValue} طلب (${comparison.ordersComparison.summaryArabic}).`;
+
+    return {
+      toolName: 'compare_sales_periods',
+      source: 'supabase_live',
+      status: 'success',
+      isRealData: curOrders.length > 0 || prevOrders.length > 0,
+      timestamp: new Date().toISOString(),
+      summary: summaryText,
+      data: {
+        current_period: rangeCur.label,
+        previous_period: rangePrev.label,
+        comparison,
+        durationNotice,
+      },
+    };
+  } catch (err: any) {
+    return {
+      toolName: 'compare_sales_periods',
+      source: 'error',
+      status: 'connection_error',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: `حدث خطأ أثناء مقارنة الفترات: ${err?.message}`,
+      data: { error: err?.message },
+      errorMessage: err?.message,
+    };
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// 4️⃣-ج أداة تحليل أداء المنتجات المتقدم: get_product_analytics
+// ════════════════════════════════════════════════════════════
+export async function executeGetProductAnalytics(args: {
+  period?: string;
+  compare_with_previous?: boolean;
+}): Promise<ToolExecutionResult> {
+  const supabase = getServerSupabase();
+  const range = getDateRange(args.period || 'all_time');
+
+  if (!supabase) {
+    return {
+      toolName: 'get_product_analytics',
+      source: 'unavailable',
+      status: 'not_configured',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: 'قاعدة بيانات Supabase غير مهيأة على الخادم. تعذر فحص أداء المنتجات.',
+      data: { error: 'SUPABASE_NOT_CONFIGURED' },
+      errorMessage: 'Supabase credentials not configured',
+    };
+  }
+
+  try {
+    let qOrders = supabase
+      .from('orders')
+      .select('id, items, status, is_deleted, created_at')
+      .eq('is_deleted', false);
+    if (range.startDate) qOrders = qOrders.gte('created_at', range.startDate);
+    if (range.endDate) qOrders = qOrders.lte('created_at', range.endDate);
+
+    const qProducts = supabase
+      .from('products')
+      .select('id, name, category, price, stock, is_available, active');
+
+    const [ordersRes, prodsRes] = await Promise.all([qOrders, qProducts]);
+
+    if (ordersRes.error || prodsRes.error) {
+      const errMsg = ordersRes.error?.message || prodsRes.error?.message;
+      return {
+        toolName: 'get_product_analytics',
+        source: 'error',
+        status: 'query_error',
+        isRealData: false,
+        timestamp: new Date().toISOString(),
+        summary: `تعذر تحليل أداء المنتجات: ${errMsg}`,
+        data: { error: errMsg },
+        errorMessage: errMsg,
+      };
+    }
+
+    const perf = calculateProductPerformance(
+      ordersRes.data || [],
+      prodsRes.data || [],
+      [],
+      range.label
+    );
+
+    const topQtyName = perf.topByQuantity[0]?.name || 'لا يوجد';
+    const topRevName = perf.topByRevenue[0]?.name || 'لا يوجد';
+
+    return {
+      toolName: 'get_product_analytics',
+      source: 'supabase_live',
+      status: 'success',
+      isRealData: (ordersRes.data || []).length > 0 || (prodsRes.data || []).length > 0,
+      timestamp: new Date().toISOString(),
+      summary: `أداء المنتجات (${range.label}): تم تحليل ${(ordersRes.data || []).length} طلب. الأكثر كمية: ${topQtyName}. الأعلى مساهمة في القيمة: ${topRevName}. أصناف بدون مبيعات: ${perf.zeroSalesCount}.`,
+      data: {
+        period: range.label,
+        analytics: perf,
+      },
+    };
+  } catch (err: any) {
+    return {
+      toolName: 'get_product_analytics',
+      source: 'error',
+      status: 'connection_error',
+      isRealData: false,
+      timestamp: new Date().toISOString(),
+      summary: `خطأ استعلام أداء المنتجات: ${err?.message}`,
       data: { error: err?.message },
       errorMessage: err?.message,
     };
@@ -1020,6 +1244,56 @@ export const COPILOT_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
     },
   },
   {
+    name: 'compare_sales_periods',
+    description: 'إجراء مقارنة تحليلية صارمة بين فترتين زمنيتين (مثل اليوم مقارنة بأمس، هذا الأسبوع مقارنة بالسابق، هذا الشهر مقارنة بالماضي)، مع حساب الفوارق المطلقة والنسب المئوية الدقيقة ومعالجة المقام الصفري.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        current_period: {
+          type: Type.STRING,
+          description: 'الفترة الحالية المراد تقييمها: today, yesterday, last_7_days, this_week, this_month',
+        },
+        previous_period: {
+          type: Type.STRING,
+          description: 'الفترة المرجعية للمقارنة: yesterday, previous_7_days, last_week, last_month',
+        },
+        current_start: {
+          type: Type.STRING,
+          description: 'تاريخ بداية مخصص للفترة الحالية (ISO)',
+        },
+        current_end: {
+          type: Type.STRING,
+          description: 'تاريخ نهاية مخصص للفترة الحالية (ISO)',
+        },
+        previous_start: {
+          type: Type.STRING,
+          description: 'تاريخ بداية مخصص للفترة المرجعية (ISO)',
+        },
+        previous_end: {
+          type: Type.STRING,
+          description: 'تاريخ نهاية مخصص للفترة المرجعية (ISO)',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_product_analytics',
+    description: 'تحليل أداء المنتجات المتقدم: الأكثر طلباً بالكمية، الأعلى مساهمة في الإيراد (Quantity * Price)، المنتجات المتراجعة بين فترتين، والأصناف التي لم تسجل مبيعات.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        period: {
+          type: Type.STRING,
+          description: 'الفترة الزمنية للتحليل: today, yesterday, last_7_days, this_month, all_time',
+        },
+        compare_with_previous: {
+          type: Type.BOOLEAN,
+          description: 'ما إذا كان يجب مقارنة الكميات مع الفترة السابقة لرصد المنتجات المتراجعة (true/false)',
+        },
+      },
+    },
+  },
+  {
     name: 'get_inventory_movements',
     description: 'استعلام سجل حركات وتدقيق المخزون (inventory_ledger) لتتبع الخصم عند الطلبات أو الاسترجاع أو التعديلات اليدوية.',
     parameters: {
@@ -1064,6 +1338,10 @@ export async function dispatchCopilotTool(toolName: string, args: any): Promise<
       return await executeGetOrders(safeArgs);
     case 'get_sales_summary':
       return await executeGetSalesSummary(safeArgs);
+    case 'compare_sales_periods':
+      return await executeCompareSalesPeriods(safeArgs);
+    case 'get_product_analytics':
+      return await executeGetProductAnalytics(safeArgs);
     case 'get_inventory_movements':
       return await executeGetInventoryMovements(safeArgs);
     case 'get_store_info':
