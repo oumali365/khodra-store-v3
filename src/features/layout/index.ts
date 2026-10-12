@@ -4,4 +4,3 @@ export { AdminBottomDashboard } from './AdminBottomDashboard';
 export { AdminErrorBoundary } from './AdminErrorBoundary';
 export { AdminNotificationToast } from './AdminNotificationToast';
 export type { AdminNotificationToastProps } from './AdminNotificationToast';
-export { AdminExitConfirmModal } from './AdminExitConfirmModal';

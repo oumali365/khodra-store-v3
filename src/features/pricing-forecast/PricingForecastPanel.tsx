@@ -29,7 +29,6 @@ import {
 import { MorningPricingTable } from './MorningPricingTable';
 import { SupplierModal } from './SupplierModal';
 import { DemandForecastView } from './DemandForecastView';
-import { useBackHandler } from '../../utils/backNavigation';
 
 export interface PricingForecastPanelProps {
   standalone?: boolean;
@@ -57,9 +56,6 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-
-  // 🛡️ معالجة زر الرجوع في الهاتف لإغلاق نافذة الموردين
-  useBackHandler('pricing-supplier-modal', isSupplierModalOpen, () => setIsSupplierModalOpen(false), 25);
 
   useEffect(() => {
     if (targetProductId != null) {

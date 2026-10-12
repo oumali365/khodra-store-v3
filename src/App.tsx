@@ -597,10 +597,6 @@ export default function App() {
     selectedFamilyBox: null as FamilyBox | null,
     isExitConfirmOpen: false,
     isAdminOrdersOpen: false,
-    isAdminPinModalOpen: false,
-    isCopilotModalOpen: false,
-    isDocumentsModalOpen: false,
-    activeAdminRoute: null as AdminRoute | null,
   });
 
   const searchResultsRef = useRef<HTMLDivElement>(null);
@@ -784,108 +780,88 @@ export default function App() {
     };
   }, [handleNavigateAdmin]);
 
-  // ─── Handle browser / mobile hardware back button (sequential contextual navigation) ───
+  // ─── Handle browser / mobile hardware back button ───
   useEffect(() => {
     // إرسال حالة رئيسية للتاريخ لضمان التقاط زر الرجوع
     window.history.replaceState({ page: 'main' }, '');
     window.history.pushState({ page: 'main' }, '');
 
     const handlePopState = () => {
-      // 1. نافذة إدخال رمز المدير
-      if (isAdminPinModalOpen) {
-        setIsAdminPinModalOpen(false);
-        window.history.pushState({ page: 'main' }, '');
+      // 0. إذا كان مسار الإدارة مفتوحاً: التحقق من المسار الجديد أو العودة للوحة المدير السفلية
+      const newAdminRoute = parseAdminRoute();
+      if (newAdminRoute) {
+        setActiveAdminRoute(newAdminRoute);
+        return;
+      } else if (activeAdminRouteRef.current) {
+        handleExitToBottomDashboard();
         return;
       }
 
-      // 2. مساعد خُضرة الذكي (Copilot)
-      if (isCopilotModalOpen) {
-        setIsCopilotModalOpen(false);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 3. نافذة وثائق المشروع
-      if (isDocumentsModalOpen) {
-        setIsDocumentsModalOpen(false);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 4. نافذة تأكيد الخروج
-      if (isExitConfirmOpen) {
-        setIsExitConfirmOpen(false);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 5. نافذة تفاصيل صندوق العائلة
-      if (selectedFamilyBox) {
-        setSelectedFamilyBox(null);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 6. نافذة إتمام الطلب
-      if (isCheckoutOpen) {
-        setIsCheckoutOpen(false);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 7. سلة المشتريات
-      if (isCartOpen) {
-        setIsCartOpen(false);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 8. نافذة تأكيد الطلب الناجح
-      if (confirmedOrder) {
-        setConfirmedOrder(null);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 9. صفحة معلومات المتجر
-      if (activeInfoPage) {
-        setActiveInfoPage(null);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 10. نافذة الفرز والتصفية
-      if (isSortModalOpen) {
-        setIsSortModalOpen(false);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 11. القائمة الجانبية
-      if (isMenuOpen) {
-        setIsMenuOpen(false);
-        window.history.pushState({ page: 'main' }, '');
-        return;
-      }
-
-      // 12. لوحة إدارة الطلبات السريعة
+      // 0.1 إذا كانت لوحة إدارة الطلبات مفتوحة: زر الرجوع يغلقها فقط ويعود للمتجر بأمان بدون أي خروج من التطبيق!
       if (isAdminOrdersOpen) {
         setIsAdminOrdersOpen(false);
         window.history.pushState({ page: 'main' }, '');
         return;
       }
 
-      // 13. لوحة إدارة المتجر الشاملة (Admin Routes) -> العودة للوحة الإدارة العامة أو المتجر بأمان بدون خروج مفاجئ
-      const newAdminRoute = parseAdminRoute();
-      if (newAdminRoute) {
-        handleReturnToStore();
-        return;
-      } else if (activeAdminRouteRef.current) {
-        handleReturnToStore();
+      // 1. إذا كانت نافذة تأكيد الخروج مفتوحة: زر الرجوع يلغيها ويبقي العميل في المتجر
+      if (isExitConfirmOpen) {
+        setIsExitConfirmOpen(false);
+        window.history.pushState({ page: 'main' }, '');
         return;
       }
 
-      // 14. في الصفحة الرئيسية للمتجر: منع الخروج المفاجئ وإظهار نافذة التأكيد
+      // 2. إذا كانت نافذة تفاصيل صندوق العائلة مفتوحة: زر الرجوع يغلقها فقط ولا يخرج من المتجر!
+      if (selectedFamilyBox) {
+        setSelectedFamilyBox(null);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 3. إذا كانت نافذة إتمام الطلب مفتوحة: إغلاقها والعودة
+      if (isCheckoutOpen) {
+        setIsCheckoutOpen(false);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 4. إذا كانت سلة المشتريات مفتوحة: إغلاقها
+      if (isCartOpen) {
+        setIsCartOpen(false);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 5. إذا كانت نافذة تأكيد الطلب مفتوحة: إغلاقها
+      if (confirmedOrder) {
+        setConfirmedOrder(null);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 6. إذا كانت صفحة معلومات مفتوحة: العودة للمتجر
+      if (activeInfoPage) {
+        setActiveInfoPage(null);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 7. إذا كانت نافذة الفرز والتصفية مفتوحة: إغلاقها
+      if (isSortModalOpen) {
+        setIsSortModalOpen(false);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 8. إذا كانت القائمة الجانبية مفتوحة: إغلاقها
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+        window.history.pushState({ page: 'main' }, '');
+        return;
+      }
+
+      // 9. إذا لم تكن هناك أي نافذة مفتوحة وكان العميل بالصفحة الرئيسية:
+      // تفعيل خاصية "هل تريد الخروج من التطبيق؟" للتأكيد ومنع الخروج المفاجئ
       setIsExitConfirmOpen(true);
       window.history.pushState({ page: 'main' }, '');
     };
@@ -903,10 +879,6 @@ export default function App() {
     activeInfoPage,
     isSortModalOpen,
     isMenuOpen,
-    isAdminPinModalOpen,
-    isCopilotModalOpen,
-    isDocumentsModalOpen,
-    handleReturnToStore,
   ]);
 
   // ─── Push history state when modal opens ───
@@ -921,11 +893,7 @@ export default function App() {
       isSortModalOpen ||
       !!selectedFamilyBox ||
       isExitConfirmOpen ||
-      isAdminOrdersOpen ||
-      isAdminPinModalOpen ||
-      isCopilotModalOpen ||
-      isDocumentsModalOpen ||
-      !!activeAdminRoute;
+      isAdminOrdersOpen;
 
     const prevHasOpen =
       prev.isMenuOpen ||
@@ -936,11 +904,7 @@ export default function App() {
       prev.isSortModalOpen ||
       !!prev.selectedFamilyBox ||
       prev.isExitConfirmOpen ||
-      prev.isAdminOrdersOpen ||
-      prev.isAdminPinModalOpen ||
-      prev.isCopilotModalOpen ||
-      prev.isDocumentsModalOpen ||
-      !!prev.activeAdminRoute;
+      prev.isAdminOrdersOpen;
 
     if (currentHasOpen && !prevHasOpen) {
       window.history.pushState({ page: 'modal' }, '');
@@ -956,10 +920,6 @@ export default function App() {
       selectedFamilyBox,
       isExitConfirmOpen,
       isAdminOrdersOpen,
-      isAdminPinModalOpen,
-      isCopilotModalOpen,
-      isDocumentsModalOpen,
-      activeAdminRoute,
     };
   }, [
     isMenuOpen,
@@ -971,10 +931,6 @@ export default function App() {
     selectedFamilyBox,
     isExitConfirmOpen,
     isAdminOrdersOpen,
-    isAdminPinModalOpen,
-    isCopilotModalOpen,
-    isDocumentsModalOpen,
-    activeAdminRoute,
   ]);
 
   // ─── حماية السلة عند محاولة مغادرة الصفحة أو إغلاق التبويب (beforeunload) ───

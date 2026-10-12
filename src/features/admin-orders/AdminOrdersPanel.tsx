@@ -9,7 +9,6 @@ import { useOrders, useOrderActions, useDispatchDrafts, useOrdersFilter } from '
 import { PendingBranch, PreparedBranch, DeliveredBranch } from './components';
 import { InvoiceModal, BordereauModal, DeleteConfirmModal } from './modals';
 import { buildOrderText } from './utils';
-import { useBackHandler } from '../../utils/backNavigation';
 
 export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   isOpen = false,
@@ -33,11 +32,6 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   const [bordereauOrder, setBordereauOrder] = useState<DbOrder | null>(null);
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<DbOrder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // 🛡️ معالجة زر الرجوع في الهاتف لإغلاق نوافذ الفاتورة والبوليصة والحذف بأمان
-  useBackHandler('admin-order-invoice', Boolean(invoiceOrder), () => setInvoiceOrder(null), 25);
-  useBackHandler('admin-order-bordereau', Boolean(bordereauOrder), () => setBordereauOrder(null), 25);
-  useBackHandler('admin-order-delete', Boolean(deleteConfirmOrder), () => setDeleteConfirmOrder(null), 30);
 
   const showToast = useCallback((type: 'success' | 'error', message: string) => {
     setToast({ type, message });
