@@ -131,15 +131,16 @@ export const Header: React.FC<HeaderProps> = ({
   // ─── التمرير لصناديق العائلة ───
   const handleScrollToBundles = useCallback(() => {
     onCloseMenu();
+    onOpenPage(null);
     if (onScrollToBundles) {
-      setTimeout(() => onScrollToBundles(), 200);
+      setTimeout(() => onScrollToBundles(), 120);
     } else {
       setTimeout(() => {
-        const el = document.getElementById('family-bundles-section') || document.getElementById('family-boxes-section');
+        const el = document.getElementById('family-boxes-section') || document.getElementById('family-bundles-section');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 200);
+      }, 120);
     }
-  }, [onCloseMenu, onScrollToBundles]);
+  }, [onCloseMenu, onOpenPage, onScrollToBundles]);
 
   return (
     <>
@@ -426,7 +427,6 @@ export const Header: React.FC<HeaderProps> = ({
                           id={`drawer-category-item-${cat.id}`}
                           onClick={() => {
                             onSelectCategory(cat.id);
-                            onOpenPage(null);
                             onCloseMenu();
                           }}
                           className={`w-full flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl text-right font-['Tajawal'] cursor-pointer touch-manipulation select-none transition-all ${

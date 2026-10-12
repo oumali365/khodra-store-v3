@@ -26,6 +26,7 @@ interface CartDrawerProps {
   onClearCart: () => void;
   onProceedToCheckout: () => void;
   onExploreBundles?: () => void;
+  onBrowseProducts?: () => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -37,6 +38,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onClearCart,
   onProceedToCheckout,
   onExploreBundles,
+  onBrowseProducts,
 }) => {
   const [smartTipVisible, setSmartTipVisible] = useState(false);
   const smartTipTimer = useRef<number | null>(null);
@@ -209,6 +211,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 {onExploreBundles && (
                   <button
                     type="button"
+                    id="cart-explore-bundles-btn"
                     onClick={() => {
                       onClose();
                       onExploreBundles();
@@ -222,7 +225,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                 <button
                   type="button"
-                  onClick={onClose}
+                  id="cart-browse-products-btn"
+                  onClick={() => {
+                    onClose();
+                    onBrowseProducts?.();
+                  }}
                   className="w-full py-2.5 px-4 rounded-xl bg-white border border-[#D4C8B5] text-[#524B3E] font-bold text-xs hover:bg-[#F7F4EC] transition-all cursor-pointer touch-manipulation select-none active:scale-95"
                 >
                   تصفح المنتجات
@@ -360,7 +367,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               {isBelowMinOrder && (
                 <button
                   type="button"
-                  onClick={onClose}
+                  id="cart-min-order-browse-products-btn"
+                  onClick={() => {
+                    onClose();
+                    onBrowseProducts?.();
+                  }}
                   className="w-full py-1.5 text-center text-xs font-bold text-[#163920] hover:text-[#0E2615] hover:underline cursor-pointer transition-colors"
                 >
                   + تصفح الخضار والفواكه الطازجة

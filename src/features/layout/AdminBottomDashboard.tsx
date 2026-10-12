@@ -129,7 +129,7 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
   return (
     <section
       id="admin-dashboard-section"
-      className="relative bg-[#09090b] text-white border-t-4 border-[#EAB308] py-8 sm:py-10 px-4 sm:px-6 lg:px-8 overflow-hidden select-none"
+      className="relative bg-[#09090b] text-white border-t-4 border-[#EAB308] py-8 sm:py-10 px-4 sm:px-6 lg:px-8 overflow-hidden select-none scroll-mt-24 sm:scroll-mt-28"
       dir="rtl"
     >
       {/* إضاءات محيطية ناعمة في الخلفية الداكنة */}

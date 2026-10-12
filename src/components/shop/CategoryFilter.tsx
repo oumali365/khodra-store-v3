@@ -265,17 +265,34 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     const cards = container.querySelectorAll('article');
     if (cards[index]) {
       const card = cards[index] as HTMLElement;
-      const cardLeft = card.offsetLeft;
-      const cardWidth = card.offsetWidth;
-      const containerWidth = container.offsetWidth;
-      const scrollPosition = cardLeft - (containerWidth - cardWidth) / 2;
+      try {
+        card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      } catch {
+        const cardLeft = card.offsetLeft;
+        const cardWidth = card.offsetWidth;
+        const containerWidth = container.offsetWidth;
+        const scrollPosition = cardLeft - (containerWidth - cardWidth) / 2;
 
-      container.scrollTo({
-        left: scrollPosition,
-        behavior: 'smooth',
-      });
+        container.scrollTo({
+          left: scrollPosition,
+          behavior: 'smooth',
+        });
+      }
     }
   }, []);
+
+  // التمرير التلقائي لتوسيط وإظهار الفئة المختارة داخل شريط الفئات عند تغييرها من القائمة
+  useEffect(() => {
+    if (selectedCategory && selectedCategory !== 'all') {
+      const idx = categories.findIndex((c) => c.id === selectedCategory);
+      if (idx >= 0) {
+        const timer = setTimeout(() => {
+          scrollToIndex(idx);
+        }, 160);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [selectedCategory, categories, scrollToIndex]);
 
   useEffect(() => {
     updateScrollState();

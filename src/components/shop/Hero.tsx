@@ -275,8 +275,9 @@ export const Hero: React.FC<HeroProps> = ({
 
   return (
     <section
+      id="hero-section"
       // ✅ هامش علوي مضغوط (كان pt-8/12/16)
-      className="relative overflow-hidden pt-2 sm:pt-3 lg:pt-4 pb-10 sm:pb-14 lg:pb-16 px-3 sm:px-6 lg:px-8"
+      className="relative overflow-hidden pt-2 sm:pt-3 lg:pt-4 pb-10 sm:pb-14 lg:pb-16 px-3 sm:px-6 lg:px-8 scroll-mt-20"
       aria-label="الواجهة الرئيسية للمتجر"
     >
       <style>{`

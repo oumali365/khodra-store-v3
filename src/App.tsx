@@ -356,12 +356,27 @@ export default function App() {
     try {
       sessionStorage.setItem('khodra_admin_auth', 'true');
     } catch {}
-    setTimeout(() => {
+
+    // محاولة تمرير متتالية تضمن الوصول إلى قسم الإدارة السفلي (Bottom Dashboard) حتى بعد تحميل Suspense
+    let attempts = 0;
+    const maxAttempts = 20;
+    const tryScroll = () => {
+      attempts++;
       const el = document.getElementById('admin-dashboard-section');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // تأكيد التمرير بعد استقرار حجم الصفحة
+        setTimeout(() => {
+          const reCheck = document.getElementById('admin-dashboard-section');
+          if (reCheck) {
+            reCheck.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 250);
+      } else if (attempts < maxAttempts) {
+        setTimeout(tryScroll, 100);
       }
-    }, 250);
+    };
+    setTimeout(tryScroll, 80);
   }, []);
 
   // ─── تحديث عنوان الصفحة والوصف والروابط تلقائياً لتحسين SEO ───
@@ -1057,38 +1072,63 @@ export default function App() {
     if (searchQuery.trim().length > 0) scrollToSearchResults();
   };
 
+  // ─── Unified section navigation & scroll helpers ───
+  const categoryFilterRef = useRef<HTMLDivElement>(null);
+
+  const navigateToSection = useCallback(
+    (targetId: 'category-filter-section' | 'catalog-section' | 'family-boxes-section' | 'customer-reviews-section' | 'admin-dashboard-section') => {
+      // إغلاق أي صفحات أو نوافذ منبثقة نشطة
+      if (activeInfoPage) setActiveInfoPage(null);
+      if (isMenuOpen) setIsMenuOpen(false);
+      if (isCartOpen) setIsCartOpen(false);
+      if (isSortModalOpen) setIsSortModalOpen(false);
+
+      let attempts = 0;
+      const maxAttempts = 15;
+      const attemptScroll = () => {
+        attempts++;
+        let targetEl: HTMLElement | null = null;
+        if (targetId === 'category-filter-section') {
+          targetEl = categoryFilterRef.current || document.getElementById('category-filter-section');
+        } else if (targetId === 'catalog-section') {
+          targetEl = catalogSectionRef.current || document.getElementById('catalog-section') || searchResultsRef.current;
+        } else if (targetId === 'family-boxes-section') {
+          targetEl = document.getElementById('family-boxes-section') || bundlesSectionRef.current || document.getElementById('family-bundles-section');
+        } else if (targetId === 'customer-reviews-section') {
+          targetEl = document.getElementById('customer-reviews-section');
+        } else if (targetId === 'admin-dashboard-section') {
+          targetEl = document.getElementById('admin-dashboard-section');
+        }
+
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (attempts < maxAttempts) {
+          setTimeout(attemptScroll, 80);
+        }
+      };
+
+      setTimeout(attemptScroll, 100);
+    },
+    [activeInfoPage, isMenuOpen, isCartOpen, isSortModalOpen]
+  );
+
   const scrollToSearchResults = () => {
     if (searchResultsRef.current) {
       searchResultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
-  // ─── Scroll to catalog & category filter ───
-  const categoryFilterRef = useRef<HTMLDivElement>(null);
+  const scrollToCategoryFilter = useCallback(() => {
+    navigateToSection('category-filter-section');
+  }, [navigateToSection]);
 
-  const scrollToCategoryFilter = () => {
-    if (categoryFilterRef.current) {
-      categoryFilterRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
+  const scrollToCatalog = useCallback(() => {
+    navigateToSection('catalog-section');
+  }, [navigateToSection]);
 
-  const scrollToCatalog = () => {
-    if (catalogSectionRef.current) {
-      catalogSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
-  // ─── Scroll to bundles ───
-  const scrollToBundles = () => {
-    if (bundlesSectionRef.current) {
-      bundlesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      const el =
-        document.getElementById('family-bundles-section') ||
-        document.getElementById('family-boxes-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
+  const scrollToBundles = useCallback(() => {
+    navigateToSection('family-boxes-section');
+  }, [navigateToSection]);
 
   // ─── Category selection ───
   const handleSelectCategory = (cat: ProductCategory, fromCategoryFilter = false) => {
@@ -1098,11 +1138,18 @@ export default function App() {
     if (activeInfoPage) setActiveInfoPage(null);
 
     if (fromCategoryFilter) {
-      // عند تحديد فئة معينة من قسم CategoryFilter: توجيه تلقائي لقسم بطاقات المنتجات (ProductCard)
+      // عند تحديد فئة معينة من داخل قسم CategoryFilter: توجيه تلقائي لقسم بطاقات المنتجات (ProductCard)
       setTimeout(() => scrollToCatalog(), 100);
     } else {
-      // عند تحديد فئة معينة من القائمة (Header): توجيه تلقائي لقسم CategoryFilter مع التمرير الأوتوماتيكي للفئة وإبرازها
-      setTimeout(() => scrollToCategoryFilter(), 100);
+      // عند تحديد فئة معينة من القائمة (Header Menu):
+      // 1. التوجيه الأوتوماتيكي لقسم CategoryFilter وتوسيط وإظهار الفئة المختارة
+      // 2. ثم المرور لأسفل بسلاسة إلى المنتجات الخاصة بتلك الفئة
+      setTimeout(() => {
+        scrollToCategoryFilter();
+        setTimeout(() => {
+          scrollToCatalog();
+        }, 700);
+      }, 100);
     }
   };
 
@@ -1110,7 +1157,7 @@ export default function App() {
   const handleOpenPage = (page: 'about' | 'policy' | 'privacy' | null) => {
     if (isMenuOpen) setIsMenuOpen(false);
     setActiveInfoPage(page);
-    if (page) window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ─── Filtered & sorted products ───
@@ -1414,7 +1461,7 @@ export default function App() {
             </section>
 
             {/* ─── Family Boxes Section ─── */}
-            <div ref={bundlesSectionRef}>
+            <div ref={bundlesSectionRef} id="family-bundles-section" className="scroll-mt-24 sm:scroll-mt-28">
               <Suspense
                 fallback={
                   <div className="py-12 text-center text-[#524B3E]/60 text-xs font-bold animate-pulse">
@@ -1482,6 +1529,7 @@ export default function App() {
             onRemoveItem={handleRemoveFromCart}
             onClearCart={handleClearCart}
             onExploreBundles={scrollToBundles}
+            onBrowseProducts={scrollToCategoryFilter}
             onProceedToCheckout={() => {
               const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
               const isFree = subtotal >= STORE_CONFIG.freeDeliveryThreshold;

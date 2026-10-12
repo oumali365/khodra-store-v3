@@ -370,7 +370,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
   return (
     <>
       <section
-        className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-14"
+        className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 my-10 sm:my-14 scroll-mt-24 sm:scroll-mt-28"
         id="customer-reviews-section"
         aria-label="آراء وتقييمات زبناء متجر خضرة"
         dir="rtl"

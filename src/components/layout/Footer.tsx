@@ -46,8 +46,19 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPage, hasStickyBar }) => {
 
   const scrollToSection = (id: string) => {
     try {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // إغلاق أي صفحة معلومات معروضة للعودة إلى واجهة المتجر الرئيسية
+      onOpenPage(null);
+      let attempts = 0;
+      const tryScroll = () => {
+        attempts++;
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (attempts < 10) {
+          setTimeout(tryScroll, 80);
+        }
+      };
+      setTimeout(tryScroll, 60);
     } catch {}
   };
 
