@@ -118,11 +118,17 @@ export interface FastAppCourier {
   createdAt?: string;
 }
 
+export type CostCertainty = 'actual' | 'estimated' | 'unknown';
+export type FinancialStatus = 'unpaid' | 'paid' | 'partially_refunded' | 'refunded';
+
 export interface DeliveryDispatchInfo {
   provider: DeliveryProvider;
+  driverId?: string;
   driverName?: string;
   driverPhone?: string;
   deliveryCost?: number;
+  agreedWage?: number;
+  costCertainty?: CostCertainty;
   trackingCode?: string;
   dispatchStatus: DeliveryDispatchStatus;
   dispatchedAt?: string;
@@ -155,6 +161,14 @@ export interface OrderSubmission {
   receiptFileName?: string;
   status: string;
   created_at: string;
+  // ─── حقول التكلفة والحالة المالية الموحدة ───
+  cogs_amount?: number;
+  cogs_status?: CostCertainty;
+  actual_delivery_cost?: number;
+  delivery_cost_status?: CostCertainty;
+  financial_status?: FinancialStatus;
+  discount_amount?: number;
+  refund_amount?: number;
   // ─── حقول الأمان والتتبع ───
   idempotencyKey?: string;
   clientId?: string;

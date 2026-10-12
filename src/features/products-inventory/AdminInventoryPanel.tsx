@@ -32,7 +32,11 @@ import {
   saveProductToStore,
   updateProductStockQuick,
   deleteProductFromStore,
+  recordInventoryMovement,
 } from '../../services/supabaseService';
+import { InventoryMovementModal, InventoryMovementType } from './InventoryMovementModal';
+import { InventoryLedgerModal } from './InventoryLedgerModal';
+import { calculateEstimatedPurchasePrice } from '../../services/financialEngine';
 import { CATEGORIES_CONFIG } from '../../data/mockProducts';
 import { useRealtimeStock } from '../../hooks';
 
@@ -93,6 +97,14 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     is_seasonal: false,
     is_bestseller: false,
   });
+
+  // نوافذ حركات المخزون وسجل التدقيق
+  const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
+  const [movementModalType, setMovementModalType] = useState<InventoryMovementType>('morning_stockin');
+  const [targetMovementProduct, setTargetMovementProduct] = useState<Product | null>(null);
+
+  const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
+  const [targetLedgerProductId, setTargetLedgerProductId] = useState<number | null>(null);
 
   const [savingId, setSavingId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -156,7 +168,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     return () => window.removeEventListener('khodra_prices_updated', handlePricesUpdated);
   }, []);
 
-  // إحصائيات المخزون
+  // إحصائيات المخزون المحاسبية والتقييم المالي الدقيق
   const inventoryStats = useMemo(() => {
     const total = products.length;
     const inStock = products.filter((p) => (p.stock ?? 0) > 5 && p.is_available !== false).length;
@@ -164,8 +176,84 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     const outOfStock = products.filter((p) => (p.stock ?? 0) === 0 || p.is_available === false).length;
     const totalUnits = products.reduce((sum, p) => sum + (p.stock || 0), 0);
 
-    return { total, inStock, lowStock, outOfStock, totalUnits };
+    // ربط الكميات بتكلفة الشراء الفعلية لحساب القيمة المحاسبية الحقيقية
+    let savedPrices: Record<number, any> = {};
+    try {
+      const raw = localStorage.getItem('khodra_daily_prices_v1');
+      if (raw) savedPrices = JSON.parse(raw);
+    } catch {}
+
+    let totalInventoryCostValue = 0;
+    let totalInventoryRetailValue = 0;
+
+    products.forEach((p) => {
+      const stock = Math.max(0, p.stock || 0);
+      const savedEntry = savedPrices[p.id];
+      const cost = savedEntry && savedEntry.purchase
+        ? Number(savedEntry.purchase)
+        : calculateEstimatedPurchasePrice(p.price);
+
+      totalInventoryCostValue += stock * cost;
+      totalInventoryRetailValue += stock * p.price;
+    });
+
+    const expectedGrossProfit = totalInventoryRetailValue - totalInventoryCostValue;
+    const overallCostRatio = totalInventoryRetailValue > 0
+      ? Number(((totalInventoryCostValue / totalInventoryRetailValue) * 100).toFixed(1))
+      : 0;
+
+    return {
+      total,
+      inStock,
+      lowStock,
+      outOfStock,
+      totalUnits: Number(totalUnits.toFixed(1)),
+      totalInventoryCostValue: Number(totalInventoryCostValue.toFixed(2)),
+      totalInventoryRetailValue: Number(totalInventoryRetailValue.toFixed(2)),
+      expectedGrossProfit: Number(expectedGrossProfit.toFixed(2)),
+      overallCostRatio,
+    };
   }, [products]);
+
+  const handleOpenMovementModal = (type: InventoryMovementType, prod?: Product) => {
+    setMovementModalType(type);
+    setTargetMovementProduct(prod || null);
+    setIsMovementModalOpen(true);
+  };
+
+  const handleOpenLedgerModal = (productId?: number) => {
+    setTargetLedgerProductId(productId || null);
+    setIsLedgerModalOpen(true);
+  };
+
+  const handleSaveInventoryMovement = async (movement: {
+    productId: number;
+    movementType: InventoryMovementType;
+    quantity: number;
+    unitCost?: number;
+    supplierId?: string;
+    reason: string;
+    orderId?: string;
+  }) => {
+    const delta = movement.movementType === 'waste_loss' ? -movement.quantity : movement.quantity;
+    const res = await recordInventoryMovement({
+      productId: movement.productId,
+      movementType: movement.movementType,
+      quantityDelta: delta,
+      unitCost: movement.unitCost,
+      supplierId: movement.supplierId,
+      reason: movement.reason,
+      orderId: movement.orderId,
+    });
+    if (res.success) {
+      showToast('success', res.message || 'تم قيد حركة المخزون بنجاح');
+      await loadCatalog();
+      return { success: true };
+    } else {
+      showToast('error', res.message || 'فشلت معالجة حركة المخزون');
+      return { success: false, message: res.message };
+    }
+  };
 
   // إعادة ضبط الصفحة إلى 1 عند تغيير الفئة أو البحث أو تصفية المخزون
   useEffect(() => {
@@ -454,14 +542,50 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => handleOpenMovementModal('morning_stockin')}
+              className="px-3.5 py-2.5 rounded-xl bg-emerald-600/80 hover:bg-emerald-600 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="تسجيل توريد صباحي جديد من سوق الجملة بنسودة مع ربط تكلفة الشراء"
+            >
+              <span>📥 توريد صباحي</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleOpenMovementModal('waste_loss')}
+              className="px-3.5 py-2.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="تسجيل الفاقد والتالف والفرز مع حساب القيمة المهدرة"
+            >
+              <span>🗑️ تسجيل تالف</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleOpenMovementModal('supplier_return')}
+              className="px-3.5 py-2.5 rounded-xl bg-amber-600/80 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="تسجيل المرتجعات واستعادة المخزون"
+            >
+              <span>🔄 مرتجع سلع</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleOpenLedgerModal()}
+              className="px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+              title="فتح سجل تدقيق حركات المخزون للتدقيق المحاسبي"
+            >
+              <span>📋 سجل الحركات</span>
+            </button>
+
             <button
               type="button"
               onClick={handleOpenAddModal}
               className="px-4 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#ca9a07] text-[#163920] font-black text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>إضافة منتج جديد</span>
+              <span>إضافة منتج</span>
             </button>
 
             <button
@@ -493,28 +617,49 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
         </div>
       )}
 
-      {/* ═══════ بطاقات مقاييس المخزون ═══════ */}
+      {/* ═══════ بطاقات مقاييس المخزون والتقييم المالي ═══════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* 1. القيمة المالية للمخزون بسعر التكلفة */}
         <div className="bg-white rounded-2xl p-4 border border-stone-200/80 shadow-2xs">
           <div className="flex items-center justify-between text-stone-500 text-xs font-bold mb-1">
-            <span>إجمالي الأصناف</span>
-            <Package className="w-4 h-4 text-stone-400" />
+            <span>قيمة المخزون (بالتكلفة)</span>
+            <span className="text-sm">💰</span>
           </div>
-          <div className="text-2xl font-black text-stone-900">{inventoryStats.total}</div>
+          <div className="text-xl sm:text-2xl font-black font-mono text-[#163920] tabular-nums">
+            {inventoryStats.totalInventoryCostValue.toLocaleString()} <span className="text-xs font-normal">د.م</span>
+          </div>
           <div className="text-[11px] text-stone-500 mt-1 font-medium">
-            مجموع المخزون: {inventoryStats.totalUnits} كجم / وحدة
+            القيمة البيعية: {inventoryStats.totalInventoryRetailValue.toLocaleString()} د.م
           </div>
         </div>
 
+        {/* 2. الربح التشغيلي الإجمالي المتوقع */}
         <div className="bg-white rounded-2xl p-4 border border-stone-200/80 shadow-2xs">
           <div className="flex items-center justify-between text-emerald-700 text-xs font-bold mb-1">
-            <span>متوفر بوفرة</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>الربح الإجمالي المتوقع</span>
+            <span className="text-sm">📈</span>
           </div>
-          <div className="text-2xl font-black text-emerald-700">{inventoryStats.inStock}</div>
-          <div className="text-[11px] text-emerald-600 mt-1 font-medium">جاهز للحملات والطلبات الكبرى</div>
+          <div className="text-xl sm:text-2xl font-black font-mono text-emerald-700 tabular-nums">
+            +{inventoryStats.expectedGrossProfit.toLocaleString()} <span className="text-xs font-normal">د.م</span>
+          </div>
+          <div className="text-[11px] text-emerald-800 mt-1 font-bold">
+            نسبة التكلفة الإجمالية: %{inventoryStats.overallCostRatio} (سقف 60%)
+          </div>
         </div>
 
+        {/* 3. إجمالي الأصناف والكميات */}
+        <div className="bg-white rounded-2xl p-4 border border-stone-200/80 shadow-2xs">
+          <div className="flex items-center justify-between text-stone-500 text-xs font-bold mb-1">
+            <span>أصناف المتجر والمخزن</span>
+            <Package className="w-4 h-4 text-stone-400" />
+          </div>
+          <div className="text-2xl font-black text-stone-900">{inventoryStats.total} صنف</div>
+          <div className="text-[11px] text-stone-500 mt-1 font-medium">
+            المجموع: {inventoryStats.totalUnits} كجم / وحدة ({inventoryStats.inStock} متوفر بوفرة)
+          </div>
+        </div>
+
+        {/* 4. تنبيهات النقص والنفاد JIT */}
         <div
           onClick={() => setStockFilter(stockFilter === 'low' ? 'all' : 'low')}
           className={`rounded-2xl p-4 border transition-all cursor-pointer ${
@@ -524,30 +669,15 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
           }`}
         >
           <div className="flex items-center justify-between text-amber-900 text-xs font-bold mb-1">
-            <span>أوشك على النفاد (1-5)</span>
+            <span>حالات النقص والنفاد (JIT)</span>
             <AlertTriangle className="w-4 h-4 text-amber-600" />
           </div>
-          <div className="text-2xl font-black text-amber-900">{inventoryStats.lowStock}</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-black text-amber-900">{inventoryStats.lowStock} حرج</span>
+            <span className="text-sm font-bold text-rose-700">({inventoryStats.outOfStock} نفد)</span>
+          </div>
           <div className="text-[11px] text-amber-800 mt-1 font-medium">
-            {stockFilter === 'low' ? '✓ تم تطبيق التصفية' : 'اضغط لتصفية المنتجات الحرجة'}
-          </div>
-        </div>
-
-        <div
-          onClick={() => setStockFilter(stockFilter === 'out' ? 'all' : 'out')}
-          className={`rounded-2xl p-4 border transition-all cursor-pointer ${
-            stockFilter === 'out'
-              ? 'bg-rose-100 border-rose-400 shadow-sm'
-              : 'bg-rose-50/70 border-rose-200/80 hover:bg-rose-100/60'
-          }`}
-        >
-          <div className="flex items-center justify-between text-rose-900 text-xs font-bold mb-1">
-            <span>نفد / معطّل (0)</span>
-            <XCircle className="w-4 h-4 text-rose-600" />
-          </div>
-          <div className="text-2xl font-black text-rose-900">{inventoryStats.outOfStock}</div>
-          <div className="text-[11px] text-rose-800 mt-1 font-medium">
-            {stockFilter === 'out' ? '✓ تم تطبيق التصفية' : 'محظور من الحملات التسويقية'}
+            {stockFilter === 'low' ? '✓ تم تطبيق التصفية' : 'اضغط للتصفية وتحديد أولويات الشراء'}
           </div>
         </div>
       </div>

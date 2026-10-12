@@ -29,6 +29,7 @@ import {
   clearCachedAdminPin,
   validateAdminSessionRemote,
 } from './services/supabaseService';
+import { calculateCustomerDeliveryFee } from './services/financialEngine';
 
 // ─── دالة مساعدة لتحميل المكونات المؤجلة بأمان مع محاولة إعادة تلقائية في حال انقطاع الشبكة ───
 function lazyWithRetry<T extends React.ComponentType<any>>(
@@ -1536,10 +1537,9 @@ export default function App() {
             onExploreBundles={scrollToBundles}
             onBrowseProducts={scrollToCategoryFilter}
             onProceedToCheckout={() => {
-              const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
-              const isFree = subtotal >= STORE_CONFIG.freeDeliveryThreshold;
-              const fee = cart.length === 0 ? 0 : (isFree ? 0 : STORE_CONFIG.standardDeliveryFee);
-              const grandTotal = subtotal + fee;
+              const subtotal = Number(cart.reduce((sum, item) => sum + item.lineTotal, 0).toFixed(2));
+              const fee = cart.length === 0 ? 0 : calculateCustomerDeliveryFee(subtotal);
+              const grandTotal = Number((subtotal + fee).toFixed(2));
               if (grandTotal < (STORE_CONFIG.minOrderAmount || 70)) {
                 return;
               }
@@ -1638,10 +1638,9 @@ export default function App() {
         cartTotal={cartTotal}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenCheckout={() => {
-          const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
-          const isFree = subtotal >= STORE_CONFIG.freeDeliveryThreshold;
-          const fee = cart.length === 0 ? 0 : (isFree ? 0 : STORE_CONFIG.standardDeliveryFee);
-          const grandTotal = subtotal + fee;
+          const subtotal = Number(cart.reduce((sum, item) => sum + item.lineTotal, 0).toFixed(2));
+          const fee = cart.length === 0 ? 0 : calculateCustomerDeliveryFee(subtotal);
+          const grandTotal = Number((subtotal + fee).toFixed(2));
           if (grandTotal < (STORE_CONFIG.minOrderAmount || 70)) {
             setIsCartOpen(true);
             return;

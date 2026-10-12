@@ -19,6 +19,10 @@ import {
   validateCustomerName,
   sanitizeInput,
 } from '../../services/securityService';
+import {
+  calculateCustomerDeliveryFee,
+  TARIFF_STANDARDS,
+} from '../../services/financialEngine';
 import { CheckoutCartSummary } from './CheckoutCartSummary';
 import { CheckoutAddressSection } from './CheckoutAddressSection';
 import { CheckoutPaymentSection } from './CheckoutPaymentSection';
@@ -132,12 +136,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // ─── الحسابات المالية ───
+  // ─── الحسابات المالية الموحدة ───
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
-  const isFreeDelivery = subtotal >= STORE_CONFIG.freeDeliveryThreshold;
-  const deliveryFee = isFreeDelivery ? 0 : STORE_CONFIG.standardDeliveryFee;
-  const grandTotal = subtotal + deliveryFee;
+  const deliveryFee = calculateCustomerDeliveryFee(subtotal);
+  const isFreeDelivery = deliveryFee === 0;
+  const grandTotal = Number((subtotal + deliveryFee).toFixed(2));
   const totalItems = items.reduce((sum, item) => sum + item.qty, 0);
+
 
   const currentBank =
     MOROCCAN_BANKS.find((b) => b.id === selectedBankId) || MOROCCAN_BANKS[0];

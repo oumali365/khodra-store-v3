@@ -5,6 +5,7 @@
 import React from 'react';
 import { ShoppingBag, ArrowLeft, Truck, AlertCircle, ShieldAlert } from 'lucide-react';
 import { STORE_CONFIG } from '../../data/config';
+import { calculateCustomerDeliveryFee } from '../../services/financialEngine';
 
 interface StickyBottomBarProps {
   cartCount: number;
@@ -18,15 +19,15 @@ export const StickyBottomBar: React.FC<StickyBottomBarProps> = ({
   cartTotal,
   onOpenCart,
 }) => {
-  // حساب الحد الأدنى للطلب (70 د.م شامل التوصيل) والتوصيل المجاني
+  // حساب الحد الأدنى للطلب (70 د.م شامل التوصيل) والتوصيل المجاني (فوق 250 درهماً فقط)
   const minOrderAmount = STORE_CONFIG.minOrderAmount || 70;
-  const isFreeDelivery = cartTotal >= STORE_CONFIG.freeDeliveryThreshold;
-  const deliveryFee = cartCount === 0 ? 0 : (isFreeDelivery ? 0 : STORE_CONFIG.standardDeliveryFee);
-  const grandTotal = cartTotal + deliveryFee;
+  const isFreeDelivery = cartTotal > STORE_CONFIG.freeDeliveryThreshold;
+  const deliveryFee = cartCount === 0 ? 0 : calculateCustomerDeliveryFee(cartTotal);
+  const grandTotal = Number((cartTotal + deliveryFee).toFixed(2));
 
   const isBelowMinOrder = grandTotal < minOrderAmount && cartCount > 0;
-  const remainingForMinOrder = Math.max(0, minOrderAmount - grandTotal);
-  const remainingForFree = Math.max(0, STORE_CONFIG.freeDeliveryThreshold - cartTotal);
+  const remainingForMinOrder = Math.max(0, Number((minOrderAmount - grandTotal).toFixed(2)));
+  const remainingForFree = Math.max(0, Number((STORE_CONFIG.freeDeliveryThreshold - cartTotal).toFixed(2)));
 
   return (
     <div

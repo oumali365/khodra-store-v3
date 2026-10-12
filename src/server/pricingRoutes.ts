@@ -4,6 +4,7 @@
 // ============================================================
 
 import { Router, Request, Response } from 'express';
+import { calculateSellingPrice, TARIFF_STANDARDS } from '../services/financialEngine';
 
 export const pricingRouter = Router();
 
@@ -14,14 +15,6 @@ interface PriceUpdateRequest {
   supplierId?: string;
 }
 
-/**
- * دالة مساعدة لحساب سعر البيع تلقائياً:
- * سعر البيع = سعر الشراء × (1 + هامش الربح / 100)
- */
-function calculateSellingPrice(purchase: number, margin: number): number {
-  if (purchase <= 0) return 0;
-  return Number((purchase * (1 + margin / 100)).toFixed(2));
-}
 
 // ────────────────────────────────────────────────────────────
 // 1️⃣ POST /api/pricing/update - تحديث سعر منتج وحساب الهامش

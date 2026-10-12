@@ -69,8 +69,8 @@ export const FreeDeliveryBanner: React.FC<FreeDeliveryBannerProps> = ({
   if (isDismissed) return null;
 
   const threshold = STORE_CONFIG.freeDeliveryThreshold; // 250 DH
-  const remaining = Math.max(0, threshold - cartTotal);
-  const isFreeUnlocked = cartTotal >= threshold;
+  const remaining = Math.max(0, Number((threshold - cartTotal).toFixed(2)));
+  const isFreeUnlocked = cartTotal > threshold;
 
   const formatAmount = (value: number) => `${value.toFixed(2)} DH`;
 
@@ -149,21 +149,22 @@ export const FreeDeliveryBanner: React.FC<FreeDeliveryBannerProps> = ({
           <div className="min-w-0 flex-1 text-center">
             {isFreeUnlocked ? (
               <p className="text-[#1A3D24] font-black text-sm sm:text-base md:text-[17px] leading-snug font-['Tajawal'] tracking-tight flex items-center justify-center gap-1.5 flex-wrap">
-                <span>مبروك! حصلت على توصيل مجاني لباب دارك 🎉</span>
+                <span>مبروك! طلبيتك فوق 250 د.م وحصلت على توصيل مجاني لباب دارك 🎉</span>
               </p>
             ) : cartTotal > 0 ? (
               <p className="text-[#1A3D24] font-black text-sm sm:text-base md:text-[17px] leading-snug font-['Tajawal'] tracking-tight">
-                توصيل مجاني عند إكمال{' '}
+                توصيل مجاني للطلبات فوق 250 درهماً (أضف{' '}
                 <span
                   className="inline-block bg-gradient-to-r from-[#2D6A3F] to-[#1A3D24] text-[#EAB308] px-2 py-0.5 rounded-md font-black tabular-nums shadow-sm border border-[#EAB308]/30"
                   dir="ltr"
                 >
-                  {formatAmount(remaining)}
+                  {formatAmount(remaining > 0 ? remaining : 0.01)}
                 </span>
+                {' '}للاستفادة من العرض)
               </p>
             ) : (
               <p className="text-[#1A3D24] font-black text-sm sm:text-base md:text-[18px] leading-snug font-['Tajawal'] tracking-tight">
-                توصيل مجاني عند إكمال{' '}
+                توصيل مجاني للطلبات فوق{' '}
                 <span
                   className="inline-block bg-gradient-to-r from-[#2D6A3F] to-[#1A3D24] text-[#EAB308] px-2 py-0.5 rounded-md font-black tabular-nums shadow-sm border border-[#EAB308]/30"
                   dir="ltr"

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { CartItem } from '../../types';
 import { STORE_CONFIG } from '../../data/config';
+import { calculateCustomerDeliveryFee } from '../../services/financialEngine';
 import { SwipeableCartItem } from './SwipeableCartItem';
 
 interface CartDrawerProps {
@@ -56,17 +57,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  // ─── الحسابات المالية ───
-  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
-  const isFreeDelivery = subtotal >= STORE_CONFIG.freeDeliveryThreshold;
-  const remainingForFree = Math.max(0, STORE_CONFIG.freeDeliveryThreshold - subtotal);
+  // ─── الحسابات المالية المركزية ───
+  const subtotal = Number(items.reduce((sum, item) => sum + item.lineTotal, 0).toFixed(2));
+  const deliveryFee = items.length === 0 ? 0 : calculateCustomerDeliveryFee(subtotal);
+  const isFreeDelivery = deliveryFee === 0;
+  const remainingForFree = Math.max(0, Number((STORE_CONFIG.freeDeliveryThreshold - subtotal).toFixed(2)));
   const progressPercent = Math.min(
     100,
     Math.round((subtotal / STORE_CONFIG.freeDeliveryThreshold) * 100)
   );
-  const deliveryFee =
-    items.length === 0 ? 0 : isFreeDelivery ? 0 : STORE_CONFIG.standardDeliveryFee;
-  const grandTotal = subtotal + deliveryFee;
+  const grandTotal = Number((subtotal + deliveryFee).toFixed(2));
 
   // الحد الأدنى للطلب (70 د.م) يشمل رسوم التوصيل
   const minOrderAmount = STORE_CONFIG.minOrderAmount || 70;

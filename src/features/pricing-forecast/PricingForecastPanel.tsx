@@ -102,16 +102,27 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
     }
   }, [isOpen, loadData]);
 
-  // حفظ الأسعار دفعة واحدة
+  // حفظ الأسعار دفعة واحدة ومزامنة البيانات
   const handleSaveBatch = async (
-    updates: { productId: number; purchasePrice: number; marginPercentage: number; supplierId: string }[]
+    updates: {
+      productId: number;
+      purchasePrice: number;
+      marginPercentage: number;
+      supplierId: string;
+      hasException?: boolean;
+      exceptionReason?: string;
+      oldPrice?: number;
+      productName?: string;
+      unitLabel?: string;
+    }[]
   ) => {
     setIsSaving(true);
     try {
       const success = await saveProductPrices(updates);
       if (success) {
-        setNotice('تم حفظ وتحديث أسعار المنتجات في قاعدة البيانات بنجاح!');
+        setNotice('تم حفظ وتحديث أسعار المنتجات في قاعدة البيانات وتوثيقها في سجل التدقيق بنجاح!');
         setTimeout(() => setNotice(null), 3500);
+        await loadData();
       }
     } finally {
       setIsSaving(false);

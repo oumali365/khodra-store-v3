@@ -67,15 +67,20 @@ export const DEFAULT_SUPPLIERS: Supplier[] = [
 const LOCAL_SUPPLIERS_KEY = 'khodra_suppliers_v1';
 const LOCAL_PRICES_KEY = 'khodra_daily_prices_v1';
 
-/**
- * حساب سعر البيع التلقائي بالمعادلة:
- * سعر البيع = سعر الشراء × (1 + هامش الربح / 100)
- */
-export function calculateSellingPrice(purchasePrice: number, marginPercentage: number): number {
-  if (purchasePrice <= 0) return 0;
-  const selling = purchasePrice * (1 + marginPercentage / 100);
-  return Number(selling.toFixed(2));
-}
+import {
+  calculateSellingPrice as centralCalculateSellingPrice,
+  calculateSellingPriceFromTargetMargin,
+  calculateSellingPriceFromMarkup,
+  calculateEstimatedPurchasePrice,
+  analyzePricingMetrics,
+  TARIFF_STANDARDS,
+} from '../../services/financialEngine';
+
+export const calculateSellingPrice = centralCalculateSellingPrice;
+export { analyzePricingMetrics, calculateSellingPriceFromTargetMargin, calculateSellingPriceFromMarkup };
+
+export const LOCAL_PRICE_AUDIT_KEY = 'khodra_price_audit_history_v1';
+
 
 /**
  * حساب مؤشر الاتجاه مقارنة بالأمس
@@ -268,7 +273,8 @@ export async function getProductPricingRows(): Promise<{
 
     let purchasePrice = saved && saved.purchase
       ? saved.purchase
-      : Number((prod.price / (1 + margin / 100)).toFixed(2));
+      : calculateEstimatedPurchasePrice(prod.price, margin);
+
     let yesterdayPrice = saved && saved.yesterday
       ? saved.yesterday
       : Number((purchasePrice * (0.95 + (index % 10) * 0.01)).toFixed(2));
@@ -277,6 +283,9 @@ export async function getProductPricingRows(): Promise<{
     const supplierObj = suppliers.find((s) => s.id === supplierId) || chosenSupplier;
     const proposedSellingPrice = calculateSellingPrice(purchasePrice, margin);
     const trend = determineTrend(purchasePrice, yesterdayPrice);
+
+    // حساب المقاييس الثلاثة المستقلة والتحقق من سقف 60%
+    const metrics = analyzePricingMetrics(purchasePrice, proposedSellingPrice);
 
     // ─── المصدر الموحد الوحيد للمخزون والتوفر (لا تكرار ولا تعارض) ───
     const currentStock = prod.stock !== undefined ? Number(prod.stock) : 10;
@@ -299,6 +308,11 @@ export async function getProductPricingRows(): Promise<{
       is_available: isAvailable,
       stock: currentStock,
       is_modified: false,
+      cogs_ratio: metrics.cogsRatioPercent,
+      gross_margin: metrics.grossMarginPercent,
+      markup_percent: metrics.markupPercent,
+      is_compliant: metrics.isCompliant,
+      old_selling_price: prod.price,
     };
   });
 
@@ -398,27 +412,75 @@ export async function updateProductStock(
  * حفظ أسعار اليوم لمجموعة منتجات (دفعة واحدة أو منتج منفرد)
  */
 export async function saveProductPrices(
-  updates: { productId: number; purchasePrice: number; marginPercentage: number; supplierId: string }[]
+  updates: {
+    productId: number;
+    purchasePrice: number;
+    marginPercentage: number;
+    supplierId: string;
+    hasException?: boolean;
+    exceptionReason?: string;
+    oldPrice?: number;
+    productName?: string;
+    unitLabel?: string;
+  }[],
+  changeType: 'single' | 'batch' | 'bulk_margin' | 'supplier_sync' = 'batch'
 ): Promise<boolean> {
   try {
     const raw = localStorage.getItem(LOCAL_PRICES_KEY);
     const savedMap = raw ? JSON.parse(raw) : {};
 
     const todayDate = new Date().toISOString().split('T')[0];
+    const timestamp = new Date().toISOString();
+
+    const auditRecords: any[] = [];
 
     updates.forEach((u) => {
       const prev = savedMap[u.productId] || {};
+      const newSelling = calculateSellingPrice(u.purchasePrice, u.marginPercentage);
+      const metrics = analyzePricingMetrics(u.purchasePrice, newSelling);
+
       savedMap[u.productId] = {
-        ...prev, // الحفاظ الصارم على حالة is_available وعدم مسحها عند تعديل السعر
+        ...prev,
         purchase: u.purchasePrice,
         margin: u.marginPercentage,
         supplierId: u.supplierId,
         yesterday: prev.purchase ? prev.purchase : u.purchasePrice,
         date: todayDate,
+        hasException: Boolean(u.hasException),
+        exceptionReason: u.exceptionReason,
       };
+
+      auditRecords.push({
+        id: `audit-${Date.now()}-${u.productId}`,
+        productId: u.productId,
+        productName: u.productName || `منتج #${u.productId}`,
+        supplierId: u.supplierId,
+        unitLabel: u.unitLabel || 'kg',
+        oldPurchasePrice: prev.purchase || null,
+        newPurchasePrice: u.purchasePrice,
+        oldSellingPrice: u.oldPrice || (prev.purchase ? calculateSellingPrice(prev.purchase, prev.margin || 40) : newSelling),
+        newSellingPrice: newSelling,
+        oldCogsRatio: prev.purchase && u.oldPrice ? Number(((prev.purchase / u.oldPrice) * 100).toFixed(2)) : undefined,
+        newCogsRatio: metrics.cogsRatioPercent,
+        newGrossMargin: metrics.grossMarginPercent,
+        markupPercent: metrics.markupPercent,
+        changeType,
+        hasException: Boolean(u.hasException),
+        exceptionReason: u.exceptionReason || null,
+        timestamp,
+        changedBy: 'مدير المتجر (Admin)',
+      });
     });
 
     localStorage.setItem(LOCAL_PRICES_KEY, JSON.stringify(savedMap));
+
+    // حفظ سجل التدقيق في التخزين المحلي
+    try {
+      const existingAuditRaw = localStorage.getItem(LOCAL_PRICE_AUDIT_KEY);
+      const existingAudit = existingAuditRaw ? JSON.parse(existingAuditRaw) : [];
+      const updatedAudit = [...auditRecords, ...existingAudit].slice(0, 500); // الاحتفاظ بآخر 500 حركة
+      localStorage.setItem(LOCAL_PRICE_AUDIT_KEY, JSON.stringify(updatedAudit));
+    } catch {}
 
     // تنظيف أي بيانات قديمة للمنتجات المخزنة محلياً لضمان الاعتماد الحصري على Supabase
     if (typeof localStorage !== 'undefined') {
@@ -430,15 +492,24 @@ export async function saveProductPrices(
     // مزامنة مع Supabase إذا كان متوفراً
     const client = getSupabase();
     if (client) {
-      const recordsToInsert = updates.map((u) => ({
-        product_id: u.productId,
-        supplier_id: u.supplierId,
-        purchase_price: u.purchasePrice,
-        margin_percentage: u.marginPercentage,
-        selling_price: calculateSellingPrice(u.purchasePrice, u.marginPercentage),
-        recorded_date: todayDate,
-        updated_at: new Date().toISOString(),
-      }));
+      const recordsToInsert = updates.map((u) => {
+        const sellingPrice = calculateSellingPrice(u.purchasePrice, u.marginPercentage);
+        const metrics = analyzePricingMetrics(u.purchasePrice, sellingPrice);
+        return {
+          product_id: u.productId,
+          supplier_id: u.supplierId,
+          purchase_price: u.purchasePrice,
+          margin_percentage: u.marginPercentage,
+          selling_price: sellingPrice,
+          cogs_ratio: metrics.cogsRatioPercent,
+          gross_margin_percent: metrics.grossMarginPercent,
+          markup_percent: metrics.markupPercent,
+          has_exception: Boolean(u.hasException),
+          exception_reason: u.exceptionReason || null,
+          recorded_date: todayDate,
+          updated_at: timestamp,
+        };
+      });
 
       // 1. تحديث جدول أسعار السوق اليومية (daily_prices)
       await client.from('daily_prices').upsert(recordsToInsert, {
@@ -452,16 +523,41 @@ export async function saveProductPrices(
             .from('products')
             .update({
               price: rec.selling_price,
-              updated_at: new Date().toISOString(),
+              updated_at: timestamp,
             })
             .eq('id', rec.product_id);
         } catch (prodErr) {
           logger.warn(`Could not sync price to products table for id ${rec.product_id}`, prodErr);
         }
       }
+
+      // 3. توثيق التعديل في سجل تدقيق الأسعار (price_change_history) إن وُجد الجدول
+      try {
+        const historyRows = auditRecords.map((a) => ({
+          product_id: a.productId,
+          product_name: a.productName,
+          supplier_id: a.supplierId,
+          unit_label: a.unitLabel,
+          old_purchase_price: a.oldPurchasePrice,
+          new_purchase_price: a.newPurchasePrice,
+          old_selling_price: a.oldSellingPrice,
+          new_selling_price: a.newSellingPrice,
+          new_cogs_ratio: a.newCogsRatio,
+          new_gross_margin: a.newGrossMargin,
+          markup_percent: a.markupPercent,
+          change_type: a.changeType,
+          has_exception: a.hasException,
+          exception_reason: a.exceptionReason,
+          changed_by: a.changedBy,
+          created_at: a.timestamp,
+        }));
+        await client.from('price_change_history').insert(historyRows);
+      } catch (histErr) {
+        logger.warn('Could not record price change history in Supabase, stored in local audit:', histErr);
+      }
     }
 
-    // 3. إرسال حدث متصفح فوري (Realtime CustomEvent) لتحديث الواجهة فوراً دون الحاجة لإعادة تحميل الصفحة
+    // 4. إرسال حدث متصفح فوري (Realtime CustomEvent) لتحديث الواجهة فوراً دون الحاجة لإعادة تحميل الصفحة
     if (typeof window !== 'undefined') {
       const priceChanges = updates.map((u) => ({
         productId: u.productId,
@@ -479,6 +575,51 @@ export async function saveProductPrices(
     logger.error('Failed to save daily product prices', err);
     return false;
   }
+}
+
+/**
+ * جلب سجل تدقيق تغيير الأسعار الموثق
+ */
+export async function getPriceChangeHistory(): Promise<any[]> {
+  const client = getSupabase();
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('price_change_history')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (!error && data && data.length > 0) {
+        return data.map((d: any) => ({
+          id: String(d.id),
+          productId: Number(d.product_id),
+          productName: String(d.product_name),
+          supplierId: d.supplier_id,
+          unitLabel: d.unit_label || 'kg',
+          oldPurchasePrice: d.old_purchase_price,
+          newPurchasePrice: Number(d.new_purchase_price),
+          oldSellingPrice: Number(d.old_selling_price),
+          newSellingPrice: Number(d.new_selling_price),
+          newCogsRatio: Number(d.new_cogs_ratio),
+          newGrossMargin: Number(d.new_gross_margin),
+          markupPercent: Number(d.markup_percent),
+          changeType: d.change_type,
+          hasException: Boolean(d.has_exception),
+          exceptionReason: d.exception_reason,
+          timestamp: d.created_at,
+          changedBy: d.changed_by,
+        }));
+      }
+    } catch {}
+  }
+
+  try {
+    const raw = localStorage.getItem(LOCAL_PRICE_AUDIT_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+
+  return [];
 }
 
 /**

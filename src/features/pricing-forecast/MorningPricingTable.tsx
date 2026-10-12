@@ -26,13 +26,26 @@ import {
   ChevronLeft,
   ChevronRight,
   Package,
+  History,
+  Clock,
+  Info,
 } from 'lucide-react';
 import type { ProductPriceRow, Supplier } from './types';
-import { DEFAULT_PROFIT_MARGIN } from './types';
+import {
+  DEFAULT_PROFIT_MARGIN,
+  DEFAULT_TARGET_GROSS_MARGIN,
+  TARGET_MAX_COGS_RATIO,
+} from './types';
 import {
   calculateSellingPrice,
   determineTrend,
 } from './pricingService';
+import {
+  analyzePricingMetrics,
+  TARIFF_STANDARDS,
+} from '../../services/financialEngine';
+import { BulkPriceImpactModal } from './BulkPriceImpactModal';
+import { PriceAuditModal } from './PriceAuditModal';
 import type { ProductCategory } from '../../types';
 
 interface MorningPricingTableProps {
@@ -40,7 +53,17 @@ interface MorningPricingTableProps {
   suppliers: Supplier[];
   targetProductId?: number | null;
   onSaveBatch: (
-    updates: { productId: number; purchasePrice: number; marginPercentage: number; supplierId: string }[]
+    updates: {
+      productId: number;
+      purchasePrice: number;
+      marginPercentage: number;
+      supplierId: string;
+      hasException?: boolean;
+      exceptionReason?: string;
+      oldPrice?: number;
+      productName?: string;
+      unitLabel?: string;
+    }[]
   ) => Promise<void>;
   onOpenSuppliersModal: () => void;
   onRefresh: () => void;

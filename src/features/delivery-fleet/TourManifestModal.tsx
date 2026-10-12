@@ -19,6 +19,7 @@ import {
 import { DbOrder } from '../../services/supabaseService';
 import { STORE_CONFIG, STORE_PICKUP_HUB, FEZ_DELIVERY_ZONES } from '../../data/config';
 import { FezZoneId, StoreDriver } from '../../types';
+import { calculateTourFinancials } from '../../services/financialEngine';
 
 interface TourManifestModalProps {
   isOpen: boolean;
@@ -49,10 +50,17 @@ export const TourManifestModal: React.FC<TourManifestModalProps> = ({
   if (!isOpen) return null;
 
   const zoneInfo = FEZ_DELIVERY_ZONES[zoneKey] || FEZ_DELIVERY_ZONES.north;
-  const totalCOD = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-  const driverFeePerOrder = selectedDriver?.commissionPerOrder ?? 25;
-  const totalDriverWage = orders.length * driverFeePerOrder;
-  const netDueToStore = totalCOD - totalDriverWage;
+  const tourFin = calculateTourFinancials(
+    orders,
+    zoneKey,
+    zoneInfo.name,
+    selectedDriver?.commissionPerOrder
+  );
+  const totalCOD = tourFin.totalCODToCollect;
+  const driverFeePerOrder = tourFin.driverWagePerOrder;
+  const totalDriverWage = tourFin.totalDriverWage;
+  const netDueToStore = tourFin.netDueToStore;
+
 
   const handlePrint = () => {
     window.print();
