@@ -1091,7 +1091,7 @@ export default function App() {
         if (targetId === 'category-filter-section') {
           targetEl = categoryFilterRef.current || document.getElementById('category-filter-section');
         } else if (targetId === 'catalog-section') {
-          targetEl = catalogSectionRef.current || document.getElementById('catalog-section') || searchResultsRef.current;
+          targetEl = document.getElementById('search-results-section') || searchResultsRef.current || document.getElementById('catalog-section') || catalogSectionRef.current;
         } else if (targetId === 'family-boxes-section') {
           targetEl = document.getElementById('family-boxes-section') || bundlesSectionRef.current || document.getElementById('family-bundles-section');
         } else if (targetId === 'customer-reviews-section') {
@@ -1101,7 +1101,15 @@ export default function App() {
         }
 
         if (targetEl) {
-          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const headerEl = document.querySelector('header');
+          const headerHeight = headerEl ? headerEl.offsetHeight : 72;
+          const rect = targetEl.getBoundingClientRect();
+          const targetY = window.pageYOffset + rect.top - headerHeight - 12;
+
+          window.scrollTo({
+            top: Math.max(0, targetY),
+            behavior: 'smooth',
+          });
         } else if (attempts < maxAttempts) {
           setTimeout(attemptScroll, 80);
         }
@@ -1114,7 +1122,14 @@ export default function App() {
 
   const scrollToSearchResults = () => {
     if (searchResultsRef.current) {
-      searchResultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const headerEl = document.querySelector('header');
+      const headerHeight = headerEl ? headerEl.offsetHeight : 72;
+      const rect = searchResultsRef.current.getBoundingClientRect();
+      const targetY = window.pageYOffset + rect.top - headerHeight - 12;
+      window.scrollTo({
+        top: Math.max(0, targetY),
+        behavior: 'smooth',
+      });
     }
   };
 
@@ -1131,26 +1146,16 @@ export default function App() {
   }, [navigateToSection]);
 
   // ─── Category selection ───
-  const handleSelectCategory = (cat: ProductCategory, fromCategoryFilter = false) => {
+  const handleSelectCategory = (cat: ProductCategory, _fromCategoryFilter = false) => {
     if (isMenuOpen) setIsMenuOpen(false);
     if (searchQuery.trim().length > 0) setSearchQuery('');
     setSelectedCategory(cat);
     if (activeInfoPage) setActiveInfoPage(null);
 
-    if (fromCategoryFilter) {
-      // عند تحديد فئة معينة من داخل قسم CategoryFilter: توجيه تلقائي لقسم بطاقات المنتجات (ProductCard)
-      setTimeout(() => scrollToCatalog(), 100);
-    } else {
-      // عند تحديد فئة معينة من القائمة (Header Menu):
-      // 1. التوجيه الأوتوماتيكي لقسم CategoryFilter وتوسيط وإظهار الفئة المختارة
-      // 2. ثم المرور لأسفل بسلاسة إلى المنتجات الخاصة بتلك الفئة
-      setTimeout(() => {
-        scrollToCategoryFilter();
-        setTimeout(() => {
-          scrollToCatalog();
-        }, 700);
-      }, 100);
-    }
+    // تنقل تلقائي سلس ومباشر إلى قسم بطاقات المنتجات (Products Cards) الخاصة بتلك الفئة
+    setTimeout(() => {
+      scrollToCatalog();
+    }, 120);
   };
 
   // ─── Open info page ───

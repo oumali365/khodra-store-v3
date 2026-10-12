@@ -258,26 +258,22 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     });
   }, []);
 
-  // دالة توسيط البطاقة المختارة داخل الحاوية بدقة
+  // دالة توسيط البطاقة المختارة داخل الحاوية بدقة دون التأثير على تمرير الصفحة الرئيسي
   const scrollToIndex = useCallback((index: number) => {
     if (!scrollRef.current) return;
     const container = scrollRef.current;
     const cards = container.querySelectorAll('article');
     if (cards[index]) {
       const card = cards[index] as HTMLElement;
-      try {
-        card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      } catch {
-        const cardLeft = card.offsetLeft;
-        const cardWidth = card.offsetWidth;
-        const containerWidth = container.offsetWidth;
-        const scrollPosition = cardLeft - (containerWidth - cardWidth) / 2;
+      const cardLeft = card.offsetLeft;
+      const cardWidth = card.offsetWidth;
+      const containerWidth = container.offsetWidth;
+      const scrollPosition = cardLeft - (containerWidth - cardWidth) / 2;
 
-        container.scrollTo({
-          left: scrollPosition,
-          behavior: 'smooth',
-        });
-      }
+      container.scrollTo({
+        left: scrollPosition,
+        behavior: 'auto',
+      });
     }
   }, []);
 
