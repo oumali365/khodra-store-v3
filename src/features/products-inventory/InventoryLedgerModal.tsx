@@ -163,7 +163,7 @@ export const InventoryLedgerModal: React.FC<InventoryLedgerModalProps> = ({
                 </span>
               </h3>
               <p className="text-xs text-stone-200 mt-0.5">
-                تتبع دقيق لحركات الدخول الصباحي، خصم الطلبات، الفاقد والتالف، والمرتجعات مع تكلفة الوحدة
+                تتبع دقيق لحركات الدخول الصباحي، خصم الطلبات، واسترجاع الطلبات الملغاة مع تكلفة الوحدة
               </p>
             </div>
           </div>
@@ -207,8 +207,6 @@ export const InventoryLedgerModal: React.FC<InventoryLedgerModalProps> = ({
             >
               <option value="all">كافة أنواع الحركات</option>
               <option value="morning_stockin">📥 توريد ودخول صباحي</option>
-              <option value="waste_loss">🗑️ فاقد وتالف فرز</option>
-              <option value="supplier_return">🔄 مرتجع سلع</option>
               <option value="order_deduct">🛒 خصم طلب بيع</option>
               <option value="order_restore">🔁 استرجاع طلب ملغي</option>
               <option value="manual_adjustment">✏️ تعديل يدوي</option>

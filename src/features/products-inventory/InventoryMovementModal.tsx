@@ -1,6 +1,6 @@
 // ============================================================
 // src/features/products-inventory/InventoryMovementModal.tsx
-// نافذة تسجيل حركات المخزون المتقدمة (توريد صباحي، فاقد وتالف، مرتجعات)
+// نافذة تسجيل حركة توريد صباحي وإضافة مخزون
 // تربط الكميات بتكلفة الشراء الفعلية والموردين لضمان التدقيق المحاسبي
 // ============================================================
 
@@ -8,20 +8,15 @@ import React, { useState } from 'react';
 import {
   X,
   PlusCircle,
-  Trash2,
-  RotateCcw,
   Package,
-  DollarSign,
   AlertTriangle,
-  Building2,
-  FileText,
   Check,
 } from 'lucide-react';
 import type { Product } from '../../types';
 import { DEFAULT_SUPPLIERS } from '../pricing-forecast/pricingService';
 import { calculateEstimatedPurchasePrice } from '../../services/financialEngine';
 
-export type InventoryMovementType = 'morning_stockin' | 'waste_loss' | 'supplier_return';
+export type InventoryMovementType = 'morning_stockin';
 
 interface InventoryMovementModalProps {
   isOpen: boolean;
@@ -48,7 +43,7 @@ export const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
   initialType = 'morning_stockin',
   onSaveMovement,
 }) => {
-  const [movementType, setMovementType] = useState<InventoryMovementType>(initialType);
+  const movementType: InventoryMovementType = 'morning_stockin';
   const [selectedProductId, setSelectedProductId] = useState<number>(() => {
     return targetProduct ? targetProduct.id : products[0]?.id || 1;
   });
@@ -63,7 +58,6 @@ export const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
   const [unitCost, setUnitCost] = useState<number>(defaultCost);
   const [supplierId, setSupplierId] = useState<string>(DEFAULT_SUPPLIERS[0]?.id || 'sup-1');
   const [reason, setReason] = useState<string>('');
-  const [orderId, setOrderId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -81,10 +75,7 @@ export const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
 
   // حساب الأثر المالي
   const totalCostValue = Number((quantity * (unitCost || 0)).toFixed(2));
-  const newStockPreview =
-    movementType === 'waste_loss'
-      ? Math.max(0, currentStock - quantity)
-      : currentStock + quantity;
+  const newStockPreview = currentStock + quantity;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,28 +86,15 @@ export const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
       return;
     }
 
-    if (movementType === 'waste_loss' && quantity > currentStock) {
-      if (!window.confirm(`الكمية التالفة (${quantity}) تتجاوز المخزون الحالي (${currentStock}). هل ترغب بالاستمرار وتصفير المخزون؟`)) {
-        return;
-      }
-    }
-
     setIsSubmitting(true);
     try {
       const res = await onSaveMovement({
         productId: selectedProductId,
-        movementType,
+        movementType: 'morning_stockin',
         quantity,
-        unitCost: movementType !== 'supplier_return' ? unitCost : undefined,
-        supplierId: movementType === 'morning_stockin' ? supplierId : undefined,
-        reason: reason.trim() || (
-          movementType === 'morning_stockin'
-            ? 'توريد صباحي من سوق بنسودة'
-            : movementType === 'waste_loss'
-            ? 'فاقد وتلف فرز يومي'
-            : 'مرتجع سلع من توصيل'
-        ),
-        orderId: orderId.trim() || undefined,
+        unitCost,
+        supplierId,
+        reason: reason.trim() || 'توريد صباحي من سوق بنسودة',
       });
 
       if (res.success) {
@@ -146,9 +124,9 @@ export const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
               <Package className="w-5 h-5 text-[#EAB308]" />
             </div>
             <div>
-              <h3 className="text-base font-black">تسجيل حركة مخزون موثقة</h3>
+              <h3 className="text-base font-black">تسجيل توريد صباحي وإضافة مخزون</h3>
               <p className="text-[11px] text-stone-200">
-                ربط تكلفة الشراء بالكميات ومعالجة التالف والمرتجع للتدقيق المحاسبي
+                ربط تكلفة الشراء بالكميات الموردة من سوق بنسودة للتدقيق المحاسبي
               </p>
             </div>
           </div>
@@ -161,46 +139,15 @@ export const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
           </button>
         </div>
 
-        {/* ═══════ أزرار نوع الحركة ═══════ */}
-        <div className="p-3 bg-stone-50 border-b border-stone-200 flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => setMovementType('morning_stockin')}
-            className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              movementType === 'morning_stockin'
-                ? 'bg-[#163920] text-[#F5D76E] shadow-2xs'
-                : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-            }`}
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>📥 توريد صباحي</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMovementType('waste_loss')}
-            className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              movementType === 'waste_loss'
-                ? 'bg-rose-700 text-white shadow-2xs'
-                : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-            }`}
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>🗑️ فاقد وتالف</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMovementType('supplier_return')}
-            className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              movementType === 'supplier_return'
-                ? 'bg-amber-700 text-white shadow-2xs'
-                : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100'
-            }`}
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>🔄 مرتجع طلب</span>
-          </button>
+        {/* ═══════ شارة نوع الحركة ═══════ */}
+        <div className="p-3 bg-stone-50 border-b border-stone-200 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 text-xs font-black text-[#163920]">
+            <PlusCircle className="w-4 h-4 text-emerald-600" />
+            <span>توريد ودخول صباحي (إضافة إلى رصيد المستودع)</span>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+            زيادة المخزون +
+          </span>
         </div>
 
         {/* ═══════ نموذج الإدخال ═══════ */}
@@ -232,11 +179,7 @@ export const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="font-bold text-stone-600 block mb-1">
-                {movementType === 'morning_stockin'
-                  ? `الكمية الواردة (${unitLabel}):`
-                  : movementType === 'waste_loss'
-                  ? `الكمية التالفة (${unitLabel}):`
-                  : `الكمية المرتجعة (${unitLabel}):`}
+                الكمية الواردة ({unitLabel}):
               </label>
               <input
                 type="number"
@@ -265,54 +208,32 @@ export const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
             </div>
           </div>
 
-          {/* المورد (في حالة التوريد الصباحي) */}
-          {movementType === 'morning_stockin' && (
-            <div>
-              <label className="font-bold text-stone-600 block mb-1">المورد (سوق الجملة بنسودة):</label>
-              <select
-                value={supplierId}
-                onChange={(e) => setSupplierId(e.target.value)}
-                className="w-full py-2 px-3 rounded-xl border border-stone-200 bg-white text-stone-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#163920]"
-              >
-                {DEFAULT_SUPPLIERS.map((sup) => (
-                  <option key={sup.id} value={sup.id}>
-                    {sup.name} · {sup.specialty}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* رقم الطلب (في حالة المرتجع) */}
-          {movementType === 'supplier_return' && (
-            <div>
-              <label className="font-bold text-stone-600 block mb-1">كود الطلب المرتبط (اختياري):</label>
-              <input
-                type="text"
-                value={orderId}
-                onChange={(e) => setOrderId(e.target.value)}
-                placeholder="مثلاً: KD-2409-781"
-                className="w-full py-2 px-3 rounded-xl border border-stone-200 bg-white text-stone-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#163920]"
-              />
-            </div>
-          )}
+          {/* المورد */}
+          <div>
+            <label className="font-bold text-stone-600 block mb-1">المورد (سوق الجملة بنسودة):</label>
+            <select
+              value={supplierId}
+              onChange={(e) => setSupplierId(e.target.value)}
+              className="w-full py-2 px-3 rounded-xl border border-stone-200 bg-white text-stone-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#163920]"
+            >
+              {DEFAULT_SUPPLIERS.map((sup) => (
+                <option key={sup.id} value={sup.id}>
+                  {sup.name} · {sup.specialty}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* سبب الحركة / الملاحظات المحاسبية */}
           <div>
             <label className="font-bold text-stone-600 block mb-1">
-              {movementType === 'waste_loss' ? 'سبب التلف والفرز:' : 'البيان / ملاحظة الحركة:'}
+              البيان / ملاحظة التوريد:
             </label>
             <input
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder={
-                movementType === 'waste_loss'
-                  ? 'مثلاً: فرز ثانٍ غير صالح، رطوبة، تلف نقل بنسودة'
-                  : movementType === 'morning_stockin'
-                  ? 'مثلاً: توريد فجر الأربعاء - ضيعات سايس'
-                  : 'مثلاً: إلغاء زبون عند باب المنزل'
-              }
+              placeholder="مثلاً: توريد فجر الأربعاء - ضيعات سايس"
               className="w-full py-2 px-3 rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#163920]"
             />
           </div>
@@ -359,16 +280,10 @@ export const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`px-5 py-2 rounded-xl text-white font-black flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer ${
-                movementType === 'waste_loss'
-                  ? 'bg-rose-700 hover:bg-rose-800'
-                  : movementType === 'supplier_return'
-                  ? 'bg-amber-700 hover:bg-amber-800'
-                  : 'bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E]'
-              }`}
+              className="px-5 py-2 rounded-xl text-white font-black flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E]"
             >
               <Check className="w-4 h-4" />
-              <span>{isSubmitting ? 'جارٍ التسجيل...' : 'تأكيد وقيد الحركة'}</span>
+              <span>{isSubmitting ? 'جارٍ التسجيل...' : 'تأكيد وقيد التوريد'}</span>
             </button>
           </div>
         </form>

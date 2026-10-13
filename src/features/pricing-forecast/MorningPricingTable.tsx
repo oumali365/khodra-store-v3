@@ -673,13 +673,13 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-[10px] font-bold text-stone-500">هامش الربح (%):</label>
-                        {row.margin_percentage < 33 && (
+                        {row.margin_percentage < 40 && (
                           <button
                             type="button"
-                            onClick={() => handleCellChange(row.id, 'margin_percentage', 33)}
+                            onClick={() => handleCellChange(row.id, 'margin_percentage', 40)}
                             className="text-[9px] font-black text-amber-800 underline cursor-pointer"
                           >
-                            رفع لـ 33% 🛡️
+                            رفع لـ 40% 🛡️
                           </button>
                         )}
                       </div>
@@ -692,7 +692,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                           value={row.margin_percentage}
                           onChange={(e) => handleCellChange(row.id, 'margin_percentage', parseFloat(e.target.value) || 0)}
                           className={`w-full py-1.5 px-2.5 pr-6 rounded-xl border font-mono font-bold text-xs tabular-nums text-center focus:outline-none focus:ring-1 focus:ring-[#163920] ${
-                            row.margin_percentage < 33
+                            row.margin_percentage < 40
                               ? 'border-amber-300 bg-amber-50/60 text-amber-900'
                               : 'border-stone-200 bg-white text-stone-900'
                           }`}
@@ -893,7 +893,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                               handleCellChange(row.id, 'margin_percentage', parseFloat(e.target.value) || 0)
                             }
                             className={`w-full py-1.5 px-2.5 pr-7 rounded-2xl border font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#163920] focus:border-[#163920] tabular-nums text-center transition-all ${
-                              row.margin_percentage < 33
+                              row.margin_percentage < 40
                                 ? 'border-amber-300 bg-amber-50/60 text-amber-900'
                                 : 'border-stone-200 bg-white text-stone-900'
                             }`}
@@ -902,13 +902,13 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                             %
                           </span>
                         </div>
-                        {row.margin_percentage < 33 ? (
+                        {row.margin_percentage < 40 ? (
                           <button
                             type="button"
-                            onClick={() => handleCellChange(row.id, 'margin_percentage', 33)}
+                            onClick={() => handleCellChange(row.id, 'margin_percentage', 40)}
                             className="text-[9px] font-black text-amber-800 hover:text-amber-950 underline block mt-1 mx-auto cursor-pointer"
                           >
-                            رفع إلى 33% 🛡️
+                            رفع إلى 40% 🛡️
                           </button>
                         ) : (
                           <span className="text-[9px] font-bold text-emerald-800 block mt-1 text-center">

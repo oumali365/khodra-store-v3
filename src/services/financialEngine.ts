@@ -170,22 +170,117 @@ export interface OrderFinancialBreakdown {
   /** 12. تكلفة التغليف والكرتون */
   packagingCost: number;
 
-  /** 13. إجمالي التكاليف المباشرة المعلومة (COGS + Delivery + Packaging) */
+  /** 13. إجمالي التكاليف المباشرة المعلومة (COGS + Delivery + Packaging + Other) */
   totalDirectCost: number | null;
 
-  /** 14. هل توجد تكلفة أساسية مجهولة تمنع إعلان الربح النهائي؟ */
-  hasUnknownCosts: boolean;
+  /** 14. هل توجد تكلفة أساسية اعتمدت على التقدير؟ */
+  isEstimated: boolean;
 
-  /** 15. الربح التشغيلي الإجمالي للطلب (null في حال وجود تكلفة مجهولة) */
+  /** هل تم تقدير تكلفة الشراء لعدم توفرها؟ */
+  cogsEstimated: boolean;
+
+  /** هل تم تقدير تكلفة التوصيل لعدم توفرها؟ */
+  deliveryCostEstimated: boolean;
+
+  /** القيمة الفعالة المعتمدة لتكلفة الشراء (سواء فعلية أو تقديرية 60%) */
+  effectiveCogs: number;
+
+  /** القيمة الفعالة المعتمدة لتكلفة التوصيل (سواء فعلية أو تقديرية للمنطقة) */
+  effectiveDeliveryCost: number;
+
+  /** 15. أي تكاليف مباشرة إضافية غير محتسبة سابقاً */
+  otherDirectCosts: number;
+
+  /** 16. الربح التشغيلي قبل المصاريف العامة = (إيرادات المنتجات + رسوم توصيل العميل) - (تكلفة الشراء + تكلفة التوصيل + التغليف + التكاليف المباشرة الإضافية) */
+  operatingProfitBeforeOverheads: number;
+
+  /** 17. الربح التشغيلي الإجمالي للطلب (مطابق للربح التشغيلي قبل المصاريف العامة) */
   grossProfit: number | null;
 
-  /** 16. هامش الربح التشغيلي كنسبة مئوية من صافي قيمة المنتجات */
+  /** 18. هامش الربح التشغيلي كنسبة مئوية من صافي قيمة المنتجات */
   grossMarginPercent: number | null;
 
-  /** 17. هامش التوصيل = (رسوم التوصيل المحصلة - تكلفة تنفيذ التوصيل) */
+  /** 19. هامش التوصيل = (رسوم التوصيل المحصلة - تكلفة تنفيذ التوصيل) */
   deliveryMargin: number | null;
 
-  /** 18. قائمة التحذيرات التشغيلية والمالية إن وجدت */
+  /** 20. قائمة التحذيرات التشغيلية والمالية إن وجدت */
+  warnings: string[];
+}
+
+/**
+ * ────────────────────────────────────────────────────────────
+ * الملخص المالي والتشغيلي الموحد لعدة طلبات (Operating Financials Summary)
+ * مصدر الحقيقة المركزي للأرباح التشغيلية قبل المصاريف العامة
+ * ────────────────────────────────────────────────────────────
+ */
+export interface OperatingFinancialsSummary {
+  /** 1. عدد الطلبات الفعالة المؤهلة للحساب */
+  ordersCount: number;
+
+  /** 2. إيرادات المنتجات وحدها (دون رسوم التوصيل) */
+  productsRevenue: number;
+
+  /** 3. رسوم التوصيل المحصلة من العملاء */
+  customerDeliveryFees: number;
+
+  /** 4. إجمالي الإيرادات الإجمالية = إيرادات المنتجات + رسوم التوصيل */
+  grossRevenue: number;
+
+  /** 5. إجمالي تكلفة شراء المنتجات المباعة (COGS) */
+  cogsTotal: number;
+  /** نسبة تكلفة الشراء من إيرادات المنتجات = (cogsTotal ÷ productsRevenue) × 100 */
+  cogsRatioPercent: number;
+  /** عدد الطلبات ذات تكلفة الشراء الفعلية المؤكدة */
+  cogsActualCount: number;
+  /** عدد الطلبات ذات تكلفة الشراء التقديرية (بناءً على سقف 60%) */
+  cogsEstimatedCount: number;
+
+  /** 6. إجمالي تكاليف التوصيل للموصّلين */
+  deliveryCostsTotal: number;
+  /** تكاليف التوصيل الفعلية المؤكدة */
+  actualDeliveryCostsTotal: number;
+  /** تكاليف التوصيل التقديرية */
+  estimatedDeliveryCostsTotal: number;
+  /** عدد الطلبات ذات تكلفة التوصيل الفعلية */
+  deliveryActualCount: number;
+  /** عدد الطلبات ذات تكلفة التوصيل التقديرية */
+  deliveryEstimatedCount: number;
+
+  /** 7. تكاليف التغليف المباشرة للطلبات */
+  packagingCostsTotal: number;
+
+  /** 8. التكاليف المباشرة الإضافية غير المحتسبة سابقاً */
+  otherDirectCostsTotal: number;
+
+  /** 9. إجمالي التكاليف المباشرة = COGS + تكاليف التوصيل + التغليف + المباشرة الإضافية */
+  totalDirectCosts: number;
+
+  /** 10. الربح التشغيلي قبل المصاريف العامة =
+   * إيرادات المنتجات + رسوم توصيل العميل - تكلفة شراء المنتجات - تكلفة التوصيل - التكاليف المباشرة */
+  operatingProfitBeforeOverheads: number;
+
+  /** 11. نسبة الربح التشغيلي قبل المصاريف العامة من إجمالي الإيرادات % */
+  operatingProfitMarginPercent: number;
+
+  /** 12. نسبة الربح التشغيلي قبل المصاريف العامة من إيرادات المنتجات % */
+  operatingProfitToProductsMarginPercent: number;
+
+  /** 13. متوسط قيمة الطلب (AOV - Average Order Value) = إجمالي الإيرادات ÷ عدد الطلبات */
+  averageOrderValue: number;
+
+  /** 14. متوسط تكلفة التوصيل للطلب = إجمالي تكاليف التوصيل ÷ عدد الطلبات */
+  averageDeliveryCostPerOrder: number;
+
+  /** 15. متوسط رسوم التوصيل المحصلة من العميل للطلب */
+  averageCustomerDeliveryFeePerOrder: number;
+
+  /** 16. صافي هامش خدمة التوصيل للمتجر = رسوم العميل المحصلة - تكاليف التوصيل المسددة */
+  deliveryNetMargin: number;
+
+  /** 17. هل تعتمد الحسابات كلياً على بيانات فعلية مؤكدة؟ */
+  isFullyActual: boolean;
+
+  /** 18. تنبيهات مالية وتشغيلية */
   warnings: string[];
 }
 
@@ -519,7 +614,9 @@ export function calculateOrderFinancials(params: {
   cogsStatus?: CostCertainty;
   deliveryCost?: number | null;
   deliveryCostStatus?: CostCertainty;
+  deliveryZone?: string;
   packagingCost?: number;
+  otherDirectCosts?: number;
 }): OrderFinancialBreakdown {
   const warnings: string[] = [];
 
@@ -535,60 +632,73 @@ export function calculateOrderFinancials(params: {
   const customerGrandTotal = Number((netProductsAmount + deliveryFeeCollected).toFixed(2));
 
   // 2. تكلفة الشراء (COGS)
-  const cogsStatus: CostCertainty = params.cogsStatus || (params.cogsAmount != null ? 'actual' : 'unknown');
-  const cogsAmount = params.cogsAmount != null && !isNaN(params.cogsAmount)
+  let cogsStatus: CostCertainty = params.cogsStatus || (params.cogsAmount != null ? 'actual' : 'unknown');
+  let cogsAmount = params.cogsAmount != null && !isNaN(params.cogsAmount)
     ? Math.max(0, Number(params.cogsAmount.toFixed(2)))
     : null;
+  let cogsEstimated = false;
+
+  // توفير قيمة احتياطية آمنة ومعلنة عند غياب تكلفة الشراء (60% من صافي المنتجات)
+  if (cogsAmount === null || cogsStatus === 'unknown') {
+    cogsAmount = Number((netProductsAmount * TARIFF_STANDARDS.TARGET_COGS_MAX_RATIO).toFixed(2));
+    cogsStatus = 'estimated';
+    cogsEstimated = true;
+    warnings.push('ℹ️ تم تقدير تكلفة الشراء تلقائياً بنسبة 60% لعدم توفر تكلفة شراء مسجلة.');
+  }
+
+  const effectiveCogs = cogsAmount;
 
   let cogsRatio: number | null = null;
   let cogsExceedsTarget = false;
 
-  if (cogsAmount !== null && netProductsAmount > 0) {
+  if (effectiveCogs !== null && netProductsAmount > 0) {
     // ⚠️ قاعدة ملزمة: رسوم التوصيل لا تدخل في مقام نسبة تكلفة الشراء
-    cogsRatio = Number((cogsAmount / netProductsAmount).toFixed(4));
+    cogsRatio = Number((effectiveCogs / netProductsAmount).toFixed(4));
     if (cogsRatio > TARIFF_STANDARDS.TARGET_COGS_MAX_RATIO) {
       cogsExceedsTarget = true;
       const pct = (cogsRatio * 100).toFixed(1);
       warnings.push(`⚠️ تنبيه تكلفة السلع: تكلفة الشراء (${pct}%) تتجاوز السقف المستهدف (60%) لقيمة المنتجات المباعة.`);
     }
-  } else if (cogsStatus === 'unknown') {
-    warnings.push('ℹ️ تكلفة شراء المنتجات (COGS) غير محددة أو ناقصة في هذا الطلب.');
   }
 
   // 3. تكلفة تنفيذ التوصيل
-  const deliveryCostStatus: CostCertainty = params.deliveryCostStatus || (params.deliveryCost != null ? 'actual' : 'unknown');
-  const deliveryCost = params.deliveryCost != null && !isNaN(params.deliveryCost)
+  let deliveryCostStatus: CostCertainty = params.deliveryCostStatus || (params.deliveryCost != null ? 'actual' : 'unknown');
+  let deliveryCost = params.deliveryCost != null && !isNaN(params.deliveryCost)
     ? Math.max(0, Number(params.deliveryCost.toFixed(2)))
     : null;
+  let deliveryCostEstimated = false;
 
-  if (deliveryCostStatus === 'unknown') {
-    warnings.push('ℹ️ تكلفة تنفيذ التوصيل المسددة للسائق غير موثقة.');
+  // توفير قيمة احتياطية آمنة ومعلنة عند غياب تكلفة التوصيل الفعلية
+  if (deliveryCost === null || deliveryCostStatus === 'unknown') {
+    deliveryCost = getEstimatedZoneDeliveryCost(params.deliveryZone);
+    deliveryCostStatus = 'estimated';
+    deliveryCostEstimated = true;
+    warnings.push('ℹ️ تم تقدير تكلفة التوصيل وفق تعريفة المنطقة لعدم توفر تكلفة موصّل فعلية مسجلة.');
   }
 
-  // 4. تكلفة التغليف
+  const effectiveDeliveryCost = deliveryCost;
+
+  // 4. تكلفة التغليف والتكاليف المباشرة الإضافية
   const packagingCost = params.packagingCost !== undefined
     ? Math.max(0, Number(params.packagingCost) || 0)
     : TARIFF_STANDARDS.STANDARD_PACKAGING_COST;
 
-  // 5. التحقق من التكاليف المجهولة
-  const hasUnknownCosts = cogsAmount === null || deliveryCost === null;
+  const otherDirectCosts = Math.max(0, Number(params.otherDirectCosts) || 0);
 
-  // 6. التكلفة الإجمالية والربح التشغيلي
-  let totalDirectCost: number | null = null;
-  let grossProfit: number | null = null;
-  let grossMarginPercent: number | null = null;
-  let deliveryMargin: number | null = null;
+  // 5. التكلفة الإجمالية والربح التشغيلي قبل المصاريف العامة
+  // المعادلة المعتمدة:
+  // الربح التشغيلي قبل المصاريف العامة =
+  // إيرادات المنتجات + رسوم توصيل العميل - تكلفة شراء المنتجات - تكلفة التوصيل - التكاليف المباشرة الإضافية
+  const totalDirectCost = Number((effectiveCogs + effectiveDeliveryCost + packagingCost + otherDirectCosts).toFixed(2));
+  const operatingProfitBeforeOverheads = Number((customerGrandTotal - totalDirectCost).toFixed(2));
+  const grossProfit = operatingProfitBeforeOverheads;
 
-  if (!hasUnknownCosts && cogsAmount !== null && deliveryCost !== null) {
-    totalDirectCost = Number((cogsAmount + deliveryCost + packagingCost).toFixed(2));
-    grossProfit = Number((customerGrandTotal - totalDirectCost).toFixed(2));
-    grossMarginPercent = netProductsAmount > 0
-      ? Number(((grossProfit / netProductsAmount) * 100).toFixed(2))
-      : 0;
-    deliveryMargin = Number((deliveryFeeCollected - deliveryCost).toFixed(2));
-  } else {
-    warnings.push('🔒 تم حجب صافي الربح النهائي لعدم اكتمال أحد بنود التكلفة الأساسية (تكلفة الشراء أو التوصيل).');
-  }
+  const grossMarginPercent = netProductsAmount > 0
+    ? Number(((grossProfit / netProductsAmount) * 100).toFixed(2))
+    : 0;
+
+  const deliveryMargin = Number((deliveryFeeCollected - effectiveDeliveryCost).toFixed(2));
+  const isEstimated = cogsEstimated || deliveryCostEstimated;
 
   return {
     productsSubtotal,
@@ -604,10 +714,247 @@ export function calculateOrderFinancials(params: {
     deliveryCostStatus,
     packagingCost,
     totalDirectCost,
-    hasUnknownCosts,
+    isEstimated,
+    cogsEstimated,
+    deliveryCostEstimated,
+    effectiveCogs,
+    effectiveDeliveryCost,
+    otherDirectCosts,
+    operatingProfitBeforeOverheads,
     grossProfit,
     grossMarginPercent,
     deliveryMargin,
+    warnings,
+  };
+}
+
+/**
+ * ────────────────────────────────────────────────────────────
+ * 5.ب المحرك المالي الموحد لتجميع وحساب الأرباح التشغيلية لمجموعة طلبات
+ * (Unified Central Operating Financials Engine)
+ * المصدر المركزي الوحيد لحسابات الطلبات والتوصيل ولوحة الأرباح
+ * ────────────────────────────────────────────────────────────
+ */
+export function calculateOperatingFinancials(
+  orders: Array<any>,
+  options?: {
+    defaultPackagingCostPerOrder?: number;
+    defaultZoneDeliveryCost?: number;
+    dailyPricesMap?: Record<number, { purchasePrice?: number; purchase?: number }>;
+  }
+): OperatingFinancialsSummary {
+  const activeOrders = Array.isArray(orders)
+    ? orders.filter(
+        (o) =>
+          o &&
+          !o.is_deleted &&
+          o.status !== 'cancelled' &&
+          (Number(o.total) > 0 || (Array.isArray(o.items) && o.items.length > 0))
+      )
+    : [];
+
+  const count = activeOrders.length;
+  if (count === 0) {
+    return {
+      ordersCount: 0,
+      productsRevenue: 0,
+      customerDeliveryFees: 0,
+      grossRevenue: 0,
+      cogsTotal: 0,
+      cogsRatioPercent: 0,
+      cogsActualCount: 0,
+      cogsEstimatedCount: 0,
+      deliveryCostsTotal: 0,
+      actualDeliveryCostsTotal: 0,
+      estimatedDeliveryCostsTotal: 0,
+      deliveryActualCount: 0,
+      deliveryEstimatedCount: 0,
+      packagingCostsTotal: 0,
+      otherDirectCostsTotal: 0,
+      totalDirectCosts: 0,
+      operatingProfitBeforeOverheads: 0,
+      operatingProfitMarginPercent: 0,
+      operatingProfitToProductsMarginPercent: 0,
+      averageOrderValue: 0,
+      averageDeliveryCostPerOrder: 0,
+      averageCustomerDeliveryFeePerOrder: 0,
+      deliveryNetMargin: 0,
+      isFullyActual: false,
+      warnings: ['لا توجد طلبات مؤهلة للحساب في الفترة المحددة.'],
+    };
+  }
+
+  let productsRevenue = 0;
+  let customerDeliveryFees = 0;
+  let grossRevenue = 0;
+  let cogsTotal = 0;
+  let cogsActualCount = 0;
+  let cogsEstimatedCount = 0;
+  let deliveryCostsTotal = 0;
+  let actualDeliveryCostsTotal = 0;
+  let estimatedDeliveryCostsTotal = 0;
+  let deliveryActualCount = 0;
+  let deliveryEstimatedCount = 0;
+  let packagingCostsTotal = 0;
+  let otherDirectCostsTotal = 0;
+  const warnings: string[] = [];
+
+  for (const order of activeOrders) {
+    const productsSubtotal = Number(order.subtotal ?? (Number(order.total) - Number(order.delivery_fee ?? 0))) || 0;
+    const discountAmount = Number(order.discount_amount) || 0;
+    const deliveryFeeCollected = Number(order.delivery_fee ?? order.deliveryFee) || 0;
+
+    // استخراج تكلفة الشراء الموثقة أو حسابها من الأصناف
+    let cogsAmount = order.cogs_amount != null
+      ? Number(order.cogs_amount)
+      : (order.cogsAmount != null ? Number(order.cogsAmount) : null);
+    let cogsStatus = order.cogs_status || order.cogsStatus;
+
+    if (cogsAmount == null && Array.isArray(order.items) && order.items.length > 0) {
+      const itemsCogs = calculateItemsCogs(order.items, options?.dailyPricesMap);
+      if (itemsCogs.cogsAmount != null) {
+        cogsAmount = itemsCogs.cogsAmount;
+        cogsStatus = itemsCogs.cogsStatus;
+      }
+    }
+
+    // استخراج تكلفة الموصّل الموثقة أو التقديرية
+    const rawDeliveryCost =
+      order.delivery_cost != null
+        ? order.delivery_cost
+        : order.actual_delivery_cost != null
+        ? order.actual_delivery_cost
+        : order.deliveryCost != null
+        ? order.deliveryCost
+        : order.driver_wage != null
+        ? order.driver_wage
+        : order.delivery_dispatch?.deliveryCost ?? order.delivery_dispatch?.agreedWage;
+
+    const deliveryCost = rawDeliveryCost != null && Number.isFinite(Number(rawDeliveryCost))
+      ? Number(rawDeliveryCost)
+      : null;
+
+    const deliveryCostStatus =
+      order.delivery_cost_status ||
+      order.deliveryCostStatus ||
+      order.delivery_dispatch?.costCertainty ||
+      (deliveryCost != null ? 'actual' : 'estimated');
+
+    const packagingCost = order.packaging_cost != null
+      ? Number(order.packaging_cost)
+      : (options?.defaultPackagingCostPerOrder ?? TARIFF_STANDARDS.STANDARD_PACKAGING_COST);
+
+    const otherDirectCosts = Number(order.other_direct_costs ?? order.direct_costs) || 0;
+
+    const orderFin = calculateOrderFinancials({
+      productsSubtotal,
+      discountAmount,
+      deliveryFeeCollected,
+      cogsAmount,
+      cogsStatus,
+      deliveryCost,
+      deliveryCostStatus,
+      deliveryZone: order.delivery_zone || order.delivery_dispatch?.zone,
+      packagingCost,
+      otherDirectCosts,
+    });
+
+    productsRevenue += orderFin.netProductsAmount;
+    customerDeliveryFees += orderFin.deliveryFeeCollected;
+    grossRevenue += orderFin.customerGrandTotal;
+
+    cogsTotal += orderFin.effectiveCogs;
+    if (orderFin.cogsEstimated) {
+      cogsEstimatedCount++;
+    } else {
+      cogsActualCount++;
+    }
+
+    deliveryCostsTotal += orderFin.effectiveDeliveryCost;
+    if (orderFin.deliveryCostEstimated) {
+      estimatedDeliveryCostsTotal += orderFin.effectiveDeliveryCost;
+      deliveryEstimatedCount++;
+    } else {
+      actualDeliveryCostsTotal += orderFin.effectiveDeliveryCost;
+      deliveryActualCount++;
+    }
+
+    packagingCostsTotal += orderFin.packagingCost;
+    otherDirectCostsTotal += orderFin.otherDirectCosts;
+  }
+
+  // التقريب المحاسبي المنضبط لمنع أي تشوه بالكسور العشرية
+  productsRevenue = Number(productsRevenue.toFixed(2));
+  customerDeliveryFees = Number(customerDeliveryFees.toFixed(2));
+  grossRevenue = Number(grossRevenue.toFixed(2));
+  cogsTotal = Number(cogsTotal.toFixed(2));
+  deliveryCostsTotal = Number(deliveryCostsTotal.toFixed(2));
+  actualDeliveryCostsTotal = Number(actualDeliveryCostsTotal.toFixed(2));
+  estimatedDeliveryCostsTotal = Number(estimatedDeliveryCostsTotal.toFixed(2));
+  packagingCostsTotal = Number(packagingCostsTotal.toFixed(2));
+  otherDirectCostsTotal = Number(otherDirectCostsTotal.toFixed(2));
+
+  // إجمالي التكاليف المباشرة
+  const totalDirectCosts = Number(
+    (cogsTotal + deliveryCostsTotal + packagingCostsTotal + otherDirectCostsTotal).toFixed(2)
+  );
+
+  // المعادلة المركزية الإلزامية:
+  // الربح التشغيلي قبل المصاريف العامة =
+  // إيرادات المنتجات + رسوم توصيل العميل - تكلفة شراء المنتجات - تكلفة التوصيل - التكاليف المباشرة
+  const operatingProfitBeforeOverheads = Number((grossRevenue - totalDirectCosts).toFixed(2));
+
+  const cogsRatioPercent = productsRevenue > 0
+    ? Number(((cogsTotal / productsRevenue) * 100).toFixed(2))
+    : 0;
+
+  const operatingProfitMarginPercent = grossRevenue > 0
+    ? Number(((operatingProfitBeforeOverheads / grossRevenue) * 100).toFixed(2))
+    : 0;
+
+  const operatingProfitToProductsMarginPercent = productsRevenue > 0
+    ? Number(((operatingProfitBeforeOverheads / productsRevenue) * 100).toFixed(2))
+    : 0;
+
+  const averageOrderValue = count > 0 ? Number((grossRevenue / count).toFixed(2)) : 0;
+  const averageDeliveryCostPerOrder = count > 0 ? Number((deliveryCostsTotal / count).toFixed(2)) : 0;
+  const averageCustomerDeliveryFeePerOrder = count > 0 ? Number((customerDeliveryFees / count).toFixed(2)) : 0;
+  const deliveryNetMargin = Number((customerDeliveryFees - deliveryCostsTotal).toFixed(2));
+
+  const isFullyActual = cogsEstimatedCount === 0 && deliveryEstimatedCount === 0 && count > 0;
+
+  if (cogsEstimatedCount > 0) {
+    warnings.push(`ℹ️ تم احتساب تكلفة الشراء تقديرياً (60%) لـ ${cogsEstimatedCount} من أصل ${count} طلبات لعدم اكتمال فواتير الشراء الصباحية.`);
+  }
+  if (deliveryEstimatedCount > 0) {
+    warnings.push(`ℹ️ تم اعتماد تكلفة توصيل تقديرية لـ ${deliveryEstimatedCount} طلبات لم يتم إغلاق جولاتها وتحديد أجر السائق الفعلي لها بعد.`);
+  }
+
+  return {
+    ordersCount: count,
+    productsRevenue,
+    customerDeliveryFees,
+    grossRevenue,
+    cogsTotal,
+    cogsRatioPercent,
+    cogsActualCount,
+    cogsEstimatedCount,
+    deliveryCostsTotal,
+    actualDeliveryCostsTotal,
+    estimatedDeliveryCostsTotal,
+    deliveryActualCount,
+    deliveryEstimatedCount,
+    packagingCostsTotal,
+    otherDirectCostsTotal,
+    totalDirectCosts,
+    operatingProfitBeforeOverheads,
+    operatingProfitMarginPercent,
+    operatingProfitToProductsMarginPercent,
+    averageOrderValue,
+    averageDeliveryCostPerOrder,
+    averageCustomerDeliveryFeePerOrder,
+    deliveryNetMargin,
+    isFullyActual,
     warnings,
   };
 }
@@ -627,14 +974,17 @@ export function calculateTourFinancials(
   const safeCommission = Math.max(0, Number(driverCommissionPerOrder) || TARIFF_STANDARDS.DEFAULT_DRIVER_ORDER_WAGE);
 
   const totalCODToCollect = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-  const totalDriverWage = count * safeCommission;
+  const totalDriverWage = orders.reduce((sum, o) => {
+    const customCost = o.delivery_dispatch?.deliveryCost ?? o.delivery_dispatch?.agreedWage;
+    return sum + (customCost != null && Number.isFinite(customCost) ? customCost : safeCommission);
+  }, 0);
   const netDueToStore = totalCODToCollect - totalDriverWage;
 
   const totalFeesCollected = orders.reduce((sum, o) => sum + (Number(o.delivery_fee) || 0), 0);
   const deliveryMarginTotal = totalFeesCollected - totalDriverWage;
 
   const isBatchedTour = count >= 2;
-  const estimatedDeliveryCostPerOrder = isBatchedTour
+  const estimatedDeliveryCostPerOrder = count > 0
     ? Number((totalDriverWage / count).toFixed(2))
     : safeCommission;
 

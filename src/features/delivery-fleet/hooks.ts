@@ -223,7 +223,14 @@ export function useFleetStats(orders: DbOrder[]): FleetStats {
     const deliveredTrips = orders.filter((o) => o.status === 'delivered').length;
 
     const totalDriverCost = nonCancelled.reduce(
-      (sum, o) => sum + (o.delivery_dispatch?.deliveryCost ?? 25),
+      (sum, o) =>
+        sum +
+        (o.actual_delivery_cost ??
+          o.delivery_cost ??
+          o.driver_cost ??
+          o.delivery_dispatch?.deliveryCost ??
+          o.driver_wage ??
+          25),
       0
     );
     const totalDeliveryRevenue = nonCancelled.reduce((sum, o) => sum + (Number(o.delivery_fee) || 0), 0);

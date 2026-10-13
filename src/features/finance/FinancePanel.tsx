@@ -7,7 +7,7 @@ import {
   X, TrendingUp, DollarSign, Package, Target,
   Download, RotateCcw, Save, BarChart3, LineChart, Percent,
   Info, Sparkles, ChevronDown, ChevronUp, Settings, CheckCircle2, AlertCircle,
-  Globe, Copy, Check, Database,
+  Globe, Copy, Check, Database, Truck, ShieldCheck, PieChart, Layers,
 } from 'lucide-react';
 import {
   fetchOrders,
@@ -15,6 +15,11 @@ import {
   unsubscribeFromOrdersChanges,
   type DbOrder,
 } from '../../services/supabaseService';
+import {
+  calculateOperatingFinancials,
+  type OperatingFinancialsSummary,
+  TARIFF_STANDARDS,
+} from '../../services/financialEngine';
 
 export interface FinancePanelProps {
   isOpen?: boolean;
@@ -68,6 +73,28 @@ const FINANCE_TRANSLATIONS = {
     close: 'Fermer',
     operationalBreakEven: 'Seuil de Rentabilité Opérationnel',
     ordersPerMonth: 'cmd/mois',
+    // Phase 5 Additions (fr)
+    operatingProfitSectionTitle: 'Bénéfice Opérationnel Brut & Économie Unitaire Réelle',
+    operatingProfitSectionSubtitle: 'Moteur financier unifié • Marge opérationnelle directe avant charges fixes',
+    operatingProfit: 'Bénéfice Opérationnel (Avant Charges Fixes)',
+    operatingProfitMargin: 'Marge Opérationnelle %',
+    operatingProfitNote: 'Ce résultat représente le bénéfice direct des commandes avant déduction des charges fixes du local (7 800 MAD), salaires et impôts.',
+    productsRevenue: 'Revenus des Marchandises',
+    customerDeliveryFees: 'Frais Livraison Facturés aux Clients',
+    totalGrossRevenue: 'Chiffre d’Affaires Total Brut',
+    cogsTitle: 'Coût d’Achat des Marchandises (COGS)',
+    driverDeliveryCostsTitle: 'Coûts Réels des Livreurs',
+    actualVsEstimated: 'Réel vs Estimé',
+    actualCosts: 'Coûts Réels Documentés',
+    estimatedCosts: 'Coûts Estimés',
+    packagingCosts: 'Frais Emballage & Sachets',
+    otherDirectCosts: 'Frais Directs Additionnels',
+    totalDirectCosts: 'Total Dépenses Directes',
+    avgDeliveryCostPerOrder: 'Coût Moyen Livraison / Cmd',
+    avgCustomerDeliveryFee: 'Frais Moyen Facturé / Cmd',
+    deliveryNetMargin: 'Marge Nette du Service Livraison',
+    fullyActualBadge: 'Données Réelles 100%',
+    partiallyEstimatedBadge: 'Inclut des Estimations',
   },
   ar: {
     title: 'اللوحة المالية والتوقعات',
@@ -111,6 +138,28 @@ const FINANCE_TRANSLATIONS = {
     close: 'إغلاق',
     operationalBreakEven: 'نقطة التعادل التشغيلي',
     ordersPerMonth: 'طلب/شهر',
+    // Phase 5 Additions (ar)
+    operatingProfitSectionTitle: 'الربح التشغيلي المباشر والأداء الحقيقي للطلبات',
+    operatingProfitSectionSubtitle: 'المحرك المالي الموحد • أرباح العمليات المباشرة قبل المصاريف العامة',
+    operatingProfit: 'الربح التشغيلي قبل المصاريف العامة',
+    operatingProfitMargin: 'هامش الربح التشغيلي %',
+    operatingProfitNote: 'تنبيه محاسبي: هذا الناتج يمثل الربح التشغيلي المباشر من المبيعات قبل خصم تكاليف المقر الثابتة (7,800 د.م) والأجور والضرائب.',
+    productsRevenue: 'إيرادات المنتجات المباعة',
+    customerDeliveryFees: 'رسوم التوصيل المحصلة من العملاء',
+    totalGrossRevenue: 'إجمالي الإيرادات (المنتجات + رسوم التوصيل)',
+    cogsTitle: 'تكلفة البضاعة المباعة (COGS)',
+    driverDeliveryCostsTitle: 'أجور وتكاليف التوصيل للموصّلين',
+    actualVsEstimated: 'الفعلي مقابل التقديري',
+    actualCosts: 'تكاليف فعلية مؤكدة',
+    estimatedCosts: 'تكاليف تقديرية معلنة',
+    packagingCosts: 'تكاليف التغليف والكرتون',
+    otherDirectCosts: 'تكاليف مباشرة إضافية',
+    totalDirectCosts: 'إجمالي التكاليف المباشرة',
+    avgDeliveryCostPerOrder: 'متوسط تكلفة التوصيل للطلب',
+    avgCustomerDeliveryFee: 'متوسط رسوم توصيل العميل',
+    deliveryNetMargin: 'صافي هامش خدمة التوصيل',
+    fullyActualBadge: 'بيانات فعلية 100%',
+    partiallyEstimatedBadge: 'تتضمن تقديرات معلنة',
   },
   en: {
     title: 'Financial Dashboard & Forecasts',
@@ -154,6 +203,28 @@ const FINANCE_TRANSLATIONS = {
     close: 'Close',
     operationalBreakEven: 'Operational Break-Even Point',
     ordersPerMonth: 'orders/month',
+    // Phase 5 Additions (en)
+    operatingProfitSectionTitle: 'Direct Operating Profit & Real Unit Economics',
+    operatingProfitSectionSubtitle: 'Unified Financial Engine • Direct operating profit before overheads',
+    operatingProfit: 'Operating Profit (Before Overheads)',
+    operatingProfitMargin: 'Operating Margin %',
+    operatingProfitNote: 'Accounting Note: This represents direct operating profit before warehouse fixed costs (7,800 MAD), permanent salaries, and taxes.',
+    productsRevenue: 'Products Revenue',
+    customerDeliveryFees: 'Customer Delivery Fees Collected',
+    totalGrossRevenue: 'Total Gross Revenue (Products + Delivery)',
+    cogsTitle: 'Cost of Goods Sold (COGS)',
+    driverDeliveryCostsTitle: 'Driver Delivery Costs Paid',
+    actualVsEstimated: 'Actual vs Estimated',
+    actualCosts: 'Actual Documented Costs',
+    estimatedCosts: 'Estimated Costs',
+    packagingCosts: 'Packaging & Bags Cost',
+    otherDirectCosts: 'Other Direct Costs',
+    totalDirectCosts: 'Total Direct Costs',
+    avgDeliveryCostPerOrder: 'Avg Delivery Cost / Order',
+    avgCustomerDeliveryFee: 'Avg Customer Fee / Order',
+    deliveryNetMargin: 'Net Delivery Margin',
+    fullyActualBadge: '100% Actual Data',
+    partiallyEstimatedBadge: 'Includes Estimates',
   },
 };
 
@@ -209,18 +280,22 @@ export const INITIAL_ASSUMPTIONS: Assumptions = {
   taxPercent: 1,
 };
 
-// ─── أدوات التنسيق الرقمي ───
-const fmt = (n: number) =>
-  new Intl.NumberFormat('fr-FR', {
+// ─── أدوات التنسيق الرقمي الآمنة (حماية 100% ضد NaN أو undefined) ───
+const fmt = (n: number | null | undefined) => {
+  const safe = typeof n === 'number' && !isNaN(n) && Number.isFinite(n) ? n : 0;
+  return new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(n);
+  }).format(safe);
+};
 
-const fmtDecimal = (n: number) =>
-  new Intl.NumberFormat('fr-FR', {
+const fmtDecimal = (n: number | null | undefined) => {
+  const safe = typeof n === 'number' && !isNaN(n) && Number.isFinite(n) ? n : 0;
+  return new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
-  }).format(n);
+  }).format(safe);
+};
 
 const getProfitColor = (profit: number) => {
   if (profit > 10000) return 'text-emerald-700 bg-emerald-50 border-emerald-300';
@@ -381,6 +456,11 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
       activeDays,
       ordersPerDay,
     };
+  }, [realOrders]);
+
+  // ─── 🚀 المحرك المالي الموحد لحساب الأرباح التشغيلية الحقيقية للطلبات (المرحلة الخامسة) ───
+  const liveOperatingFinancials = useMemo<OperatingFinancialsSummary>(() => {
+    return calculateOperatingFinancials(realOrders);
   }, [realOrders]);
 
   const hasRealData = Boolean(realMetrics && realMetrics.totalOrders > 0);
@@ -768,7 +848,196 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
             )}
           </div>
 
-          {/* ─── 4 بطاقات مؤشرات أداء رئيسية KPI Cards ─── */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* 🚀 المرحلة الخامسة: المحرك المالي الموحد والأرباح التشغيلية المباشرة */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          <div className="bg-white border-2 border-emerald-300/80 rounded-3xl p-4 sm:p-5 shadow-xs space-y-4 relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                  <PieChart className="w-5 h-5 text-emerald-700" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-black text-stone-900">
+                      {t.operatingProfitSectionTitle}
+                    </h3>
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                      liveOperatingFinancials.isFullyActual
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-amber-100 text-amber-900 border border-amber-300'
+                    }`}>
+                      {liveOperatingFinancials.isFullyActual ? t.fullyActualBadge : t.partiallyEstimatedBadge}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500 font-medium mt-0.5">
+                    {t.operatingProfitSectionSubtitle}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-bold text-stone-500 self-end sm:self-center">
+                <span className="px-2.5 py-1 rounded-xl bg-stone-100 border border-stone-200 text-stone-700">
+                  {liveOperatingFinancials.ordersCount} {lang === 'ar' ? 'طلبات نشطة' : 'commandes'}
+                </span>
+              </div>
+            </div>
+
+            {/* 1. شبكة البنود المالية المفصلة */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* إجمالي الإيرادات */}
+              <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200 space-y-1">
+                <div className="flex items-center justify-between text-xs text-stone-600 font-bold">
+                  <span>{t.totalGrossRevenue}</span>
+                  <DollarSign className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="text-xl font-black text-stone-900 tabular-nums">
+                  {fmt(liveOperatingFinancials.grossRevenue)} <span className="text-xs font-bold text-stone-500">د.م</span>
+                </div>
+                <div className="text-[10px] text-stone-500 space-y-0.5 pt-1 border-t border-stone-200/60 font-medium">
+                  <div className="flex justify-between">
+                    <span>{t.productsRevenue}:</span>
+                    <span className="font-bold text-stone-700">{fmt(liveOperatingFinancials.productsRevenue)} د.م</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>{t.customerDeliveryFees}:</span>
+                    <span className="font-bold text-stone-700">{fmt(liveOperatingFinancials.customerDeliveryFees)} د.م</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* تكلفة شراء السلع COGS */}
+              <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200 space-y-1">
+                <div className="flex items-center justify-between text-xs text-stone-600 font-bold">
+                  <span>{t.cogsTitle}</span>
+                  <Package className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="text-xl font-black text-stone-900 tabular-nums">
+                  {fmt(liveOperatingFinancials.cogsTotal)} <span className="text-xs font-bold text-stone-500">د.م</span>
+                </div>
+                <div className="text-[10px] text-stone-500 space-y-0.5 pt-1 border-t border-stone-200/60 font-medium">
+                  <div className="flex justify-between">
+                    <span>نسبة التكلفة:</span>
+                    <span className="font-bold text-stone-700">{fmtDecimal(liveOperatingFinancials.cogsRatioPercent)}%</span>
+                  </div>
+                  <div className="flex justify-between text-[9px] text-stone-400">
+                    <span>{liveOperatingFinancials.cogsActualCount} فعلي</span>
+                    <span>{liveOperatingFinancials.cogsEstimatedCount} تقديري (60%)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* تكاليف التوصيل للموصّلين */}
+              <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200 space-y-1">
+                <div className="flex items-center justify-between text-xs text-stone-600 font-bold">
+                  <span>{t.driverDeliveryCostsTitle}</span>
+                  <Truck className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="text-xl font-black text-stone-900 tabular-nums">
+                  {fmt(liveOperatingFinancials.deliveryCostsTotal)} <span className="text-xs font-bold text-stone-500">د.م</span>
+                </div>
+                <div className="text-[10px] text-stone-500 space-y-0.5 pt-1 border-t border-stone-200/60 font-medium">
+                  <div className="flex justify-between">
+                    <span>الفعلي:</span>
+                    <span className="font-bold text-emerald-700">{fmt(liveOperatingFinancials.actualDeliveryCostsTotal)} د.م ({liveOperatingFinancials.deliveryActualCount})</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>التقديري:</span>
+                    <span className="font-bold text-amber-700">{fmt(liveOperatingFinancials.estimatedDeliveryCostsTotal)} د.م ({liveOperatingFinancials.deliveryEstimatedCount})</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* التكاليف المباشرة الأخرى (التغليف والمباشرة الإضافية) */}
+              <div className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-200 space-y-1">
+                <div className="flex items-center justify-between text-xs text-stone-600 font-bold">
+                  <span>{t.totalDirectCosts}</span>
+                  <Layers className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="text-xl font-black text-stone-900 tabular-nums">
+                  {fmt(liveOperatingFinancials.totalDirectCosts)} <span className="text-xs font-bold text-stone-500">د.م</span>
+                </div>
+                <div className="text-[10px] text-stone-500 space-y-0.5 pt-1 border-t border-stone-200/60 font-medium">
+                  <div className="flex justify-between">
+                    <span>{t.packagingCosts}:</span>
+                    <span className="font-bold text-stone-700">{fmt(liveOperatingFinancials.packagingCostsTotal)} د.م</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>{t.otherDirectCosts}:</span>
+                    <span className="font-bold text-stone-700">{fmt(liveOperatingFinancials.otherDirectCostsTotal)} د.م</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. شريط إعلان الربح التشغيلي قبل المصاريف العامة البارز */}
+            <div className={`p-4 rounded-2xl border-2 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 ${
+              liveOperatingFinancials.operatingProfitBeforeOverheads >= 0
+                ? 'bg-emerald-50/90 border-emerald-400 text-emerald-950'
+                : 'bg-rose-50/90 border-rose-400 text-rose-950'
+            }`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-emerald-700" />
+                  <span className="text-xs sm:text-sm font-black">
+                    {t.operatingProfit}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-black tabular-nums">
+                    {liveOperatingFinancials.operatingProfitBeforeOverheads >= 0 ? '+' : ''}
+                    {fmt(liveOperatingFinancials.operatingProfitBeforeOverheads)}
+                  </span>
+                  <span className="text-sm font-bold">د.م</span>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-lg bg-white/80 border border-emerald-300">
+                    {t.operatingProfitMargin}: {fmtDecimal(liveOperatingFinancials.operatingProfitMarginPercent)}%
+                  </span>
+                </div>
+              </div>
+
+              {/* المؤشرات التكميلية: AOV ومتوسط تكلفة التوصيل وهامش التوصيل */}
+              <div className="grid grid-cols-3 gap-2 bg-white/70 p-2.5 rounded-xl border border-emerald-200/60 text-center text-xs">
+                <div>
+                  <span className="block text-[10px] text-stone-500 font-bold">متوسط السلة (AOV)</span>
+                  <span className="text-xs font-black text-stone-900 tabular-nums">
+                    {fmt(liveOperatingFinancials.averageOrderValue)} د.م
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-stone-500 font-bold">{t.avgDeliveryCostPerOrder}</span>
+                  <span className="text-xs font-black text-stone-900 tabular-nums">
+                    {fmtDecimal(liveOperatingFinancials.averageDeliveryCostPerOrder)} د.م
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-stone-500 font-bold">{t.deliveryNetMargin}</span>
+                  <span className={`text-xs font-black tabular-nums ${
+                    liveOperatingFinancials.deliveryNetMargin >= 0 ? 'text-emerald-700' : 'text-rose-700'
+                  }`}>
+                    {liveOperatingFinancials.deliveryNetMargin >= 0 ? '+' : ''}
+                    {fmt(liveOperatingFinancials.deliveryNetMargin)} د.م
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* تنبيه محاسبي شفاف يوضح أن هذا الربح تشغيلي قبل المصاريف العامة */}
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs font-bold">
+              <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-[11px] leading-relaxed">
+                <span>{t.operatingProfitNote}</span>
+                {liveOperatingFinancials.warnings.length > 0 && (
+                  <div className="mt-1 space-y-0.5 text-amber-800 text-[10px] font-normal">
+                    {liveOperatingFinancials.warnings.map((w, idx) => (
+                      <div key={idx}>• {w}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ─── 4 بطاقات مؤشرات أداء رئيسية KPI Cards للتوقعات ─── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
             <div className="bg-white border-2 border-emerald-200 rounded-2xl p-3 sm:p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs text-emerald-800 font-bold mb-1">

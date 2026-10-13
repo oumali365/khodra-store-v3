@@ -165,10 +165,17 @@ export interface OrderSubmission {
   cogs_amount?: number;
   cogs_status?: CostCertainty;
   actual_delivery_cost?: number;
+  delivery_cost?: number;
+  driver_cost?: number;
   delivery_cost_status?: CostCertainty;
   financial_status?: FinancialStatus;
   discount_amount?: number;
   refund_amount?: number;
+  packaging_cost?: number;
+  other_direct_costs?: number;
+  direct_costs?: number;
+  operating_profit?: number;
+  operating_profit_margin?: number;
   // ─── حقول الأمان والتتبع ───
   idempotencyKey?: string;
   clientId?: string;

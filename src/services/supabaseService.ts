@@ -421,12 +421,12 @@ export async function updateProductStockQuick(
 /**
  * ────────────────────────────────────────────────────────────
  * تسجيل حركة مخزون ذرية وموثقة محاسبياً
- * (توريد صباحي، فاقد وتالف، مرتجع، تعديل يدوي)
+ * (توريد صباحي، تعديل يدوي، خصم واسترجاع طلبات)
  * ────────────────────────────────────────────────────────────
  */
 export async function recordInventoryMovement(params: {
   productId: number;
-  movementType: 'morning_stockin' | 'waste_loss' | 'supplier_return' | 'manual_adjustment';
+  movementType: 'morning_stockin' | 'manual_adjustment' | 'order_deduct' | 'order_restore';
   quantityDelta: number;
   unitCost?: number;
   supplierId?: string;
@@ -716,6 +716,15 @@ export async function submitOrder(
     // ─── كشف المنطقة الذكية لمدينة فاس ───
     const detectedZone = order.delivery_zone || detectFezZone(order.address);
 
+    const initialSubtotal = Number(order.subtotal) || 0;
+    const initialFee = Number(order.deliveryFee) || 0;
+    const estimatedCogs = Number((initialSubtotal * 0.60).toFixed(2));
+    const estimatedDelCost = detectedZone === 'south' ? 15 : (detectedZone === 'east' ? 25 : 20);
+    const initialPackaging = 2.00;
+    const initialDirectCosts = Number((estimatedCogs + estimatedDelCost + initialPackaging).toFixed(2));
+    const initialGrossRevenue = Number((initialSubtotal + initialFee).toFixed(2));
+    const initialOperatingProfit = Number((initialGrossRevenue - initialDirectCosts).toFixed(2));
+
     // ─── بيانات الطلب مع الحماية ومكافحة الطلبات المزيفة ───
     const orderData: Record<string, any> = {
       order_code: sanitizeInput(String(order.orderCode || `#${Date.now()}`)),
@@ -724,13 +733,24 @@ export async function submitOrder(
       address: sanitizeInput(String(order.address || '')),
       delivery_zone: detectedZone,
       items: cleanItems,
-      subtotal: Number(order.subtotal) || 0,
-      delivery_fee: Number(order.deliveryFee) || 0,
-      total: Number(order.total) || 0,
+      subtotal: initialSubtotal,
+      delivery_fee: initialFee,
+      total: Number(order.total) || initialGrossRevenue,
       status: 'pending',
       note: noteParts.length > 0 ? sanitizeInput(noteParts.join(' | ')) : null,
       maps_link: order.mapsLink ? sanitizeInput(String(order.mapsLink)) : null,
       created_at: new Date().toISOString(),
+      // ─── حقول التكلفة والربح التشغيلي المباشر ───
+      cogs_amount: estimatedCogs,
+      cogs_status: 'estimated',
+      actual_delivery_cost: estimatedDelCost,
+      delivery_cost: estimatedDelCost,
+      driver_cost: estimatedDelCost,
+      delivery_cost_status: 'estimated',
+      packaging_cost: initialPackaging,
+      other_direct_costs: 0.00,
+      direct_costs: initialDirectCosts,
+      operating_profit: initialOperatingProfit,
       // ─── حقول الأمان والتتبع ───
       idempotency_key: order.idempotencyKey || null,
       client_id: order.clientId || null,
@@ -1111,12 +1131,19 @@ export interface DbOrder {
   cogs_amount?: number;
   cogs_status?: 'actual' | 'estimated' | 'unknown';
   actual_delivery_cost?: number;
+  delivery_cost?: number;
+  driver_cost?: number;
   delivery_cost_status?: 'actual' | 'estimated' | 'unknown';
   financial_status?: 'unpaid' | 'paid' | 'partially_refunded' | 'refunded';
   refund_amount?: number;
   discount_amount?: number;
   driver_id?: string;
   driver_wage?: number;
+  packaging_cost?: number;
+  other_direct_costs?: number;
+  direct_costs?: number;
+  operating_profit?: number;
+  operating_profit_margin?: number;
 }
 
 
@@ -1616,12 +1643,19 @@ function mapRowToOrder(row: any): DbOrder {
     cogs_amount: safeRow.cogs_amount != null ? Number(safeRow.cogs_amount) : undefined,
     cogs_status: safeRow.cogs_status || undefined,
     actual_delivery_cost: safeRow.actual_delivery_cost != null ? Number(safeRow.actual_delivery_cost) : undefined,
+    delivery_cost: safeRow.delivery_cost != null ? Number(safeRow.delivery_cost) : (safeRow.actual_delivery_cost != null ? Number(safeRow.actual_delivery_cost) : undefined),
+    driver_cost: safeRow.driver_cost != null ? Number(safeRow.driver_cost) : (safeRow.actual_delivery_cost != null ? Number(safeRow.actual_delivery_cost) : undefined),
     delivery_cost_status: safeRow.delivery_cost_status || undefined,
     financial_status: safeRow.financial_status || (safeRow.is_paid ? 'paid' : 'unpaid'),
     refund_amount: safeRow.refund_amount != null ? Number(safeRow.refund_amount) : 0,
     discount_amount: safeRow.discount_amount != null ? Number(safeRow.discount_amount) : 0,
     driver_id: safeRow.driver_id || safeRow.delivery_dispatch?.driverId || undefined,
     driver_wage: safeRow.driver_wage != null ? Number(safeRow.driver_wage) : undefined,
+    packaging_cost: safeRow.packaging_cost != null ? Number(safeRow.packaging_cost) : 2,
+    other_direct_costs: safeRow.other_direct_costs != null ? Number(safeRow.other_direct_costs) : (safeRow.direct_costs != null ? Number(safeRow.direct_costs) : 0),
+    direct_costs: safeRow.direct_costs != null ? Number(safeRow.direct_costs) : undefined,
+    operating_profit: safeRow.operating_profit != null ? Number(safeRow.operating_profit) : undefined,
+    operating_profit_margin: safeRow.operating_profit_margin != null ? Number(safeRow.operating_profit_margin) : undefined,
   };
 }
 
@@ -2111,11 +2145,13 @@ export const INITIAL_STORE_DRIVERS: StoreDriver[] = [
 
 function readLocalDrivers(): StoreDriver[] {
   try {
-    const raw = localStorage.getItem(STORE_DRIVERS_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(STORE_DRIVERS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       }
     }
   } catch (e) {
@@ -2126,7 +2162,9 @@ function readLocalDrivers(): StoreDriver[] {
 
 function writeLocalDrivers(drivers: StoreDriver[]): void {
   try {
-    localStorage.setItem(STORE_DRIVERS_STORAGE_KEY, JSON.stringify(drivers));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORE_DRIVERS_STORAGE_KEY, JSON.stringify(drivers));
+    }
   } catch (e) {
     console.warn('Failed saving local drivers:', e);
   }
@@ -2338,17 +2376,30 @@ export async function batchAssignZoneOrders(params: {
     return { success: false, updatedCount: 0, message: 'لا توجد طلبات في هذه الجولة' };
   }
 
+  const ordersCount = orders.length;
+  // التكلفة المعتمدة للطلب الواحد: عمولة السائق المحددة لكل طلب في نموذج المتجر
+  const defaultPerOrderCost = Number(driver.commissionPerOrder) || 25;
+
   let count = 0;
   for (const ord of orders) {
+    const existingDispatch = ord.delivery_dispatch;
+    // الحفاظ على التكلفة المحددة مسبقاً للطلب أو إسناد حصة الطلب الفردية دون مضاعفة
+    const assignedOrderCost = existingDispatch?.deliveryCost != null
+      ? existingDispatch.deliveryCost
+      : defaultPerOrderCost;
+
     const dispatchInfo: DeliveryDispatchInfo = {
       provider: 'custom',
+      driverId: driver.id,
       driverName: driver.name,
       driverPhone: driver.phone,
-      deliveryCost: driver.commissionPerOrder || 25,
+      deliveryCost: assignedOrderCost,
+      agreedWage: assignedOrderCost,
+      costCertainty: existingDispatch?.costCertainty || 'estimated',
       dispatchStatus: 'in_transit',
-      dispatchedAt: new Date().toISOString(),
-      zone: ord.delivery_zone || 'north',
-      notes: `جولة توصيل داخلية مع ${driver.name}`,
+      dispatchedAt: existingDispatch?.dispatchedAt || new Date().toISOString(),
+      zone: ord.delivery_zone || (existingDispatch?.zone as FezZoneId) || 'north',
+      notes: `جولة توصيل داخلية (${ordersCount} طلبات) مع ${driver.name}`,
     };
 
     // 1. تحديث بيانات التوصيل والسائق
@@ -2416,72 +2467,86 @@ export async function closeAndDeliverZoneTour(params: {
     }
   }
 
-  let count = 0;
+  let newlyDeliveredCount = 0;
   for (const ord of orders) {
+    const isAlreadyDelivered = ord.status === 'delivered';
+    const currentDispatch: DeliveryDispatchInfo = ord.delivery_dispatch || {
+      provider: 'custom',
+      dispatchStatus: 'delivered',
+      driverName: driver?.name,
+      driverPhone: driver?.phone,
+    };
+
+    // منع تكرار أو تعديل تكلفة التوصيل للطلب إذا كانت مسجلة ومكتملة مسبقاً (حفظ السجل التاريخي)
+    const preservedDeliveryCost =
+      currentDispatch.costCertainty === 'actual' && currentDispatch.deliveryCost != null
+        ? currentDispatch.deliveryCost
+        : (currentDispatch.agreedWage ?? currentDispatch.deliveryCost ?? driverWage);
+
     if (!atomicSucceeded) {
-      // 1. تحديث حالة الطلب إلى تم التسليم
-      await updateOrderStatus(ord.id, 'delivered');
+      // 1. تحديث حالة الطلب إلى تم التسليم إن لم يكن مسلماً مسبقاً
+      if (!isAlreadyDelivered) {
+        await updateOrderStatus(ord.id, 'delivered');
+      }
       // 2. تحديث الدفع والأرشفة في قاعدة البيانات
       await updateOrderPayment(ord.id, true);
       await updateOrderArchive(ord.id, true);
 
-      // 3. تحديث بيانات التوصيل إن كانت موجودة وتجميد الأجرة
-      const currentDispatch: DeliveryDispatchInfo = ord.delivery_dispatch || {
-        provider: 'custom',
-        dispatchStatus: 'delivered',
-        driverName: driver?.name,
-        driverPhone: driver?.phone,
-      };
+      // 3. تحديث بيانات التوصيل مع تثبيت التكلفة الفعلية للطلب الفردي ومنع التكرار
       await updateOrderDispatch(ord.id, ord.order_code, {
         ...currentDispatch,
         dispatchStatus: 'delivered',
         driverName: driver?.name || currentDispatch.driverName,
         driverPhone: driver?.phone || currentDispatch.driverPhone,
-        driverId: driver?.id,
-        agreedWage: driverWage,
+        driverId: driver?.id || currentDispatch.driverId,
+        agreedWage: preservedDeliveryCost,
         costCertainty: 'actual',
-        deliveryCost: driverWage,
+        deliveryCost: preservedDeliveryCost,
       });
+    }
+
+    if (!isAlreadyDelivered) {
+      newlyDeliveredCount++;
     }
 
     if (ord.order_code) {
       newlyArchivedCodes.push(ord.order_code);
     }
     newlyArchivedCodes.push(String(ord.id));
-    count++;
   }
 
   // 4. أرشفة الطلبات أيضاً في التخزين المحلي لضمان التوافق مع أي شاشات دون اتصال
   try {
-    const STORAGE_KEY_ARCHIVED = 'khodra_archived_orders';
-    const saved = localStorage.getItem(STORAGE_KEY_ARCHIVED);
-    const existing = saved ? (JSON.parse(saved) as string[]) : [];
-    const merged = Array.from(new Set([...existing, ...newlyArchivedCodes]));
-    localStorage.setItem(STORAGE_KEY_ARCHIVED, JSON.stringify(merged));
+    if (typeof localStorage !== 'undefined') {
+      const STORAGE_KEY_ARCHIVED = 'khodra_archived_orders';
+      const saved = localStorage.getItem(STORAGE_KEY_ARCHIVED);
+      const existing = saved ? (JSON.parse(saved) as string[]) : [];
+      const merged = Array.from(new Set([...existing, ...newlyArchivedCodes]));
+      localStorage.setItem(STORAGE_KEY_ARCHIVED, JSON.stringify(merged));
 
-    const STORAGE_KEY_PAID = 'khodra_paid_orders';
-    const savedPaid = localStorage.getItem(STORAGE_KEY_PAID);
-    const existingPaid = savedPaid ? (JSON.parse(savedPaid) as string[]) : [];
-    const mergedPaid = Array.from(new Set([...existingPaid, ...newlyArchivedCodes]));
-    localStorage.setItem(STORAGE_KEY_PAID, JSON.stringify(mergedPaid));
+      const STORAGE_KEY_PAID = 'khodra_paid_orders';
+      const savedPaid = localStorage.getItem(STORAGE_KEY_PAID);
+      const existingPaid = savedPaid ? (JSON.parse(savedPaid) as string[]) : [];
+      const mergedPaid = Array.from(new Set([...existingPaid, ...newlyArchivedCodes]));
+      localStorage.setItem(STORAGE_KEY_PAID, JSON.stringify(mergedPaid));
+    }
   } catch (storageErr) {
     console.warn('Failed to auto-archive delivered orders to localStorage:', storageErr);
   }
 
-  // 5. تحديث حالة السائق المعين إلى متاح وزيادة إجمالي التسليم
+  // 5. تحديث حالة السائق المعين إلى متاح وزيادة إجمالي التسليم بالطلبات الجديدة فقط لمنع التكرار
   if (driver && driver.id) {
     await updateStoreDriver(driver.id, {
       status: 'available',
-      activeOrdersCount: Math.max(0, (driver.activeOrdersCount || 0) - count),
-      totalDeliveredCount: (driver.totalDeliveredCount || 0) + count,
+      activeOrdersCount: Math.max(0, (driver.activeOrdersCount || 0) - newlyDeliveredCount),
+      totalDeliveredCount: (driver.totalDeliveredCount || 0) + newlyDeliveredCount,
     });
   }
 
-
   return {
     success: true,
-    deliveredCount: count,
-    message: `تم إغلاق الجولة وتأكيد تسليم ${count} طلبات بنجاح، ونقلها تلقائياً إلى الأرشيف!`,
+    deliveredCount: newlyDeliveredCount,
+    message: `تم إغلاق الجولة وتأكيد تسليم ${newlyDeliveredCount} طلبات بنجاح، ونقلها تلقائياً إلى الأرشيف!`,
   };
 }
 

@@ -235,7 +235,7 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     reason: string;
     orderId?: string;
   }) => {
-    const delta = movement.movementType === 'waste_loss' ? -movement.quantity : movement.quantity;
+    const delta = movement.quantity;
     const res = await recordInventoryMovement({
       productId: movement.productId,
       movementType: movement.movementType,
@@ -550,24 +550,6 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
               title="تسجيل توريد صباحي جديد من سوق الجملة بنسودة مع ربط تكلفة الشراء"
             >
               <span>📥 توريد صباحي</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleOpenMovementModal('waste_loss')}
-              className="px-3.5 py-2.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
-              title="تسجيل الفاقد والتالف والفرز مع حساب القيمة المهدرة"
-            >
-              <span>🗑️ تسجيل تالف</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleOpenMovementModal('supplier_return')}
-              className="px-3.5 py-2.5 rounded-xl bg-amber-600/80 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
-              title="تسجيل المرتجعات واستعادة المخزون"
-            >
-              <span>🔄 مرتجع سلع</span>
             </button>
 
             <button
