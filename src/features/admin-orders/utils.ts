@@ -144,12 +144,15 @@ export function buildStoreTeamDriverMessage(order: DbOrder, draft?: DeliveryDisp
 }
 
 /**
- * 3. رسالة استدعاء سائق inDrive (الخيار الاحتياطي)
+ * 3. رسالة استدعاء سائق خارجي (تطبيقات التوصيل / سريعة)
  */
-export function buildInDriveDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
+export function buildExternalDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
   const hub = STORE_PICKUP_HUB;
   const deliveryCost = draft?.deliveryCost ?? 25;
   const safeTotal = Number(order.total ?? 0).toFixed(2);
+  const driverName = draft?.driverName || 'سائق خارجي غير محدد';
+  const sourceName = draft?.provider || 'تطبيق توصيل خارجي';
+  const zoneName = order.delivery_zone ? (FEZ_DELIVERY_ZONES[order.delivery_zone]?.name || order.delivery_zone) : 'فاس';
   const mapUrl =
     order.maps_link ||
     (order.address
@@ -157,9 +160,11 @@ export function buildInDriveDriverMessage(order: DbOrder, draft?: DeliveryDispat
       : '');
 
   return [
-    `السلام عليكم كابتن inDrive 🛵`,
-    `🌿 *مشوار توصيل طرد - متجر خُضرة بفاس (احتياطي)*`,
+    `السلام عليكم كابتن توصيل 🛵`,
+    `🌿 *مشوار توصيل طرد - متجر خُضرة بفاس (سائق خارجي)*`,
     `🔖 *رقم الطلب:* ${order.order_code}`,
+    `👤 *السائق والمصدر:* ${driverName} (${sourceName})`,
+    `🧭 *المسار/المنطقة:* ${zoneName}`,
     `────────────────────`,
     `📍 *نقطة الانطلاق (استلام الطرد):*`,
     `🏪 ${hub.name} - ${hub.address}`,
@@ -172,12 +177,17 @@ export function buildInDriveDriverMessage(order: DbOrder, draft?: DeliveryDispat
     mapUrl ? `🗺️ رابط الموقع: ${mapUrl}` : '',
     `────────────────────`,
     `💵 *المبلغ المطلوب تحصيله (COD): ${safeTotal} درهم*`,
-    `🚚 *أجرة المشوار المقترحة:* ${deliveryCost} درهم`,
+    `🚚 *أجرة التوصيل المرتبطة:* ${deliveryCost} درهم`,
+    `🟢 *حالة الاستدعاء:* جاهز للإرسال والتأكيد الفوري`,
     `────────────────────`,
     `يرجى التواصل لتأكيد المشوار والانطلاق فوراً. شكراً لك!`,
   ]
     .filter(Boolean)
     .join('\n');
+}
+
+export function buildInDriveDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
+  return buildExternalDriverMessage(order, draft);
 }
 
 /**

@@ -3,7 +3,7 @@
 // يوفر شريط تنقل متطور لوضع الحاسوب وشريط لمس مخصص للهاتف
 // مع حماية الرمز السري والانتقال السلس بين أدوات الإدارة الأربعة
 // ============================================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ShieldCheck,
   ShoppingBag,
@@ -151,6 +151,47 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
       return next;
     });
   }, []);
+
+  // ─── 30 دقيقة مهلة خمول إدارية مع تنبيه قبل الانتهاء بـ 2 دقيقة ───
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+  const lastActivityRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 دقيقة
+    const WARNING_THRESHOLD_MS = 28 * 60 * 1000; // 28 دقيقة
+
+    const updateActivity = () => {
+      lastActivityRef.current = Date.now();
+      if (showInactivityWarning) {
+        setShowInactivityWarning(false);
+      }
+    };
+
+    const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
+    events.forEach((ev) => window.addEventListener(ev, updateActivity, { passive: true }));
+
+    const interval = setInterval(() => {
+      const inactiveDuration = Date.now() - lastActivityRef.current;
+      if (inactiveDuration >= INACTIVITY_LIMIT_MS) {
+        setNotice('⏰ انتهت جلسة الإدارة بسبب الخمول (30 دقيقة). يرجى إعادة إدخال الرمز السري.');
+        try {
+          sessionStorage.removeItem('khodra_admin_auth');
+        } catch {}
+        setTimeout(() => {
+          onReturnToStore();
+        }, 1500);
+      } else if (inactiveDuration >= WARNING_THRESHOLD_MS && !showInactivityWarning) {
+        setShowInactivityWarning(true);
+      }
+    }, 10000);
+
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, updateActivity));
+      clearInterval(interval);
+    };
+  }, [isAdmin, showInactivityWarning, onReturnToStore]);
 
   useEffect(() => {
     const handleRevoked = (e: any) => {
@@ -480,6 +521,33 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
           );
         })}
       </nav>
+
+      {/* ─── تحذير قرب انتهاء الجلسة بسبب الخمول ─── */}
+      {showInactivityWarning && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border-2 border-amber-500 space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto text-2xl font-black">
+              ⏰
+            </div>
+            <div>
+              <h3 className="text-base font-black text-stone-900">تنبيه خمول الجلسة</h3>
+              <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+                ستنتهي جلسة الإدارة قريباً لعدم وجود نشاط. هل تريد تمديد الجلسة؟
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                lastActivityRef.current = Date.now();
+                setShowInactivityWarning(false);
+              }}
+              className="w-full py-3 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-white font-black text-xs cursor-pointer shadow-md transition-all"
+            >
+              تمديد الجلسة والتابع
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════
           5. مودال تغيير الرمز السري

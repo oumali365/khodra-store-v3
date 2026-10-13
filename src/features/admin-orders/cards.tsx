@@ -136,10 +136,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   return (
     <div className="bg-white border-2 border-stone-200 hover:border-stone-300 rounded-2xl p-3.5 sm:p-4 shadow-xs transition-all space-y-3 text-right">
-      {/* 1. الترويسة */}
+      {/* 1. معلومات الطلب (Order Info) */}
       <OrderCardHeader order={order} />
 
-      {/* 2. بيانات العميل والعنوان */}
+      {/* 2. الاتصال (Contact) */}
       <div className="text-xs space-y-1.5 bg-stone-50 p-2.5 rounded-xl border border-stone-200 text-stone-700">
         <div className="flex items-center justify-between">
           <span className="text-stone-500 text-[11px]">الهاتف:</span>
@@ -173,7 +173,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         )}
       </div>
 
-      {/* 3. قائمة المنتجات المنسدلة */}
+      {/* 3. المنتجات (Products) */}
       <div className="border border-stone-200 rounded-xl overflow-hidden text-xs">
         <button
           type="button"
@@ -206,116 +206,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         )}
       </div>
 
-      {/* 4. رسائل واتساب المخصصة حسب الفرع */}
-      <div className="space-y-1.5">
-        {currentBranch === 'pending' && (
-          <a
-            href={
-              cleanPhone
-                ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                    buildCustomerThankAndConfirmMessage(order)
-                  )}`
-                : '#'
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-            title="إرسال شكر وتأكيد الاستلام للزبون"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>واتساب: تأكيد واستلام الطلب للزبون</span>
-          </a>
-        )}
-
-        {currentBranch === 'prepared' && (
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(
-                buildStoreTeamDriverMessage(order, draft)
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-2 px-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors shadow-xs"
-              title="استدعاء سائق فريق خُضرة الداخلي"
-            >
-              <Bike className="w-3.5 h-3.5" />
-              <span>استدعاء كابتن المتجر</span>
-            </a>
-
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(
-                buildInDriveDriverMessage(order, draft)
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-2 px-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors shadow-xs"
-              title="استدعاء كابتن inDrive"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>استدعاء inDrive</span>
-            </a>
-          </div>
-        )}
-
-        {currentBranch === 'delivered' && (
-          <a
-            href={
-              cleanPhone
-                ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                    buildCustomerReviewMessage(order)
-                  )}`
-                : '#'
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-            title="طلب تقييم الخدمة من الزبون بعد التسليم"
-          >
-            <Star className="w-3.5 h-3.5 text-amber-300" />
-            <span>واتساب: طلب تقييم الخدمة من العميل</span>
-          </a>
-        )}
-      </div>
-
-      {/* 5. شريط تغيير الحالة السريع */}
-      <div className="pt-2 border-t border-stone-200">
-        <div className="flex items-center gap-1.5 text-xs">
-          {order.status !== 'pending' && (
-            <button
-              type="button"
-              disabled={isUpdatingStatus}
-              onClick={() => onStatusChange('pending')}
-              className="flex-1 py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold transition-colors cursor-pointer text-center text-[11px]"
-            >
-              قيد المراجعة
-            </button>
-          )}
-
-          {order.status !== 'prepared' && (
-            <button
-              type="button"
-              disabled={isUpdatingStatus}
-              onClick={() => onStatusChange('prepared')}
-              className="flex-1 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition-colors cursor-pointer text-center text-[11px]"
-            >
-              جاهز للتوصيل 🛵
-            </button>
-          )}
-
-          {order.status !== 'delivered' && (
-            <button
-              type="button"
-              disabled={isUpdatingStatus}
-              onClick={() => onStatusChange('delivered')}
-              className="flex-1 py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold transition-colors cursor-pointer text-center text-[11px]"
-            >
-              تم التسليم ✅
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 6. قائمة تعيين السائق وتفاصيل التوصيل (خاص بفرع التجهيز) */}
+      {/* 4. بيانات السائق (Driver Data) */}
       {currentBranch === 'prepared' && (
         <div className="border border-stone-200 rounded-xl overflow-hidden text-xs">
           <button
@@ -393,7 +284,116 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </div>
       )}
 
-      {/* 7. إدارة الدفع والأرشفة (خاص بفرع التسليم) */}
+      {/* 5. استدعاء السائق (Driver Dispatch / Call) */}
+      <div className="space-y-1.5">
+        {currentBranch === 'pending' && (
+          <a
+            href={
+              cleanPhone
+                ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                    buildCustomerThankAndConfirmMessage(order)
+                  )}`
+                : '#'
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+            title="إرسال شكر وتأكيد الاستلام للزبون"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>واتساب: تأكيد واستلام الطلب للزبون</span>
+          </a>
+        )}
+
+        {currentBranch === 'prepared' && (
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                buildStoreTeamDriverMessage(order, draft)
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="py-2 px-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors shadow-xs"
+              title="استدعاء سائق فريق خُضرة الداخلي"
+            >
+              <Bike className="w-3.5 h-3.5" />
+              <span>استدعاء كابتن المتجر</span>
+            </a>
+
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                buildInDriveDriverMessage(order, draft)
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="py-2 px-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors shadow-xs"
+              title="استدعاء سائق خارجي"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>استدعاء سائق خارجي</span>
+            </a>
+          </div>
+        )}
+
+        {currentBranch === 'delivered' && (
+          <a
+            href={
+              cleanPhone
+                ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                    buildCustomerReviewMessage(order)
+                  )}`
+                : '#'
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+            title="طلب تقييم الخدمة من الزبون بعد التسليم"
+          >
+            <Star className="w-3.5 h-3.5 text-amber-300" />
+            <span>واتساب: طلب تقييم الخدمة من العميل</span>
+          </a>
+        )}
+      </div>
+
+      {/* 6. حالة الطلب (Order Status) */}
+      <div className="pt-2 border-t border-stone-200">
+        <div className="flex items-center gap-1.5 text-xs">
+          {order.status !== 'pending' && (
+            <button
+              type="button"
+              disabled={isUpdatingStatus}
+              onClick={() => onStatusChange('pending')}
+              className="flex-1 py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold transition-colors cursor-pointer text-center text-[11px]"
+            >
+              قيد المراجعة
+            </button>
+          )}
+
+          {order.status !== 'prepared' && (
+            <button
+              type="button"
+              disabled={isUpdatingStatus}
+              onClick={() => onStatusChange('prepared')}
+              className="flex-1 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition-colors cursor-pointer text-center text-[11px]"
+            >
+              جاهز للتوصيل 🛵
+            </button>
+          )}
+
+          {order.status !== 'delivered' && (
+            <button
+              type="button"
+              disabled={isUpdatingStatus}
+              onClick={() => onStatusChange('delivered')}
+              className="flex-1 py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold transition-colors cursor-pointer text-center text-[11px]"
+            >
+              تم التسليم ✅
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 7. أزرار التحكم والعمليات (Control Buttons) */}
       {currentBranch === 'delivered' && (
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-200 text-xs">
           <button
@@ -425,7 +425,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </div>
       )}
 
-      {/* 8. أدوات سريعة في الأسفل: فاتورة، بوليصة، نسخ، حذف */}
       <div className="flex items-center justify-between gap-1 pt-2 border-t border-stone-200">
         <div className="flex items-center gap-1">
           <button
