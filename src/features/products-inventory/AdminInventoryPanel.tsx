@@ -25,6 +25,8 @@ import {
   ChevronRight,
   X,
   Filter,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Product, ProductCategory } from '../../types';
 import {
@@ -32,6 +34,8 @@ import {
   saveProductToStore,
   updateProductStockQuick,
   deleteProductFromStore,
+  hideProductInStore,
+  restoreProductInStore,
   recordInventoryMovement,
 } from '../../services/supabaseService';
 import { InventoryMovementModal, InventoryMovementType } from './InventoryMovementModal';
@@ -513,6 +517,41 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     }
   };
 
+  // إخفاء (إزالة من المتجر)
+  const handleHideProduct = async (p: Product) => {
+    if (!window.confirm(`هل أنت متأكد من رغبتك في إخفاء المنتج "${p.name}" من المتجر ومنع ظهوره للعملاء؟`)) {
+      return;
+    }
+    setSavingId(p.id);
+    const res = await hideProductInStore(p.id);
+    setSavingId(null);
+    if (res.success) {
+      showToast('success', res.message || `تم إخفاء المنتج ${p.name}`);
+      setProducts((prev) =>
+        prev.map((item) => (item.id === p.id ? { ...item, is_available: false, active: false } : item))
+      );
+      await loadCatalog();
+    } else {
+      showToast('error', res.message || 'فشل إخفاء المنتج');
+    }
+  };
+
+  // استرجاع إلى المتجر
+  const handleRestoreProduct = async (p: Product) => {
+    setSavingId(p.id);
+    const res = await restoreProductInStore(p.id);
+    setSavingId(null);
+    if (res.success) {
+      showToast('success', res.message || `تم استرجاع المنتج ${p.name}`);
+      setProducts((prev) =>
+        prev.map((item) => (item.id === p.id ? { ...item, is_available: (item.stock ?? 10) > 0, active: true } : item))
+      );
+      await loadCatalog();
+    } else {
+      showToast('error', res.message || 'فشل استرجاع المنتج');
+    }
+  };
+
   if (!isOpen && !standalone) return null;
 
   return (
@@ -901,6 +940,30 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                         <span>🧠 تحليل السعر</span>
                       </button>
 
+                      {p.is_available === false || p.active === false ? (
+                        <button
+                          type="button"
+                          onClick={() => handleRestoreProduct(p)}
+                          disabled={savingId === p.id}
+                          className="p-1 px-2 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 text-[11px] font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                          title="استرجاع المنتج إلى المتجر وإظهاره للعملاء"
+                        >
+                          <Eye className="w-3 h-3 text-emerald-800" />
+                          <span>استرجاع</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleHideProduct(p)}
+                          disabled={savingId === p.id}
+                          className="p-1 px-2 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-[11px] font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                          title="إزالة وإخفاء المنتج من المتجر مؤقتاً"
+                        >
+                          <EyeOff className="w-3 h-3 text-stone-600" />
+                          <span>إخفاء</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => handleOpenEditModal(p)}
@@ -1037,7 +1100,12 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                       </td>
 
                       <td className="py-3 px-4">
-                        {isOut ? (
+                        {p.is_available === false || p.active === false ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-black text-stone-600 bg-stone-100 border border-stone-300 px-2.5 py-0.5 rounded-full">
+                            <EyeOff className="w-3 h-3 text-stone-500" />
+                            مخفي من المتجر
+                          </span>
+                        ) : isOut ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                             نفد المخزون
@@ -1067,6 +1135,30 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                             <Sparkles className="w-3.5 h-3.5 text-purple-700" />
                             <span>🧠 تحليل السعر والطلب</span>
                           </button>
+
+                          {p.is_available === false || p.active === false ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRestoreProduct(p)}
+                              disabled={savingId === p.id}
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                              title="استرجاع المنتج إلى المتجر وإظهاره للعملاء"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-emerald-800" />
+                              <span>استرجاع</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleHideProduct(p)}
+                              disabled={savingId === p.id}
+                              className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                              title="إزالة وإخفاء المنتج من المتجر مؤقتاً"
+                            >
+                              <EyeOff className="w-3.5 h-3.5 text-stone-600" />
+                              <span>إخفاء</span>
+                            </button>
+                          )}
 
                           <button
                             type="button"

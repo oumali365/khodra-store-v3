@@ -614,6 +614,119 @@ export async function deleteProductFromStore(
   }
 }
 
+export async function hideProductInStore(
+  productId: number
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    if (!productId || productId <= 0 || isNaN(Number(productId))) {
+      return { success: false, message: 'معرف المنتج غير صالح' };
+    }
+
+    const client = getSupabase();
+    if (!client) {
+      return { success: false, message: 'قاعدة بيانات Supabase غير متصلة' };
+    }
+
+    const { data, error } = await client
+      .from('products')
+      .update({
+        is_available: false,
+        active: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', Number(productId))
+      .select();
+
+    if (error) {
+      console.error('Supabase product hide error:', error);
+      return { success: false, message: error.message || 'فشل إخفاء المنتج' };
+    }
+
+    if (!data || data.length === 0) {
+      return { success: false, message: 'لم يتم حفظ التعديل في Supabase؛ يرجى التحقق من سياسات RLS' };
+    }
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('khodra_custom_products_v2');
+      } catch {}
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('khodra_products_availability_updated', {
+          detail: { productId: Number(productId), isAvailable: false, stock: 0 },
+        })
+      );
+    }
+
+    return { success: true, message: 'تم إخفاء المنتج بنجاح من المتجر' };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'فشل إخفاء المنتج' };
+  }
+}
+
+export async function restoreProductInStore(
+  productId: number
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    if (!productId || productId <= 0 || isNaN(Number(productId))) {
+      return { success: false, message: 'معرف المنتج غير صالح' };
+    }
+
+    const client = getSupabase();
+    if (!client) {
+      return { success: false, message: 'قاعدة بيانات Supabase غير متصلة' };
+    }
+
+    const { data: currentProd } = await client
+      .from('products')
+      .select('stock')
+      .eq('id', Number(productId))
+      .single();
+
+    const currentStock = currentProd?.stock !== undefined ? Number(currentProd.stock) : 10;
+    const isAvail = currentStock > 0;
+
+    const { data, error } = await client
+      .from('products')
+      .update({
+        is_available: true,
+        active: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', Number(productId))
+      .select();
+
+    if (error) {
+      console.error('Supabase product restore error:', error);
+      return { success: false, message: error.message || 'فشل استرجاع المنتج' };
+    }
+
+    if (!data || data.length === 0) {
+      return { success: false, message: 'لم يتم حفظ التعديل في Supabase؛ يرجى التحقق من سياسات RLS' };
+    }
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('khodra_custom_products_v2');
+      } catch {}
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('khodra_products_availability_updated', {
+          detail: { productId: Number(productId), isAvailable: isAvail, stock: currentStock },
+        })
+      );
+    }
+
+    return { success: true, message: 'تم استرجاع المنتج بنجاح إلى المتجر' };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'فشل استرجاع المنتج' };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ─── رفع الطلب (مُصحَّح: تنظيف items) ───
 // ═══════════════════════════════════════════════════════════════
@@ -673,12 +786,30 @@ export async function submitOrder(
     // ignore
   }
 
-  if (!client) {
-    console.warn('⚠️ Supabase client غير متاح — تم الحفظ محلياً');
-    return {
-      success: true,
-      message: 'تم حفظ الطلب محلياً',
-    };
+  if (client && order.items && order.items.length > 0) {
+    try {
+      const productIds = order.items.map((i) => Number(i.id)).filter((id) => !isNaN(id) && id > 0);
+      if (productIds.length > 0) {
+        const { data: dbProducts } = await client
+          .from('products')
+          .select('id, name, is_available, active')
+          .in('id', productIds);
+
+        if (dbProducts && dbProducts.length > 0) {
+          const hiddenItems = dbProducts.filter((p: any) => p.is_available === false || p.active === false);
+          if (hiddenItems.length > 0) {
+            const names = hiddenItems.map((p: any) => p.name).join('، ');
+            return {
+              success: false,
+              message: `عذراً، المنتج(ات) التالية تم إخفاؤها أو لم تعد متاحة للشراء: ${names}. يرجى إزالتها من السلة للمتابعة.`,
+              errorCode: 'PRODUCT_HIDDEN',
+            };
+          }
+        }
+      }
+    } catch (chkErr) {
+      console.warn('Product availability check before order submission warning:', chkErr);
+    }
   }
 
   try {

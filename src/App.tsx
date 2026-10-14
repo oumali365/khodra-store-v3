@@ -513,17 +513,20 @@ export default function App() {
 
     verifyCurrentSession();
 
-    const handleVisibilityOrFocus = () => {
+    const handleVisibilityOrFocus = async () => {
       if (
         document.visibilityState === 'visible' &&
         sessionStorage.getItem('khodra_admin_auth') === 'true'
       ) {
-        validateAdminSessionRemote().then((isValid) => {
+        try {
+          const isValid = await validateAdminSessionRemote();
           if (!isValid) {
             setIsAdmin(false);
             setIsAdminOrdersOpen(false);
           }
-        });
+        } catch (err) {
+          console.warn('⚠️ تعذر التحقق من الجلسة (قد يكون خطأ شبكة)، الإبقاء على وضع المدير:', err);
+        }
       }
     };
 

@@ -241,11 +241,11 @@ export interface MonthResult extends MonthData {
   revenue: number;
   cogs: number;
   deliveryCost: number;
-  fixedCosts: number;
+  estimatedOverhead: number;
   marketing: number;
   packaging: number;
   taxes: number;
-  totalExpenses: number;
+  directExpenses: number;
   netProfit: number;
   margin: number;
 }
@@ -253,7 +253,7 @@ export interface MonthResult extends MonthData {
 export interface Assumptions {
   cogsPercent: number;
   deliveryCostPerOrder: number;
-  fixedCostsPerMonth: number;
+  estimatedOverhead: number;
   taxPercent: number;
 }
 
@@ -276,7 +276,7 @@ export const INITIAL_MONTHS: MonthData[] = [
 export const INITIAL_ASSUMPTIONS: Assumptions = {
   cogsPercent: 68,
   deliveryCostPerOrder: 8,
-  fixedCostsPerMonth: 7800, // ⚠️ تم رفعه من 550 إلى 7800 ليتوافق مع نقطة التعادل 10-12 طلب/يوم
+  estimatedOverhead: 7800, // ⚠️ تم تغيير الاسم ليعكس أنه تقدير وليس مصروف فعلي مؤكد
   taxPercent: 1,
 };
 
@@ -349,7 +349,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
           parsed &&
           Number.isFinite(parsed.cogsPercent) &&
           Number.isFinite(parsed.deliveryCostPerOrder) &&
-          Number.isFinite(parsed.fixedCostsPerMonth) &&
+          Number.isFinite(parsed.estimatedOverhead) &&
           Number.isFinite(parsed.taxPercent)
         ) {
           return parsed;
@@ -492,12 +492,12 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
       const revenue = totalOrders * m.avgBasket;
       const cogs = revenue * (assumptions.cogsPercent / 100);
       const deliveryCost = totalOrders * assumptions.deliveryCostPerOrder;
-      const fixedCosts = assumptions.fixedCostsPerMonth;
+      const fixedCosts = assumptions.estimatedOverhead;
       const marketing = revenue * 0.008;
       const packaging = totalOrders * 2;
       const taxes = revenue * (assumptions.taxPercent / 100);
-      const totalExpenses = cogs + deliveryCost + fixedCosts + marketing + packaging + taxes;
-      const netProfit = revenue - totalExpenses;
+      const directExpenses = cogs + deliveryCost + marketing + packaging + taxes;
+      const netProfit = revenue - directExpenses; // ⚠️ صافي الربح التشغيلي قبل المصاريف العامة
       const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
       return {
@@ -506,11 +506,11 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
         revenue,
         cogs,
         deliveryCost,
-        fixedCosts,
+        estimatedOverhead: fixedCosts,
         marketing,
         packaging,
         taxes,
-        totalExpenses,
+        directExpenses,
         netProfit,
         margin,
       };
@@ -519,13 +519,13 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
 
   const totals = useMemo(() => {
     const totalRevenue = results.reduce((s, r) => s + r.revenue, 0);
-    const totalExpenses = results.reduce((s, r) => s + r.totalExpenses, 0);
+    const totalDirectExpenses = results.reduce((s, r) => s + r.directExpenses, 0);
     const totalProfit = results.reduce((s, r) => s + r.netProfit, 0);
     const totalOrders = results.reduce((s, r) => s + r.totalOrders, 0);
     const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
     const avgBasket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    return { totalRevenue, totalExpenses, totalProfit, totalOrders, avgMargin, avgBasket };
+    return { totalRevenue, totalDirectExpenses, totalProfit, totalOrders, avgMargin, avgBasket };
   }, [results]);
 
   const updateMonth = (index: number, field: keyof MonthData, value: number) => {
@@ -598,15 +598,15 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
       lang === 'fr' ? `M${String(r.month).padStart(2, '0')}` : r.month,
       r.ordersPerDay, r.workingDays, r.totalOrders, r.avgBasket,
       r.revenue.toFixed(2), r.cogs.toFixed(2), r.deliveryCost.toFixed(2),
-      r.fixedCosts.toFixed(2), r.marketing.toFixed(2), r.packaging.toFixed(2),
-      r.taxes.toFixed(2), r.totalExpenses.toFixed(2), r.netProfit.toFixed(2),
+      r.estimatedOverhead.toFixed(2), r.marketing.toFixed(2), r.packaging.toFixed(2),
+      r.taxes.toFixed(2), r.directExpenses.toFixed(2), r.netProfit.toFixed(2),
       r.margin.toFixed(2),
     ]);
 
     const totalRow = [
       totalLabel, '', '', totals.totalOrders, totals.avgBasket.toFixed(2),
       totals.totalRevenue.toFixed(2), '', '', '', '', '', '',
-      totals.totalExpenses.toFixed(2), totals.totalProfit.toFixed(2),
+      totals.totalDirectExpenses.toFixed(2), totals.totalProfit.toFixed(2),
       totals.avgMargin.toFixed(2),
     ];
 
@@ -629,9 +629,9 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     try {
       const headers = ['Mois', 'Commandes', 'CA', 'Depenses', 'Benefice_Net', 'Marge_%'].join('\t');
       const rows = results.map((r) =>
-        [r.month, r.totalOrders, r.revenue.toFixed(0), r.totalExpenses.toFixed(0), r.netProfit.toFixed(0), r.margin.toFixed(1)].join('\t')
+        [r.month, r.totalOrders, r.revenue.toFixed(0), r.directExpenses.toFixed(0), r.netProfit.toFixed(0), r.margin.toFixed(1)].join('\t')
       );
-      const total = ['Total', totals.totalOrders, totals.totalRevenue.toFixed(0), totals.totalExpenses.toFixed(0), totals.totalProfit.toFixed(0), totals.avgMargin.toFixed(1)].join('\t');
+      const total = ['Total', totals.totalOrders, totals.totalRevenue.toFixed(0), totals.totalDirectExpenses.toFixed(0), totals.totalProfit.toFixed(0), totals.avgMargin.toFixed(1)].join('\t');
       const tsv = [headers, ...rows, total].join('\n');
       await navigator.clipboard.writeText(tsv);
       setCopiedTable(true);
@@ -650,7 +650,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
     const cogsPct = Number.isFinite(assumptions.cogsPercent) ? assumptions.cogsPercent : 68;
     const deliveryCost = Number.isFinite(assumptions.deliveryCostPerOrder) ? assumptions.deliveryCostPerOrder : 8;
     const taxPct = Number.isFinite(assumptions.taxPercent) ? assumptions.taxPercent : 1;
-    const fixedCosts = Number.isFinite(assumptions.fixedCostsPerMonth) ? assumptions.fixedCostsPerMonth : 7800;
+    const fixedCosts = Number.isFinite(assumptions.estimatedOverhead) ? assumptions.estimatedOverhead : 7800;
 
     const variableCostPerOrder =
       (targetAOV * cogsPct) / 100 +
@@ -1022,17 +1022,23 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
             </div>
 
             {/* تنبيه محاسبي شفاف يوضح أن هذا الربح تشغيلي قبل المصاريف العامة */}
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs font-bold">
-              <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-              <div className="text-[11px] leading-relaxed">
-                <span>{t.operatingProfitNote}</span>
-                {liveOperatingFinancials.warnings.length > 0 && (
-                  <div className="mt-1 space-y-0.5 text-amber-800 text-[10px] font-normal">
-                    {liveOperatingFinancials.warnings.map((w, idx) => (
-                      <div key={idx}>• {w}</div>
-                    ))}
-                  </div>
-                )}
+            <div className="flex flex-col gap-3 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs font-bold">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <span>{t.operatingProfitNote}</span>
+                  {liveOperatingFinancials.warnings.length > 0 && (
+                    <div className="mt-1 space-y-0.5 text-amber-800 text-[10px] font-normal">
+                      {liveOperatingFinancials.warnings.map((w, idx) => (
+                        <div key={idx}>• {w}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="pt-2 border-t border-amber-200/50 flex flex-col gap-1.5">
+                <span className="text-[10px] text-amber-800">المصاريف العامة الفعلية غير محددة بعد.</span>
+                <button className="text-[10px] bg-amber-600 text-white px-2 py-1 rounded-md self-start">تسجيل مصروف فعلي</button>
               </div>
             </div>
           </div>
@@ -1156,8 +1162,8 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
                   <span className="text-xs font-bold text-stone-700 block mb-1">{t.fixedCosts}</span>
                   <input
                     type="number"
-                    value={assumptions.fixedCostsPerMonth}
-                    onChange={(e) => setAssumptions((p) => ({ ...p, fixedCostsPerMonth: +e.target.value }))}
+                    value={assumptions.estimatedOverhead}
+                    onChange={(e) => setAssumptions((p) => ({ ...p, estimatedOverhead: +e.target.value }))}
                     min="0" step="50"
                     inputMode="decimal"
                     className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm font-bold text-stone-900 focus:outline-none focus:border-[#1E4327] focus:ring-2 focus:ring-[#1E4327]/20"
@@ -1255,7 +1261,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
                     <th className="p-2 text-left">{t.thMonth}</th>
                     <th className="p-2 text-center">{t.thOrders}</th>
                     <th className="p-2 text-center">{t.thRevenue}</th>
-                    <th className="p-2 text-center">{t.thExpenses}</th>
+                    <th className="p-2 text-center">Direct Expenses</th>
                     <th className="p-2 text-center">{t.thNetProfit}</th>
                     <th className="p-2 text-center">{t.thMargin}</th>
                   </tr>
@@ -1270,7 +1276,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
                       </td>
                       <td className="p-2 text-center font-bold text-stone-700 tabular-nums">{fmt(r.totalOrders)}</td>
                       <td className="p-2 text-center font-bold text-emerald-700 tabular-nums">{fmt(r.revenue)}</td>
-                      <td className="p-2 text-center font-bold text-stone-600 tabular-nums">{fmt(r.totalExpenses)}</td>
+                      <td className="p-2 text-center font-bold text-stone-600 tabular-nums">{fmt(r.directExpenses)}</td>
                       <td className={`p-2 text-center font-black tabular-nums ${r.netProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                         {r.netProfit >= 0 ? '+' : ''}{fmt(r.netProfit)}
                       </td>
@@ -1293,7 +1299,7 @@ export const FinancePanel: React.FC<FinancePanelProps> = ({
                     <td className="p-2 text-left text-[#C25E12]">{t.thTotal}</td>
                     <td className="p-2 text-center text-[#C25E12] tabular-nums">{fmt(totals.totalOrders)}</td>
                     <td className="p-2 text-center text-emerald-700 tabular-nums">{fmt(totals.totalRevenue)}</td>
-                    <td className="p-2 text-center text-stone-700 tabular-nums">{fmt(totals.totalExpenses)}</td>
+                    <td className="p-2 text-center text-stone-700 tabular-nums">{fmt(totals.totalDirectExpenses)}</td>
                     <td className="p-2 text-center text-emerald-700 tabular-nums">+{fmt(totals.totalProfit)}</td>
                     <td className="p-2 text-center text-emerald-700 tabular-nums">{fmtDecimal(totals.avgMargin)}%</td>
                   </tr>

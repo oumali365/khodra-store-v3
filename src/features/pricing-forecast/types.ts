@@ -105,43 +105,4 @@ export interface DailyPriceDbRecord {
   updated_at?: string;
 }
 
-export interface DaySalesPoint {
-  dayName: string; // الإثنين، الثلاثاء...
-  dayIndex: number; // 1 = Monday, 7 = Sunday
-  volumeKg: number;
-  orderCount: number;
-}
 
-export interface TopProductSalesHistory {
-  productId: number;
-  productName: string;
-  icon: string;
-  category: ProductCategory;
-  totalVolume30Days: number;
-  dailyDistribution: DaySalesPoint[];
-  averagePerMonday: number;
-  currentStockRecommendation: number; // للرجعية
-  suggestedPurchaseQuantityKg: number; // حجم الشراء الصباحي المقترح (كجم)
-  spikeDetected: boolean;
-  spikePercentage: number;
-}
-
-export interface DemandForecastSummary {
-  currentDayName: string;
-  currentDayIndex: number;
-  smartSuggestionText: string;
-  recommendedTopItems: {
-    productId: number;
-    name: string;
-    icon: string;
-    quantityKg: number;
-    trendNote: string;
-  }[];
-  aiSpikeAlerts: {
-    id: string;
-    title: string;
-    message: string;
-    severity: 'warning' | 'info' | 'critical';
-    suggestedIncreasePercent: number;
-  }[];
-}
