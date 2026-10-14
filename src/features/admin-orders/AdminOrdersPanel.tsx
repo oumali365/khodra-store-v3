@@ -19,8 +19,14 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   const { orders, setOrders, isRefreshing, refreshOrders } = useOrders(onOrdersChange);
   const { updatingId, changeStatus, togglePayment, toggleArchive, removeOrder } =
     useOrderActions(setOrders);
-  const { dispatchDrafts, updateDraft, saveDraft, savingDispatchId, storeDrivers } =
-    useDispatchDrafts(orders);
+  const {
+    dispatchDrafts,
+    updateDraft,
+    saveDraft,
+    savingDispatchId,
+    storeDrivers,
+    fastCouriers,
+  } = useDispatchDrafts(orders);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
@@ -172,6 +178,8 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
             }}
             savingDispatchId={savingDispatchId}
             storeDrivers={storeDrivers}
+            fastCouriers={fastCouriers}
+            onShowMessage={showToast}
             {...commonBranchProps}
           />
         )}

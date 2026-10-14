@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import type { DbOrder, OrderStatus, DeliveryDispatchInfo, StoreDriver } from './types';
+import type { DbOrder, OrderStatus, DeliveryDispatchInfo, StoreDriver, FastAppCourier } from './types';
 import {
   fetchOrders,
   updateOrderStatus,
@@ -15,6 +15,7 @@ import {
   updateOrderArchive,
   fetchSingleOrder,
   fetchStoreDrivers,
+  fetchFastCouriers,
 } from '../../services/supabaseService';
 import { logger } from '../../utils/logger';
 import { playOrderChime, calculateDeliveryCost } from './utils';
@@ -188,10 +189,20 @@ export function useDispatchDrafts(orders: DbOrder[]) {
   const [dispatchDrafts, setDispatchDrafts] = useState<Record<string, DeliveryDispatchInfo>>({});
   const [savingDispatchId, setSavingDispatchId] = useState<string | number | null>(null);
   const [storeDrivers, setStoreDrivers] = useState<StoreDriver[]>([]);
+  const [fastCouriers, setFastCouriers] = useState<FastAppCourier[]>([]);
+
+  const reloadDriversAndCouriers = useCallback(() => {
+    fetchStoreDrivers()
+      .then((res) => setStoreDrivers(res.drivers))
+      .catch(() => {});
+    fetchFastCouriers()
+      .then((list) => setFastCouriers(list))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
-    fetchStoreDrivers().then((res) => setStoreDrivers(res.drivers)).catch(() => {});
-  }, []);
+    reloadDriversAndCouriers();
+  }, [reloadDriversAndCouriers]);
 
   // مزامنة المسودات الأولية مع الطلبات
   useEffect(() => {
@@ -203,7 +214,7 @@ export function useDispatchDrafts(orders: DbOrder[]) {
           next[key] = o.delivery_dispatch || {
             ...DEFAULT_DISPATCH,
             zone: o.delivery_zone || 'north',
-            deliveryCost: calculateDeliveryCost(o.delivery_zone, o.address),
+            deliveryCost: undefined,
           };
         }
       });
@@ -243,6 +254,8 @@ export function useDispatchDrafts(orders: DbOrder[]) {
     saveDraft,
     savingDispatchId,
     storeDrivers,
+    fastCouriers,
+    reloadDriversAndCouriers,
   };
 }
 

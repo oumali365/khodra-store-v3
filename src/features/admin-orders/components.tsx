@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import { Package, Clock, CheckCircle2, Archive, Inbox, ChevronDown, ChevronUp, Save } from 'lucide-react';
-import type { DbOrder, OrderStatus, DeliveryDispatchInfo, StoreDriver } from './types';
+import type { DbOrder, OrderStatus, DeliveryDispatchInfo, StoreDriver, FastAppCourier } from './types';
 import { BRANCH_STYLES } from './constants';
 import { OrderCard } from './cards';
 
@@ -69,6 +69,7 @@ export interface DriverAssignmentCardProps {
   onSaveDraft?: () => void;
   isSavingDraft?: boolean;
   storeDrivers?: StoreDriver[];
+  fastCouriers?: FastAppCourier[];
 }
 
 export const DriverAssignmentCard: React.FC<DriverAssignmentCardProps> = ({
@@ -77,76 +78,212 @@ export const DriverAssignmentCard: React.FC<DriverAssignmentCardProps> = ({
   onSaveDraft,
   isSavingDraft,
   storeDrivers = [],
+  fastCouriers = [],
 }) => {
-  const [showDriverAccordion, setShowDriverAccordion] = useState(false);
+  const [showDriverAccordion, setShowDriverAccordion] = useState(true);
 
   return (
     <div className="border border-stone-200 rounded-xl overflow-hidden text-xs">
       <button
         type="button"
         onClick={() => setShowDriverAccordion((prev) => !prev)}
-        className="w-full p-2 bg-stone-50 hover:bg-stone-100 flex items-center justify-between font-bold text-stone-700 transition-colors cursor-pointer"
+        className="w-full p-2.5 bg-stone-50 hover:bg-stone-100 flex items-center justify-between font-bold text-stone-800 transition-colors cursor-pointer"
       >
-        <span>بيانات السائق وأجرة التوصيل</span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span>بيانات سائقو المتجر والتوصيل</span>
+          {draft?.driverName && (
+            <span
+              className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                draft.deliverySource === 'internal'
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  : 'bg-amber-100 text-amber-900 border-amber-300'
+              }`}
+            >
+              {draft.deliverySource === 'internal' ? 'فريق خُضرة' : (draft.appName || 'تطبيق خارجي')}: {draft.driverName}
+            </span>
+          )}
+        </div>
         {showDriverAccordion ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
       </button>
 
       {showDriverAccordion && draft && onUpdateDraft && (
-        <div className="p-3 bg-white space-y-2 border-t border-stone-100">
+        <div className="p-3 bg-white space-y-3 border-t border-stone-100">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] font-bold text-stone-600 mb-0.5">اسم السائق:</label>
+              <label className="block text-[10px] font-bold text-stone-700 mb-1">اسم السائق:</label>
               <input
                 type="text"
+                readOnly
                 value={draft.driverName || ''}
-                onChange={(e) => onUpdateDraft({ driverName: e.target.value })}
-                placeholder="كابتن خُضرة"
-                className="w-full p-1.5 rounded border border-stone-300 text-stone-800 text-xs"
+                placeholder="تلقائي بعد اختيار السائق"
+                className="w-full p-2 rounded-lg border border-stone-200 bg-stone-100 text-stone-900 font-bold text-xs cursor-default select-none focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-stone-600 mb-0.5">أجرة التوصيل (د.م):</label>
+              <label className="block text-[10px] font-bold text-stone-700 mb-1">أجرة التوصيل (د.م):</label>
               <input
-                type="number"
-                value={draft.deliveryCost || 20}
-                onChange={(e) => onUpdateDraft({ deliveryCost: Number(e.target.value) || 20 })}
-                className="w-full p-1.5 rounded border border-stone-300 text-stone-800 text-xs tabular-nums"
+                type="text"
+                readOnly
+                value={
+                  draft.deliveryCost != null && !isNaN(Number(draft.deliveryCost))
+                    ? `${Number(draft.deliveryCost)} د.م`
+                    : ''
+                }
+                placeholder="تُجلب تلقائيًا من ملف السائق"
+                className={`w-full p-2 rounded-lg border font-bold text-xs cursor-default select-none focus:outline-none tabular-nums ${
+                  draft.driverName && (draft.deliveryCost == null || isNaN(Number(draft.deliveryCost)))
+                    ? 'border-red-300 bg-red-50 text-red-700'
+                    : 'border-stone-200 bg-stone-100 text-stone-900'
+                }`}
               />
+              {draft.driverName && (draft.deliveryCost == null || isNaN(Number(draft.deliveryCost))) && (
+                <p className="text-[10px] text-red-600 font-bold mt-1">
+                  ⚠️ لا توجد أجرة صالحة في ملف السائق
+                </p>
+              )}
             </div>
           </div>
 
-          {storeDrivers.length > 0 && (
-            <div>
-              <label className="block text-[10px] font-bold text-stone-600 mb-0.5">أو اختر من سائقي الفريق:</label>
-              <select
-                onChange={(e) => {
-                  const d = storeDrivers.find((drv) => drv.id === e.target.value);
-                  if (d) {
+          <div>
+            <label className="block text-[11px] font-bold text-stone-800 mb-1 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
+              <span>اختر سائقًا من أسطول خُضرة الداخلي:</span>
+            </label>
+            <select
+              value={draft.deliverySource === 'internal' ? (draft.driverId || '') : ''}
+              onChange={(e) => {
+                const selId = e.target.value;
+                if (!selId) {
+                  if (draft.deliverySource === 'internal') {
                     onUpdateDraft({
-                      driverName: d.name,
-                      driverPhone: d.phone,
-                      deliveryCost: d.commissionPerOrder || 20,
+                      deliverySource: undefined,
+                      driverId: undefined,
+                      internalDriverId: undefined,
+                      driverName: '',
+                      driverPhone: '',
+                      deliveryCost: undefined,
+                      agreedWage: undefined,
+                      appName: undefined,
                     });
                   }
-                }}
-                className="w-full p-1.5 rounded border border-stone-300 text-stone-800 text-xs bg-white"
-              >
-                <option value="">-- سائقو الفريق الداخلي --</option>
-                {storeDrivers.map((drv) => (
+                  return;
+                }
+                const d = storeDrivers.find((drv) => drv.id === selId);
+                if (d) {
+                  onUpdateDraft({
+                    deliverySource: 'internal',
+                    driverId: d.id,
+                    internalDriverId: d.id,
+                    externalDriverId: undefined,
+                    driverName: d.name,
+                    driverPhone: d.phone,
+                    deliveryCost: d.commissionPerOrder != null ? Number(d.commissionPerOrder) : undefined,
+                    agreedWage: d.commissionPerOrder != null ? Number(d.commissionPerOrder) : undefined,
+                    provider: 'custom',
+                    appName: 'أسطول خُضرة الداخلي',
+                  });
+                }
+              }}
+              className="w-full p-2 rounded-lg border border-stone-300 text-stone-800 text-xs bg-white font-medium focus:border-emerald-600 focus:outline-none"
+            >
+              <option value="">-- اختر سائقًا من أسطول خُضرة الداخلي --</option>
+              {storeDrivers.map((drv) => {
+                const statusText =
+                  drv.status === 'available'
+                    ? 'متاح وجاهز'
+                    : drv.status === 'on_delivery'
+                    ? 'في جولة توصيل'
+                    : 'خارج الخدمة';
+                const fare = drv.commissionPerOrder != null ? `${drv.commissionPerOrder} د.م` : 'أجرة غير محددة';
+                return (
                   <option key={drv.id} value={drv.id}>
-                    {drv.name} ({drv.commissionPerOrder} د.م)
+                    {drv.name} ({statusText} • {fare})
                   </option>
-                ))}
-              </select>
-            </div>
-          )}
+                );
+              })}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-stone-800 mb-1 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span>اختر سائقًا من تطبيقات التوصيل (Glovo, inDrive...):</span>
+            </label>
+            <select
+              value={draft.deliverySource === 'external_app' ? (draft.driverId || '') : ''}
+              onChange={(e) => {
+                const selId = e.target.value;
+                if (!selId) {
+                  if (draft.deliverySource === 'external_app') {
+                    onUpdateDraft({
+                      deliverySource: undefined,
+                      driverId: undefined,
+                      externalDriverId: undefined,
+                      driverName: '',
+                      driverPhone: '',
+                      deliveryCost: undefined,
+                      agreedWage: undefined,
+                      appName: undefined,
+                    });
+                  }
+                  return;
+                }
+                const c = fastCouriers.find((courier) => courier.id === selId);
+                if (c) {
+                  const appLabel =
+                    c.app === 'glovo'
+                      ? 'Glovo'
+                      : c.app === 'indrive'
+                      ? 'inDrive'
+                      : c.app === 'yassir'
+                      ? 'Yassir'
+                      : c.app === 'careem'
+                      ? 'Careem'
+                      : (c.appNameCustom || 'تطبيق خارجي');
+                  onUpdateDraft({
+                    deliverySource: 'external_app',
+                    driverId: c.id,
+                    internalDriverId: undefined,
+                    externalDriverId: c.id,
+                    driverName: c.name,
+                    driverPhone: c.phone,
+                    deliveryCost: c.typicalFare != null ? Number(c.typicalFare) : undefined,
+                    agreedWage: c.typicalFare != null ? Number(c.typicalFare) : undefined,
+                    provider: (c.app as any) || 'indrive',
+                    appName: appLabel,
+                  });
+                }
+              }}
+              className="w-full p-2 rounded-lg border border-stone-300 text-stone-800 text-xs bg-white font-medium focus:border-amber-600 focus:outline-none"
+            >
+              <option value="">-- اختر سائق تطبيق توصيل --</option>
+              {fastCouriers.map((courier) => {
+                const appLabel =
+                  courier.app === 'glovo'
+                    ? 'Glovo'
+                    : courier.app === 'indrive'
+                    ? 'inDrive'
+                    : courier.app === 'yassir'
+                    ? 'Yassir'
+                    : courier.app === 'careem'
+                    ? 'Careem'
+                    : (courier.appNameCustom || 'تطبيق توصيل');
+                const fare = courier.typicalFare != null ? `${courier.typicalFare} د.م` : 'متوسط غير محدد';
+                return (
+                  <option key={courier.id} value={courier.id}>
+                    {courier.name} — {appLabel} (متوسط: {fare})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
 
           {onSaveDraft && (
             <button
               type="button"
               disabled={isSavingDraft}
               onClick={onSaveDraft}
-              className="w-full py-1.5 rounded bg-stone-800 hover:bg-stone-900 text-white font-bold text-xs flex items-center justify-center gap-1 cursor-pointer"
+              className="w-full py-2 rounded-xl bg-stone-900 hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Save className="w-3.5 h-3.5" />
               <span>{isSavingDraft ? 'جاري الحفظ...' : 'حفظ بيانات التوصيل'}</span>
@@ -165,6 +302,8 @@ export interface BranchColumnProps {
   onSaveDraft?: (order: DbOrder) => void;
   savingDispatchId?: string | number | null;
   storeDrivers?: StoreDriver[];
+  fastCouriers?: FastAppCourier[];
+  onShowMessage?: (type: 'success' | 'error', message: string) => void;
   onStatusChange: (orderId: string | number, status: OrderStatus) => void;
   updatingId?: string | number | null;
   onTogglePayment?: (orderId: string | number, currentPaid: boolean) => void;
@@ -232,6 +371,8 @@ export const PreparedBranch: React.FC<BranchColumnProps> = ({
   onSaveDraft,
   savingDispatchId,
   storeDrivers = [],
+  fastCouriers = [],
+  onShowMessage,
   onStatusChange,
   updatingId,
   onOpenInvoice,
@@ -268,6 +409,8 @@ export const PreparedBranch: React.FC<BranchColumnProps> = ({
                 onSaveDraft={() => onSaveDraft?.(order)}
                 isSavingDraft={savingDispatchId === order.id}
                 storeDrivers={storeDrivers}
+                fastCouriers={fastCouriers}
+                onShowMessage={onShowMessage}
                 onStatusChange={(status) => onStatusChange(order.id, status)}
                 isUpdatingStatus={updatingId === order.id}
                 onOpenInvoice={() => onOpenInvoice(order)}

@@ -100,15 +100,17 @@ export function buildCustomerThankAndConfirmMessage(order: DbOrder): string {
 }
 
 /**
- * 2. رسالة استدعاء سائق فريق متجر خضرة (الخيار الأساسي)
+ * 2. رسالة استدعاء سائق أسطول متجر خُضرة الداخلي (حصرياً للأسطول الداخلي)
  */
 export function buildStoreTeamDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
   const hub = STORE_PICKUP_HUB;
   const driverGreeting = draft?.driverName
     ? `السلام عليكم كابتن *${draft.driverName}* 🛵🌿`
-    : 'السلام عليكم كابتن فريق متجر خُضرة 🛵🌿';
+    : 'السلام عليكم كابتن فريق متجر خُضرة الداخلي 🛵🌿';
   const cleanN = cleanNote(order.note || '');
-  const deliveryCost = draft?.deliveryCost ?? 25;
+  const deliveryCost = draft?.deliveryCost != null && !isNaN(Number(draft.deliveryCost))
+    ? `${Number(draft.deliveryCost)} درهم`
+    : 'حسب الاتفاق المعتمد بالملف';
   const safeTotal = Number(order.total ?? 0).toFixed(2);
   const mapUrl =
     order.maps_link ||
@@ -118,41 +120,43 @@ export function buildStoreTeamDriverMessage(order: DbOrder, draft?: DeliveryDisp
 
   return [
     driverGreeting,
-    `📦 *طلب توصيل جاهز - فريق متجر خُضرة الداخلي (أساسي)*`,
-    `🔖 *رقم الطلب:* ${order.order_code}`,
+    `📦 *مهمة توصيل جديدة - أسطول متجر خُضرة الداخلي*`,
+    `🔖 *رقم الطلب:* #${order.order_code}`,
     `────────────────────`,
-    `1️⃣ *نقطة الاستلام (المتجر):*`,
+    `1️⃣ *نقطة الاستلام (المتجر المركزي):*`,
     `🏪 ${hub.name}`,
     `📍 ${hub.address}`,
-    `🗺️ موقع الاستلام: ${hub.mapsLink}`,
+    `🗺️ موقع الخريطة: ${hub.mapsLink}`,
     `────────────────────`,
     `2️⃣ *بيانات الزبون والتسليم:*`,
     `👤 *الاسم:* ${order.customer_name}`,
     `📞 *الهاتف:* ${order.phone}`,
     `🏠 *العنوان:* ${order.address}`,
-    mapUrl ? `🗺️ موقع GPS: ${mapUrl}` : '',
-    cleanN ? `📝 ملاحظة: ${cleanN}` : '',
+    mapUrl ? `🗺️ رابط GPS: ${mapUrl}` : '',
+    cleanN ? `📝 ملاحظة الزبون: ${cleanN}` : '',
     `────────────────────`,
-    `3️⃣ *التحصيل والأجرة:*`,
-    `🚚 أجرة التوصيل: ${deliveryCost} درهم`,
+    `3️⃣ *التحصيل المالي والأجرة:*`,
+    `🚚 *أجرة التوصيل المستحقة لك:* ${deliveryCost}`,
     `💵 *المبلغ المطلوب تحصيله (COD): ${safeTotal} درهم* (نقداً عند التسليم)`,
     `────────────────────`,
-    `⚠️ يرجى تأكيد الاستلام عند الانطلاق والمحافظة على استقامة الصندوق. طريق السلامة! 🌟`,
+    `⚠️ يرجى تأكيد استلام الطلب والحرص على سلامة واستقامة الصناديق. طريق السلامة! 🌟`,
   ]
     .filter(Boolean)
     .join('\n');
 }
 
 /**
- * 3. رسالة استدعاء سائق خارجي (تطبيقات التوصيل / سريعة)
+ * 3. رسالة استدعاء سائق تطبيقات التوصيل الخارجية (Glovo / inDrive / Yassir / Careem)
  */
 export function buildExternalDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
   const hub = STORE_PICKUP_HUB;
-  const deliveryCost = draft?.deliveryCost ?? 25;
+  const deliveryCost = draft?.deliveryCost != null && !isNaN(Number(draft.deliveryCost))
+    ? `${Number(draft.deliveryCost)} درهم`
+    : 'المتوسط المحدد بالتطبيق';
   const safeTotal = Number(order.total ?? 0).toFixed(2);
-  const driverName = draft?.driverName || 'سائق خارجي غير محدد';
-  const sourceName = draft?.provider || 'تطبيق توصيل خارجي';
-  const zoneName = order.delivery_zone ? (FEZ_DELIVERY_ZONES[order.delivery_zone]?.name || order.delivery_zone) : 'فاس';
+  const driverName = draft?.driverName || 'كابتن التوصيل';
+  const appName = draft?.appName || (draft?.provider ? draft.provider.toUpperCase() : 'تطبيق خارجي');
+  const zoneName = order.delivery_zone ? (FEZ_DELIVERY_ZONES[order.delivery_zone]?.name || order.delivery_zone) : 'مدينة فاس';
   const mapUrl =
     order.maps_link ||
     (order.address
@@ -160,27 +164,25 @@ export function buildExternalDriverMessage(order: DbOrder, draft?: DeliveryDispa
       : '');
 
   return [
-    `السلام عليكم كابتن توصيل 🛵`,
-    `🌿 *مشوار توصيل طرد - متجر خُضرة بفاس (سائق خارجي)*`,
-    `🔖 *رقم الطلب:* ${order.order_code}`,
-    `👤 *السائق والمصدر:* ${driverName} (${sourceName})`,
-    `🧭 *المسار/المنطقة:* ${zoneName}`,
+    `السلام عليكم كابتن *${driverName}* (${appName}) 🛵`,
+    `🌿 *مشوار توصيل طرد - متجر خُضرة بفاس (تطبيقات سريعة)*`,
+    `🔖 *رمز الطلب:* #${order.order_code}`,
+    `🧭 *المنطقة المستهدفة:* ${zoneName}`,
     `────────────────────`,
     `📍 *نقطة الانطلاق (استلام الطرد):*`,
     `🏪 ${hub.name} - ${hub.address}`,
-    `🗺️ موقع الاستلام: ${hub.mapsLink}`,
+    `🗺️ رابط الاستلام: ${hub.mapsLink}`,
     `────────────────────`,
-    `📍 *نقطة الوصول (تسليم الزبون):*`,
+    `📍 *نقطة التسليم (عنوان الزبون):*`,
     `👤 الاسم: ${order.customer_name}`,
     `📞 الهاتف: ${order.phone}`,
     `🏠 العنوان: ${order.address}`,
-    mapUrl ? `🗺️ رابط الموقع: ${mapUrl}` : '',
+    mapUrl ? `🗺️ رابط موقع الزبون: ${mapUrl}` : '',
     `────────────────────`,
-    `💵 *المبلغ المطلوب تحصيله (COD): ${safeTotal} درهم*`,
-    `🚚 *أجرة التوصيل المرتبطة:* ${deliveryCost} درهم`,
-    `🟢 *حالة الاستدعاء:* جاهز للإرسال والتأكيد الفوري`,
+    `💵 *المبلغ المطلوب تحصيله من الزبون (COD): ${safeTotal} درهم*`,
+    `🚚 *أجرة المشوار المقترحة:* ${deliveryCost}`,
     `────────────────────`,
-    `يرجى التواصل لتأكيد المشوار والانطلاق فوراً. شكراً لك!`,
+    `يرجى تأكيد الجاهزية والاستلام فوراً. شكراً لتعاونكم!`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -188,6 +190,21 @@ export function buildExternalDriverMessage(order: DbOrder, draft?: DeliveryDispa
 
 export function buildInDriveDriverMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
   return buildExternalDriverMessage(order, draft);
+}
+
+/**
+ * 4. رسالة إشعار الزبون بانطلاق الطلب مع المندوب
+ */
+export function buildCustomerOrderEnRouteMessage(order: DbOrder, draft?: DeliveryDispatchInfo): string {
+  const safeTotal = Number(order.total ?? 0).toFixed(2);
+  const driverName = draft?.driverName;
+  const isInternal = draft?.deliverySource === 'internal';
+  const driverSource = isInternal
+    ? 'كابتن أسطول خُضرة'
+    : (draft?.appName ? `كابتن (${draft.appName})` : 'مندوب التوصيل');
+  const driverBadge = driverName ? `${driverSource} (${driverName})` : 'مندوب التوصيل المعتمد';
+
+  return `مرحباً بك أخي/أختي *${order.customer_name}* 🌿\n\nنود إعلامك بأن طلبيتك رقم *${order.order_code}* من *متجر خُضرة* جاهزة تماماً وانطلقت الآن في طريقها إليك مع ${driverBadge} 🛵💨.\n\n📋 *تفاصيل التسليم:*\n• العنوان: ${order.address}\n• المبلغ المطلوب للدفع عند الاستلام (COD): *${safeTotal} درهم*\n\nيرجى إبقاء الهاتف متاحاً لتسهيل تسليم الصندوق طازجاً وسليماً. شكراً جزيلاً لثقتك بنا، وشهية طيبة! 🍏🥦`;
 }
 
 /**

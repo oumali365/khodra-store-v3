@@ -12,6 +12,7 @@ import type {
   DriverFormData,
   FastCourierFormData,
   ZoneStyle,
+  FastAppCourier,
 } from './types';
 
 export const VEHICLE_CONFIG: Record<
@@ -112,7 +113,29 @@ export const APP_BADGES: Record<FastDeliveryApp, { label: string; style: string 
   other: { label: 'تطبيق آخر', style: 'bg-stone-700 text-stone-100 border-stone-800' },
 };
 
-// تم حذف السائقين الوهميين واستخدام مصفوفة فارغة لجلب البيانات الحقيقية من Supabase
-export const DEFAULT_FAST_COURIERS: [] = [];
+export const DEFAULT_FAST_COURIERS: FastAppCourier[] = [
+  {
+    id: 'fast-courier-glovo-1',
+    name: 'سعيد الادريسي',
+    app: 'glovo',
+    phone: '0665653232',
+    vehicleType: 'moto',
+    zone: 'north',
+    typicalFare: 25,
+    notes: 'كابتن غلوفو - تغطية المنطقة الشمالية',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'fast-courier-indrive-1',
+    name: 'حميد التازي',
+    app: 'indrive',
+    phone: '0662348300',
+    vehicleType: 'moto',
+    zone: 'central',
+    typicalFare: 25,
+    notes: 'كابتن إندرايف - تغطية المنطقة الوسطى والأطلس',
+    createdAt: new Date().toISOString(),
+  },
+];
 
 export const FLEET_ZONES: FezZoneId[] = ['east', 'central', 'south', 'north'];

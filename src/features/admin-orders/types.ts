@@ -6,8 +6,10 @@ import type {
   DeliveryProvider,
   DeliveryDispatchStatus,
   DeliveryDispatchInfo,
+  DeliverySource,
   FezZoneId,
   StoreDriver,
+  FastAppCourier,
 } from '../../types';
 import type { DbOrder, OrderStatus } from '../../services/supabaseService';
 
@@ -15,8 +17,10 @@ export type {
   DeliveryProvider,
   DeliveryDispatchStatus,
   DeliveryDispatchInfo,
+  DeliverySource,
   FezZoneId,
   StoreDriver,
+  FastAppCourier,
   DbOrder,
   OrderStatus,
 };

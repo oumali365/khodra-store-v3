@@ -388,3 +388,109 @@ adminAuthRouter.post('/api/admin/validate-session', async (req: Request, res: Re
     });
   }
 });
+
+// ────────────────────────────────────────────────────────────
+// 4️⃣ POST /api/admin/orders/dispatch - حفظ وتوثيق بيانات السائق والتوصيل مركزياً
+// ────────────────────────────────────────────────────────────
+adminAuthRouter.post('/api/admin/orders/dispatch', async (req: Request, res: Response) => {
+  const adminPinHeader = req.headers['x-admin-pin'];
+  const { orderId, orderCode, dispatch, adminPin } = req.body || {};
+  const providedPin = typeof adminPin === 'string' && adminPin.trim()
+    ? adminPin.trim()
+    : typeof adminPinHeader === 'string'
+    ? adminPinHeader.trim()
+    : '';
+
+  // 1. التحقق من صلاحية الرمز السري للإدارة
+  try {
+    const { adminPin: currentPin } = await getStoredAdminCredentials();
+    if (currentPin && providedPin !== currentPin) {
+      return res.status(401).json({
+        success: false,
+        error: 'الرمز السري غير صحيح أو تم تغييره من جهاز آخر',
+      });
+    }
+  } catch (authErr) {
+    console.warn('[Admin Dispatch Auth] Note:', authErr);
+  }
+
+  // 2. التحقق من صحة بيانات التوصيل
+  if (!orderId || !dispatch) {
+    return res.status(400).json({
+      success: false,
+      error: 'بيانات الطلب والتوصيل غير مكتملة',
+    });
+  }
+
+  const cleanDriverName = typeof dispatch.driverName === 'string' ? dispatch.driverName.trim() : '';
+  const cleanSource = dispatch.deliverySource === 'internal' || dispatch.deliverySource === 'external_app'
+    ? dispatch.deliverySource
+    : (dispatch.driverId && String(dispatch.driverId).startsWith('fast-') ? 'external_app' : 'internal');
+
+  const rawCost = dispatch.deliveryCost != null ? Number(dispatch.deliveryCost) : undefined;
+  const validCost = rawCost != null && !isNaN(rawCost) && rawCost > 0 ? rawCost : undefined;
+
+  const sanitizedDispatch = {
+    ...dispatch,
+    deliverySource: cleanSource,
+    driverName: cleanDriverName,
+    driverId: dispatch.driverId ? String(dispatch.driverId) : undefined,
+    internalDriverId: cleanSource === 'internal' ? String(dispatch.driverId) : undefined,
+    externalDriverId: cleanSource === 'external_app' ? String(dispatch.driverId) : undefined,
+    deliveryCost: validCost,
+    agreedWage: validCost,
+    dispatchStatus: dispatch.dispatchStatus || 'waiting_driver',
+    updatedAt: new Date().toISOString(),
+  };
+
+  // 3. التحديث في Supabase إن كان متاحاً
+  const supabase = getServerSupabase();
+  if (supabase && !String(orderId).startsWith('local-')) {
+    try {
+      const updatePayload: Record<string, any> = {
+        delivery_source: cleanSource,
+        driver_id: sanitizedDispatch.driverId || null,
+        internal_driver_id: sanitizedDispatch.internalDriverId || null,
+        external_driver_id: sanitizedDispatch.externalDriverId || null,
+        delivery_app: sanitizedDispatch.appName || (cleanSource === 'internal' ? 'internal' : 'external'),
+        driver_wage: validCost || null,
+        actual_delivery_cost: validCost || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      // دمج بيانات التوصيل داخل security_flags.delivery_dispatch
+      const { data: currentOrder } = await supabase
+        .from('orders')
+        .select('security_flags')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      const existingFlags = currentOrder?.security_flags && typeof currentOrder.security_flags === 'object'
+        ? currentOrder.security_flags
+        : {};
+
+      updatePayload.security_flags = {
+        ...existingFlags,
+        delivery_dispatch: sanitizedDispatch,
+      };
+
+      const { error: updateErr } = await supabase
+        .from('orders')
+        .update(updatePayload)
+        .eq('id', orderId);
+
+      if (updateErr) {
+        console.warn('[Admin Dispatch Server] Supabase update warning:', updateErr.message);
+      }
+    } catch (dbErr) {
+      console.warn('[Admin Dispatch Server] Database update error:', dbErr);
+    }
+  }
+
+  return res.json({
+    success: true,
+    message: 'تم حفظ وتوثيق بيانات التوصيل بنجاح',
+    dispatch: sanitizedDispatch,
+  });
+});
+

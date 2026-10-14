@@ -8,6 +8,7 @@ import {
   Product,
   OrderSubmission,
   DeliveryDispatchInfo,
+  DeliverySource,
   FezZoneId,
   StoreDriver,
   DriverStatus,
@@ -1120,6 +1121,11 @@ export interface DbOrder {
   security_flags?: Record<string, any>;
   // ─── بيانات التوصيل الفوري والسائق (inDrive, DONE, Yassir) ───
   delivery_dispatch?: DeliveryDispatchInfo;
+  delivery_source?: DeliverySource;
+  internal_driver_id?: string;
+  external_driver_id?: string;
+  delivery_app?: string;
+  last_dispatch_call_at?: string;
   // ─── بيانات الدفع والأرشفة ───
   is_paid?: boolean;
   paid_at?: string | null;
@@ -1589,14 +1595,52 @@ function mapRowToOrder(row: any): DbOrder {
     ? (dispatchZoneCandidate as FezZoneId)
     : finalZone;
 
+  const rawDriverName = String(storedDispatch?.driverName || rowDispatch?.driverName || '');
+  const rawDriverId = storedDispatch?.driverId || rowDispatch?.driverId || safeRow.driver_id || safeRow.internal_driver_id || safeRow.external_driver_id;
+  const rawSource: DeliverySource | undefined = storedDispatch?.deliverySource || rowDispatch?.deliverySource || safeRow.delivery_source || (
+    rawDriverId && String(rawDriverId).startsWith('fast-') ? 'external_app' : (rawDriverId ? 'internal' : undefined)
+  );
+
+  let finalDeliveryCost: number | undefined = undefined;
+  if (storedDispatch?.deliveryCost != null && !isNaN(Number(storedDispatch.deliveryCost))) {
+    finalDeliveryCost = Number(storedDispatch.deliveryCost);
+  } else if (rowDispatch?.deliveryCost != null && !isNaN(Number(rowDispatch.deliveryCost))) {
+    finalDeliveryCost = Number(rowDispatch.deliveryCost);
+  } else if (safeRow.driver_wage != null && !isNaN(Number(safeRow.driver_wage))) {
+    finalDeliveryCost = Number(safeRow.driver_wage);
+  } else if (safeRow.actual_delivery_cost != null && !isNaN(Number(safeRow.actual_delivery_cost))) {
+    finalDeliveryCost = Number(safeRow.actual_delivery_cost);
+  } else if (rawDriverId) {
+    // جلب الأجرة المعتمدة مباشرة من الملف الشخصي المحفوظ للسائق
+    if (rawSource === 'internal') {
+      const matchedDriver = readLocalDrivers().find((d) => d.id === rawDriverId);
+      if (matchedDriver?.commissionPerOrder != null && !isNaN(Number(matchedDriver.commissionPerOrder))) {
+        finalDeliveryCost = Number(matchedDriver.commissionPerOrder);
+      }
+    } else {
+      const matchedCourier = readLocalFastCouriers().find((c) => c.id === rawDriverId);
+      if (matchedCourier?.typicalFare != null && !isNaN(Number(matchedCourier.typicalFare))) {
+        finalDeliveryCost = Number(matchedCourier.typicalFare);
+      }
+    }
+  }
+
   const finalDispatch: DeliveryDispatchInfo = {
-    provider: storedDispatch?.provider || rowDispatch?.provider || 'indrive',
-    driverName: String(storedDispatch?.driverName || rowDispatch?.driverName || ''),
+    provider: storedDispatch?.provider || rowDispatch?.provider || (rawSource === 'internal' ? 'custom' : 'indrive'),
+    deliverySource: rawSource,
+    driverId: rawDriverId ? String(rawDriverId) : undefined,
+    internalDriverId: storedDispatch?.internalDriverId || rowDispatch?.internalDriverId || safeRow.internal_driver_id || (rawSource === 'internal' && rawDriverId ? String(rawDriverId) : undefined),
+    externalDriverId: storedDispatch?.externalDriverId || rowDispatch?.externalDriverId || safeRow.external_driver_id || (rawSource === 'external_app' && rawDriverId ? String(rawDriverId) : undefined),
+    driverName: rawDriverName,
     driverPhone: String(storedDispatch?.driverPhone || rowDispatch?.driverPhone || ''),
-    deliveryCost: Number(storedDispatch?.deliveryCost ?? rowDispatch?.deliveryCost ?? 25) || 25,
+    appName: storedDispatch?.appName || rowDispatch?.appName || safeRow.delivery_app || undefined,
+    deliveryCost: finalDeliveryCost,
+    agreedWage: finalDeliveryCost,
+    costCertainty: storedDispatch?.costCertainty || rowDispatch?.costCertainty || safeRow.delivery_cost_status || (finalDeliveryCost != null ? 'actual' : 'unknown'),
     trackingCode: String(storedDispatch?.trackingCode || rowDispatch?.trackingCode || ''),
     dispatchStatus: storedDispatch?.dispatchStatus || rowDispatch?.dispatchStatus || 'waiting_driver',
     dispatchedAt: String(storedDispatch?.dispatchedAt || rowDispatch?.dispatchedAt || ''),
+    lastDispatchCallAt: String(storedDispatch?.lastDispatchCallAt || rowDispatch?.lastDispatchCallAt || safeRow.last_dispatch_call_at || ''),
     zone: safeDispatchZone,
     notes: String(storedDispatch?.notes || rowDispatch?.notes || ''),
   };
@@ -1624,6 +1668,11 @@ function mapRowToOrder(row: any): DbOrder {
       safeRow.security_flags && typeof safeRow.security_flags === 'object'
         ? safeRow.security_flags
         : undefined,
+    delivery_source: rawSource,
+    internal_driver_id: finalDispatch.internalDriverId,
+    external_driver_id: finalDispatch.externalDriverId,
+    delivery_app: finalDispatch.appName,
+    last_dispatch_call_at: finalDispatch.lastDispatchCallAt,
     delivery_dispatch: finalDispatch,
     is_paid: safeRow.is_paid !== undefined ? Boolean(safeRow.is_paid) : (() => {
       try {
@@ -1649,8 +1698,8 @@ function mapRowToOrder(row: any): DbOrder {
     financial_status: safeRow.financial_status || (safeRow.is_paid ? 'paid' : 'unpaid'),
     refund_amount: safeRow.refund_amount != null ? Number(safeRow.refund_amount) : 0,
     discount_amount: safeRow.discount_amount != null ? Number(safeRow.discount_amount) : 0,
-    driver_id: safeRow.driver_id || safeRow.delivery_dispatch?.driverId || undefined,
-    driver_wage: safeRow.driver_wage != null ? Number(safeRow.driver_wage) : undefined,
+    driver_id: rawDriverId ? String(rawDriverId) : undefined,
+    driver_wage: finalDispatch.deliveryCost,
     packaging_cost: safeRow.packaging_cost != null ? Number(safeRow.packaging_cost) : 2,
     other_direct_costs: safeRow.other_direct_costs != null ? Number(safeRow.other_direct_costs) : (safeRow.direct_costs != null ? Number(safeRow.direct_costs) : 0),
     direct_costs: safeRow.direct_costs != null ? Number(safeRow.direct_costs) : undefined,
@@ -1982,8 +2031,14 @@ export async function updateOrderDispatch(
     if (Array.isArray(local)) {
       let updatedLocal = false;
       for (let i = 0; i < local.length; i++) {
-        if (local[i] && (local[i].orderCode === orderCode || `local-${i}` === String(orderId))) {
+        if (local[i] && (local[i].orderCode === orderCode || `local-${i}` === String(orderId) || String(local[i].id) === String(orderId))) {
           local[i].delivery_dispatch = dispatch;
+          local[i].delivery_source = dispatch.deliverySource;
+          local[i].internal_driver_id = dispatch.internalDriverId;
+          local[i].external_driver_id = dispatch.externalDriverId;
+          local[i].driver_id = dispatch.driverId;
+          local[i].driver_wage = dispatch.deliveryCost;
+          local[i].actual_delivery_cost = dispatch.deliveryCost;
           updatedLocal = true;
         }
       }
@@ -1995,7 +2050,43 @@ export async function updateOrderDispatch(
     // ignore
   }
 
-  // تحديث Supabase عبر الدالة المحمية update_order_dispatch_secure
+  // 1. الأولوية: التحقق من الخادم عبر API المركزي لضمان الأمان والتحقق من صحة السائق والتسعيرة
+  try {
+    const pin = getAdminPin();
+    const serverRes = await fetch('/api/admin/orders/dispatch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-pin': pin || '',
+      },
+      body: JSON.stringify({
+        orderId: String(orderId),
+        orderCode,
+        dispatch,
+        adminPin: pin,
+      }),
+    });
+
+    const serverData = await serverRes.json().catch(() => null);
+    if (serverRes.ok && serverData?.success) {
+      if (serverData.dispatch) {
+        setStoredDispatch(orderCode, orderId, serverData.dispatch);
+      }
+      return {
+        success: true,
+        message: serverData.message || 'تم حفظ وتوثيق بيانات التوصيل بنجاح',
+      };
+    } else if (serverRes.status === 400 || serverRes.status === 401 || serverRes.status === 403) {
+      return {
+        success: false,
+        message: serverData?.error || serverData?.message || 'فشل التحقق من بيانات السائق في الخادم',
+      };
+    }
+  } catch (apiErr) {
+    console.warn('Backend /api/admin/orders/dispatch fallback to Supabase RPC:', apiErr);
+  }
+
+  // 2. تحديث Supabase عبر الدالة المحمية update_order_dispatch_secure
   const client = getSupabase();
   if (client && !String(orderId).startsWith('local-')) {
     try {
@@ -2556,13 +2647,44 @@ export async function closeAndDeliverZoneTour(params: {
 
 const STORAGE_KEY_FAST_COURIERS = 'khodra_fast_app_couriers';
 
+export const INITIAL_FAST_COURIERS: FastAppCourier[] = [
+  {
+    id: 'fast-courier-glovo-1',
+    name: 'سعيد الادريسي',
+    app: 'glovo',
+    phone: '0665653232',
+    vehicleType: 'moto',
+    zone: 'north',
+    typicalFare: 25,
+    notes: 'كابتن غلوفو - تغطية المنطقة الشمالية',
+    createdAt: new Date(Date.now() - 10 * 86400000).toISOString(),
+  },
+  {
+    id: 'fast-courier-indrive-1',
+    name: 'حميد التازي',
+    app: 'indrive',
+    phone: '0662348300',
+    vehicleType: 'moto',
+    zone: 'central',
+    typicalFare: 25,
+    notes: 'كابتن إندرايف - تغطية المنطقة الوسطى والأطلس',
+    createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+  },
+];
+
 function readLocalFastCouriers(): FastAppCourier[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_FAST_COURIERS);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
   } catch {
-    return [];
+    // fallback
   }
+  return INITIAL_FAST_COURIERS;
 }
 
 function writeLocalFastCouriers(couriers: FastAppCourier[]): void {
@@ -2588,7 +2710,7 @@ export async function fetchFastCouriers(): Promise<FastAppCourier[]> {
       return localList;
     }
 
-    if (data && Array.isArray(data)) {
+    if (data && Array.isArray(data) && data.length > 0) {
       const mapped: FastAppCourier[] = data.map((r: any) => ({
         id: String(r.id),
         name: String(r.name || ''),
@@ -2597,7 +2719,7 @@ export async function fetchFastCouriers(): Promise<FastAppCourier[]> {
         phone: String(r.phone || ''),
         vehicleType: r.vehicle_type || 'moto',
         zone: r.zone || 'all',
-        typicalFare: Number(r.typical_fare) || 20,
+        typicalFare: Number(r.typical_fare) || 25,
         notes: r.notes || undefined,
         createdAt: r.created_at || new Date().toISOString(),
       }));

@@ -120,18 +120,24 @@ export interface FastAppCourier {
 
 export type CostCertainty = 'actual' | 'estimated' | 'unknown';
 export type FinancialStatus = 'unpaid' | 'paid' | 'partially_refunded' | 'refunded';
+export type DeliverySource = 'internal' | 'external_app';
 
 export interface DeliveryDispatchInfo {
   provider: DeliveryProvider;
+  deliverySource?: DeliverySource;
   driverId?: string;
+  internalDriverId?: string;
+  externalDriverId?: string;
   driverName?: string;
   driverPhone?: string;
+  appName?: string;
   deliveryCost?: number;
   agreedWage?: number;
   costCertainty?: CostCertainty;
   trackingCode?: string;
   dispatchStatus: DeliveryDispatchStatus;
   dispatchedAt?: string;
+  lastDispatchCallAt?: string;
   zone?: FezZoneId;
   notes?: string;
   packagingType?: string;
