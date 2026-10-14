@@ -14,6 +14,7 @@ import {
   InstallAppBanner,
   checkIfAlreadyInstalledOrDownloaded,
 } from './components/layout';
+import { AdminSessionProvider } from './features/layout'; // Correct path
 import {
   Hero,
   CategoryFilter,
@@ -171,6 +172,7 @@ export default function App() {
           typeof item.lineTotal === 'number' &&
           !isNaN(item.lineTotal)
       );
+
 
       // توحيد العناصر القديمة التي كانت تخزن "4 kg" في variantLabel و qty=1
       const mergedMap = new Map<string, CartItem>();
@@ -1302,7 +1304,9 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
+    <AdminSessionProvider isAdmin={isAdmin} onLogout={handleAdminLogout}>
+      <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
+
 
       {/* ═══════ بانر تثبيت التطبيق أو بانر التوصيل المجاني (250 DH) ═══════ */}
       {isInstallBannerVisible ? (
@@ -1678,5 +1682,6 @@ export default function App() {
       )}
 
     </div>
+    </AdminSessionProvider>
   );
 }

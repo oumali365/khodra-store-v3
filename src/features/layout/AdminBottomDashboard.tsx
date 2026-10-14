@@ -36,6 +36,7 @@ import { AdminNotificationToast } from './AdminNotificationToast';
 import { playOrderAlertSound } from '../../utils/audioAlert';
 import { KhodraAICopilotModal } from '../copilot/KhodraAICopilotModal';
 import { AdminDocumentsModal } from '../documents/AdminDocumentsModal';
+import { useAdminSession } from './AdminSessionContext';
 
 export type AdminRoute = 'orders' | 'fleet' | 'inventory' | 'pricing' | 'marketing' | 'finance';
 
@@ -72,37 +73,20 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
   });
 
   // ─── 30 دقيقة مهلة خمول إدارية ───
-  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
-  const lastActivityRef = useRef<number>(Date.now());
-
+  // (يتم التعامل مع الخمول الآن عبر AdminSessionProvider)
+  const { extendSession } = useAdminSession();
+  
   useEffect(() => {
-    if (!isAdmin) return;
+     // نقوم بتمديد الجلسة عند أي نشاط، لكن الـ Provider نفسه هو من يراقب الخمول
+     const updateActivity = () => extendSession();
+     const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
+     events.forEach((ev) => window.addEventListener(ev, updateActivity, { passive: true }));
+     
+     return () => {
+        events.forEach((ev) => window.removeEventListener(ev, updateActivity));
+     }
+  }, [extendSession]);
 
-    const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 دقيقة
-    const WARNING_THRESHOLD_MS = 28 * 60 * 1000; // 28 دقيقة
-
-    const updateActivity = () => {
-      lastActivityRef.current = Date.now();
-      if (showInactivityWarning) setShowInactivityWarning(false);
-    };
-
-    const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
-    events.forEach((ev) => window.addEventListener(ev, updateActivity, { passive: true }));
-
-    const interval = setInterval(() => {
-      const inactiveDuration = Date.now() - lastActivityRef.current;
-      if (inactiveDuration >= INACTIVITY_LIMIT_MS) {
-        onLogout();
-      } else if (inactiveDuration >= WARNING_THRESHOLD_MS && !showInactivityWarning) {
-        setShowInactivityWarning(true);
-      }
-    }, 10000);
-
-    return () => {
-      events.forEach((ev) => window.removeEventListener(ev, updateActivity));
-      clearInterval(interval);
-    };
-  }, [isAdmin, onLogout]);
 
   // الاستماع للأحداث العامة لفتح النوافذ المستقلة من أي مكان في المتجر
   useEffect(() => {
@@ -560,34 +544,9 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
         />
       )}
 
-      {/* ═══════ تحذير قرب انتهاء الجلسة بسبب الخمول ═══════ */}
-      {showInactivityWarning && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border-2 border-amber-500 space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto text-2xl font-black">
-              ⏰
-            </div>
-            <div>
-              <h3 className="text-base font-black text-stone-900">تنبيه خمول الجلسة</h3>
-              <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                ستنتهي جلسة الإدارة قريباً لعدم وجود نشاط. هل تريد تمديد الجلسة؟
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                lastActivityRef.current = Date.now();
-                setShowInactivityWarning(false);
-              }}
-              className="w-full py-3 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-white font-black text-xs cursor-pointer shadow-md transition-all"
-            >
-              تمديد الجلسة
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ═══════ النافذة المستقلة للأداة 7: خُضرة AI Copilot ═══════ */}
+
       {isCopilotOpen && (
         <KhodraAICopilotModal
           isOpen={isCopilotOpen}
