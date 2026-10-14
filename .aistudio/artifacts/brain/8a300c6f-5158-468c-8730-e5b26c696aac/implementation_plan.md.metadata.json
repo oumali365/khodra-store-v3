@@ -1,6 +1,0 @@
-{
-  "summary": "Comprehensive implementation plan for Khodra Store V3 enhancements: admin session persistence and 30-min inactivity timeout, order preparation modal structural reordering, automatic delivery fee fetching for internal and external drivers, and button label renaming to 'استدعاء سائق خارجي' with enhanced dispatch messaging.",
-  "updatedAt": "2026-10-13T22:05:13.812278478Z",
-  "requestFeedback": true,
-  "userFacing": true
-}
