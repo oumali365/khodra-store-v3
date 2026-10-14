@@ -495,13 +495,17 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         )}
       </div>
 
-      {/* 6. أزرار التحكم والإجراءات */}
-      <div className="flex items-center justify-between pt-1.5 border-t border-stone-200">
-        <div className="flex items-center gap-1">
+      {/* ========================================================= */}
+      {/* 6. أزرار التحكم والإجراءات (تم فصلها إلى صفين لتحسين التصميم) */}
+      {/* ========================================================= */}
+      <div className="pt-2 border-t border-stone-200 mt-2 space-y-2">
+        
+        {/* الصف الأول: أزرار تغيير الحالة (الإجراءات الرئيسية) */}
+        <div className="flex flex-wrap items-center gap-1.5">
           {currentBranch === 'pending' && (
             <button
               type="button" disabled={isUpdatingStatus} onClick={() => onStatusChange('prepared')}
-              className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+              className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
             >
               <Check className="w-3.5 h-3.5" />
               <span>تجهيز الطلب</span>
@@ -512,14 +516,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <>
               <button
                 type="button" disabled={isUpdatingStatus} onClick={() => onStatusChange('pending')}
-                className="px-2 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                className="flex-1 py-1.5 px-3 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer border border-blue-200"
                 title="إرجاع الطلب إلى قيد المراجعة"
               >
                 <span>قيد المراجعة</span>
               </button>
               <button
                 type="button" disabled={isUpdatingStatus} onClick={() => onStatusChange('delivered')}
-                className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>تم التسليم</span>
@@ -532,20 +536,20 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               {onTogglePayment && (
                 <button
                   type="button" onClick={onTogglePayment}
-                  className={`px-2 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer border ${
+                  className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer border ${
                     order.is_paid ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-stone-100 text-stone-700 border-stone-300'
                   }`}
                   title={order.is_paid ? 'الطلب مسدد' : 'تأكيد استلام الدفع'}
                 >
                   <Coins className="w-3.5 h-3.5" />
-                  <span>{order.is_paid ? 'تم الدفع' : 'غير مدفوع'}</span>
+                  <span>{order.is_paid ? 'تم الدفع' : 'تأكيد الدفع'}</span>
                 </button>
               )}
 
               {onToggleArchive && (
                 <button
                   type="button" onClick={onToggleArchive}
-                  className={`px-2 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer border ${
+                  className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer border ${
                     order.is_archived ? 'bg-stone-200 text-stone-900 border-stone-400' : 'bg-stone-100 text-stone-700 border-stone-300 hover:bg-stone-200'
                   }`}
                   title={order.is_archived ? 'إلغاء الأرشفة' : 'نقل إلى الأرشيف'}
@@ -558,20 +562,26 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-0.5">
-          <button type="button" onClick={onConfirmDelete} className="p-1 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer" title="حذف الطلب">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-          <button type="button" onClick={onCopyOrderText} className="p-1 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-colors cursor-pointer" title="نسخ تفاصيل الطلب">
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-          </button>
-          <button type="button" onClick={onOpenBordereau} className="p-1 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-colors cursor-pointer" title="معاينة البوردرو">
-            <FileText className="w-3.5 h-3.5" />
-          </button>
-          <button type="button" onClick={onOpenInvoice} className="p-1 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-colors cursor-pointer" title="طباعة الفاتورة">
-            <Printer className="w-3.5 h-3.5" />
-          </button>
+        {/* الصف الثاني: أيقونات التحكم السفلية (نسخ، طباعة، حذف) */}
+        <div className="flex items-center justify-between pt-1.5 border-t border-stone-100">
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={onConfirmDelete} className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer" title="حذف الطلب">
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button type="button" onClick={onCopyOrderText} className="p-1.5 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-colors cursor-pointer" title="نسخ تفاصيل الطلب">
+              {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+            </button>
+            <button type="button" onClick={onOpenBordereau} className="p-1.5 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-colors cursor-pointer" title="معاينة البوردرو">
+              <FileText className="w-4 h-4" />
+            </button>
+            <button type="button" onClick={onOpenInvoice} className="p-1.5 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-colors cursor-pointer" title="طباعة الفاتورة">
+              <Printer className="w-4 h-4" />
+            </button>
+          </div>
+          {/* رمز الطلب الصغير في الزاوية اليسرى لتوازن التصميم */}
+          <span className="text-[10px] text-stone-400 font-mono tracking-wider font-semibold">{order.order_code}</span>
         </div>
+
       </div>
     </div>
   );
