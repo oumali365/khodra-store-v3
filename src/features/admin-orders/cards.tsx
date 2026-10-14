@@ -251,7 +251,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         )}
       </div>
 
-      {/* 4. بيانات سائقو المتجر والتوصيل (Driver Data Layer) */}
+      {/* 4. تعيين سائق الجولة (Driver Data Layer) */}
       {currentBranch === 'prepared' && (
         <div className="border-2 border-stone-200 rounded-xl overflow-hidden text-xs">
           <button
@@ -260,8 +260,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             className="w-full p-2 bg-stone-50 hover:bg-stone-100 flex items-center justify-between font-bold text-stone-800 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-1.5 flex-wrap">
-              <Bike className="w-3.5 h-3.5 text-emerald-700" />
-              <span className="text-[11px]">بيانات سائقو المتجر والتوصيل</span>
+              <Bike className="w-4 h-4 text-emerald-700" />
+              <span className="text-[11px]"> تعيين سائق الجولة</span>
               {draft?.driverName ? (
                 <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${
                   draft.deliverySource === 'internal' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-900 border-amber-300'
@@ -269,7 +269,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   {draft.deliverySource === 'internal' ? 'فريق خُضرة' : (draft.appName || 'تطبيق خارجي')}: {draft.driverName}
                 </span>
               ) : (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-stone-200 text-stone-600">لم يتم تحديد سائق بعد</span>
               )}
             </div>
             {showDriverAccordion ? <ChevronUp className="w-3.5 h-3.5 text-stone-500" /> : <ChevronDown className="w-3.5 h-3.5 text-stone-500" />}
