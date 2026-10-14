@@ -28,4 +28,4 @@ export function getGeminiClient(): GoogleGenAI | null {
   return geminiClient;
 }
 
-export const GEMINI_MODEL = 'gemini-2.5-flash';
+export const GEMINI_MODEL = 'gemini-3.8-flash';

@@ -9,21 +9,46 @@ const AdminSessionContext = createContext<AdminSessionContextType | undefined>(u
 export const AdminSessionProvider: React.FC<{ children: React.ReactNode; isAdmin: boolean; onLogout: () => void }> = ({ children, isAdmin, onLogout }) => {
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
   const lastActivityRef = useRef<number>(Date.now());
+  const showWarningRef = useRef(false);
 
   const extendSession = useCallback(() => {
     lastActivityRef.current = Date.now();
+    try {
+      sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
+    } catch {}
+    showWarningRef.current = false;
     setShowInactivityWarning(false);
   }, []);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      showWarningRef.current = false;
+      setShowInactivityWarning(false);
+      return;
+    }
 
     const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 دقيقة
-    const WARNING_THRESHOLD_MS = 28 * 60 * 1000; // 28 دقيقة
+    const WARNING_THRESHOLD_MS = 28 * 60 * 1000; // 28 دقيقة (تنبيه قبل دقيقتين)
+
+    // تهيئة وقت آخر نشاط من sessionStorage إن وجد
+    try {
+      const storedLastActivity = Number(sessionStorage.getItem('khodra_admin_last_activity'));
+      if (storedLastActivity && !isNaN(storedLastActivity) && storedLastActivity > 0) {
+        lastActivityRef.current = storedLastActivity;
+      } else {
+        sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
+      }
+    } catch {}
 
     const updateActivity = () => {
       lastActivityRef.current = Date.now();
-      if (showInactivityWarning) setShowInactivityWarning(false);
+      try {
+        sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
+      } catch {}
+      if (showWarningRef.current) {
+        showWarningRef.current = false;
+        setShowInactivityWarning(false);
+      }
     };
 
     const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
@@ -33,16 +58,17 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode; isAdmin
       const inactiveDuration = Date.now() - lastActivityRef.current;
       if (inactiveDuration >= INACTIVITY_LIMIT_MS) {
         onLogout();
-      } else if (inactiveDuration >= WARNING_THRESHOLD_MS && !showInactivityWarning) {
+      } else if (inactiveDuration >= WARNING_THRESHOLD_MS && !showWarningRef.current) {
+        showWarningRef.current = true;
         setShowInactivityWarning(true);
       }
-    }, 10000);
+    }, 5000);
 
     return () => {
       events.forEach((ev) => window.removeEventListener(ev, updateActivity));
       clearInterval(interval);
     };
-  }, [isAdmin, onLogout, showInactivityWarning]);
+  }, [isAdmin, onLogout]);
 
   return (
     <AdminSessionContext.Provider value={{ extendSession }}>
@@ -56,13 +82,13 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode; isAdmin
             <div>
               <h3 className="text-base font-black text-stone-900">تنبيه خمول الجلسة</h3>
               <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                ستنتهي جلسة الإدارة قريباً لعدم وجود نشاط. هل تريد تمديد الجلسة؟
+                ستنتهي جلسة الإدارة بعد دقيقتين لعدم وجود نشاط. هل تريد تمديد الجلسة؟
               </p>
             </div>
             <button
               type="button"
               onClick={extendSession}
-              className="w-full py-3 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-white font-black text-xs cursor-pointer shadow-md transition-all"
+              className="w-full py-3 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-white font-black text-xs cursor-pointer shadow-md transition-all active:scale-95"
             >
               تمديد الجلسة
             </button>
@@ -76,7 +102,9 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode; isAdmin
 export const useAdminSession = () => {
   const context = useContext(AdminSessionContext);
   if (context === undefined) {
-    throw new Error('useAdminSession must be used within an AdminSessionProvider');
+    return {
+      extendSession: () => {},
+    };
   }
   return context;
 };

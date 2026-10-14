@@ -178,6 +178,7 @@ export function checkClientRateLimit(): {
  */
 export function recordOrderSuccess(orderCode: string): void {
   try {
+    if (typeof localStorage === 'undefined') return;
     const now = Date.now();
     localStorage.setItem(LAST_ORDER_TIME_KEY, now.toString());
 

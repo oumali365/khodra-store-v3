@@ -76,7 +76,11 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   const commonBranchProps = {
     onStatusChange: async (id: string | number, s: OrderStatus) => {
       const res = await changeStatus(id, s);
-      if (res.success) showToast('success', 'تم نقل الطلب');
+      if (res.success) {
+        showToast('success', 'تم نقل الطلب وحفظ الحالة بنجاح');
+      } else {
+        showToast('error', res.message || 'تعذر حفظ حالة الطلب، تم استرجاع الحالة السابقة');
+      }
     },
     updatingId,
     onOpenInvoice: (o: DbOrder) => setInvoiceOrder(o),

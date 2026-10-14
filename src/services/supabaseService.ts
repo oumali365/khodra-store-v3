@@ -900,29 +900,31 @@ export async function submitOrder(
     // ─── ✅ الإدراج والخصم الذري عبر RPC في معاملة واحدة (submit_order_atomic) ───
     let error: any = null;
 
-    try {
-      const { data: atomicRes, error: rpcErr } = await client.rpc('submit_order_atomic', {
-        p_order_data: orderData,
-      });
+    if (client) {
+      try {
+        const { data: atomicRes, error: rpcErr } = await client.rpc('submit_order_atomic', {
+          p_order_data: orderData,
+        });
 
-      if (rpcErr) {
-        error = rpcErr;
-      } else if (atomicRes && atomicRes.already_submitted) {
-        recordOrderSuccess(order.orderCode);
-        return {
-          success: true,
-          message: 'تم تأكيد طلبك مسبقاً بنجاح',
-        };
+        if (rpcErr) {
+          error = rpcErr;
+        } else if (atomicRes && atomicRes.already_submitted) {
+          recordOrderSuccess(order.orderCode);
+          return {
+            success: true,
+            message: 'تم تأكيد طلبك مسبقاً بنجاح',
+          };
+        }
+      } catch (callErr) {
+        error = callErr;
       }
-    } catch (callErr) {
-      error = callErr;
-    }
 
-    // تراجع مرن للإدراج المباشر في حال لم تكن الـ RPC منشورة بعد
-    if (error && (error.message?.includes('schema cache') || error.message?.includes('could not find') || error.message?.includes('submit_order_atomic'))) {
-      console.warn('⚠️ submit_order_atomic غير متاحة بعد، التراجع للإدراج المباشر:', error.message);
-      const { error: directErr } = await client.from('orders').insert([orderData]);
-      error = directErr;
+      // تراجع مرن للإدراج المباشر في حال لم تكن الـ RPC منشورة بعد
+      if (error && (error.message?.includes('schema cache') || error.message?.includes('could not find') || error.message?.includes('submit_order_atomic'))) {
+        console.warn('⚠️ submit_order_atomic غير متاحة بعد، التراجع للإدراج المباشر:', error.message);
+        const { error: directErr } = await client.from('orders').insert([orderData]);
+        error = directErr;
+      }
     }
 
     if (error) {
@@ -1982,20 +1984,27 @@ export async function updateOrderStatus(
   orderId: string | number,
   status: OrderStatus
 ): Promise<{ success: boolean; message?: string }> {
-  if (String(orderId).startsWith('local-')) {
-    try {
-      const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
-      const idx = Number(String(orderId).replace('local-', ''));
-      if (Array.isArray(local) && !isNaN(idx) && local[idx]) {
+  // تحديث الطلب محلياً في khodra_recent_orders إن وجد
+  try {
+    const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
+    if (Array.isArray(local)) {
+      const strId = String(orderId);
+      const idx = strId.startsWith('local-') ? Number(strId.replace('local-', '')) : -1;
+      if (idx >= 0 && local[idx]) {
         local[idx].status = status;
         localStorage.setItem('khodra_recent_orders', JSON.stringify(local));
+      } else {
+        const found = local.find((o: any) => o && (String(o.orderCode) === strId || String(o.id) === strId || String(o.order_code) === strId));
+        if (found) {
+          found.status = status;
+          localStorage.setItem('khodra_recent_orders', JSON.stringify(local));
+        }
       }
-    } catch { /* ignore */ }
-    return { success: true, message: 'تم التحديث محلياً' };
-  }
+    }
+  } catch { /* ignore */ }
 
   const client = getSupabase();
-  if (!client) return { success: false, message: 'لا يوجد اتصال' };
+  if (!client) return { success: true, message: 'تم التحديث محلياً (وضع عدم الاتصال)' };
 
   const pin = getAdminPin();
 

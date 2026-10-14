@@ -125,17 +125,34 @@ export function useOrderActions(setOrders: React.Dispatch<React.SetStateAction<D
   const changeStatus = useCallback(
     async (orderId: string | number, newStatus: OrderStatus) => {
       setUpdatingId(orderId);
-      // تحديث محلي سريع للتجربة اللحظية
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-      );
+      let previousStatus: OrderStatus | undefined;
+
+      // تحديث محلي سريع مع حفظ الحالة السابقة للتراجع
+      setOrders((prev) => {
+        const found = prev.find((o) => o.id === orderId);
+        if (found) previousStatus = found.status;
+        return prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o));
+      });
 
       try {
         const res = await updateOrderStatus(orderId, newStatus);
+        if (!res.success) {
+          // التراجع عن التحديث المحلي فوراً عند فشل الحفظ
+          if (previousStatus) {
+            setOrders((prev) =>
+              prev.map((o) => (o.id === orderId ? { ...o, status: previousStatus! } : o))
+            );
+          }
+        }
         return res;
       } catch (err) {
         logger.error('Failed to update order status:', err);
-        return { success: false, message: 'فشل التحديث' };
+        if (previousStatus) {
+          setOrders((prev) =>
+            prev.map((o) => (o.id === orderId ? { ...o, status: previousStatus! } : o))
+          );
+        }
+        return { success: false, message: 'تعذر الاتصال لتحديث حالة الطلب' };
       } finally {
         setUpdatingId(null);
       }

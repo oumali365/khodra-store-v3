@@ -479,15 +479,36 @@ export default function App() {
   // ─── وضع المدير (Admin Mode) أسفل الفوتر ───
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     try {
-      return (
+      const isAuth =
         sessionStorage.getItem('khodra_admin_auth') === 'true' &&
-        Boolean(sessionStorage.getItem('khodra_admin_pin_session'))
-      );
+        Boolean(sessionStorage.getItem('khodra_admin_pin_session'));
+      if (!isAuth) return false;
+      const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
+      if (lastAct && Date.now() - lastAct >= 30 * 60 * 1000) {
+        return false;
+      }
+      return true;
     } catch {
       return false;
     }
   });
   const [isAdminPinModalOpen, setIsAdminPinModalOpen] = useState(false);
+
+  const handleAdminLogout = useCallback(() => {
+    setIsAdmin(false);
+    setIsAdminOrdersOpen(false);
+    setActiveAdminRoute(null);
+    clearCachedAdminPin();
+    try {
+      sessionStorage.removeItem('khodra_admin_auth');
+      sessionStorage.removeItem('khodra_admin_pin_session');
+      sessionStorage.removeItem('khodra_admin_last_activity');
+      localStorage.removeItem('khodra_admin_auth');
+      window.history.pushState({ page: 'main' }, '', '/');
+    } catch {}
+    window.dispatchEvent(new CustomEvent('khodra_admin_auth_revoked'));
+    window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
+  }, []);
 
   // التحقق المركزي الصارم عند إقلاع التطبيق وعند العودة إلى التبويب
   useEffect(() => {
@@ -503,10 +524,16 @@ export default function App() {
         Boolean(sessionStorage.getItem('khodra_admin_pin_session'));
 
       if (isMarked) {
+        // فحص مهلة الخمول الإدارية (30 دقيقة)
+        const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
+        if (lastAct && Date.now() - lastAct >= 30 * 60 * 1000) {
+          handleAdminLogout();
+          return;
+        }
+
         const isValid = await validateAdminSessionRemote();
         if (!isValid) {
-          setIsAdmin(false);
-          setIsAdminOrdersOpen(false);
+          handleAdminLogout();
         }
       } else {
         setIsAdmin(false);
@@ -520,11 +547,16 @@ export default function App() {
         document.visibilityState === 'visible' &&
         sessionStorage.getItem('khodra_admin_auth') === 'true'
       ) {
+        const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
+        if (lastAct && Date.now() - lastAct >= 30 * 60 * 1000) {
+          handleAdminLogout();
+          return;
+        }
+
         try {
           const isValid = await validateAdminSessionRemote();
           if (!isValid) {
-            setIsAdmin(false);
-            setIsAdminOrdersOpen(false);
+            handleAdminLogout();
           }
         } catch (err) {
           console.warn('⚠️ تعذر التحقق من الجلسة (قد يكون خطأ شبكة)، الإبقاء على وضع المدير:', err);
@@ -539,7 +571,7 @@ export default function App() {
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       window.removeEventListener('focus', handleVisibilityOrFocus);
     };
-  }, []);
+  }, [handleAdminLogout]);
 
   useEffect(() => {
     const handleAdminTrigger = () => {
@@ -588,6 +620,9 @@ export default function App() {
         localStorage.removeItem('khodra_admin_auth');
       } catch {}
       window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
+      try {
+        sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
+      } catch {}
       setIsAdminPinModalOpen(false);
       setTimeout(() => {
         const el = document.getElementById('admin-dashboard-section');
@@ -598,13 +633,6 @@ export default function App() {
       return true;
     }
     return false;
-  };
-
-  const handleAdminLogout = () => {
-    setIsAdmin(false);
-    setIsAdminOrdersOpen(false);
-    clearCachedAdminPin();
-    window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
   };
 
   // ─── Refs ───
@@ -808,9 +836,19 @@ export default function App() {
     window.history.pushState({ page: 'main' }, '');
 
     const handlePopState = () => {
-      // 0. إذا كان مسار الإدارة مفتوحاً: التحقق من المسار الجديد أو العودة للوحة المدير السفلية
+      // 0. إذا كان مسار الإدارة مفتوحاً: التحقق من صلاحية الجلسة لمنع أي تجاوز عبر زر الرجوع
       const newAdminRoute = parseAdminRoute();
       if (newAdminRoute) {
+        const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
+        const isSessionValid =
+          sessionStorage.getItem('khodra_admin_auth') === 'true' &&
+          Boolean(sessionStorage.getItem('khodra_admin_pin_session')) &&
+          (!lastAct || Date.now() - lastAct < 30 * 60 * 1000);
+
+        if (!isSessionValid) {
+          handleAdminLogout();
+          return;
+        }
         setActiveAdminRoute(newAdminRoute);
         return;
       } else if (activeAdminRouteRef.current) {
@@ -1235,71 +1273,73 @@ export default function App() {
   // ─── وضع الصفحات المخصصة لأدوات الإدارة الأربعة (روابط مستقلة) ───
   if (activeAdminRoute) {
     return (
-      <Suspense
-        fallback={
-          <div className="min-h-screen bg-[#F4EFE6] flex items-center justify-center p-8">
-            <div className="flex items-center gap-3 font-black text-sm text-[#163920] bg-white px-6 py-4 rounded-2xl shadow-md border border-[#E8E1D3]">
-              <span className="w-5 h-5 rounded-full border-2 border-[#163920] border-t-transparent animate-spin" />
-              <span>جارٍ تحميل صفحة الإدارة...</span>
+      <AdminSessionProvider isAdmin={isAdmin} onLogout={handleAdminLogout}>
+        <Suspense
+          fallback={
+            <div className="min-h-screen bg-[#F4EFE6] flex items-center justify-center p-8">
+              <div className="flex items-center gap-3 font-black text-sm text-[#163920] bg-white px-6 py-4 rounded-2xl shadow-md border border-[#E8E1D3]">
+                <span className="w-5 h-5 rounded-full border-2 border-[#163920] border-t-transparent animate-spin" />
+                <span>جارٍ تحميل صفحة الإدارة...</span>
+              </div>
             </div>
-          </div>
-        }
-      >
-        <AdminPageLayout
-          currentRoute={activeAdminRoute}
-          isAdmin={isAdmin}
-          onLogout={handleExitToBottomDashboard}
-          onNavigate={handleNavigateAdmin}
-          onReturnToStore={handleReturnToStore}
-          onExitToDashboard={handleExitToBottomDashboard}
+          }
         >
-          <AdminErrorBoundary onClose={handleReturnToStore}>
-            {activeAdminRoute === 'orders' && (
-              <AdminOrdersPanel
-                standalone={true}
-                isOpen={true}
-                onClose={handleReturnToStore}
-              />
-            )}
-            {activeAdminRoute === 'inventory' && (
-              <AdminInventoryPanel
-                standalone={true}
-                isOpen={true}
-                targetProductId={adminFocusedProductId}
-                onClose={handleReturnToStore}
-                onNavigateToPricing={(pid) => handleNavigateAdmin('pricing', pid)}
-                onNavigateToAI={() => {
-                  handleNavigateAdmin('marketing');
-                }}
-              />
-            )}
-            {activeAdminRoute === 'marketing' && (
-              <AIMarketingCenter />
-            )}
-            {activeAdminRoute === 'fleet' && (
-              <AdminDeliveryFleetTab
-                standalone={true}
-              />
-            )}
-            {activeAdminRoute === 'pricing' && (
-              <PricingForecastPanel
-                standalone={true}
-                isOpen={true}
-                targetProductId={adminFocusedProductId}
-                onClose={handleReturnToStore}
-                onNavigateToInventory={(pid) => handleNavigateAdmin('inventory', pid)}
-              />
-            )}
-            {activeAdminRoute === 'finance' && (
-              <FinancePanel
-                standalone={true}
-                isOpen={true}
-                onClose={handleReturnToStore}
-              />
-            )}
-          </AdminErrorBoundary>
-        </AdminPageLayout>
-      </Suspense>
+          <AdminPageLayout
+            currentRoute={activeAdminRoute}
+            isAdmin={isAdmin}
+            onLogout={handleAdminLogout}
+            onNavigate={handleNavigateAdmin}
+            onReturnToStore={handleReturnToStore}
+            onExitToDashboard={handleExitToBottomDashboard}
+          >
+            <AdminErrorBoundary onClose={handleReturnToStore}>
+              {activeAdminRoute === 'orders' && (
+                <AdminOrdersPanel
+                  standalone={true}
+                  isOpen={true}
+                  onClose={handleReturnToStore}
+                />
+              )}
+              {activeAdminRoute === 'inventory' && (
+                <AdminInventoryPanel
+                  standalone={true}
+                  isOpen={true}
+                  targetProductId={adminFocusedProductId}
+                  onClose={handleReturnToStore}
+                  onNavigateToPricing={(pid) => handleNavigateAdmin('pricing', pid)}
+                  onNavigateToAI={() => {
+                    handleNavigateAdmin('marketing');
+                  }}
+                />
+              )}
+              {activeAdminRoute === 'marketing' && (
+                <AIMarketingCenter />
+              )}
+              {activeAdminRoute === 'fleet' && (
+                <AdminDeliveryFleetTab
+                  standalone={true}
+                />
+              )}
+              {activeAdminRoute === 'pricing' && (
+                <PricingForecastPanel
+                  standalone={true}
+                  isOpen={true}
+                  targetProductId={adminFocusedProductId}
+                  onClose={handleReturnToStore}
+                  onNavigateToInventory={(pid) => handleNavigateAdmin('inventory', pid)}
+                />
+              )}
+              {activeAdminRoute === 'finance' && (
+                <FinancePanel
+                  standalone={true}
+                  isOpen={true}
+                  onClose={handleReturnToStore}
+                />
+              )}
+            </AdminErrorBoundary>
+          </AdminPageLayout>
+        </Suspense>
+      </AdminSessionProvider>
     );
   }
 

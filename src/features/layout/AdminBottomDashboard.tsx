@@ -73,19 +73,8 @@ export const AdminBottomDashboard: React.FC<AdminBottomDashboardProps> = ({
   });
 
   // ─── 30 دقيقة مهلة خمول إدارية ───
-  // (يتم التعامل مع الخمول الآن عبر AdminSessionProvider)
+  // (تتم مراقبة الخمول وتمديد الجلسة مركزياً عبر AdminSessionProvider)
   const { extendSession } = useAdminSession();
-  
-  useEffect(() => {
-     // نقوم بتمديد الجلسة عند أي نشاط، لكن الـ Provider نفسه هو من يراقب الخمول
-     const updateActivity = () => extendSession();
-     const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
-     events.forEach((ev) => window.addEventListener(ev, updateActivity, { passive: true }));
-     
-     return () => {
-        events.forEach((ev) => window.removeEventListener(ev, updateActivity));
-     }
-  }, [extendSession]);
 
 
   // الاستماع للأحداث العامة لفتح النوافذ المستقلة من أي مكان في المتجر

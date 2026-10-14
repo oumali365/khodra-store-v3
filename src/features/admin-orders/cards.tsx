@@ -29,6 +29,7 @@ import {
 import type { DbOrder, OrderStatus, DeliveryDispatchInfo, StoreDriver, FastAppCourier } from './types';
 import { STATUS_LABELS } from './constants';
 import { FEZ_DELIVERY_ZONES } from '../../data/deliveryZones';
+import { getEstimatedZoneDeliveryCost } from '../../services/financialEngine';
 import {
   toWhatsApp,
   timeAgo,
@@ -268,8 +269,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 }`}>
                   {draft.deliverySource === 'internal' ? 'فريق خُضرة' : (draft.appName || 'تطبيق خارجي')}: {draft.driverName}
                 </span>
-              ) : (
-              )}
+              ) : null}
             </div>
             {showDriverAccordion ? <ChevronUp className="w-3.5 h-3.5 text-stone-500" /> : <ChevronDown className="w-3.5 h-3.5 text-stone-500" />}
           </button>
@@ -521,7 +521,25 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 <span>قيد المراجعة</span>
               </button>
               <button
-                type="button" disabled={isUpdatingStatus} onClick={() => onStatusChange('delivered')}
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={() => {
+                  const hasDeliveryCost =
+                    (draft?.deliveryCost != null && Number(draft.deliveryCost) > 0) ||
+                    (order.delivery_dispatch?.deliveryCost != null && Number(order.delivery_dispatch.deliveryCost) > 0);
+
+                  if (!hasDeliveryCost && onUpdateDraft) {
+                    const fallbackZoneCost = getEstimatedZoneDeliveryCost(order.delivery_zone || 'north');
+                    onUpdateDraft({
+                      deliveryCost: fallbackZoneCost,
+                      costCertainty: 'estimated',
+                    });
+                    if (onSaveDraft) {
+                      onSaveDraft();
+                    }
+                  }
+                  onStatusChange('delivered');
+                }}
                 className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />

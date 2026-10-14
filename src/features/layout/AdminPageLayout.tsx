@@ -154,19 +154,8 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
   }, []);
 
   // ─── 30 دقيقة مهلة خمول إدارية ───
-  // (يتم التعامل مع الخمول الآن عبر AdminSessionProvider)
+  // (تتم مراقبة الخمول وتمديد الجلسة مركزياً عبر AdminSessionProvider)
   const { extendSession } = useAdminSession();
-  
-  useEffect(() => {
-     // نقوم بتمديد الجلسة عند أي نشاط، لكن الـ Provider نفسه هو من يراقب الخمول
-     const updateActivity = () => extendSession();
-     const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
-     events.forEach((ev) => window.addEventListener(ev, updateActivity, { passive: true }));
-     
-     return () => {
-        events.forEach((ev) => window.removeEventListener(ev, updateActivity));
-     }
-  }, [extendSession]);
 
   useEffect(() => {
     const handleRevoked = (e: any) => {
@@ -412,6 +401,21 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
                 <KeyRound className="w-4 h-4 text-[#F5D76E]" />
                 <span className="hidden sm:inline text-[11px]">الأمان</span>
               </button>
+
+              {/* زر الخروج الصريح وإنهاء الجلسة الإدارية */}
+              {onLogout && (
+                <button
+                  type="button"
+                  id="admin-explicit-logout-btn"
+                  onClick={onLogout}
+                  className="min-h-[38px] px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900/90 border border-rose-500/40 hover:border-rose-400 text-rose-200 hover:text-white text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
+                  title="تسجيل الخروج وإنهاء جلسة الإدارة"
+                  aria-label="تسجيل الخروج من الإدارة"
+                >
+                  <LogOut className="w-4 h-4 text-rose-400" />
+                  <span className="hidden sm:inline text-[11px]">خروج</span>
+                </button>
+              )}
             </div>
 
           </div>
