@@ -355,6 +355,19 @@ export default function App() {
   const handleExitToBottomDashboard = useCallback(() => {
     setActiveAdminRoute(null);
     window.history.pushState({ page: 'main' }, '', '/');
+
+    // التحقق من صلاحية الجلسة قبل منح أو استبقاء صلاحيات الإدارة
+    const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
+    const isSessionValid =
+      sessionStorage.getItem('khodra_admin_auth') === 'true' &&
+      Boolean(sessionStorage.getItem('khodra_admin_pin_session')) &&
+      (!lastAct || Date.now() - lastAct < 30 * 60 * 1000);
+
+    if (!isSessionValid) {
+      handleAdminLogout();
+      return;
+    }
+
     setIsAdmin(true);
     try {
       sessionStorage.setItem('khodra_admin_auth', 'true');
