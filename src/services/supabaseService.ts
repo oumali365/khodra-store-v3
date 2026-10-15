@@ -1491,7 +1491,12 @@ export async function verifyAdminPinRemote(
 
   // 1. الأولوية الأولى: استدعاء خادم الـ API المركزي لضمان حماية Brute-force والحصول على إصدار الجلسة
   try {
-    const apiRes = await fetch('/api/admin/verify-pin', {
+    const apiUrl =
+      typeof window !== 'undefined'
+        ? '/api/admin/verify-pin'
+        : (process.env.APP_URL || 'http://127.0.0.1:3000') + '/api/admin/verify-pin';
+
+    const apiRes = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin: trimmed }),
@@ -1521,7 +1526,9 @@ export async function verifyAdminPinRemote(
       return { valid: false, message: data?.error || 'الرمز السري غير صحيح' };
     }
   } catch (netErr) {
-    console.warn('Backend /api/admin/verify-pin unreachable, attempting direct Supabase RPC:', netErr);
+    if (typeof window !== 'undefined') {
+      console.warn('Backend /api/admin/verify-pin unreachable, attempting direct Supabase RPC:', netErr);
+    }
   }
 
   // 2. المحاولة الثانوية: استدعاء Supabase RPC مباشرة في حال انقطاع الـ API الوسيط
@@ -2193,7 +2200,12 @@ export async function updateOrderDispatch(
   // 1. الأولوية: التحقق من الخادم عبر API المركزي لضمان الأمان والتحقق من صحة السائق والتسعيرة
   try {
     const pin = getAdminPin();
-    const serverRes = await fetch('/api/admin/orders/dispatch', {
+    const apiUrl =
+      typeof window !== 'undefined'
+        ? '/api/admin/orders/dispatch'
+        : (process.env.APP_URL || 'http://127.0.0.1:3000') + '/api/admin/orders/dispatch';
+
+    const serverRes = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2223,7 +2235,9 @@ export async function updateOrderDispatch(
       };
     }
   } catch (apiErr) {
-    console.warn('Backend /api/admin/orders/dispatch fallback to Supabase RPC:', apiErr);
+    if (typeof window !== 'undefined') {
+      console.warn('Backend /api/admin/orders/dispatch fallback to Supabase RPC:', apiErr);
+    }
   }
 
   // 2. تحديث Supabase عبر الدالة المحمية update_order_dispatch_secure

@@ -234,14 +234,14 @@ async function runPhase2VerificationSuite() {
   // السيناريو 10: التأكد من عدم اختلاق أي أرقام عند تعطل الأدوات
   // ──────────────────────────────────────────────────────────────────
   console.log('▶ [السيناريو 10] التأكد من منع اختلاق الأرقام في جميع حالات الخطأ والفراغ:');
-  const checkSalesEmpty = await executeGetSalesSummary({ period: 'today' });
+  const checkSalesEmpty = await executeGetSalesSummary({ start_date: '2099-01-01', end_date: '2099-01-02' });
   const fabricatedDataDetected =
     checkSalesEmpty.status === 'empty' &&
     (checkSalesEmpty.data.delivered_revenue_dh > 0 || checkSalesEmpty.data.total_orders > 0);
 
   console.log(`  - هل تم توليد إيرادات وهمية لليوم الخالي؟ ${fabricatedDataDetected ? 'نعم (مخالفة!)' : 'لا (0 درهم مع توضيح الفراغ)'}`);
 
-  const pass10 = !fabricatedDataDetected && checkSalesEmpty.isRealData === false;
+  const pass10 = !fabricatedDataDetected && checkSalesEmpty.isRealData === false && checkSalesEmpty.status === 'empty';
   console.log(`  - نتيجة السيناريو 10: ${pass10 ? '✅ نجاح (منع الاختلاق 100%)' : '❌ فشل'}\n`);
   if (pass10) passedScenarios++;
 
