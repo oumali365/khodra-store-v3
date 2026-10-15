@@ -318,16 +318,13 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1.5">
                     <span className="font-black text-sm sm:text-base text-white tracking-tight font-['Almarai'] leading-tight">
-                      إدارة متجر خُضرة
+                      إدارة المتجر
                     </span>
                     <span className="hidden xs:inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                       مباشر
                     </span>
                   </div>
-                  <span className="text-[10px] text-stone-400 font-medium leading-tight">
-                    لوحة التحكم والإدارة
-                  </span>
                 </div>
               </div>
             </div>
