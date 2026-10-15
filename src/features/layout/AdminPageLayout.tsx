@@ -21,7 +21,6 @@ import {
   Package,
   Sparkles,
   ArrowRight,
-  LayoutDashboard,
 } from 'lucide-react';
 import { useNewOrdersNotifier } from '../../hooks/useNewOrdersNotifier';
 import { updateAdminPassword, verifyAdminPinRemote } from '../../services/supabaseService';
@@ -451,23 +450,6 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
         aria-label="التنقل بين أدوات الإدارة"
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0E1B11]/95 backdrop-blur-md border-t-2 border-[#EAB308]/40 px-1 py-1.5 shadow-2xl flex items-center justify-around overflow-x-auto no-scrollbar"
       >
-        {/* زر الرجوع المباشر للهاتف إلى لوحة المدير السفلية (Bottom Dashboard) */}
-        <button
-          type="button"
-          id="admin-mobile-back-to-dashboard-btn"
-          onClick={handleExit}
-          className="relative flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all cursor-pointer flex-1 min-w-[46px] max-w-[64px] min-h-[44px] text-amber-400 hover:text-amber-300 font-bold active:scale-95 group"
-          title="الرجوع إلى لوحة التحكم السفلية (Bottom Dashboard)"
-          aria-label="الرجوع إلى لوحة التحكم السفلية"
-        >
-          <div className="relative">
-            <LayoutDashboard className="w-4.5 h-4.5 text-amber-400 group-hover:scale-110 transition-transform" />
-          </div>
-          <span className="text-[10px] mt-0.5 leading-tight truncate w-full text-center font-black">
-            اللوحة
-          </span>
-        </button>
-
         {NAV_ITEMS.map((item) => {
           const isActive = currentRoute === item.id;
           const { Icon } = item;
