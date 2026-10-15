@@ -374,3 +374,156 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'key', p_key);
 END;
 $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 🔟 دوال RPC الموحدة لإدارة الأسطول والطلبات (assign_driver_to_orders, dispatch_orders, close_zone_tour_atomic)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.assign_driver_to_orders(
+  p_order_ids TEXT[],
+  p_driver_id TEXT,
+  p_driver_type TEXT,
+  p_admin_pin TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_updated_count INT := 0;
+  v_driver_exists BOOLEAN := FALSE;
+BEGIN
+  PERFORM public.assert_is_admin(p_admin_pin);
+
+  IF p_driver_type NOT IN ('store', 'fast_app') THEN
+    RAISE EXCEPTION 'INVALID_DRIVER_TYPE: نوع السائق غير معتمد';
+  END IF;
+
+  IF p_driver_type = 'store' THEN
+    SELECT EXISTS(SELECT 1 FROM public.store_drivers WHERE id = p_driver_id) INTO v_driver_exists;
+  ELSE
+    SELECT EXISTS(SELECT 1 FROM public.fast_app_couriers WHERE id = p_driver_id) INTO v_driver_exists;
+  END IF;
+
+  IF NOT v_driver_exists THEN
+    RAISE EXCEPTION 'DRIVER_NOT_FOUND: السائق المحدد غير موجود في قاعدة البيانات';
+  END IF;
+
+  UPDATE public.orders
+  SET driver_id = p_driver_id,
+      driver_type = p_driver_type,
+      dispatch_status = 'assigned',
+      updated_at = NOW()
+  WHERE (id::TEXT = ANY(p_order_ids) OR order_code = ANY(p_order_ids))
+    AND (is_deleted IS NULL OR is_deleted = FALSE);
+
+  GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'updated_count', v_updated_count,
+    'message', format('تم إسناد السائق بنجاح لـ %s طلبات', v_updated_count)
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.dispatch_orders(
+  p_order_ids TEXT[],
+  p_driver_id TEXT,
+  p_driver_type TEXT,
+  p_admin_pin TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_updated_count INT := 0;
+  v_driver_exists BOOLEAN := FALSE;
+BEGIN
+  PERFORM public.assert_is_admin(p_admin_pin);
+
+  IF p_driver_type NOT IN ('store', 'fast_app') THEN
+    RAISE EXCEPTION 'INVALID_DRIVER_TYPE: نوع السائق غير معتمد';
+  END IF;
+
+  IF p_driver_type = 'store' THEN
+    SELECT EXISTS(SELECT 1 FROM public.store_drivers WHERE id = p_driver_id) INTO v_driver_exists;
+  ELSE
+    SELECT EXISTS(SELECT 1 FROM public.fast_app_couriers WHERE id = p_driver_id) INTO v_driver_exists;
+  END IF;
+
+  IF NOT v_driver_exists THEN
+    RAISE EXCEPTION 'DRIVER_NOT_FOUND: السائق المحدد غير موجود';
+  END IF;
+
+  UPDATE public.orders
+  SET driver_id = p_driver_id,
+      driver_type = p_driver_type,
+      dispatch_status = 'out_for_delivery',
+      status = 'prepared',
+      dispatched_at = NOW(),
+      updated_at = NOW()
+  WHERE (id::TEXT = ANY(p_order_ids) OR order_code = ANY(p_order_ids))
+    AND (is_deleted IS NULL OR is_deleted = FALSE);
+
+  GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'updated_count', v_updated_count,
+    'message', format('تم إخراج %s طلبات للتوصيل بنجاح', v_updated_count)
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.close_zone_tour_atomic(
+  p_order_ids TEXT[],
+  p_driver_id TEXT DEFAULT NULL,
+  p_driver_name TEXT DEFAULT NULL,
+  p_driver_phone TEXT DEFAULT NULL,
+  p_driver_commission NUMERIC DEFAULT 25.00,
+  p_admin_pin TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_delivered_count INT := 0;
+BEGIN
+  PERFORM public.assert_is_admin(p_admin_pin);
+
+  UPDATE public.orders
+  SET status = 'delivered',
+      dispatch_status = 'delivered',
+      delivered_at = NOW(),
+      driver_id = COALESCE(p_driver_id, driver_id),
+      updated_at = NOW(),
+      security_flags = COALESCE(security_flags, '{}'::jsonb) || jsonb_build_object(
+        'delivery_dispatch', 
+        COALESCE(security_flags->'delivery_dispatch', '{}'::jsonb) || jsonb_build_object(
+          'dispatchStatus', 'delivered',
+          'driverId', p_driver_id,
+          'driverName', p_driver_name,
+          'driverPhone', p_driver_phone,
+          'deliveryCost', p_driver_commission
+        )
+      )
+  WHERE (id::TEXT = ANY(p_order_ids) OR order_code = ANY(p_order_ids))
+    AND (is_deleted IS NULL OR is_deleted = FALSE)
+    AND status <> 'delivered';
+
+  GET DIAGNOSTICS v_delivered_count = ROW_COUNT;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'delivered_count', v_delivered_count,
+    'message', format('تم إغلاق الجولة بنجاح وتسليم %s طلبات', v_delivered_count)
+  );
+END;
+$$;
+
