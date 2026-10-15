@@ -1410,6 +1410,29 @@ export function invalidateAdminSession(reason?: string): void {
 }
 
 /**
+ * التحقق الموحد من صلاحية جلسة المدير المحلية
+ * يضمن تطابق الفحص في جميع المكونات وعند التحديث والتنقل
+ */
+export function isLocalAdminSessionValid(): boolean {
+  try {
+    const isAuth =
+      sessionStorage.getItem('khodra_admin_auth') === 'true' &&
+      Boolean(sessionStorage.getItem('khodra_admin_pin_session'));
+    if (!isAuth) return false;
+
+    const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
+    if (lastAct && !isNaN(lastAct) && lastAct > 0) {
+      if (Date.now() - lastAct >= 30 * 60 * 1000) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * التحقق المركزي من استمرار صلاحية جلسة المدير النشطة مع الخادم
  * يفحص إصدار الجلسة والرمز السري ويبطل الجلسة فوراً إذا تم تغيير الرمز من جهاز آخر
  */
@@ -1447,14 +1470,24 @@ export async function validateAdminSessionRemote(): Promise<boolean> {
       return true;
     }
 
-    // إذا رفض الخادم الجلسة (تم تغيير الرمز السري من جهاز آخر أو إبطالها)
-    console.warn('Admin session rejected by central authority:', data?.reason);
-    invalidateAdminSession(
-      data?.reason === 'PIN_MISMATCH'
-        ? 'تم تغيير الرمز السري للمتجر من جهاز آخر. يرجى تسجيل الدخول بالرمز الجديد.'
-        : 'انتهت صلاحية جلسة الإدارة أو تم تغيير الرمز السري. يرجى تسجيل الدخول مجدداً.'
-    );
-    return false;
+    // لا نبطل الجلسة إلا إذا رد الخادم صراحة ببيان عدم الصلاحية (تغيير رمز أو إبطال)
+    if (res.status === 200 && data && data.valid === false) {
+      console.warn('Admin session rejected by central authority:', data?.reason);
+      invalidateAdminSession(
+        data?.reason === 'PIN_MISMATCH'
+          ? 'تم تغيير الرمز السري للمتجر من جهاز آخر. يرجى تسجيل الدخول بالرمز الجديد.'
+          : 'انتهت صلاحية جلسة الإدارة أو تم تغيير الرمز السري. يرجى تسجيل الدخول مجدداً.'
+      );
+      return false;
+    }
+
+    if (res.status === 401) {
+      invalidateAdminSession('انتهت صلاحية جلسة الإدارة. يرجى تسجيل الدخول مجدداً.');
+      return false;
+    }
+
+    // في حال أخطاء الشبكة العابرة أو استجابة 500، نعتمد على الصلاحية المحلية بدلاً من تسجيل الخروج القسري
+    return isLocalAdminSessionValid();
   } catch (netErr) {
     console.warn('Backend validate-session unreachable, checking direct Supabase RPC:', netErr);
     const client = getSupabase();
@@ -1464,11 +1497,14 @@ export async function validateAdminSessionRemote(): Promise<boolean> {
         if (!error && data === true) {
           return true;
         }
-        invalidateAdminSession('الرمز السري الحالي غير صالح');
-        return false;
+        if (!error && data === false) {
+          invalidateAdminSession('الرمز السري الحالي غير صالح');
+          return false;
+        }
       } catch {}
     }
-    return false;
+    // الحفاظ على الجلسة المحلية طالما لم تنتهِ مهلة الخمول
+    return isLocalAdminSessionValid();
   }
 }
 
@@ -1508,6 +1544,7 @@ export async function verifyAdminPinRemote(
       setCachedAdminPin(trimmed);
       try {
         sessionStorage.setItem('khodra_admin_auth', 'true');
+        sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
         if (data.sessionVersion) {
           sessionStorage.setItem('khodra_admin_session_version', data.sessionVersion);
         }

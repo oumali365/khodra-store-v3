@@ -30,29 +30,46 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode; isAdmin
     const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 دقيقة
     const WARNING_THRESHOLD_MS = 28 * 60 * 1000; // 28 دقيقة (تنبيه قبل دقيقتين)
 
-    // تهيئة وقت آخر نشاط من sessionStorage إن وجد
+    // تهيئة وقت آخر نشاط من sessionStorage إن وجد وكان صالحاً ضمن المهلة
     try {
       const storedLastActivity = Number(sessionStorage.getItem('khodra_admin_last_activity'));
-      if (storedLastActivity && !isNaN(storedLastActivity) && storedLastActivity > 0) {
+      if (
+        storedLastActivity &&
+        !isNaN(storedLastActivity) &&
+        storedLastActivity > 0 &&
+        Date.now() - storedLastActivity < INACTIVITY_LIMIT_MS
+      ) {
         lastActivityRef.current = storedLastActivity;
       } else {
+        lastActivityRef.current = Date.now();
         sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
       }
-    } catch {}
-
-    const updateActivity = () => {
+    } catch {
       lastActivityRef.current = Date.now();
-      try {
-        sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
-      } catch {}
+    }
+
+    let lastStorageSync = Date.now();
+    const updateActivity = () => {
+      const now = Date.now();
+      lastActivityRef.current = now;
+
+      // تحديث التخزين المؤقت مرة كل 10 ثوانٍ كحد أقصى لمنع إرهاق التخزين مع الحفاظ على الدقة
+      if (now - lastStorageSync > 10000) {
+        lastStorageSync = now;
+        try {
+          sessionStorage.setItem('khodra_admin_last_activity', String(now));
+        } catch {}
+      }
+
       if (showWarningRef.current) {
         showWarningRef.current = false;
         setShowInactivityWarning(false);
       }
     };
 
-    const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
+    const events = ['mousemove', 'mousedown', 'keypress', 'keydown', 'touchstart', 'pointerdown', 'click', 'scroll'];
     events.forEach((ev) => window.addEventListener(ev, updateActivity, { passive: true }));
+    window.addEventListener('khodra_admin_route_changed', updateActivity);
 
     const interval = setInterval(() => {
       const inactiveDuration = Date.now() - lastActivityRef.current;
@@ -66,6 +83,7 @@ export const AdminSessionProvider: React.FC<{ children: React.ReactNode; isAdmin
 
     return () => {
       events.forEach((ev) => window.removeEventListener(ev, updateActivity));
+      window.removeEventListener('khodra_admin_route_changed', updateActivity);
       clearInterval(interval);
     };
   }, [isAdmin, onLogout]);

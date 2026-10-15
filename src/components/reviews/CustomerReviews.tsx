@@ -30,6 +30,7 @@ import {
   submitCustomerReview,
   deleteCustomerReview,
   getSupabase,
+  isLocalAdminSessionValid,
 } from '../../services/supabaseService';
 import {
   INITIAL_REVIEWS,
@@ -95,16 +96,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
   const [isEnd, setIsEnd] = useState<boolean>(false);
 
   // ─── Admin mode ───
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    try {
-      return (
-        sessionStorage.getItem('khodra_admin_auth') === 'true' &&
-        Boolean(sessionStorage.getItem('khodra_admin_pin_session'))
-      );
-    } catch {
-      return false;
-    }
-  });
+  const [isAdmin, setIsAdmin] = useState<boolean>(isLocalAdminSessionValid);
 
   const [deleteConfirmReview, setDeleteConfirmReview] = useState<CustomerReview | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -112,14 +104,7 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = () => {
 
   useEffect(() => {
     const handleAuthChanged = () => {
-      try {
-        setIsAdmin(
-          sessionStorage.getItem('khodra_admin_auth') === 'true' &&
-          Boolean(sessionStorage.getItem('khodra_admin_pin_session'))
-        );
-      } catch {
-        setIsAdmin(false);
-      }
+      setIsAdmin(isLocalAdminSessionValid());
     };
     window.addEventListener('khodra_admin_auth_changed', handleAuthChanged);
     window.addEventListener('khodra_admin_auth_revoked', handleAuthChanged);

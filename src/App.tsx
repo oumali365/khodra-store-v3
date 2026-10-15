@@ -29,6 +29,7 @@ import {
   verifyAdminPinRemote,
   clearCachedAdminPin,
   validateAdminSessionRemote,
+  isLocalAdminSessionValid,
 } from './services/supabaseService';
 import { calculateCustomerDeliveryFee } from './services/financialEngine';
 
@@ -296,6 +297,9 @@ export default function App() {
     if (productId !== undefined && productId !== null) {
       setAdminFocusedProductId(productId);
     }
+    try {
+      sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
+    } catch {}
     window.history.pushState({ admin: route, productId }, '', `/admin/${route}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -356,14 +360,8 @@ export default function App() {
     setActiveAdminRoute(null);
     window.history.pushState({ page: 'main' }, '', '/');
 
-    // التحقق من صلاحية الجلسة قبل منح أو استبقاء صلاحيات الإدارة
-    const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
-    const isSessionValid =
-      sessionStorage.getItem('khodra_admin_auth') === 'true' &&
-      Boolean(sessionStorage.getItem('khodra_admin_pin_session')) &&
-      (!lastAct || Date.now() - lastAct < 30 * 60 * 1000);
-
-    if (!isSessionValid) {
+    // التحقق الموحد من صلاحية الجلسة قبل منح أو استبقاء صلاحيات الإدارة
+    if (!isLocalAdminSessionValid()) {
       handleAdminLogout();
       return;
     }
@@ -371,6 +369,7 @@ export default function App() {
     setIsAdmin(true);
     try {
       sessionStorage.setItem('khodra_admin_auth', 'true');
+      sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
     } catch {}
 
     // محاولة تمرير متتالية تضمن الوصول إلى قسم الإدارة السفلي (Bottom Dashboard) حتى بعد تحميل Suspense
@@ -490,21 +489,7 @@ export default function App() {
   const [isInstallBannerVisible, setIsInstallBannerVisible] = useState<boolean>(() => !checkIfAlreadyInstalledOrDownloaded());
 
   // ─── وضع المدير (Admin Mode) أسفل الفوتر ───
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    try {
-      const isAuth =
-        sessionStorage.getItem('khodra_admin_auth') === 'true' &&
-        Boolean(sessionStorage.getItem('khodra_admin_pin_session'));
-      if (!isAuth) return false;
-      const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
-      if (lastAct && Date.now() - lastAct >= 30 * 60 * 1000) {
-        return false;
-      }
-      return true;
-    } catch {
-      return false;
-    }
-  });
+  const [isAdmin, setIsAdmin] = useState<boolean>(isLocalAdminSessionValid);
   const [isAdminPinModalOpen, setIsAdminPinModalOpen] = useState(false);
 
   const handleAdminLogout = useCallback(() => {
@@ -532,18 +517,7 @@ export default function App() {
         localStorage.removeItem('khodra_admin_custom_pin_v2');
       } catch {}
 
-      const isMarked =
-        sessionStorage.getItem('khodra_admin_auth') === 'true' &&
-        Boolean(sessionStorage.getItem('khodra_admin_pin_session'));
-
-      if (isMarked) {
-        // فحص مهلة الخمول الإدارية (30 دقيقة)
-        const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
-        if (lastAct && Date.now() - lastAct >= 30 * 60 * 1000) {
-          handleAdminLogout();
-          return;
-        }
-
+      if (isLocalAdminSessionValid()) {
         const isValid = await validateAdminSessionRemote();
         if (!isValid) {
           handleAdminLogout();
@@ -556,16 +530,7 @@ export default function App() {
     verifyCurrentSession();
 
     const handleVisibilityOrFocus = async () => {
-      if (
-        document.visibilityState === 'visible' &&
-        sessionStorage.getItem('khodra_admin_auth') === 'true'
-      ) {
-        const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
-        if (lastAct && Date.now() - lastAct >= 30 * 60 * 1000) {
-          handleAdminLogout();
-          return;
-        }
-
+      if (document.visibilityState === 'visible' && isLocalAdminSessionValid()) {
         try {
           const isValid = await validateAdminSessionRemote();
           if (!isValid) {
@@ -599,14 +564,7 @@ export default function App() {
     };
 
     const handleAuthChanged = () => {
-      try {
-        const isAuthed =
-          sessionStorage.getItem('khodra_admin_auth') === 'true' &&
-          Boolean(sessionStorage.getItem('khodra_admin_pin_session'));
-        setIsAdmin(isAuthed);
-      } catch {
-        setIsAdmin(false);
-      }
+      setIsAdmin(isLocalAdminSessionValid());
     };
 
     const handleRevoked = () => {
@@ -852,13 +810,7 @@ export default function App() {
       // 0. إذا كان مسار الإدارة مفتوحاً: التحقق من صلاحية الجلسة لمنع أي تجاوز عبر زر الرجوع
       const newAdminRoute = parseAdminRoute();
       if (newAdminRoute) {
-        const lastAct = Number(sessionStorage.getItem('khodra_admin_last_activity'));
-        const isSessionValid =
-          sessionStorage.getItem('khodra_admin_auth') === 'true' &&
-          Boolean(sessionStorage.getItem('khodra_admin_pin_session')) &&
-          (!lastAct || Date.now() - lastAct < 30 * 60 * 1000);
-
-        if (!isSessionValid) {
+        if (!isLocalAdminSessionValid()) {
           handleAdminLogout();
           return;
         }
@@ -1283,10 +1235,10 @@ export default function App() {
     );
   }
 
-  // ─── وضع الصفحات المخصصة لأدوات الإدارة الأربعة (روابط مستقلة) ───
-  if (activeAdminRoute) {
-    return (
-      <AdminSessionProvider isAdmin={isAdmin} onLogout={handleAdminLogout}>
+  // ─── عرض واجهة الإدارة المستقلة أو واجهة المتجر الرئيسية مع الحفاظ على مزود الجلسة موحداً ───
+  return (
+    <AdminSessionProvider isAdmin={isAdmin} onLogout={handleAdminLogout}>
+      {activeAdminRoute ? (
         <Suspense
           fallback={
             <div className="min-h-screen bg-[#F4EFE6] flex items-center justify-center p-8">
@@ -1352,13 +1304,8 @@ export default function App() {
             </AdminErrorBoundary>
           </AdminPageLayout>
         </Suspense>
-      </AdminSessionProvider>
-    );
-  }
-
-  return (
-    <AdminSessionProvider isAdmin={isAdmin} onLogout={handleAdminLogout}>
-      <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
+      ) : (
+        <div className="min-h-screen bg-[#F2EEE4] text-[#1A1814] flex flex-col font-['Tajawal']" dir="rtl">
 
 
       {/* ═══════ بانر تثبيت التطبيق أو بانر التوصيل المجاني (250 DH) ═══════ */}
@@ -1734,7 +1681,8 @@ export default function App() {
         </Suspense>
       )}
 
-    </div>
+      </div>
+      )}
     </AdminSessionProvider>
   );
 }

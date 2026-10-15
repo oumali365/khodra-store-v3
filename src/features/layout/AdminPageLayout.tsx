@@ -210,6 +210,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
       if (res.valid) {
         try {
           sessionStorage.setItem('khodra_admin_auth', 'true');
+          sessionStorage.setItem('khodra_admin_last_activity', String(Date.now()));
           localStorage.removeItem('khodra_admin_auth');
         } catch {}
         window.dispatchEvent(new CustomEvent('khodra_admin_auth_changed'));
