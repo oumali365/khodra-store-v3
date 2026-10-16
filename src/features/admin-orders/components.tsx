@@ -42,7 +42,7 @@ export const StatusTransitionBar: React.FC<StatusTransitionBarProps> = ({
             onClick={() => onStatusChange('prepared')}
             className="flex-1 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition-colors cursor-pointer text-center text-[11px]"
           >
-            جاهز للتوصيل 🛵
+            تم التجهيز 📦
           </button>
         )}
         {status !== 'delivered' && (

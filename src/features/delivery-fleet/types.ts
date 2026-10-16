@@ -84,6 +84,8 @@ export interface ZoneCODCalculation {
   totalSubtotal: number;
   ordersCount: number;
   orders: DbOrder[];
+  unpaidOrdersCount?: number;
+  paidOrdersCount?: number;
 }
 
 export interface AdminDeliveryFleetTabProps {

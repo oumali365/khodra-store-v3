@@ -127,12 +127,12 @@ DECLARE
 BEGIN
   PERFORM public.assert_is_admin(p_admin_pin);
 
-  IF p_new_status NOT IN ('pending', 'confirmed', 'delivered', 'cancelled') THEN
+  IF p_new_status NOT IN ('pending', 'prepared', 'confirmed', 'delivered', 'cancelled') THEN
     RAISE EXCEPTION 'حالة الطلب غير صالحة: %', p_new_status;
   END IF;
 
   UPDATE public.orders
-  SET status = p_new_status,
+  SET status = (CASE WHEN p_new_status = 'confirmed' THEN 'prepared' ELSE p_new_status END),
       updated_at = NOW()
   WHERE (id::TEXT = p_order_id OR order_code = p_order_id);
   

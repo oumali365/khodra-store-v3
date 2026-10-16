@@ -448,13 +448,10 @@ adminAuthRouter.post('/api/admin/orders/dispatch', async (req: Request, res: Res
   if (supabase && !String(orderId).startsWith('local-')) {
     try {
       const updatePayload: Record<string, any> = {
-        delivery_source: cleanSource,
         driver_id: sanitizedDispatch.driverId || null,
-        internal_driver_id: sanitizedDispatch.internalDriverId || null,
-        external_driver_id: sanitizedDispatch.externalDriverId || null,
-        delivery_app: sanitizedDispatch.appName || (cleanSource === 'internal' ? 'internal' : 'external'),
         driver_wage: validCost || null,
         actual_delivery_cost: validCost || null,
+        delivery_cost_status: validCost != null ? 'actual' : 'estimated',
         updated_at: new Date().toISOString(),
       };
 
@@ -462,7 +459,7 @@ adminAuthRouter.post('/api/admin/orders/dispatch', async (req: Request, res: Res
       const { data: currentOrder } = await supabase
         .from('orders')
         .select('security_flags')
-        .eq('id', orderId)
+        .or(`id.eq.${orderId},order_code.eq.${orderId}`)
         .maybeSingle();
 
       const existingFlags = currentOrder?.security_flags && typeof currentOrder.security_flags === 'object'
@@ -477,7 +474,7 @@ adminAuthRouter.post('/api/admin/orders/dispatch', async (req: Request, res: Res
       const { error: updateErr } = await supabase
         .from('orders')
         .update(updatePayload)
-        .eq('id', orderId);
+        .or(`id.eq.${orderId},order_code.eq.${orderId}`);
 
       if (updateErr) {
         console.warn('[Admin Dispatch Server] Supabase update warning:', updateErr.message);
@@ -491,6 +488,93 @@ adminAuthRouter.post('/api/admin/orders/dispatch', async (req: Request, res: Res
     success: true,
     message: 'تم حفظ وتوثيق بيانات التوصيل بنجاح',
     dispatch: sanitizedDispatch,
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// 5️⃣ POST /api/admin/orders/status - تحديث حالة الطلب مركزياً بأمان
+// ────────────────────────────────────────────────────────────
+adminAuthRouter.post('/api/admin/orders/status', async (req: Request, res: Response) => {
+  const adminPinHeader = req.headers['x-admin-pin'];
+  const { orderId, status, adminPin } = req.body || {};
+  const providedPin = typeof adminPin === 'string' && adminPin.trim()
+    ? adminPin.trim()
+    : typeof adminPinHeader === 'string'
+    ? adminPinHeader.trim()
+    : '';
+
+  // 1. التحقق من صلاحية الرمز السري للإدارة إذا كان مهيأ
+  try {
+    const { adminPin: currentPin } = await getStoredAdminCredentials();
+    if (currentPin && providedPin && providedPin !== currentPin) {
+      return res.status(401).json({
+        success: false,
+        error: 'الرمز السري غير صحيح أو تم تغييره من جهاز آخر',
+      });
+    }
+  } catch (authErr) {
+    console.warn('[Admin Status Auth] Note:', authErr);
+  }
+
+  const validStatuses = ['pending', 'prepared', 'confirmed', 'delivered', 'cancelled'];
+  if (!orderId || !status || !validStatuses.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      error: 'بيانات الطلب أو الحالة الجديدة غير صالحة',
+    });
+  }
+
+  const normalizedStatus = status === 'confirmed' ? 'prepared' : status;
+  const strId = String(orderId);
+
+  const supabase = getServerSupabase();
+  if (supabase && !strId.startsWith('local-')) {
+    try {
+      // 1. التحديث المباشر للجدول عبر عميل الخادم الموثق (service_role / server client)
+      const { error: updateErr } = await supabase
+        .from('orders')
+        .update({
+          status: normalizedStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .or(`id.eq.${strId},order_code.eq.${strId}`);
+
+      if (updateErr) {
+        console.warn('[Admin Status Server] Supabase direct update warning:', updateErr.message);
+        // 2. محاولة بديلة عبر دالة RPC
+        const { error: rpcErr } = await supabase.rpc('update_order_status_secure', {
+          p_order_id: strId,
+          p_new_status: normalizedStatus,
+          p_admin_pin: providedPin || null,
+        });
+        if (rpcErr) {
+          console.warn('[Admin Status Server] Supabase RPC update warning:', rpcErr.message);
+        }
+      }
+
+      // استرجاع المخزون إذا كانت الحالة إلغاء
+      if (normalizedStatus === 'cancelled') {
+        const numId = Number(strId);
+        if (!isNaN(numId) && numId > 0) {
+          try {
+            await supabase.rpc('restore_order_inventory', {
+              p_order_id: numId,
+              p_reason: 'إلغاء الطلب من لوحة الإدارة عبر خادم Express',
+            });
+          } catch (rErr) {
+            console.warn('[Admin Status Server] restore_order_inventory warning:', rErr);
+          }
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[Admin Status Server] Database update error:', dbErr);
+    }
+  }
+
+  return res.json({
+    success: true,
+    message: 'تم تحديث حالة الطلب بنجاح',
+    status: normalizedStatus,
   });
 });
 

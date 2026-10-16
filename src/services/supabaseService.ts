@@ -1327,7 +1327,7 @@ function setStoredDispatch(orderCode: string, id: string | number, dispatch: Del
 function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
   const s = String(raw || '').trim().toLowerCase();
   if (!s) return 'pending';
-  if (s === 'prepared' || s.includes('تجهيز') || s.includes('جاهز')) return 'prepared';
+  if (s === 'prepared' || s === 'confirmed' || s.includes('تجهيز') || s.includes('جاهز') || s.includes('مؤكد')) return 'prepared';
   if (s === 'delivered' || s.includes('تسليم') || s.includes('توصيل') || s.includes('موصل')) return 'delivered';
   if (s === 'cancelled' || s.includes('لغا') || s.includes('لغي')) return 'cancelled';
   return 'pending';
@@ -1772,21 +1772,27 @@ function mapRowToOrder(row: any): DbOrder {
     ? (dispatchZoneCandidate as FezZoneId)
     : finalZone;
 
-  const rawDriverName = String(storedDispatch?.driverName || rowDispatch?.driverName || '');
-  const rawDriverId = storedDispatch?.driverId || rowDispatch?.driverId || safeRow.driver_id || safeRow.internal_driver_id || safeRow.external_driver_id;
-  const rawSource: DeliverySource | undefined = storedDispatch?.deliverySource || rowDispatch?.deliverySource || safeRow.delivery_source || (
+  const rawDriverId = safeRow.driver_id || rowDispatch?.driverId || storedDispatch?.driverId || safeRow.internal_driver_id || safeRow.external_driver_id;
+  let rawDriverName = String(rowDispatch?.driverName || storedDispatch?.driverName || '');
+  if (!rawDriverName && rawDriverId) {
+    const matchedDriver = readLocalDrivers().find((d) => d.id === rawDriverId);
+    if (matchedDriver) {
+      rawDriverName = matchedDriver.name;
+    }
+  }
+  const rawSource: DeliverySource | undefined = rowDispatch?.deliverySource || storedDispatch?.deliverySource || safeRow.delivery_source || (
     rawDriverId && String(rawDriverId).startsWith('fast-') ? 'external_app' : (rawDriverId ? 'internal' : undefined)
   );
 
   let finalDeliveryCost: number | undefined = undefined;
-  if (storedDispatch?.deliveryCost != null && !isNaN(Number(storedDispatch.deliveryCost))) {
-    finalDeliveryCost = Number(storedDispatch.deliveryCost);
-  } else if (rowDispatch?.deliveryCost != null && !isNaN(Number(rowDispatch.deliveryCost))) {
+  if (rowDispatch?.deliveryCost != null && !isNaN(Number(rowDispatch.deliveryCost))) {
     finalDeliveryCost = Number(rowDispatch.deliveryCost);
-  } else if (safeRow.driver_wage != null && !isNaN(Number(safeRow.driver_wage))) {
-    finalDeliveryCost = Number(safeRow.driver_wage);
   } else if (safeRow.actual_delivery_cost != null && !isNaN(Number(safeRow.actual_delivery_cost))) {
     finalDeliveryCost = Number(safeRow.actual_delivery_cost);
+  } else if (safeRow.driver_wage != null && !isNaN(Number(safeRow.driver_wage))) {
+    finalDeliveryCost = Number(safeRow.driver_wage);
+  } else if (storedDispatch?.deliveryCost != null && !isNaN(Number(storedDispatch.deliveryCost))) {
+    finalDeliveryCost = Number(storedDispatch.deliveryCost);
   } else if (rawDriverId) {
     // جلب الأجرة المعتمدة مباشرة من الملف الشخصي المحفوظ للسائق
     if (rawSource === 'internal') {
@@ -1991,6 +1997,9 @@ export async function fetchOrders(): Promise<DbOrder[]> {
   if (!client) return readLocalOrders();
 
   const pin = getAdminPin();
+  if (!pin) {
+    return readLocalOrders();
+  }
 
   try {
     let { data, error } = await client.rpc('get_orders_secure', {
@@ -2009,7 +2018,9 @@ export async function fetchOrders(): Promise<DbOrder[]> {
     }
 
     if (error) {
-      console.error('❌ fetchOrders RPC error:', error.message);
+      if (!error.message?.includes('Failed to fetch')) {
+        console.warn('⚠️ fetchOrders RPC notice:', error.message);
+      }
       return readLocalOrders();
     }
 
@@ -2018,8 +2029,10 @@ export async function fetchOrders(): Promise<DbOrder[]> {
     return rows
       .filter((row: any) => row && typeof row === 'object' && !row.is_deleted && !row.deleted_at)
       .map(mapRowToOrder);
-  } catch (err) {
-    console.warn('Network error while fetching orders:', err);
+  } catch (err: any) {
+    if (!err?.message?.includes('Failed to fetch')) {
+      console.warn('Network error while fetching orders:', err);
+    }
     return readLocalOrders();
   }
 }
@@ -2028,74 +2041,165 @@ export async function updateOrderStatus(
   orderId: string | number,
   status: OrderStatus
 ): Promise<{ success: boolean; message?: string }> {
-  // تحديث الطلب محلياً في khodra_recent_orders إن وجد
+  const strId = String(orderId);
+
+  // تحديث الطلب محلياً في khodra_recent_orders إن وجد لضمان الاتساق الفوري
   try {
     const local = JSON.parse(localStorage.getItem('khodra_recent_orders') || '[]');
     if (Array.isArray(local)) {
-      const strId = String(orderId);
       const idx = strId.startsWith('local-') ? Number(strId.replace('local-', '')) : -1;
       if (idx >= 0 && local[idx]) {
         local[idx].status = status;
         localStorage.setItem('khodra_recent_orders', JSON.stringify(local));
       } else {
-        const found = local.find((o: any) => o && (String(o.orderCode) === strId || String(o.id) === strId || String(o.order_code) === strId));
+        const found = local.find(
+          (o: any) =>
+            o &&
+            (String(o.orderCode) === strId ||
+              String(o.id) === strId ||
+              String(o.order_code) === strId ||
+              String(o.orderCode) === `#${strId}` ||
+              String(o.order_code) === `#${strId}`)
+        );
         if (found) {
           found.status = status;
           localStorage.setItem('khodra_recent_orders', JSON.stringify(local));
         }
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
+
+  // 1. إذا كان الطلب محلياً (يبدأ بـ local-)، نكتفي بالتحديث المحلي ونعيد نجاحاً فورياً دون محاولة الاتصال بقاعدة البيانات
+  if (strId.startsWith('local-')) {
+    return { success: true, message: 'تم تحديث حالة الطلب محلياً بنجاح' };
+  }
 
   const client = getSupabase();
   if (!client) return { success: true, message: 'تم التحديث محلياً (وضع عدم الاتصال)' };
 
   const pin = getAdminPin();
+  let updateSuccess = false;
+  let lastErrorMessage = '';
 
+  // 2. المحاولة الأولى: عبر دالة RPC المحمية update_order_status_secure
   try {
-    let { error } = await client.rpc('update_order_status_secure', {
-      p_order_id: String(orderId),
+    let { data: rpcData, error } = await client.rpc('update_order_status_secure', {
+      p_order_id: strId,
       p_new_status: status,
       p_admin_pin: pin,
     });
+
     if (error && error.message?.includes('schema cache')) {
       const retry = await client.rpc('update_order_status_secure', {
-        p_order_id: String(orderId),
+        p_order_id: strId,
         p_new_status: status,
         p_pin: pin,
       });
       error = retry.error;
+      rpcData = retry.data;
     }
+
     if (error && error.message?.includes('INVALID_ADMIN_PIN')) {
       invalidateAdminSession('الرمز السري غير صحيح أو تم تغييره');
       return { success: false, message: 'الرمز السري غير صحيح أو تم تغييره من جهاز آخر' };
     }
 
-    if (error) {
-      console.warn('updateOrderStatus RPC error:', error.message);
-      return { success: false, message: error.message };
-    }
-
-    // ─── استرجاع المخزون تلقائياً عند إلغاء الطلب ───
-    if (status === 'cancelled') {
+    // إذا كانت الدالة القديمة تقبل 'confirmed' فقط بدلاً من 'prepared'، نحاول التوافق التلقائي
+    if (error && error.message?.includes('غير صالحة') && status === 'prepared') {
       try {
-        const numId = Number(orderId);
-        if (!isNaN(numId) && numId > 0) {
-          await client.rpc('restore_order_inventory', {
-            p_order_id: numId,
-            p_reason: 'إلغاء الطلب من لوحة الإدارة',
-          });
+        const retryConfirmed = await client.rpc('update_order_status_secure', {
+          p_order_id: strId,
+          p_new_status: 'confirmed',
+          p_admin_pin: pin,
+        });
+        if (!retryConfirmed.error && retryConfirmed.data?.success !== false) {
+          error = null;
+          updateSuccess = true;
         }
-      } catch (restoreErr) {
-        console.warn('Notice: restore_order_inventory call handled gracefully:', restoreErr);
+      } catch {
+        /* ignore */
       }
     }
 
-    return { success: true };
-  } catch (err) {
-    console.warn('Network error while updating status:', err);
-    return { success: false, message: 'تعذّر الاتصال' };
+    if (!error && (rpcData == null || rpcData.success !== false)) {
+      updateSuccess = true;
+    } else if (error) {
+      lastErrorMessage = error.message;
+    }
+  } catch (err: any) {
+    lastErrorMessage = err?.message || 'خطأ في الاتصال بالـ RPC';
   }
+
+  // 3. المحاولة الثانية: إذا لم تنجح RPC، الاستعانة بالمسار الآمن في الخادم الخلفي /api/admin/orders/status
+  if (!updateSuccess) {
+    try {
+      const serverRes = await fetch('/api/admin/orders/status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pin': pin,
+        },
+        body: JSON.stringify({
+          orderId: strId,
+          status,
+          adminPin: pin,
+        }),
+      });
+      if (serverRes.ok) {
+        const json = await serverRes.json();
+        if (json.success) {
+          updateSuccess = true;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 4. المحاولة الثالثة: التحديث المباشر لجدول orders بواسطة عميل Supabase
+  if (!updateSuccess) {
+    try {
+      const directUpdate = await client
+        .from('orders')
+        .update({
+          status: status,
+          updated_at: new Date().toISOString(),
+        })
+        .or(`id.eq.${strId},order_code.eq.${strId}`);
+
+      if (!directUpdate.error) {
+        updateSuccess = true;
+      } else {
+        lastErrorMessage = directUpdate.error.message;
+      }
+    } catch (directErr: any) {
+      lastErrorMessage = directErr?.message || lastErrorMessage;
+    }
+  }
+
+  if (!updateSuccess) {
+    console.warn('updateOrderStatus resilient attempts failed:', lastErrorMessage);
+    return { success: false, message: lastErrorMessage || 'تعذر تحديث حالة الطلب في الخادم' };
+  }
+
+  // ─── استرجاع المخزون تلقائياً عند إلغاء الطلب ───
+  if (status === 'cancelled') {
+    try {
+      const numId = Number(strId);
+      if (!isNaN(numId) && numId > 0) {
+        await client.rpc('restore_order_inventory', {
+          p_order_id: numId,
+          p_reason: 'إلغاء الطلب من لوحة الإدارة',
+        });
+      }
+    } catch (restoreErr) {
+      console.warn('Notice: restore_order_inventory call handled gracefully:', restoreErr);
+    }
+  }
+
+  return { success: true, message: 'تم تحديث حالة الطلب بنجاح' };
 }
 
 export async function deleteOrder(

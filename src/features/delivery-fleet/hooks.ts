@@ -191,26 +191,43 @@ export function useFastCouriers() {
 }
 
 /**
- * تجميع الطلبات غير الملغاة حسب مناطق فاس الـ 4
+ * تجميع الطلبات حسب مناطق فاس الـ 4 مع دعم تصفية الجولات النشطة
  */
-export function useZoneGroups(orders: DbOrder[]): ZoneGroups {
+export function useZoneGroups(
+  orders: DbOrder[],
+  filterMode: 'active' | 'all' | 'prepared' | 'delivered' = 'active'
+): ZoneGroups {
   return useMemo(() => {
-    const nonCancelled = orders.filter((o) => o.status !== 'cancelled');
+    const filtered = orders.filter((o) => {
+      if (o.status === 'cancelled') return false;
+      if (filterMode === 'active') {
+        // الطلبات النشطة الجارية للتسليم فقط (غير المؤرشفة والتي لم تكتمل بعد)
+        return (o.status === 'prepared' || o.status === 'pending') && !o.is_archived;
+      }
+      if (filterMode === 'prepared') {
+        return o.status === 'prepared';
+      }
+      if (filterMode === 'delivered') {
+        return o.status === 'delivered';
+      }
+      return true;
+    });
+
     return {
-      east: nonCancelled.filter(
+      east: filtered.filter(
         (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'east'
       ),
-      central: nonCancelled.filter(
+      central: filtered.filter(
         (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'central'
       ),
-      south: nonCancelled.filter(
+      south: filtered.filter(
         (o) => (o.delivery_zone || o.delivery_dispatch?.zone) === 'south'
       ),
-      north: nonCancelled.filter(
+      north: filtered.filter(
         (o) => (o.delivery_zone || o.delivery_dispatch?.zone || 'north') === 'north'
       ),
     };
-  }, [orders]);
+  }, [orders, filterMode]);
 }
 
 /**

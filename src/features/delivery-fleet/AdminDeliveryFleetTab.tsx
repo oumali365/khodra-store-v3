@@ -23,6 +23,7 @@ import {
 import { FleetModals } from './modals';
 import {
   closeAndDeliverZoneTour,
+  batchAssignZoneOrders,
   fetchOrders,
   subscribeToOrdersChanges,
   unsubscribeFromOrdersChanges,
@@ -41,9 +42,17 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
 }) => {
   const [internalOrders, setInternalOrders] = useState<DbOrder[]>([]);
   const effectiveOrders = orders && orders.length > 0 ? orders : internalOrders;
+  const [localToast, setLocalToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const triggerToast = useCallback(
-    (type: 'success' | 'error', message: string) => showToast?.(type, message),
+    (type: 'success' | 'error', message: string) => {
+      if (showToast) {
+        showToast(type, message);
+      } else {
+        setLocalToast({ type, message });
+        setTimeout(() => setLocalToast(null), 3500);
+      }
+    },
     [showToast]
   );
 
@@ -80,12 +89,33 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     deleteCourier,
   } = useFastCouriers();
 
-  const zoneGroups = useZoneGroups(effectiveOrders);
+  const [tourFilterMode, setTourFilterMode] = useState<'active' | 'all' | 'prepared' | 'delivered'>('active');
+  const zoneGroups = useZoneGroups(effectiveOrders, tourFilterMode);
   const fleetStats = useFleetStats(effectiveOrders);
 
   const [selectedDriverForZone, setSelectedDriverForZone] = useState<Record<FezZoneId, string>>({
     east: '', central: '', south: '', north: '',
   });
+
+  // مزامنة السائق المختار تلقائياً لكل منطقة استناداً إلى الطلبات المسندة في Supabase
+  useEffect(() => {
+    setSelectedDriverForZone((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      (['east', 'central', 'south', 'north'] as FezZoneId[]).forEach((zKey) => {
+        if (!next[zKey]) {
+          const zOrders = zoneGroups[zKey] || [];
+          const assignedOrder = zOrders.find((o) => o.delivery_dispatch?.driverId || o.driver_id);
+          const foundId = assignedOrder?.delivery_dispatch?.driverId || assignedOrder?.driver_id;
+          if (foundId && drivers.some((d) => d.id === foundId)) {
+            next[zKey] = foundId;
+            changed = true;
+          }
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [zoneGroups, drivers]);
 
   const [codZone, setCodZone] = useState<FezZoneId | null>(null);
   const [copyZone, setCopyZone] = useState<FezZoneId | null>(null);
@@ -93,6 +123,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   const [manifestZone, setManifestZone] = useState<FezZoneId | null>(null);
   const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null);
   const [isClosingTour, setIsClosingTour] = useState(false);
+  const [isAssigningZone, setIsAssigningZone] = useState<FezZoneId | null>(null);
 
   const [driverModal, setDriverModal] = useState<{
     isOpen: boolean; variant: 'internal' | 'fast'; data: StoreDriver | FastAppCourier | null;
@@ -101,6 +132,31 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean; type: 'driver' | 'courier' | 'tour'; target: StoreDriver | FastAppCourier | null;
   }>({ isOpen: false, type: 'driver', target: null });
+
+  const handleAssignDriverToTour = async (zoneKey: FezZoneId, driverId: string) => {
+    const driver = drivers.find((d) => d.id === driverId);
+    if (!driver) return triggerToast('error', 'يرجى اختيار سائق من الفريق أولاً');
+    const zOrders = zoneGroups[zoneKey] || [];
+    if (zOrders.length === 0) return triggerToast('error', 'لا توجد طلبات نشطة في هذه المنطقة للاعتماد');
+
+    setIsAssigningZone(zoneKey);
+    try {
+      const res = await batchAssignZoneOrders({
+        orders: zOrders,
+        driver,
+        newStatus: 'prepared',
+      });
+      triggerToast(res.success ? 'success' : 'error', res.message || 'تم اعتماد الجولة');
+      if (res.success) {
+        fetchOrders().then((d) => setInternalOrders(d)).catch(() => {});
+        onRefreshOrders?.();
+      }
+    } catch (err: any) {
+      triggerToast('error', err?.message || 'تعذر اعتماد الجولة وتعيين السائق');
+    } finally {
+      setIsAssigningZone(null);
+    }
+  };
 
   const handleSendWhatsApp = (zoneKey: FezZoneId) => {
     const driver = drivers.find((d) => d.id === selectedDriverForZone[zoneKey]);
@@ -127,7 +183,10 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     try {
       const res = await closeAndDeliverZoneTour({ orders: zOrders, driver, zoneKey: closeZone });
       triggerToast(res.success ? 'success' : 'error', res.message || 'تم إغلاق الجولة');
-      if (res.success) onRefreshOrders?.();
+      if (res.success) {
+        fetchOrders().then((d) => setInternalOrders(d)).catch(() => {});
+        onRefreshOrders?.();
+      }
     } finally {
       setIsClosingTour(false);
       setCloseZone(null);
@@ -186,6 +245,10 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
         drivers={drivers}
         selectedDrivers={selectedDriverForZone}
         onSelectDriver={(z, id) => setSelectedDriverForZone((prev) => ({ ...prev, [z]: id }))}
+        onAssignDriverToTour={handleAssignDriverToTour}
+        assigningZone={isAssigningZone}
+        filterMode={tourFilterMode}
+        onFilterModeChange={setTourFilterMode}
         onViewCOD={(z) => setCodZone(z)}
         onSendWhatsApp={handleSendWhatsApp}
         onOpenGoogleMaps={handleOpenGoogleMaps}

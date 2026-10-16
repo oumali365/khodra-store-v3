@@ -973,7 +973,7 @@ export function calculateTourFinancials(
   const count = orders.length;
   const safeCommission = Math.max(0, Number(driverCommissionPerOrder) || TARIFF_STANDARDS.DEFAULT_DRIVER_ORDER_WAGE);
 
-  const totalCODToCollect = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const totalCODToCollect = orders.reduce((sum, o: any) => sum + (o?.is_paid ? 0 : (Number(o.total) || 0)), 0);
   const totalDriverWage = orders.reduce((sum, o) => {
     const customCost = o.delivery_dispatch?.deliveryCost ?? o.delivery_dispatch?.agreedWage;
     return sum + (customCost != null && Number.isFinite(customCost) ? customCost : safeCommission);

@@ -221,21 +221,39 @@ export function useDispatchDrafts(orders: DbOrder[]) {
     reloadDriversAndCouriers();
   }, [reloadDriversAndCouriers]);
 
-  // مزامنة المسودات الأولية مع الطلبات
+  // مزامنة المسودات مع الطلبات وتحديثها عند التعيين من أسطول التوصيل أو Realtime
   useEffect(() => {
     setDispatchDrafts((prev) => {
       const next = { ...prev };
+      let hasChanges = false;
       orders.forEach((o) => {
         const key = String(o.id);
-        if (!next[key]) {
-          next[key] = o.delivery_dispatch || {
+        const currentDraft = prev[key];
+        const incoming = o.delivery_dispatch;
+
+        if (!currentDraft) {
+          next[key] = incoming || {
             ...DEFAULT_DISPATCH,
             zone: o.delivery_zone || 'north',
             deliveryCost: undefined,
           };
+          hasChanges = true;
+        } else if (incoming) {
+          // مزامنة التغييرات الواردة من أسطول التوصيل (مثل إسناد السائق أو تغيير حالة الجولة)
+          const driverChanged = incoming.driverId && incoming.driverId !== currentDraft.driverId;
+          const statusChanged = incoming.dispatchStatus && incoming.dispatchStatus !== currentDraft.dispatchStatus;
+          const costChanged = incoming.deliveryCost != null && incoming.deliveryCost !== currentDraft.deliveryCost;
+
+          if (driverChanged || statusChanged || costChanged) {
+            next[key] = {
+              ...currentDraft,
+              ...incoming,
+            };
+            hasChanges = true;
+          }
         }
       });
-      return next;
+      return hasChanges ? next : prev;
     });
   }, [orders]);
 
@@ -295,7 +313,7 @@ export function useOrdersFilter(orders: DbOrder[], searchQuery: string, showArch
     });
 
     const pending = filtered.filter((o) => o.status === 'pending');
-    const prepared = filtered.filter((o) => o.status === 'prepared');
+    const prepared = filtered.filter((o) => o.status === 'prepared' || (o.status as any) === 'confirmed');
     const delivered = filtered.filter((o) => o.status === 'delivered' && (showArchived || !o.is_archived));
     const archived = filtered.filter((o) => o.status === 'delivered' && o.is_archived);
 

@@ -503,11 +503,18 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <div className="flex flex-wrap items-center gap-1.5">
           {currentBranch === 'pending' && (
             <button
-              type="button" disabled={isUpdatingStatus} onClick={() => onStatusChange('prepared')}
-              className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              type="button"
+              disabled={isUpdatingStatus}
+              onClick={() => onStatusChange('prepared')}
+              className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-emerald-600/70 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+              title="تأكيد تجهيز الطلب ونقله إلى قسم التجهيز"
             >
-              <Check className="w-3.5 h-3.5" />
-              <span>تجهيز الطلب</span>
+              {isUpdatingStatus ? (
+                <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
+              <span>تم التجهيز</span>
             </button>
           )}
 

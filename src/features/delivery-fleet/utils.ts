@@ -66,17 +66,20 @@ export function getSortedDriversForZone(zoneKey: FezZoneId, drivers: StoreDriver
  * حساب مبالغ التحصيل النقدي (COD) ورسوم التوصيل والمجموع لطلبات المنطقة
  */
 export function calculateZoneCOD(zoneOrders: DbOrder[]): ZoneCODCalculation {
-  const activeOrders = zoneOrders.filter((o) => o.status !== 'cancelled');
-  const totalCOD = activeOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const activeOrders = zoneOrders.filter((o) => o.status !== 'cancelled' && !o.is_archived);
+  const unpaidOrders = activeOrders.filter((o) => !o.is_paid);
+  const totalCOD = unpaidOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
   const totalDeliveryFees = activeOrders.reduce((sum, o) => sum + (Number(o.delivery_fee) || 0), 0);
   const totalSubtotal = activeOrders.reduce((sum, o) => sum + (Number(o.subtotal) || 0), 0);
 
   return {
-    totalCOD,
-    totalDeliveryFees,
-    totalSubtotal,
+    totalCOD: Number(totalCOD.toFixed(2)),
+    totalDeliveryFees: Number(totalDeliveryFees.toFixed(2)),
+    totalSubtotal: Number(totalSubtotal.toFixed(2)),
     ordersCount: activeOrders.length,
     orders: activeOrders,
+    unpaidOrdersCount: unpaidOrders.length,
+    paidOrdersCount: activeOrders.length - unpaidOrders.length,
   };
 }
 

@@ -99,6 +99,8 @@ export interface ZoneColumnProps {
   drivers: StoreDriver[];
   selectedDriverId: string;
   onSelectDriver: (zoneKey: FezZoneId, driverId: string) => void;
+  onAssignDriverToTour?: (zoneKey: FezZoneId, driverId: string) => void;
+  isAssigningDriver?: boolean;
   onViewCOD: (zoneKey: FezZoneId) => void;
   onSendWhatsApp: (zoneKey: FezZoneId) => void;
   onOpenGoogleMaps: (zoneKey: FezZoneId) => void;
@@ -116,6 +118,8 @@ export const ZoneColumn: React.FC<ZoneColumnProps> = ({
   drivers,
   selectedDriverId,
   onSelectDriver,
+  onAssignDriverToTour,
+  isAssigningDriver,
   onViewCOD,
   onSendWhatsApp,
   onOpenGoogleMaps,
@@ -125,7 +129,7 @@ export const ZoneColumn: React.FC<ZoneColumnProps> = ({
 }) => {
   const info = FEZ_DELIVERY_ZONES[zoneKey];
   const styles = ZONE_STYLES[zoneKey];
-  const { totalCOD, ordersCount } = calculateZoneCOD(orders);
+  const { totalCOD, ordersCount, paidOrdersCount, unpaidOrdersCount } = calculateZoneCOD(orders);
   const sortedDrivers = getSortedDriversForZone(zoneKey, drivers);
 
   return (
@@ -177,11 +181,25 @@ export const ZoneColumn: React.FC<ZoneColumnProps> = ({
             </div>
           </div>
 
+          {paidOrdersCount && paidOrdersCount > 0 ? (
+            <div className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center justify-between">
+              <span>طلب مسدد مسبقاً (غير مطلوب نقداً):</span>
+              <span className="font-mono">{paidOrdersCount} طلب</span>
+            </div>
+          ) : null}
+
           {/* القائمة المنسدلة لتعيين السائق */}
           <div className="pt-2 border-t border-stone-100">
-            <label className="block text-[11px] font-black text-stone-700 mb-1">
-              تعيين سائق الجولة:
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-black text-stone-700">
+                تعيين سائق الجولة:
+              </label>
+              {selectedDriverId && (
+                <span className="text-[10px] font-bold text-purple-700">
+                  {drivers.find((d) => d.id === selectedDriverId)?.name}
+                </span>
+              )}
+            </div>
             <select
               value={selectedDriverId}
               onChange={(e) => onSelectDriver(zoneKey, e.target.value)}
@@ -210,6 +228,23 @@ export const ZoneColumn: React.FC<ZoneColumnProps> = ({
                 </option>
               ))}
             </select>
+
+            {onAssignDriverToTour && selectedDriverId && ordersCount > 0 && (
+              <button
+                type="button"
+                disabled={isAssigningDriver}
+                onClick={() => onAssignDriverToTour(zoneKey, selectedDriverId)}
+                className="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-purple-700 hover:bg-purple-800 disabled:bg-purple-500/70 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                title="اعتماد الجولة وتعيين هذا السائق لجميع طلبات المنطقة ومزامنتها فوراً في لوحة الطلبات وقاعدة البيانات"
+              >
+                {isAssigningDriver ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Bike className="w-3.5 h-3.5 text-purple-200" />
+                )}
+                <span>اعتماد الجولة وتعيين السائق للطلبات ({ordersCount})</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -284,6 +319,10 @@ export interface ZoneGridProps {
   drivers: StoreDriver[];
   selectedDrivers: Record<FezZoneId, string>;
   onSelectDriver: (zoneKey: FezZoneId, driverId: string) => void;
+  onAssignDriverToTour?: (zoneKey: FezZoneId, driverId: string) => void;
+  assigningZone?: FezZoneId | null;
+  filterMode?: 'active' | 'all' | 'prepared' | 'delivered';
+  onFilterModeChange?: (mode: 'active' | 'all' | 'prepared' | 'delivered') => void;
   onViewCOD: (zoneKey: FezZoneId) => void;
   onSendWhatsApp: (zoneKey: FezZoneId) => void;
   onOpenGoogleMaps: (zoneKey: FezZoneId) => void;
@@ -300,6 +339,10 @@ export const ZoneGrid: React.FC<ZoneGridProps> = ({
   drivers,
   selectedDrivers,
   onSelectDriver,
+  onAssignDriverToTour,
+  assigningZone,
+  filterMode = 'active',
+  onFilterModeChange,
   onViewCOD,
   onSendWhatsApp,
   onOpenGoogleMaps,
@@ -325,6 +368,34 @@ export const ZoneGrid: React.FC<ZoneGridProps> = ({
         </div>
       </div>
 
+      {/* شريط تبديل تصفية الجولات (النشطة للتوصيل vs الأرشيف) */}
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-4 p-2 bg-stone-50 rounded-xl border border-stone-200 text-xs">
+        <span className="font-bold text-stone-700">تصفية جولات المسارات:</span>
+        <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-stone-200">
+          {(
+            [
+              { id: 'active', label: 'الجولات النشطة للتوصيل 🛵' },
+              { id: 'prepared', label: 'المجهزة فقط 📦' },
+              { id: 'delivered', label: 'أرشيف المسلّمة ✅' },
+              { id: 'all', label: 'كافة الطلبات 📋' },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onFilterModeChange?.(t.id)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer ${
+                filterMode === t.id
+                  ? 'bg-emerald-700 text-white shadow-2xs'
+                  : 'text-stone-600 hover:bg-stone-100'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {FLEET_ZONES.map((zoneKey) => (
           <ZoneColumn
@@ -334,6 +405,8 @@ export const ZoneGrid: React.FC<ZoneGridProps> = ({
             drivers={drivers}
             selectedDriverId={selectedDrivers[zoneKey] || ''}
             onSelectDriver={onSelectDriver}
+            onAssignDriverToTour={onAssignDriverToTour}
+            isAssigningDriver={assigningZone === zoneKey}
             onViewCOD={onViewCOD}
             onSendWhatsApp={onSendWhatsApp}
             onOpenGoogleMaps={onOpenGoogleMaps}

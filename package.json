@@ -12,7 +12,10 @@
     "lint": "tsc --noEmit",
     "test:acceptance": "tsx scripts/acceptance-test.ts",
     "test:verify": "tsx scripts/test-phase1-verification.ts && tsx scripts/test-phase2-verification.ts",
-    "test:phase6": "tsx scripts/test-phase6-integration.ts"
+    "test:phase6": "tsx scripts/test-phase6-integration.ts",
+    "test:intelligence": "tsx scripts/test-order-intelligence.ts",
+    "test:dispatch": "tsx scripts/test-unified-dispatch.ts",
+    "test:cod": "tsx scripts/test-cod-and-notifications.ts"
   },
   "dependencies": {
     "@google/genai": ">=1.0.0",
