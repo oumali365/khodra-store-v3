@@ -1,16 +1,27 @@
 // ============================================================
 // scripts/test-unified-dispatch.ts
-// اختبارات تكامل مركز الإسناد الموحد وأسطول التوصيل لمتجر خُضرة فاس
+// اختبارات تكامل مركز الإسناد الموحد وأسطول التوصيل وسائقي التطبيقات السريعة
 // ============================================================
 
-import { calculateZoneCOD, generateGoogleMapsMultiStopUrl, buildDriverWhatsAppMessage, getSortedDriversForZone } from '../src/features/delivery-fleet/utils';
+import {
+  calculateZoneCOD,
+  generateGoogleMapsMultiStopUrl,
+  buildDriverWhatsAppMessage,
+  getSortedDriversForZone,
+  getSortedFastCouriersForZone,
+} from '../src/features/delivery-fleet/utils';
 import { FEZ_DELIVERY_ZONES } from '../src/data/deliveryZones';
-import { INITIAL_STORE_DRIVERS } from '../src/services/supabaseService';
+import {
+  INITIAL_STORE_DRIVERS,
+  INITIAL_FAST_COURIERS,
+  batchAssignZoneOrders,
+  closeAndDeliverZoneTour,
+} from '../src/services/supabaseService';
 import type { DbOrder } from '../src/features/delivery-fleet/types';
 
-function runUnifiedDispatchTests() {
+async function runUnifiedDispatchTests() {
   console.log('======================================================================');
-  console.log('🚚 بدء اختبارات تكامل مركز الإسناد الموحد وأسطول التوصيل لمتجر خُضرة فاس');
+  console.log('🚚 بدء اختبارات تكامل مركز الإسناد الموحد وأسطول التوصيل وسائقي التطبيقات');
   console.log('======================================================================\n');
 
   let passed = 0;
@@ -71,8 +82,8 @@ function runUnifiedDispatchTests() {
     failed++;
   }
 
-  // 3️⃣ اختبار صياغة رسالة واتساب الرسمية للسائق
-  console.log('\n▶ [اختبار 3] صياغة رسالة WhatsApp الرسمية للسائق:');
+  // 3️⃣ اختبار صياغة رسالة واتساب الرسمية للسائق الداخلي
+  console.log('\n▶ [اختبار 3] صياغة رسالة WhatsApp الرسمية للسائق الداخلي:');
   const driver = INITIAL_STORE_DRIVERS[0];
   const whatsappMsg = buildDriverWhatsAppMessage('north', mockOrders, driver, FEZ_DELIVERY_ZONES.north);
   if (whatsappMsg.includes(driver.name) && whatsappMsg.includes('#ORD-201') && whatsappMsg.includes('80.00 د.م')) {
@@ -83,7 +94,7 @@ function runUnifiedDispatchTests() {
     failed++;
   }
 
-  // 4️⃣ اختبار فرز السائقين حسب تفضيل المنطقة والحالة
+  // 4️⃣ اختبار فرز السائقين الداخليين حسب تفضيل المنطقة والحالة
   console.log('\n▶ [اختبار 4] فرز السائقين الذكي حسب المنطقة المفضلة:');
   const sortedDrivers = getSortedDriversForZone('north', INITIAL_STORE_DRIVERS);
   if (sortedDrivers.length > 0 && sortedDrivers[0].isPreferred) {
@@ -94,8 +105,75 @@ function runUnifiedDispatchTests() {
     failed++;
   }
 
-  console.log('======================================================================');
-  console.log(`📊 نتيجة اختبارات مركز الإسناد الموحد: نجح ${passed} من أصل ${passed + failed}`);
+  // 5️⃣ اختبار فرز كباتن التطبيقات السريعة حسب النطاق الجغرافي
+  console.log('\n▶ [اختبار 5] فرز كباتن تطبيقات التوصيل السريع (Fast App Couriers):');
+  const sortedCouriers = getSortedFastCouriersForZone('north', INITIAL_FAST_COURIERS);
+  if (sortedCouriers.length > 0 && sortedCouriers.some((c) => c.appBadgeLabel.length > 0)) {
+    console.log(`   ✓ تم فرز كباتن التطبيقات السريعة بنجاح (${sortedCouriers.length} كابتن).`);
+    passed++;
+  } else {
+    console.error(`   ❌ فشل في فرز كباتن التطبيقات.`);
+    failed++;
+  }
+
+  // 6️⃣ اختبار صياغة رسالة واتساب المخصصة لكابتن التطبيقات السريعة
+  console.log('\n▶ [اختبار 6] صياغة رسالة واتساب مخصصة لكابتن تطبيق سريع (Glovo / inDrive):');
+  const fastCourier = INITIAL_FAST_COURIERS[0];
+  const fastWhatsAppMsg = buildDriverWhatsAppMessage('north', mockOrders, fastCourier, FEZ_DELIVERY_ZONES.north);
+  if (
+    fastWhatsAppMsg.includes(fastCourier.name) &&
+    fastWhatsAppMsg.includes('تطبيق') &&
+    fastWhatsAppMsg.includes('80.00 د.م')
+  ) {
+    console.log(`   ✓ تم توليد رسالة واتساب مخصصة لكابتن التطبيق السريع (${fastCourier.name}) بنجاح.`);
+    passed++;
+  } else {
+    console.error(`   ❌ فشل في توليد رسالة واتساب لكابتن التطبيق.`);
+    failed++;
+  }
+
+  // 7️⃣ اختبار اعتماد الجولة دفعة واحدة لكابتن تطبيق سريع (Batch Assign)
+  console.log('\n▶ [اختبار 7] اعتماد الجولة وتعيين كابتن تطبيق سريع (batchAssignZoneOrders):');
+  try {
+    const assignRes = await batchAssignZoneOrders({
+      orders: mockOrders,
+      driver: fastCourier,
+      newStatus: 'prepared',
+    });
+    if (assignRes.success && assignRes.updatedCount === 2) {
+      console.log(`   ✓ تم اعتماد الجولة لكابتن التطبيق بنجاح (${assignRes.message}).`);
+      passed++;
+    } else {
+      console.error(`   ❌ فشل في اعتماد الجولة لكابتن التطبيق.`);
+      failed++;
+    }
+  } catch (err: any) {
+    console.error(`   ❌ خطأ أثناء اعتماد الجولة لكابتن التطبيق:`, err?.message);
+    failed++;
+  }
+
+  // 8️⃣ اختبار إغلاق الجولة وتأكيد التسليم لكابتن تطبيق سريع (Close & Deliver)
+  console.log('\n▶ [اختبار 8] إغلاق الجولة وتأكيد التسليم لكابتن تطبيق سريع:');
+  try {
+    const closeRes = await closeAndDeliverZoneTour({
+      orders: mockOrders,
+      driver: fastCourier,
+      zoneKey: 'north',
+    });
+    if (closeRes.success) {
+      console.log(`   ✓ تم إغلاق وتأكيد تسليم الجولة بنجاح (${closeRes.deliveredCount} طلبات).`);
+      passed++;
+    } else {
+      console.error(`   ❌ فشل في إغلاق الجولة.`);
+      failed++;
+    }
+  } catch (err: any) {
+    console.error(`   ❌ خطأ أثناء إغلاق الجولة:`, err?.message);
+    failed++;
+  }
+
+  console.log('\n======================================================================');
+  console.log(`📊 نتيجة اختبارات مركز الإسناد الموحد وقائمة التطبيقات السريعة: نجح ${passed} من أصل ${passed + failed}`);
   console.log('======================================================================');
 
   if (failed > 0) {

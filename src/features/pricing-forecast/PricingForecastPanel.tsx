@@ -90,6 +90,7 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
       productId: number;
       purchasePrice: number;
       marginPercentage: number;
+      sellingPrice?: number;
       supplierId: string;
       hasException?: boolean;
       exceptionReason?: string;
@@ -204,12 +205,12 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
         </div>
       </header>
 
-      {/* ═══════ شريط توضيح المسؤوليات والربط المباشر بالمخزون ═══════ */}
-      <div className="bg-purple-900/5 border border-purple-200/80 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
-        <div className="flex items-center gap-2.5 text-purple-950 font-medium">
-          <Sparkles className="w-5 h-5 text-purple-700 shrink-0" />
+      {/* شريط الربط المباشر بالمخزون */}
+      <div className="bg-emerald-950/5 border border-emerald-900/15 rounded-2xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+        <div className="flex items-center gap-2 text-stone-700 font-medium">
+          <Sparkles className="w-4 h-4 text-emerald-800 shrink-0" />
           <span>
-            <strong className="font-black text-purple-900">أداة التسعير المباشر:</strong> تدير أسعار الشراء وهامش الربح الإجمالي (40% مستهدف) وتكلفة الشراء بحد أقصى 60% وفق البيانات الحقيقية لمتجر خُضرة ومورديه.
+            <strong className="font-bold text-stone-900">أداة التسعير:</strong> تحديد أسعار الشراء وتطبيق متوسط هامش الربح المعتمد (40%) مع المزامنة الفورية للمتجر.
           </span>
         </div>
         <button
@@ -221,9 +222,9 @@ export const PricingForecastPanel: React.FC<PricingForecastPanelProps> = ({
               window.dispatchEvent(new CustomEvent('khodra_admin_route_changed', { detail: 'inventory' }));
             }
           }}
-          className="px-3.5 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-black text-xs shrink-0 flex items-center justify-center gap-1.5 shadow-2xs transition-all active:scale-95 cursor-pointer"
+          className="px-3 py-1.5 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] font-bold text-xs shrink-0 flex items-center justify-center gap-1.5 shadow-2xs transition-all active:scale-95 cursor-pointer"
         >
-          <span>📦 إدارة المنتجات والمخزون (المصدر الأساسي)</span>
+          <span>📦 فتح المخزون</span>
         </button>
       </div>
 

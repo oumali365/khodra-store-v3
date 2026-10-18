@@ -186,18 +186,18 @@ export const DriverAssignmentCard: React.FC<DriverAssignmentCardProps> = ({
               }}
               className="w-full p-2 rounded-lg border border-stone-300 text-stone-800 text-xs bg-white font-medium focus:border-emerald-600 focus:outline-none"
             >
-              <option value="">-- اختر سائقًا من أسطول خُضرة الداخلي --</option>
+              <option value="">-- اختر سائقاً --</option>
               {storeDrivers.map((drv) => {
                 const statusText =
                   drv.status === 'available'
-                    ? 'متاح وجاهز'
+                    ? 'متاح'
                     : drv.status === 'on_delivery'
-                    ? 'في جولة توصيل'
+                    ? 'في جولة'
                     : 'خارج الخدمة';
-                const fare = drv.commissionPerOrder != null ? `${drv.commissionPerOrder} د.م` : 'أجرة غير محددة';
+                const fare = drv.commissionPerOrder != null ? `${drv.commissionPerOrder} د.م` : '';
                 return (
                   <option key={drv.id} value={drv.id}>
-                    {drv.name} ({statusText} • {fare})
+                    {drv.name} ({statusText}{fare ? ` • ${fare}` : ''})
                   </option>
                 );
               })}
@@ -206,8 +206,8 @@ export const DriverAssignmentCard: React.FC<DriverAssignmentCardProps> = ({
 
           <div>
             <label className="block text-[11px] font-bold text-stone-800 mb-1 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span>اختر سائقًا من تطبيقات التوصيل (Glovo, inDrive...):</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>سائق تطبيق سريع:</span>
             </label>
             <select
               value={draft.deliverySource === 'external_app' ? (draft.driverId || '') : ''}
@@ -256,7 +256,7 @@ export const DriverAssignmentCard: React.FC<DriverAssignmentCardProps> = ({
               }}
               className="w-full p-2 rounded-lg border border-stone-300 text-stone-800 text-xs bg-white font-medium focus:border-amber-600 focus:outline-none"
             >
-              <option value="">-- اختر سائق تطبيق توصيل --</option>
+              <option value="">-- اختر سائق تطبيق --</option>
               {fastCouriers.map((courier) => {
                 const appLabel =
                   courier.app === 'glovo'
@@ -267,11 +267,10 @@ export const DriverAssignmentCard: React.FC<DriverAssignmentCardProps> = ({
                     ? 'Yassir'
                     : courier.app === 'careem'
                     ? 'Careem'
-                    : (courier.appNameCustom || 'تطبيق توصيل');
-                const fare = courier.typicalFare != null ? `${courier.typicalFare} د.م` : 'متوسط غير محدد';
+                    : (courier.appNameCustom || 'تطبيق');
                 return (
                   <option key={courier.id} value={courier.id}>
-                    {courier.name} — {appLabel} (متوسط: {fare})
+                    {courier.name} ({appLabel}{courier.typicalFare ? ` - ${courier.typicalFare} د.م` : ''})
                   </option>
                 );
               })}

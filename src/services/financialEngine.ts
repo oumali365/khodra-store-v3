@@ -77,7 +77,7 @@ export const TARIFF_STANDARDS = {
   TARGET_COGS_MAX_RATIO: 0.60,
 
   /**
-   * 40%: هامش الربح الإجمالي المستهدف من سعر البيع (Target Gross Margin)
+   * 40%: متوسط هامش الربح الإجمالي الوحيد المعتمد للمتجر من سعر البيع (Target Gross Margin)
    * المعادلة المعتمدة: سعر البيع = تكلفة الشراء ÷ (1 − الهامش المستهدف) = التكلفة ÷ 0.60
    */
   TARGET_GROSS_MARGIN_PERCENT: 40,
@@ -86,12 +86,6 @@ export const TARIFF_STANDARDS = {
    * 66.67%: نسبة الزيادة على التكلفة (Markup on Cost) المكافئة لهامش إجمالي 40%
    */
   RECOMMENDED_MARKUP_PERCENT: 66.67,
-
-  /**
-   * 33%: نسبة الزيادة القديمة على التكلفة (Legacy Markup on Cost)
-   * تنبيه: نسبة 33% ليست هامش ربح صافي، بل زيادة على التكلفة تترك هامشاً 24.8% فقط
-   */
-  LEGACY_MARKUP_PERCENT: 33,
 
   /**
    * 26: عدد أيام العمل المعتمدة شهرياً في النمذجة الاقتصادية

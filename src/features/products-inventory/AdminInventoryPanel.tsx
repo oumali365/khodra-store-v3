@@ -4,7 +4,7 @@
 // تتيح التحكم اللحظي بالمخزون، إضافة وتعديل المنتجات، ومنع الترويج عند النفاد
 // ============================================================
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Package,
   Search,
@@ -118,13 +118,15 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const loadCatalog = useCallback(async () => {
+  const loadCatalog = useCallback(async (): Promise<Product[]> => {
     setIsLoading(true);
     try {
       const data = await fetchProducts();
       setProducts(data);
+      return data;
     } catch {
       showToast('error', 'تعذر تحميل المنتجات');
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -159,8 +161,9 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
         setProducts((prev) =>
           prev.map((p) => {
             const found = updates.find((u: any) => Number(u.productId) === p.id);
-            if (found && found.sellingPrice != null) {
-              return { ...p, price: Number(found.sellingPrice) };
+            const targetSelling = found ? (found.selling_price ?? found.sellingPrice) : null;
+            if (targetSelling != null && Number(targetSelling) > 0) {
+              return { ...p, price: Number(targetSelling) };
             }
             return p;
           })
@@ -292,17 +295,29 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
     return filteredProducts.slice(start, start + pageSize);
   }, [filteredProducts, currentPage, pageSize]);
 
-  // وظيفة التركيز على منتج معين عند الفتح من أداة التسعير الديناميكي
+  const productsRef = useRef<Product[]>(products);
+  productsRef.current = products;
+  const lastHandledTargetIdRef = useRef<number | null>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // وظيفة التركيز على منتج معين مع ضمان حرية التمرير وعدم التجميد
   const focusProduct = useCallback(
-    (pid: number) => {
-      const target = products.find((p) => p.id === pid);
+    (pid: number, catalog?: Product[]) => {
+      // إزالة أي قيد تمرير على الصفحة فوراً
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+      }
+
+      const activeCatalog = catalog && catalog.length > 0 ? catalog : productsRef.current;
+      const target = activeCatalog.find((p) => p.id === pid);
       if (!target) return;
 
       setSelectedCategory(target.category);
       setStockFilter('all');
       setSearchQuery('');
 
-      const categoryItems = products.filter((p) => p.category === target.category);
+      const categoryItems = activeCatalog.filter((p) => p.category === target.category);
       const indexInCat = categoryItems.findIndex((p) => p.id === pid);
       if (indexInCat >= 0) {
         const targetPage = Math.floor(indexInCat / pageSize) + 1;
@@ -310,36 +325,53 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
       }
 
       setHighlightedProductId(pid);
-      setTimeout(() => {
+
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
         const el = document.getElementById(`inv-product-${pid}`);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 250);
+      }, 180);
 
       setTimeout(() => {
         setHighlightedProductId((curr) => (curr === pid ? null : curr));
-      }, 4000);
+      }, 3500);
     },
-    [products, pageSize]
+    [pageSize]
   );
 
   useEffect(() => {
-    if (targetProductId && products.length > 0) {
-      focusProduct(Number(targetProductId));
+    if (targetProductId != null && Number(targetProductId) > 0) {
+      const pid = Number(targetProductId);
+      if (lastHandledTargetIdRef.current !== pid) {
+        lastHandledTargetIdRef.current = pid;
+        loadCatalog().then((catalog) => {
+          focusProduct(pid, catalog);
+        });
+      }
     }
-  }, [targetProductId, products.length, focusProduct]);
+  }, [targetProductId, loadCatalog, focusProduct]);
 
   useEffect(() => {
     const handleOpenProduct = (e: any) => {
-      const pid = e?.detail?.productId;
-      if (pid != null) {
-        focusProduct(Number(pid));
+      const pid = Number(e?.detail?.productId);
+      if (pid && pid > 0) {
+        lastHandledTargetIdRef.current = pid;
+        loadCatalog().then((catalog) => {
+          focusProduct(pid, catalog);
+        });
       }
     };
     window.addEventListener('khodra_open_inventory_for_product', handleOpenProduct);
-    return () => window.removeEventListener('khodra_open_inventory_for_product', handleOpenProduct);
-  }, [focusProduct]);
+    return () => {
+      window.removeEventListener('khodra_open_inventory_for_product', handleOpenProduct);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, [focusProduct, loadCatalog]);
 
   // الانتقال المباشر لأداة التسعير الديناميكي لنفس المنتج
   const handleGoToPricing = (productId: number) => {

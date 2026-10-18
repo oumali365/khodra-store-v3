@@ -64,6 +64,29 @@ export const DEFAULT_SUPPLIERS: Supplier[] = [
 const LOCAL_SUPPLIERS_KEY = 'khodra_suppliers_v1';
 const LOCAL_PRICES_KEY = 'khodra_daily_prices_v1';
 
+export function getStoredPricesMap(): Record<number, any> {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(LOCAL_PRICES_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        (globalThis as any).__khodra_prices_map = parsed;
+        return parsed;
+      }
+    } catch {}
+  }
+  return (globalThis as any).__khodra_prices_map || {};
+}
+
+export function setStoredPricesMap(map: Record<number, any>) {
+  (globalThis as any).__khodra_prices_map = map;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(LOCAL_PRICES_KEY, JSON.stringify(map));
+    } catch {}
+  }
+}
+
 import {
   calculateSellingPrice as centralCalculateSellingPrice,
   calculateSellingPriceFromTargetMargin,
@@ -210,15 +233,7 @@ export async function getProductPricingRows(): Promise<{
   const baseProducts = await fetchProducts();
 
   // 2. جلب أحدث أسعار الشراء وهوامش الأمس المسجلة
-  let savedPricesMap: Record<
-    number,
-    { purchase: number; margin: number; yesterday: number; supplierId: string }
-  > = {};
-
-  try {
-    const raw = localStorage.getItem(LOCAL_PRICES_KEY);
-    if (raw) savedPricesMap = JSON.parse(raw);
-  } catch {}
+  let savedPricesMap = getStoredPricesMap();
 
   // جلب الأسعار اليومية من Supabase إن وجدت لمزامنتها
   const client = getSupabase();
@@ -262,10 +277,10 @@ export async function getProductPricingRows(): Promise<{
 
     const saved = savedPricesMap[prod.id];
 
-    // احتساب هامش ربح 33% تلقائياً لتغطية مصاريف النقل، الإتلاف واللوجستيك
+    // احتساب هامش ربح 40% تلقائياً لتغطية مصاريف النقل، الإتلاف واللوجستيك (المعتمد الوحيد)
     let margin = saved && saved.margin !== undefined ? saved.margin : DEFAULT_PROFIT_MARGIN;
-    if (margin === 25) {
-      margin = DEFAULT_PROFIT_MARGIN;
+    if (margin === 25 || margin === 33) {
+      margin = DEFAULT_PROFIT_MARGIN; // 40%
     }
 
     let purchasePrice = saved && saved.purchase
@@ -423,29 +438,38 @@ export async function saveProductPrices(
   changeType: 'single' | 'batch' | 'bulk_margin' | 'supplier_sync' = 'batch'
 ): Promise<boolean> {
   try {
-    const raw = localStorage.getItem(LOCAL_PRICES_KEY);
-    const savedMap = raw ? JSON.parse(raw) : {};
+    const savedMap = { ...getStoredPricesMap() };
 
     const todayDate = new Date().toISOString().split('T')[0];
     const timestamp = new Date().toISOString();
 
     const auditRecords: any[] = [];
 
-    updates.forEach((u) => {
+    updates.forEach((u: any) => {
       const prev = savedMap[u.productId] || {};
-      const newSelling = calculateSellingPrice(u.purchasePrice, u.marginPercentage);
+      const newSelling = u.sellingPrice != null && Number(u.sellingPrice) > 0
+        ? Number(u.sellingPrice)
+        : calculateSellingPrice(u.purchasePrice, u.marginPercentage);
       const metrics = analyzePricingMetrics(u.purchasePrice, newSelling);
 
       savedMap[u.productId] = {
         ...prev,
         purchase: u.purchasePrice,
         margin: u.marginPercentage,
+        selling_price: newSelling,
+        sellingPrice: newSelling,
         supplierId: u.supplierId,
         yesterday: prev.purchase ? prev.purchase : u.purchasePrice,
         date: todayDate,
         hasException: Boolean(u.hasException),
         exceptionReason: u.exceptionReason,
       };
+
+      // مزامنة الذاكرة الحية للمنتجات فوراً
+      const memProd = INITIAL_PRODUCTS.find((p) => p.id === u.productId);
+      if (memProd) {
+        memProd.price = newSelling;
+      }
 
       auditRecords.push({
         id: `audit-${Date.now()}-${u.productId}`,
@@ -469,15 +493,17 @@ export async function saveProductPrices(
       });
     });
 
-    localStorage.setItem(LOCAL_PRICES_KEY, JSON.stringify(savedMap));
+    setStoredPricesMap(savedMap);
 
     // حفظ سجل التدقيق في التخزين المحلي
-    try {
-      const existingAuditRaw = localStorage.getItem(LOCAL_PRICE_AUDIT_KEY);
-      const existingAudit = existingAuditRaw ? JSON.parse(existingAuditRaw) : [];
-      const updatedAudit = [...auditRecords, ...existingAudit].slice(0, 500); // الاحتفاظ بآخر 500 حركة
-      localStorage.setItem(LOCAL_PRICE_AUDIT_KEY, JSON.stringify(updatedAudit));
-    } catch {}
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const existingAuditRaw = localStorage.getItem(LOCAL_PRICE_AUDIT_KEY);
+        const existingAudit = existingAuditRaw ? JSON.parse(existingAuditRaw) : [];
+        const updatedAudit = [...auditRecords, ...existingAudit].slice(0, 500); // الاحتفاظ بآخر 500 حركة
+        localStorage.setItem(LOCAL_PRICE_AUDIT_KEY, JSON.stringify(updatedAudit));
+      } catch {}
+    }
 
     // تنظيف أي بيانات قديمة للمنتجات المخزنة محلياً لضمان الاعتماد الحصري على Supabase
     if (typeof localStorage !== 'undefined') {
@@ -489,8 +515,10 @@ export async function saveProductPrices(
     // مزامنة مع Supabase إذا كان متوفراً
     const client = getSupabase();
     if (client) {
-      const recordsToInsert = updates.map((u) => {
-        const sellingPrice = calculateSellingPrice(u.purchasePrice, u.marginPercentage);
+      const recordsToInsert = updates.map((u: any) => {
+        const sellingPrice = u.sellingPrice != null && Number(u.sellingPrice) > 0
+          ? Number(u.sellingPrice)
+          : calculateSellingPrice(u.purchasePrice, u.marginPercentage);
         const metrics = analyzePricingMetrics(u.purchasePrice, sellingPrice);
         return {
           product_id: u.productId,
@@ -508,10 +536,14 @@ export async function saveProductPrices(
         };
       });
 
-      // 1. تحديث جدول أسعار السوق اليومية (daily_prices)
-      await client.from('daily_prices').upsert(recordsToInsert, {
-        onConflict: 'product_id,recorded_date',
-      });
+      // 1. تحديث جدول أسعار السوق اليومية (daily_prices) بشكل آمن
+      try {
+        await client.from('daily_prices').upsert(recordsToInsert, {
+          onConflict: 'product_id,recorded_date',
+        });
+      } catch (dpErr) {
+        logger.warn('Could not upsert into daily_prices:', dpErr);
+      }
 
       // 2. تحديث جدول المنتجات العام (products.price) لضمان مزامنة أسعار البيع للعملاء في المتجر فورياً
       for (const rec of recordsToInsert) {
@@ -556,10 +588,14 @@ export async function saveProductPrices(
 
     // 4. إرسال حدث متصفح فوري (Realtime CustomEvent) لتحديث الواجهة فوراً دون الحاجة لإعادة تحميل الصفحة
     if (typeof window !== 'undefined') {
-      const priceChanges = updates.map((u) => ({
-        productId: u.productId,
-        sellingPrice: calculateSellingPrice(u.purchasePrice, u.marginPercentage),
-      }));
+      const priceChanges = updates.map((u) => {
+        const selling = calculateSellingPrice(u.purchasePrice, u.marginPercentage);
+        return {
+          productId: u.productId,
+          sellingPrice: selling,
+          selling_price: selling,
+        };
+      });
       window.dispatchEvent(
         new CustomEvent('khodra_prices_updated', {
           detail: { updates: priceChanges, timestamp: Date.now() },
@@ -620,7 +656,7 @@ export async function getPriceChangeHistory(): Promise<any[]> {
 }
 
 /**
- * تطبيق هامش ربح موحد (33% افتراضياً) على جميع المنتجات دفعة واحدة
+ * تطبيق هامش ربح موحد (40% المعتمد الوحيد) على جميع المنتجات دفعة واحدة
  * لضمان أمان خزينة المتجر وتغطية مصاريف النقل، الإتلاف واللوجستيك
  */
 export async function applyGlobalMarginToAllProducts(

@@ -8,6 +8,7 @@ import {
   Product,
   OrderSubmission,
   DeliveryDispatchInfo,
+  DeliveryProvider,
   DeliverySource,
   FezZoneId,
   StoreDriver,
@@ -19,6 +20,7 @@ import { STORE_CONFIG } from '../data/config';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
 import { recordOrderSuccess, sanitizeInput } from './securityService';
 import { detectAddressZone } from '../data/deliveryZones';
+import { calculateSellingPrice } from './financialEngine';
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -141,22 +143,42 @@ export async function fetchProducts(): Promise<Product[]> {
     }
 
     // 2. دمج أي أسعار مسجلة محلياً عبر أداة التسعير الصباحي (Fallback / Offline)
+    let localMap: Record<number, any> | null = null;
     if (typeof localStorage !== 'undefined') {
-      const rawLocal = localStorage.getItem('khodra_daily_prices_v1');
-      if (rawLocal) {
-        const localMap = JSON.parse(rawLocal);
-        baseProducts = baseProducts.map((p) => {
-          const entry = localMap[p.id];
-          if (entry && entry.purchase != null && entry.margin != null) {
-            const effectiveMargin = entry.margin === 25 ? 33 : Number(entry.margin);
-            const calculatedSelling = Number((Number(entry.purchase) * (1 + effectiveMargin / 100)).toFixed(2));
+      try {
+        const rawLocal = localStorage.getItem('khodra_daily_prices_v1');
+        if (rawLocal) localMap = JSON.parse(rawLocal);
+      } catch {}
+    }
+    if (!localMap && (globalThis as any)?.__khodra_prices_map) {
+      localMap = (globalThis as any).__khodra_prices_map;
+    }
+
+    if (localMap && typeof localMap === 'object') {
+      baseProducts = baseProducts.map((p) => {
+        const entry = localMap![p.id] || localMap![String(p.id)];
+        if (entry) {
+          // أولوية 1: سعر البيع المعتمد والمحسوب صراحة من أداة التسعير لضمان التطابق التام 100% بين التسعير والمخزون
+          const directSelling = entry.selling_price ?? entry.sellingPrice;
+          if (directSelling != null && Number(directSelling) > 0) {
+            return { ...p, price: Number(directSelling) };
+          }
+          // أولوية 2: احتساب سعر البيع عبر المعادلة المركزية بهامش 40% الوحيد المعتمد للمتجر
+          if (entry.purchase != null && Number(entry.purchase) > 0) {
+            const effectiveMargin =
+              entry.margin === 25 || entry.margin === 33
+                ? 40
+                : typeof entry.margin === 'number' && entry.margin > 0
+                ? Number(entry.margin)
+                : 40;
+            const calculatedSelling = calculateSellingPrice(Number(entry.purchase), effectiveMargin);
             if (calculatedSelling > 0) {
               return { ...p, price: calculatedSelling };
             }
           }
-          return p;
-        });
-      }
+        }
+        return p;
+      });
     }
   } catch (syncErr) {
     console.warn('Notice: Daily prices synchronization handled gracefully:', syncErr);
@@ -207,9 +229,36 @@ export async function saveProductToStore(
     // 1. محاولة الحفظ في Supabase إن كان متاحاً
     const client = getSupabase();
     if (!client) {
+      // تحديث الذاكرة الحية للمنتجات والأسعار محلياً (Offline / Fallback)
+      const memIdx = INITIAL_PRODUCTS.findIndex((p) => p.id === targetId);
+      if (memIdx >= 0) {
+        INITIAL_PRODUCTS[memIdx] = completeProduct;
+      } else {
+        INITIAL_PRODUCTS.push(completeProduct);
+      }
+
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('khodra_daily_prices_v1');
+          const map = raw ? JSON.parse(raw) : {};
+          map[targetId] = {
+            ...(map[targetId] || {}),
+            selling_price: completeProduct.price,
+            sellingPrice: completeProduct.price,
+            date: new Date().toISOString().split('T')[0],
+          };
+          localStorage.setItem('khodra_daily_prices_v1', JSON.stringify(map));
+        } catch {}
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('khodra_products_updated', { detail: completeProduct }));
+      }
+
       return {
-        success: false,
-        message: 'قاعدة بيانات Supabase غير متصلة',
+        success: true,
+        data: completeProduct,
+        message: isNew ? 'تمت إضافة المنتج بنجاح إلى المتجر' : 'تم تحديث بيانات المنتج وسعره بنجاح',
       };
     }
 
@@ -2750,11 +2799,11 @@ export async function deleteStoreDriver(
 }
 
 /**
- * اعتماد جولة كاملة: تعيين السائق لجميع طلبات المنطقة وتحديث حالتهم دفعة واحدة
+ * اعتماد جولة كاملة: تعيين السائق أو كابتن التطبيق السريع لجميع طلبات المنطقة وتحديث حالتهم دفعة واحدة
  */
 export async function batchAssignZoneOrders(params: {
   orders: DbOrder[];
-  driver: StoreDriver;
+  driver: StoreDriver | FastAppCourier;
   newStatus?: OrderStatus;
 }): Promise<{ success: boolean; updatedCount: number; message?: string }> {
   const { orders, driver, newStatus = 'prepared' } = params;
@@ -2762,9 +2811,23 @@ export async function batchAssignZoneOrders(params: {
     return { success: false, updatedCount: 0, message: 'لا توجد طلبات في هذه الجولة' };
   }
 
+  const isFastCourier = Boolean('app' in driver);
+  const fastCourier = isFastCourier ? (driver as FastAppCourier) : null;
+  const storeDriver = !isFastCourier ? (driver as StoreDriver) : null;
   const ordersCount = orders.length;
-  // التكلفة المعتمدة للطلب الواحد: عمولة السائق المحددة لكل طلب في نموذج المتجر
-  const defaultPerOrderCost = Number(driver.commissionPerOrder) || 25;
+
+  // التكلفة المعتمدة للطلب الواحد: عمولة السائق الداخلي أو متوسط أجرة كابتن التطبيق
+  const defaultPerOrderCost = isFastCourier
+    ? Number(fastCourier?.typicalFare) || 25
+    : Number(storeDriver?.commissionPerOrder) || 25;
+
+  const providerType: DeliveryProvider = isFastCourier
+    ? (fastCourier?.app === 'glovo' ? 'glovo' : fastCourier?.app === 'yassir' ? 'yassir' : fastCourier?.app === 'indrive' ? 'indrive' : 'custom')
+    : 'custom';
+
+  const appTitle = isFastCourier
+    ? fastCourier?.appNameCustom || (fastCourier?.app ? fastCourier.app.toUpperCase() : 'تطبيق سريع')
+    : undefined;
 
   let count = 0;
   for (const ord of orders) {
@@ -2775,17 +2838,23 @@ export async function batchAssignZoneOrders(params: {
       : defaultPerOrderCost;
 
     const dispatchInfo: DeliveryDispatchInfo = {
-      provider: 'custom',
+      provider: providerType,
+      deliverySource: isFastCourier ? 'external_app' : 'internal',
       driverId: driver.id,
+      internalDriverId: !isFastCourier ? driver.id : undefined,
+      externalDriverId: isFastCourier ? driver.id : undefined,
       driverName: driver.name,
       driverPhone: driver.phone,
+      appName: appTitle,
       deliveryCost: assignedOrderCost,
       agreedWage: assignedOrderCost,
       costCertainty: existingDispatch?.costCertainty || 'estimated',
       dispatchStatus: 'in_transit',
       dispatchedAt: existingDispatch?.dispatchedAt || new Date().toISOString(),
       zone: ord.delivery_zone || (existingDispatch?.zone as FezZoneId) || 'north',
-      notes: `جولة توصيل داخلية (${ordersCount} طلبات) مع ${driver.name}`,
+      notes: isFastCourier
+        ? `جولة توصيل تطبيق سريع (${appTitle}) (${ordersCount} طلبات) مع ${driver.name}`
+        : `جولة توصيل داخلية (${ordersCount} طلبات) مع ${driver.name}`,
     };
 
     // 1. تحديث بيانات التوصيل والسائق
@@ -2798,16 +2867,20 @@ export async function batchAssignZoneOrders(params: {
     count++;
   }
 
-  // تحديث حالة السائق إلى "في جولة"
-  await updateStoreDriver(driver.id, {
-    status: 'on_delivery',
-    activeOrdersCount: (driver.activeOrdersCount || 0) + count,
-  });
+  // تحديث حالة السائق الداخلي فقط إلى "في جولة"
+  if (!isFastCourier && storeDriver) {
+    await updateStoreDriver(storeDriver.id, {
+      status: 'on_delivery',
+      activeOrdersCount: (storeDriver.activeOrdersCount || 0) + count,
+    });
+  }
 
   return {
     success: true,
     updatedCount: count,
-    message: `تم اعتماد الجولة وتعيين ${count} طلبات للسائق ${driver.name} بنجاح!`,
+    message: isFastCourier
+      ? `تم اعتماد الجولة وتعيين ${count} طلبات لكابتن التطبيق السريع ${driver.name} (${appTitle}) بنجاح!`
+      : `تم اعتماد الجولة وتعيين ${count} طلبات للسائق ${driver.name} بنجاح!`,
   };
 }
 
@@ -2820,7 +2893,7 @@ export async function batchAssignZoneOrders(params: {
  */
 export async function closeAndDeliverZoneTour(params: {
   orders: DbOrder[];
-  driver?: StoreDriver | null;
+  driver?: StoreDriver | FastAppCourier | null;
   zoneKey?: FezZoneId;
 }): Promise<{ success: boolean; deliveredCount: number; message?: string }> {
   const { orders, driver } = params;
@@ -2828,8 +2901,14 @@ export async function closeAndDeliverZoneTour(params: {
     return { success: false, deliveredCount: 0, message: 'لا توجد طلبات في هذه الجولة للإغلاق' };
   }
 
+  const isFastCourier = Boolean(driver && 'app' in driver);
+  const fastCourier = isFastCourier ? (driver as FastAppCourier) : null;
+  const storeDriver = !isFastCourier && driver ? (driver as StoreDriver) : null;
+
   const client = getSupabase();
-  const driverWage = Number(driver?.commissionPerOrder) || 25;
+  const driverWage = isFastCourier
+    ? Number(fastCourier?.typicalFare) || 25
+    : Number(storeDriver?.commissionPerOrder) || 25;
   const orderIds = orders.map((o) => String(o.id));
   const newlyArchivedCodes: string[] = [];
 
@@ -2920,12 +2999,12 @@ export async function closeAndDeliverZoneTour(params: {
     console.warn('Failed to auto-archive delivered orders to localStorage:', storageErr);
   }
 
-  // 5. تحديث حالة السائق المعين إلى متاح وزيادة إجمالي التسليم بالطلبات الجديدة فقط لمنع التكرار
-  if (driver && driver.id) {
+  // 5. تحديث حالة السائق المعين إلى متاح وزيادة إجمالي التسليم بالطلبات الجديدة فقط لمنع التكرار (للسائق الداخلي فقط)
+  if (driver && driver.id && !isFastCourier && 'status' in driver) {
     await updateStoreDriver(driver.id, {
       status: 'available',
-      activeOrdersCount: Math.max(0, (driver.activeOrdersCount || 0) - newlyDeliveredCount),
-      totalDeliveredCount: (driver.totalDeliveredCount || 0) + newlyDeliveredCount,
+      activeOrdersCount: Math.max(0, (storeDriver?.activeOrdersCount || 0) - newlyDeliveredCount),
+      totalDeliveredCount: (storeDriver?.totalDeliveredCount || 0) + newlyDeliveredCount,
     });
   }
 

@@ -7,7 +7,7 @@
 import type { ProductCategory } from '../../types';
 
 /**
- * 40%: هامش الربح الإجمالي المستهدف من سعر البيع (Target Gross Margin)
+ * 40%: متوسط هامش الربح المعتمد والوحيد للمتجر من سعر البيع (Sole Approved Target Gross Margin)
  * يحقق حد تكلفة شراء 60% بدقة: سعر البيع = تكلفة الشراء ÷ 0.60
  * مثال: 5 ÷ 0.60 = 8.33 دراهم
  */
@@ -19,10 +19,8 @@ export const DEFAULT_TARGET_GROSS_MARGIN = 40;
 export const TARGET_MAX_COGS_RATIO = 60;
 
 /**
- * 33%: نسبة الزيادة القديمة على التكلفة (Legacy Markup on Cost)
- * تنبيه: نسبة 33% ليست هامش ربح صافي بل كانت نسبة زيادة على التكلفة (Markup)
+ * 40%: متوسط هامش الربح الوحيد المعتمد للمتجر
  */
-export const LEGACY_DEFAULT_MARKUP = 33;
 export const DEFAULT_PROFIT_MARGIN = DEFAULT_TARGET_GROSS_MARGIN;
 
 export interface Supplier {

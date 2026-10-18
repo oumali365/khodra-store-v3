@@ -107,7 +107,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
           const zOrders = zoneGroups[zKey] || [];
           const assignedOrder = zOrders.find((o) => o.delivery_dispatch?.driverId || o.driver_id);
           const foundId = assignedOrder?.delivery_dispatch?.driverId || assignedOrder?.driver_id;
-          if (foundId && drivers.some((d) => d.id === foundId)) {
+          if (foundId && (drivers.some((d) => d.id === foundId) || couriers.some((c) => c.id === foundId))) {
             next[zKey] = foundId;
             changed = true;
           }
@@ -115,7 +115,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       });
       return changed ? next : prev;
     });
-  }, [zoneGroups, drivers]);
+  }, [zoneGroups, drivers, couriers]);
 
   const [codZone, setCodZone] = useState<FezZoneId | null>(null);
   const [copyZone, setCopyZone] = useState<FezZoneId | null>(null);
@@ -133,9 +133,11 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     isOpen: boolean; type: 'driver' | 'courier' | 'tour'; target: StoreDriver | FastAppCourier | null;
   }>({ isOpen: false, type: 'driver', target: null });
 
+  const [activeSection, setActiveSection] = useState<'all' | 'zones' | 'drivers' | 'fast_couriers' | 'providers'>('all');
+
   const handleAssignDriverToTour = async (zoneKey: FezZoneId, driverId: string) => {
-    const driver = drivers.find((d) => d.id === driverId);
-    if (!driver) return triggerToast('error', 'يرجى اختيار سائق من الفريق أولاً');
+    const driver = drivers.find((d) => d.id === driverId) || couriers.find((c) => c.id === driverId);
+    if (!driver) return triggerToast('error', 'يرجى اختيار سائق من الفريق الداخلي أو كابتن من التطبيقات أولاً');
     const zOrders = zoneGroups[zoneKey] || [];
     if (zOrders.length === 0) return triggerToast('error', 'لا توجد طلبات نشطة في هذه المنطقة للاعتماد');
 
@@ -159,13 +161,15 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   };
 
   const handleSendWhatsApp = (zoneKey: FezZoneId) => {
-    const driver = drivers.find((d) => d.id === selectedDriverForZone[zoneKey]);
+    const assignedPerson =
+      drivers.find((d) => d.id === selectedDriverForZone[zoneKey]) ||
+      couriers.find((c) => c.id === selectedDriverForZone[zoneKey]);
     const zOrders = zoneGroups[zoneKey];
     if (zOrders.length === 0) return triggerToast('error', 'لا توجد طلبات في هذه المنطقة');
-    const msg = buildDriverWhatsAppMessage(zoneKey, zOrders, driver, FEZ_DELIVERY_ZONES[zoneKey]);
-    const phone = driver ? cleanPhoneForWhatsApp(driver.phone) : '';
+    const msg = buildDriverWhatsAppMessage(zoneKey, zOrders, assignedPerson, FEZ_DELIVERY_ZONES[zoneKey]);
+    const phone = assignedPerson ? cleanPhoneForWhatsApp(assignedPerson.phone) : '';
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-    triggerToast('success', `تم فتح واتساب لإرسال الجولة إلى ${driver?.name || 'السائق'}`);
+    triggerToast('success', `تم فتح واتساب لإرسال الجولة إلى ${assignedPerson?.name || 'المندوب'}`);
   };
 
   const handleOpenGoogleMaps = (zoneKey: FezZoneId) => {
@@ -178,7 +182,10 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   const handleConfirmCloseTour = async () => {
     if (!closeZone) return;
     const zOrders = zoneGroups[closeZone];
-    const driver = drivers.find((d) => d.id === selectedDriverForZone[closeZone]) || null;
+    const driver =
+      drivers.find((d) => d.id === selectedDriverForZone[closeZone]) ||
+      couriers.find((c) => c.id === selectedDriverForZone[closeZone]) ||
+      null;
     setIsClosingTour(true);
     try {
       const res = await closeAndDeliverZoneTour({ orders: zOrders, driver, zoneKey: closeZone });
@@ -237,50 +244,89 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
     setDeleteModal({ isOpen: false, type: 'driver', target: null });
   };
 
+  const navItems = [
+    { id: 'all', label: 'الكل' },
+    { id: 'zones', label: `المناطق (${fleetStats.activeTrips})` },
+    { id: 'drivers', label: `سائقو المتجر (${drivers.length})` },
+    { id: 'fast_couriers', label: `كباتن التطبيقات (${couriers.length})` },
+    { id: 'providers', label: 'تطبيقات التوصيل' },
+  ] as const;
+
   return (
-    <div className="space-y-6 text-right">
+    <div className="space-y-4 sm:space-y-5 text-right">
       <FleetKPIs stats={fleetStats} />
-      <ZoneGrid
-        ordersByZone={zoneGroups}
-        drivers={drivers}
-        selectedDrivers={selectedDriverForZone}
-        onSelectDriver={(z, id) => setSelectedDriverForZone((prev) => ({ ...prev, [z]: id }))}
-        onAssignDriverToTour={handleAssignDriverToTour}
-        assigningZone={isAssigningZone}
-        filterMode={tourFilterMode}
-        onFilterModeChange={setTourFilterMode}
-        onViewCOD={(z) => setCodZone(z)}
-        onSendWhatsApp={handleSendWhatsApp}
-        onOpenGoogleMaps={handleOpenGoogleMaps}
-        onCloseTour={(z) => setCloseZone(z)}
-        onOpenManifest={(z) => setManifestZone(z)}
-        onOpenCopyTemplates={(z) => setCopyZone(z)}
-      />
-      <InternalDriversGrid
-        drivers={drivers}
-        isLoading={isDriversLoading}
-        isSynced={isDriversSynced}
-        isSyncing={isSyncing}
-        onSync={async () => {
-          const res = await syncDrivers();
-          triggerToast(res.synced ? 'success' : 'error', res.message || 'تمت المزامنة');
-        }}
-        onAdd={() => setDriverModal({ isOpen: true, variant: 'internal', data: null })}
-        onEdit={(d) => setDriverModal({ isOpen: true, variant: 'internal', data: d })}
-        onDelete={(d) => setDeleteModal({ isOpen: true, type: 'driver', target: d })}
-        onStatusChange={async (d, s) => {
-          await toggleStatus(d, s);
-          triggerToast('success', `تم تحديث حالة ${d.name}`);
-        }}
-      />
-      <FastCouriersGrid
-        couriers={couriers}
-        isLoading={isCouriersLoading}
-        onAdd={() => setDriverModal({ isOpen: true, variant: 'fast', data: null })}
-        onEdit={(c) => setDriverModal({ isOpen: true, variant: 'fast', data: c })}
-        onDelete={(c) => setDeleteModal({ isOpen: true, type: 'courier', target: c })}
-      />
-      <ProviderCards />
+
+      {/* شريط تبديل أقسام أداة التوصيل للوضوح والتركيز */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 bg-white p-1.5 rounded-xl border border-stone-200/90 shadow-2xs">
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setActiveSection(item.id)}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              activeSection === item.id
+                ? 'bg-[#163920] text-white shadow-xs'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {(activeSection === 'all' || activeSection === 'zones') && (
+        <ZoneGrid
+          ordersByZone={zoneGroups}
+          drivers={drivers}
+          fastCouriers={couriers}
+          selectedDrivers={selectedDriverForZone}
+          onSelectDriver={(z, id) => setSelectedDriverForZone((prev) => ({ ...prev, [z]: id }))}
+          onAssignDriverToTour={handleAssignDriverToTour}
+          assigningZone={isAssigningZone}
+          filterMode={tourFilterMode}
+          onFilterModeChange={setTourFilterMode}
+          onViewCOD={(z) => setCodZone(z)}
+          onSendWhatsApp={handleSendWhatsApp}
+          onOpenGoogleMaps={handleOpenGoogleMaps}
+          onCloseTour={(z) => setCloseZone(z)}
+          onOpenManifest={(z) => setManifestZone(z)}
+          onOpenCopyTemplates={(z) => setCopyZone(z)}
+        />
+      )}
+
+      {(activeSection === 'all' || activeSection === 'drivers') && (
+        <InternalDriversGrid
+          drivers={drivers}
+          isLoading={isDriversLoading}
+          isSynced={isDriversSynced}
+          isSyncing={isSyncing}
+          onSync={async () => {
+            const res = await syncDrivers();
+            triggerToast(res.synced ? 'success' : 'error', res.message || 'تمت المزامنة');
+          }}
+          onAdd={() => setDriverModal({ isOpen: true, variant: 'internal', data: null })}
+          onEdit={(d) => setDriverModal({ isOpen: true, variant: 'internal', data: d })}
+          onDelete={(d) => setDeleteModal({ isOpen: true, type: 'driver', target: d })}
+          onStatusChange={async (d, s) => {
+            await toggleStatus(d, s);
+            triggerToast('success', `تم تحديث حالة ${d.name}`);
+          }}
+        />
+      )}
+
+      {(activeSection === 'all' || activeSection === 'fast_couriers') && (
+        <FastCouriersGrid
+          couriers={couriers}
+          isLoading={isCouriersLoading}
+          onAdd={() => setDriverModal({ isOpen: true, variant: 'fast', data: null })}
+          onEdit={(c) => setDriverModal({ isOpen: true, variant: 'fast', data: c })}
+          onDelete={(c) => setDeleteModal({ isOpen: true, type: 'courier', target: c })}
+        />
+      )}
+
+      {(activeSection === 'all' || activeSection === 'providers') && (
+        <ProviderCards />
+      )}
 
       <FleetModals
         codZone={codZone}
@@ -293,6 +339,7 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
         onCloseManifest={() => setManifestZone(null)}
         ordersByZone={zoneGroups}
         drivers={drivers}
+        fastCouriers={couriers}
         selectedDrivers={selectedDriverForZone}
         copiedTemplate={copiedTemplate}
         onCopy={handleCopy}

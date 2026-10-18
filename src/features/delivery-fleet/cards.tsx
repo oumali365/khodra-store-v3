@@ -61,27 +61,27 @@ export const DriverCard: React.FC<DriverCardProps> = ({
 
   return (
     <div
-      className={`border-2 rounded-xl p-3.5 transition-all flex flex-col justify-between shadow-xs ${
+      className={`border rounded-xl p-3 transition-all flex flex-col justify-between shadow-xs bg-white ${
         isInternal
-          ? 'border-stone-200 hover:border-emerald-300 bg-stone-50/70 hover:bg-white'
-          : 'border-amber-200 hover:border-amber-400 bg-gradient-to-b from-amber-50/30 to-white'
+          ? 'border-stone-200/90 hover:border-emerald-300'
+          : 'border-amber-200/90 hover:border-amber-300'
       }`}
     >
       <div>
-        {/* الترويسة: أيقونة المركبة والاسم والشارة */}
+        {/* الترويسة: الاسم ونوع المركبة والحالة */}
         <div className="flex items-center justify-between gap-1 mb-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xl" title={vehicle.label}>
-              {vehicle.icon}
-            </span>
-            <span className="text-xs font-black text-stone-900 truncate max-w-[120px]">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-xs font-black text-stone-900 truncate">
               {driver.name}
+            </span>
+            <span className="text-[10px] text-stone-600 px-1.5 py-0.2 rounded bg-stone-100 shrink-0">
+              {vehicle.label}
             </span>
           </div>
 
           {isInternal && status && (
             <span
-              className={`text-[10px] font-black px-2 py-0.5 rounded-full border flex items-center gap-1 ${status.badge}`}
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${status.badge}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
               <span>{status.label}</span>
@@ -89,23 +89,23 @@ export const DriverCard: React.FC<DriverCardProps> = ({
           )}
 
           {!isInternal && appBadge && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${appBadge.style}`}>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${appBadge.style}`}>
               {appBadge.label}
             </span>
           )}
         </div>
 
         {/* تفاصيل البطاقة */}
-        <div className="space-y-1.5 text-xs text-stone-600 mb-3 bg-white p-2.5 rounded-lg border border-stone-200">
+        <div className="space-y-1.5 text-xs text-stone-600 mb-2.5 bg-stone-50/60 p-2.5 rounded-lg border border-stone-200/70">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-stone-500">رقم الهاتف:</span>
+            <span className="text-[11px] text-stone-500">الهاتف:</span>
             <span className="font-mono font-bold text-stone-900 text-left" dir="ltr">
               {driver.phone}
             </span>
           </div>
 
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-stone-500">{isInternal ? 'أجرة الطلب:' : 'متوسط الأجرة:'}</span>
+            <span className="text-stone-500">الأجرة:</span>
             <strong
               className={`tabular-nums ${isInternal ? 'text-emerald-800' : 'text-amber-800'}`}
             >
@@ -114,26 +114,17 @@ export const DriverCard: React.FC<DriverCardProps> = ({
           </div>
 
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-stone-500">{isInternal ? 'المنطقة المفضلة:' : 'النطاق / الحي:'}</span>
+            <span className="text-stone-500">المنطقة:</span>
             <span className="font-bold text-stone-900 truncate max-w-[130px]">
               {zoneLabel}
             </span>
           </div>
 
-          {isInternal && (
+          {isInternal && internalDriver?.vehiclePlate && internalDriver.vehiclePlate !== 'غير محدد' && (
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-stone-500">رقم اللوحة:</span>
+              <span className="text-stone-500">اللوحة:</span>
               <span className="font-mono font-bold text-stone-800" dir="ltr">
-                {internalDriver?.vehiclePlate || 'غير محدد'}
-              </span>
-            </div>
-          )}
-
-          {isInternal && (
-            <div className="flex items-start justify-between text-[11px] pt-1 border-t border-stone-100">
-              <span className="text-stone-500 shrink-0">العنوان:</span>
-              <span className="font-bold text-stone-800 text-left line-clamp-1 pr-1">
-                {internalDriver?.address || 'فاس'}
+                {internalDriver.vehiclePlate}
               </span>
             </div>
           )}
@@ -147,7 +138,7 @@ export const DriverCard: React.FC<DriverCardProps> = ({
       </div>
 
       {/* منطقة الإجراءات وأزرار التحكم */}
-      <div className="space-y-2 pt-1 border-t border-stone-200">
+      <div className="space-y-2 pt-1 border-t border-stone-100">
         {/* مفاتيح الحالة السريعة للسائق الداخلي */}
         {isInternal && internalDriver && onStatusChange && (
           <div className="flex items-center gap-1 text-[10px]">
@@ -157,7 +148,7 @@ export const DriverCard: React.FC<DriverCardProps> = ({
               className={`flex-1 py-1 rounded text-center font-bold transition-colors cursor-pointer ${
                 internalDriver.status === 'available'
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-stone-200 text-stone-700 hover:bg-emerald-100'
+                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
               }`}
             >
               متاح
@@ -168,7 +159,7 @@ export const DriverCard: React.FC<DriverCardProps> = ({
               className={`flex-1 py-1 rounded text-center font-bold transition-colors cursor-pointer ${
                 internalDriver.status === 'on_delivery'
                   ? 'bg-amber-600 text-white'
-                  : 'bg-stone-200 text-stone-700 hover:bg-amber-100'
+                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
               }`}
             >
               في جولة
@@ -179,19 +170,19 @@ export const DriverCard: React.FC<DriverCardProps> = ({
               className={`flex-1 py-1 rounded text-center font-bold transition-colors cursor-pointer ${
                 internalDriver.status === 'off_duty'
                   ? 'bg-stone-700 text-white'
-                  : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
               }`}
             >
-              خارج
+              خارج الخدمة
             </button>
           </div>
         )}
 
         {/* 4 أزرار موحدة في الأسفل: اتصال، واتساب، تعديل، حذف */}
-        <div className="grid grid-cols-4 gap-1.5 pt-1">
+        <div className="grid grid-cols-4 gap-1.5 pt-0.5">
           <a
             href={`tel:${driver.phone}`}
-            className="py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 transition-colors flex items-center justify-center font-bold text-[11px]"
+            className="py-1.5 rounded-lg bg-stone-100 hover:bg-blue-50 text-stone-700 hover:text-blue-700 transition-colors flex items-center justify-center font-bold text-[11px]"
             title="اتصال هاتفي"
           >
             <Phone className="w-3.5 h-3.5" />
@@ -205,7 +196,7 @@ export const DriverCard: React.FC<DriverCardProps> = ({
             }
             target="_blank"
             rel="noopener noreferrer"
-            className="py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors flex items-center justify-center font-bold text-[11px]"
+            className="py-1.5 rounded-lg bg-stone-100 hover:bg-emerald-50 text-stone-700 hover:text-emerald-700 transition-colors flex items-center justify-center font-bold text-[11px]"
             title="محادثة واتساب"
           >
             <MessageCircle className="w-3.5 h-3.5" />
@@ -214,8 +205,8 @@ export const DriverCard: React.FC<DriverCardProps> = ({
           <button
             type="button"
             onClick={() => onEdit(driver)}
-            className="py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 transition-colors flex items-center justify-center font-bold text-[11px] cursor-pointer"
-            title="تعديل البيانات"
+            className="py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors flex items-center justify-center font-bold text-[11px] cursor-pointer"
+            title="تعديل"
           >
             <Edit3 className="w-3.5 h-3.5" />
           </button>
@@ -223,7 +214,7 @@ export const DriverCard: React.FC<DriverCardProps> = ({
           <button
             type="button"
             onClick={() => onDelete(driver)}
-            className="py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors flex items-center justify-center font-bold text-[11px] cursor-pointer"
+            className="py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-700 hover:text-red-700 transition-colors flex items-center justify-center font-bold text-[11px] cursor-pointer"
             title="حذف"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -248,27 +239,19 @@ export interface ProviderCardProps {
 }
 
 /**
- * بطاقة شركة وتطبيق توصيل خارجي مبسطة وأنيقة
+ * بطاقة تطبيق توصيل خارجي مبسطة واحترافية
  */
 export const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   return (
-    <div
-      className={`border rounded-xl p-3 flex flex-col justify-between transition-all bg-white hover:border-emerald-500 shadow-xs hover:shadow-sm ${
-        provider.recommended
-          ? 'border-emerald-500/70 bg-emerald-50/20'
-          : 'border-stone-200'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl p-1.5 rounded-lg bg-stone-100">{provider.icon}</span>
+    <div className="border border-stone-200/90 rounded-xl p-3 flex flex-col justify-between transition-all bg-white hover:border-emerald-500 shadow-xs">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xl p-1.5 rounded-lg bg-stone-100">{provider.icon}</span>
+        <div>
           <h4 className="font-black text-xs sm:text-sm text-stone-900">{provider.name}</h4>
+          {provider.avgCost && (
+            <p className="text-[10px] text-stone-500">{provider.avgCost}</p>
+          )}
         </div>
-        {provider.recommended && (
-          <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full">
-            موصى به
-          </span>
-        )}
       </div>
 
       {provider.appUrl && (

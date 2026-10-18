@@ -112,15 +112,15 @@ pricingRouter.get('/api/forecast/30days', async (_req: Request, res: Response) =
 });
 
 // ────────────────────────────────────────────────────────────
-// 4️⃣ POST /api/pricing/apply-global-margin - تطبيق هامش موحد (33%)
+// 4️⃣ POST /api/pricing/apply-global-margin - تطبيق هامش موحد (40% المعتمد الوحيد)
 // ────────────────────────────────────────────────────────────
 pricingRouter.post('/api/pricing/apply-global-margin', async (req: Request, res: Response) => {
   try {
-    const margin = typeof req.body?.marginPercentage === 'number' ? req.body.marginPercentage : 33;
+    const margin = typeof req.body?.marginPercentage === 'number' ? req.body.marginPercentage : 40;
     return res.json({
       success: true,
       marginPercentage: margin,
-      message: `تم اعتماد هامش ربح ${margin}% لضمان استقرار الخزينة وتغطية مصاريف النقل والتشغيل واللوجستيك والإتلاف`,
+      message: `تم اعتماد هامش ربح ${margin}% المعتمد لضمان استقرار الخزينة وتغطية مصاريف النقل والتشغيل واللوجستيك والإتلاف`,
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message });

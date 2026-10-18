@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { DbOrder } from '../../services/supabaseService';
 import { STORE_CONFIG, STORE_PICKUP_HUB, FEZ_DELIVERY_ZONES } from '../../data/config';
-import { FezZoneId, StoreDriver } from '../../types';
+import { FezZoneId, StoreDriver, FastAppCourier } from '../../types';
 import { calculateTourFinancials } from '../../services/financialEngine';
 
 interface TourManifestModalProps {
@@ -26,7 +26,7 @@ interface TourManifestModalProps {
   onClose: () => void;
   zoneKey: FezZoneId;
   orders: DbOrder[];
-  selectedDriver?: StoreDriver | null;
+  selectedDriver?: StoreDriver | FastAppCourier | null;
 }
 
 export const TourManifestModal: React.FC<TourManifestModalProps> = ({
@@ -50,11 +50,17 @@ export const TourManifestModal: React.FC<TourManifestModalProps> = ({
   if (!isOpen) return null;
 
   const zoneInfo = FEZ_DELIVERY_ZONES[zoneKey] || FEZ_DELIVERY_ZONES.north;
+  const driverWagePerOrder = selectedDriver
+    ? 'commissionPerOrder' in selectedDriver
+      ? selectedDriver.commissionPerOrder
+      : selectedDriver.typicalFare
+    : undefined;
+
   const tourFin = calculateTourFinancials(
     orders,
     zoneKey,
     zoneInfo.name,
-    selectedDriver?.commissionPerOrder
+    driverWagePerOrder
   );
   const totalCOD = tourFin.totalCODToCollect;
   const driverFeePerOrder = tourFin.driverWagePerOrder;
@@ -149,7 +155,11 @@ export const TourManifestModal: React.FC<TourManifestModalProps> = ({
             <div>
               <span className="text-[10px] font-bold text-stone-500 block">مندوب / سائق الجولة:</span>
               <strong className="text-stone-900 font-black text-sm">
-                {selectedDriver?.name || 'كابتن التوصيل الداخلي'}
+                {selectedDriver
+                  ? 'app' in selectedDriver
+                    ? `${selectedDriver.name} (${selectedDriver.app.toUpperCase()})`
+                    : selectedDriver.name
+                  : 'كابتن التوصيل الداخلي'}
               </strong>
               {selectedDriver?.phone && (
                 <span className="text-[11px] text-stone-600 block dir-ltr text-right" dir="ltr">

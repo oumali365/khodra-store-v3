@@ -41,36 +41,45 @@ export const CODReconciliationHub: React.FC<{
       const saved = localStorage.getItem(COD_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setReconciliations(parsed);
-      } else {
-        // عينة أولية لتسوية اليوم
-        const initial: CODReconciliationRecord[] = drivers.map((d, idx) => ({
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setReconciliations(parsed);
+          return;
+        }
+      }
+      
+      // احتساب التسوية الفعلية بناءً على طلبات المتجر المسندة لكل سائق
+      const realRecords: CODReconciliationRecord[] = drivers.map((d) => {
+        const driverOrders = orders.filter(
+          (o) => (o.delivery_dispatch?.driverId === d.id || o.driver_id === d.id) && !o.is_archived && o.status !== 'cancelled'
+        );
+        const expected = driverOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+        return {
           id: `cod-rec-${d.id}-${Date.now()}`,
           driverId: d.id,
           driverName: d.name,
           date: new Date().toISOString().split('T')[0],
-          expectedCOD: 500 + idx * 150,
-          collectedCOD: 500 + idx * 150,
-          turnedInAmount: 500 + idx * 150,
+          expectedCOD: expected,
+          collectedCOD: expected,
+          turnedInAmount: expected,
           discrepancy: 0,
-          status: 'reconciled',
+          status: expected > 0 ? 'reconciled' : 'approved',
           updatedAt: new Date().toISOString(),
-        }));
-        setReconciliations(initial);
-        localStorage.setItem(COD_STORAGE_KEY, JSON.stringify(initial));
-      }
+        };
+      });
+      setReconciliations(realRecords);
+      localStorage.setItem(COD_STORAGE_KEY, JSON.stringify(realRecords));
     } catch {}
-  }, [drivers]);
+  }, [drivers, orders]);
 
   const handleSaveReconciliation = (driverId: string) => {
     const driver = drivers.find((d) => d.id === driverId);
     if (!driver) return showToast('error', 'يرجى اختيار سائق صحيح');
 
     const expected = orders
-      .filter((o) => (o.delivery_dispatch?.driverId === driverId || o.driver_id === driverId) && !o.is_archived)
-      .reduce((sum, o) => sum + o.total, 0) || 750; // افتراضي في حال تجريبي
+      .filter((o) => (o.delivery_dispatch?.driverId === driverId || o.driver_id === driverId) && !o.is_archived && o.status !== 'cancelled')
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
-    const turnedIn = Number(turnedInInput) || expected;
+    const turnedIn = turnedInInput !== '' ? Number(turnedInInput) : expected;
     const discrepancy = turnedIn - expected;
 
     const updated: CODReconciliationRecord[] = reconciliations.map((rec) => {

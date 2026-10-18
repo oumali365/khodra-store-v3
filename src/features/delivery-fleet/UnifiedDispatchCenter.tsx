@@ -14,6 +14,7 @@ import {
   buildDriverWhatsAppMessage,
   cleanPhoneForWhatsApp,
   getSortedDriversForZone,
+  getSortedFastCouriersForZone,
 } from './utils';
 
 export interface UnifiedDispatchCenterProps {
@@ -51,11 +52,15 @@ export const UnifiedDispatchCenter: React.FC<UnifiedDispatchCenterProps> = ({
   const codCalc = calculateZoneCOD(zoneOrders);
 
   const sortedDrivers = getSortedDriversForZone(selectedZone, storeDrivers);
-  const selectedDriver = storeDrivers.find((d) => d.id === selectedDriverId) || null;
+  const sortedFastCouriers = getSortedFastCouriersForZone(selectedZone, fastCouriers);
+  const selectedDriver =
+    storeDrivers.find((d) => d.id === selectedDriverId) ||
+    fastCouriers.find((c) => c.id === selectedDriverId) ||
+    null;
 
   const handleExplicitDispatch = async () => {
     if (!selectedDriverId) {
-      return showToast('error', 'يرجى اختيار سائق مرخص من الفريق الداخلي أولاً');
+      return showToast('error', 'يرجى اختيار سائق من الفريق الداخلي أو كابتن تطبيق سريع أولاً');
     }
     if (zoneOrders.length === 0) {
       return showToast('error', 'لا توجد طلبات في هذه المنطقة للإسناد');
@@ -64,7 +69,11 @@ export const UnifiedDispatchCenter: React.FC<UnifiedDispatchCenterProps> = ({
     setIsDispatching(true);
     try {
       await onAssignDriver(selectedZone, selectedDriverId);
-      showToast('success', `تم اعتماد وإسناد جولة ${zoneConfig.name} بنجاح للسائق ${selectedDriver?.name || ''}`);
+      const isFast = selectedDriver && 'app' in selectedDriver;
+      const driverLabel = isFast
+        ? `كابتن التطبيق ${selectedDriver.name} (${selectedDriver.app})`
+        : `السائق ${selectedDriver?.name || ''}`;
+      showToast('success', `تم اعتماد وإسناد جولة ${zoneConfig.name} بنجاح إلى ${driverLabel}`);
     } catch (err: any) {
       showToast('error', err?.message || 'تعذر إسناد الجولة');
     } finally {
@@ -173,38 +182,73 @@ export const UnifiedDispatchCenter: React.FC<UnifiedDispatchCenterProps> = ({
 
         {/* لوحة اختيار السائق وإجراءات الإرسال المؤكدة */}
         <div className="bg-white rounded-xl p-3.5 border border-stone-200 space-y-3">
-          <div className="text-xs font-black text-stone-900 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-700" />
-            <span>تعيين السائق الداخلي المؤكد وإجراءات الإرسال الرسمية:</span>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="text-xs font-black text-stone-900 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-700" />
+              <span>تعيين مندوب الجولة (سائق داخلي أو كابتن تطبيق سريع):</span>
+            </div>
+            {selectedDriver && (
+              <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full border ${
+                'app' in selectedDriver
+                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                  : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+              }`}>
+                {'app' in selectedDriver ? `⚡ كابتن تطبيق (${selectedDriver.app}): ` : '🟢 سائق داخلي: '}
+                {selectedDriver.name}
+              </span>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-            <div className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+            {/* القائمة الأولى: سائق داخلي */}
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                سائق المتجر الداخلي:
+              </label>
               <select
-                value={selectedDriverId}
+                value={storeDrivers.some((d) => d.id === selectedDriverId) ? selectedDriverId : ''}
                 onChange={(e) => setSelectedDriverId(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-stone-300 text-xs font-bold text-stone-900 bg-stone-50 focus:border-emerald-600 focus:outline-none"
+                className="w-full p-2 rounded-xl border border-stone-300 text-xs font-bold text-stone-900 bg-stone-50 focus:border-emerald-600 focus:outline-none"
               >
-                <option value="">-- اختر سائقًا معتمداً لجولة {zoneConfig.name} --</option>
-                {sortedDrivers.map(({ driver, isPreferred, isDisabled, disabledReason }) => (
+                <option value="">-- اختر سائقاً --</option>
+                {sortedDrivers.map(({ driver, isDisabled, disabledReason }) => (
                   <option key={driver.id} value={driver.id} disabled={isDisabled}>
-                    {driver.name} {isPreferred ? '⭐ (مفضل لهذه المنطقة)' : ''} {isDisabled ? `(${disabledReason})` : `(${driver.commissionPerOrder} د.م أجرة)`}
+                    {driver.name} ({driver.commissionPerOrder} د.م){isDisabled ? ` - ${disabledReason || 'غير متاح'}` : ''}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={isDispatching || !selectedDriverId || zoneOrders.length === 0}
-                onClick={handleExplicitDispatch}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+            {/* القائمة الثانية: كابتن تطبيق سريع */}
+            <div>
+              <label className="block text-[11px] font-bold text-amber-900 mb-1">
+                سائق تطبيق سريع:
+              </label>
+              <select
+                value={fastCouriers.some((c) => c.id === selectedDriverId) ? selectedDriverId : ''}
+                onChange={(e) => setSelectedDriverId(e.target.value)}
+                className="w-full p-2 rounded-xl border border-amber-300 text-xs font-bold text-stone-900 bg-amber-50/40 focus:border-amber-600 focus:outline-none"
               >
-                <Send className="w-3.5 h-3.5" />
-                <span>{isDispatching ? 'جاري الإسناد...' : 'اعتماد وإرسال الجولة'}</span>
-              </button>
+                <option value="">-- اختر سائق تطبيق --</option>
+                {sortedFastCouriers.map(({ courier, appBadgeLabel }) => (
+                  <option key={courier.id} value={courier.id}>
+                    {courier.name} ({appBadgeLabel}{courier.typicalFare ? ` - ${courier.typicalFare} د.م` : ''})
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+
+          <div className="pt-2 border-t border-stone-100 flex items-center justify-between flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={isDispatching || !selectedDriverId || zoneOrders.length === 0}
+              onClick={handleExplicitDispatch}
+              className="py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{isDispatching ? 'جاري الاعتماد...' : 'اعتماد وإسناد الجولة'}</span>
+            </button>
           </div>
 
           {/* أزرار الإجراءات المساعدة (واتساب ومسار الخرائط) */}

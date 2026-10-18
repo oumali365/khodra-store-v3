@@ -57,6 +57,7 @@ interface MorningPricingTableProps {
       productId: number;
       purchasePrice: number;
       marginPercentage: number;
+      sellingPrice?: number;
       supplierId: string;
       hasException?: boolean;
       exceptionReason?: string;
@@ -206,8 +207,12 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
     return () => window.removeEventListener('khodra_open_pricing_for_product', handleOpenPricing);
   }, [focusProduct]);
 
-  // الانتقال إلى إدارة المنتجات والمخزون لنفس المنتج (المصدر الوحيد لإدارة المخزون والتوفر)
-  const handleGoToInventory = (productId: number) => {
+  // الانتقال إلى إدارة المنتجات والمخزون لنفس المنتج مع حفظ السعر فوراً لضمان التطابق 100%
+  const handleGoToInventory = async (productId: number) => {
+    const row = tableData.find((r) => r.id === productId);
+    if (row && row.is_modified) {
+      await handleSaveSingleRow(row);
+    }
     if (onNavigateToInventory) {
       onNavigateToInventory(productId);
     } else {
@@ -275,7 +280,11 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
           productId: row.id,
           purchasePrice: row.purchase_price,
           marginPercentage: row.margin_percentage,
+          sellingPrice: row.selling_price,
           supplierId: row.supplier_id,
+          productName: row.name,
+          unitLabel: row.unit_label,
+          oldPrice: row.old_selling_price,
         },
       ]);
       setTableData((prev) =>
@@ -297,7 +306,11 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
       productId: r.id,
       purchasePrice: r.purchase_price,
       marginPercentage: r.margin_percentage,
+      sellingPrice: r.selling_price,
       supplierId: r.supplier_id,
+      productName: r.name,
+      unitLabel: r.unit_label,
+      oldPrice: r.old_selling_price,
     }));
     await onSaveBatch(payload);
     setTableData((prev) => prev.map((r) => ({ ...r, is_modified: false })));
@@ -305,10 +318,10 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
     setTimeout(() => setSuccessToast(null), 3500);
   };
 
-  // تطبيق هامش 33% على جميع المنتجات دفعة واحدة
-  const handleApplyGlobal33Percent = async () => {
+  // تطبيق هامش 40% على جميع المنتجات دفعة واحدة (المعتمد الوحيد)
+  const handleApplyGlobal40Percent = async () => {
     const updated = tableData.map((item) => {
-      const newMargin = DEFAULT_PROFIT_MARGIN;
+      const newMargin = DEFAULT_PROFIT_MARGIN; // 40%
       const newSelling = calculateSellingPrice(item.purchase_price, newMargin);
       return {
         ...item,
@@ -323,13 +336,17 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
       productId: r.id,
       purchasePrice: r.purchase_price,
       marginPercentage: DEFAULT_PROFIT_MARGIN,
+      sellingPrice: r.selling_price,
       supplierId: r.supplier_id,
+      productName: r.name,
+      unitLabel: r.unit_label,
+      oldPrice: r.old_selling_price,
     }));
 
     await onSaveBatch(payload);
     setTableData((prev) => prev.map((r) => ({ ...r, is_modified: false })));
     setSuccessToast(
-      `🛡️ تم اعتماد هامش 33% لجميع المنتجات لضمان تغطية مصاريف النقل واللوجستيك والإتلاف ومزامنتها فوراً مع المتجر!`
+      `🛡️ تم اعتماد هامش 40% المعتمد لجميع المنتجات لضمان تغطية مصاريف النقل واللوجستيك والإتلاف ومزامنتها فوراً مع المتجر والمخزون!`
     );
     setTimeout(() => setSuccessToast(null), 4500);
   };
@@ -370,26 +387,26 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
 
   return (
     <div className="space-y-4 text-right" dir="rtl">
-      {/* ═══════ بطاقات الإحصائيات (grid-cols-4 مع أرقام كبيرة وعناوين صغيرة) ═══════ */}
+      {/* ═══════ بطاقات الإحصائيات المختصرة ═══════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* بطاقة إجمالي المنتجات */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-stone-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-stone-400 mb-2">
-            <span className="text-[11px] sm:text-xs font-bold text-stone-500">إجمالي المنتجات</span>
+            <span className="text-[11px] sm:text-xs font-bold text-stone-500">إجمالي الأصناف</span>
             <span className="text-xl">🥬</span>
           </div>
           <div>
             <span className="text-2xl sm:text-3xl font-black font-['Almarai'] text-stone-900 tabular-nums">
               {stats.totalCount}
             </span>
-            <p className="text-[11px] text-emerald-800 font-bold mt-1">سوق الجملة بنسودة فاس</p>
+            <p className="text-[11px] text-stone-500 font-medium mt-1">أصناف المتجر النشطة</p>
           </div>
         </div>
 
         {/* بطاقة متوسط هامش الربح */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-stone-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-stone-400 mb-2">
-            <span className="text-[11px] sm:text-xs font-bold text-stone-500">متوسط هامش الربح</span>
+            <span className="text-[11px] sm:text-xs font-bold text-stone-500">متوسط الهامش</span>
             <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
               <Percent className="w-4 h-4" />
             </div>
@@ -399,41 +416,38 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
               <span className="text-2xl sm:text-3xl font-black font-['Almarai'] text-[#163920] tabular-nums">
                 %{stats.avgMargin}
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#F5D76E]/30 text-stone-800 border border-[#F5D76E]/50">
-                المعتمد 33%
-              </span>
             </div>
-            <p className="text-[11px] text-stone-500 font-medium mt-1">تغطية مصاريف اللوجستيك والإتلاف</p>
+            <p className="text-[11px] text-stone-500 font-medium mt-1">المعتمد الوحيد للمتجر: 40%</p>
           </div>
         </div>
 
         {/* بطاقة حالة المخزون والتوفر */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-stone-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-stone-400 mb-2">
-            <span className="text-[11px] sm:text-xs font-bold text-stone-500">حالة التوفر بالمخزن</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center text-xs font-bold">
-              JIT
+            <span className="text-[11px] sm:text-xs font-bold text-stone-500">حالة التوفر</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+              <Package className="w-4 h-4" />
             </div>
           </div>
           <div>
             <div className="flex items-center gap-2.5">
               <span className="text-sm font-black text-rose-700 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-rose-600 inline-block" />
-                {stats.outOfStockCount} نافد (0)
+                {stats.outOfStockCount} نافد
               </span>
               <span className="text-sm font-black text-amber-700 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-                {stats.limitedStockCount} محدود (1-5)
+                {stats.limitedStockCount} محدود
               </span>
             </div>
-            <p className="text-[11px] text-stone-400 font-medium mt-1">تفريغ المخزون = غير متوفر بالمتجر</p>
+            <p className="text-[11px] text-stone-500 font-medium mt-1">مزامنة حية مع المخزون</p>
           </div>
         </div>
 
         {/* بطاقة التعديلات قيد الحفظ */}
-        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-stone-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-stone-400 mb-2">
-            <span className="text-[11px] sm:text-xs font-bold text-stone-500">تعديلات غير محفوظة</span>
+            <span className="text-[11px] sm:text-xs font-bold text-stone-500">تعديلات قيد الحفظ</span>
             <div className="w-8 h-8 rounded-xl bg-stone-100 text-stone-700 flex items-center justify-center">
               <Save className="w-4 h-4" />
             </div>
@@ -443,8 +457,8 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
               <span className="text-2xl sm:text-3xl font-black font-['Almarai'] text-[#D9762B] tabular-nums">
                 {stats.modifiedCount}
               </span>
-              <p className="text-[11px] text-stone-400 font-medium mt-1">
-                {stats.modifiedCount > 0 ? 'جاهزة للحفظ السحابي' : 'جميع الأسعار متزامنة'}
+              <p className="text-[11px] text-stone-500 font-medium mt-1">
+                {stats.modifiedCount > 0 ? 'بانتظار الحفظ السحابي' : 'جميع الأسعار متزامنة'}
               </p>
             </div>
             {stats.modifiedCount > 0 && (
@@ -452,7 +466,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                 type="button"
                 onClick={handleSaveAllModified}
                 disabled={isSaving}
-                className="min-h-[44px] px-3.5 py-2 rounded-2xl bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-black shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>حفظ الآن</span>
@@ -498,13 +512,13 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={handleApplyGlobal33Percent}
+              onClick={handleApplyGlobal40Percent}
               disabled={isSaving}
               className="min-h-[44px] px-4 py-2 rounded-2xl bg-amber-50/80 hover:bg-amber-100 border border-amber-200 text-amber-900 font-black text-xs inline-flex items-center gap-2 shadow-2xs cursor-pointer active:scale-97 transition-all"
-              title="توحيد هامش الربح لكافة المنتجات إلى 33% لضمان تغطية مصاريف التشغيل والنقل واللوجستيك"
+              title="توحيد هامش الربح لكافة المنتجات إلى 40% (المعيار المعتمد للمتجر)"
             >
               <ShieldCheck className="w-4 h-4 text-amber-700" />
-              <span>رفع الكل إلى 33% (أمان الخزينة)</span>
+              <span>توحيد الهامش على 40% (المعتمد)</span>
             </button>
 
             <button
@@ -629,15 +643,15 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                       <div className="py-1 px-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[#163920] font-mono font-black text-xs sm:text-sm text-center tabular-nums">
                         {row.selling_price.toFixed(2)} د.م
                       </div>
-                      <span className="text-[9px] text-emerald-700 font-bold block text-center mt-0.5">
-                        سعر البيع المقترح
+                      <span className="text-[9px] text-emerald-800 font-bold block text-center mt-0.5">
+                        سعر البيع
                       </span>
                     </div>
                   </div>
 
                   {/* المورد */}
                   <div>
-                    <label className="text-[10px] font-bold text-stone-500 mb-1 block">المورد (سوق بنسودة):</label>
+                    <label className="text-[10px] font-bold text-stone-500 mb-1 block">المورد:</label>
                     <select
                       value={row.supplier_id}
                       onChange={(e) => handleCellChange(row.id, 'supplier_id', e.target.value)}
@@ -654,7 +668,7 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                   {/* سعر الشراء + هامش الربح */}
                   <div className="grid grid-cols-2 gap-2.5 pt-1">
                     <div>
-                      <label className="text-[10px] font-bold text-stone-500 mb-1 block">سعر الشراء (د.م):</label>
+                      <label className="text-[10px] font-bold text-stone-500 mb-1 block">سعر الشراء:</label>
                       <div className="relative">
                         <input
                           type="number"
@@ -672,14 +686,14 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
 
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="text-[10px] font-bold text-stone-500">هامش الربح (%):</label>
+                        <label className="text-[10px] font-bold text-stone-500">الهامش (40%):</label>
                         {row.margin_percentage < 40 && (
                           <button
                             type="button"
                             onClick={() => handleCellChange(row.id, 'margin_percentage', 40)}
                             className="text-[9px] font-black text-amber-800 underline cursor-pointer"
                           >
-                            رفع لـ 40% 🛡️
+                            رفع لـ 40%
                           </button>
                         )}
                       </div>
@@ -704,11 +718,11 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                     </div>
                   </div>
 
-                  {/* حالة المخزون وزر الفتح في إدارة المخزون (المصدر الأساسي) */}
+                  {/* حالة المخزون وزر الفتح */}
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-100 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span
-                        className={`text-[10px] font-black px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5 ${
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md border inline-flex items-center gap-1 ${
                           isOutOfStock
                             ? 'bg-rose-50 text-rose-800 border-rose-200'
                             : isLimitedStock
@@ -721,27 +735,27 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                             isOutOfStock
                               ? 'bg-rose-600'
                               : isLimitedStock
-                              ? 'bg-amber-500 animate-pulse'
+                              ? 'bg-amber-500'
                               : 'bg-emerald-600'
                           }`}
                         />
                         <span>
                           {isOutOfStock
-                            ? 'نفد المخزون (0)'
+                            ? 'نفد (0)'
                             : isLimitedStock
-                            ? `محدود (${currentStock} ${row.unit_label})`
-                            : `متوفر (${currentStock} ${row.unit_label})`}
+                            ? `محدود (${currentStock})`
+                            : `متوفر (${currentStock})`}
                         </span>
                       </span>
 
                       <button
                         type="button"
                         onClick={() => handleGoToInventory(row.id)}
-                        className="px-2.5 py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 text-[11px] font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
-                        title="فتح هذا المنتج في إدارة المنتجات والمخزون"
+                        className="px-2 py-0.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                        title="فتح هذا المنتج في المخزون"
                       >
-                        <Package className="w-3.5 h-3.5 text-[#163920]" />
-                        <span>📦 فتح بالمخزون</span>
+                        <Package className="w-3 h-3 text-[#163920]" />
+                        <span>المخزون</span>
                       </button>
                     </div>
 
@@ -751,10 +765,10 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                           type="button"
                           onClick={() => handleSaveSingleRow(row)}
                           disabled={isRowSaving}
-                          className="px-3 py-1.5 rounded-lg bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                          className="px-3 py-1.5 rounded-lg bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
                         >
                           <Save className="w-3.5 h-3.5" />
-                          <span>{isRowSaving ? 'حفظ...' : 'اعتماد السعر'}</span>
+                          <span>{isRowSaving ? 'حفظ...' : 'حفظ السعر'}</span>
                         </button>
                       )}
                     </div>
@@ -770,29 +784,17 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
           <table className="w-full text-right text-xs border-collapse">
             <thead>
               <tr className="bg-[#FAFAF9] border-b border-stone-200/80 text-stone-600 font-bold">
-                <th className="py-4 px-3 sm:px-4 w-12 text-center">#</th>
-                <th className="py-4 px-3 sm:px-4 min-w-[190px] sticky right-0 bg-[#FAFAF9] z-10 shadow-xs">
-                  اسم المنتج
+                <th className="py-3 px-3 w-12 text-center">#</th>
+                <th className="py-3 px-3 min-w-[170px] sticky right-0 bg-[#FAFAF9] z-10 shadow-xs">
+                  المنتج
                 </th>
-                <th className="py-4 px-3 sm:px-4 min-w-[170px]">المورد (سوق بنسودة)</th>
-                <th className="py-4 px-3 sm:px-4 min-w-[130px]">
-                  <span>سعر الشراء</span>
-                  <span className="text-[10px] text-stone-400 font-normal block">(د.م / {filteredData[0]?.unit_label || 'kg'})</span>
-                </th>
-                <th className="py-4 px-3 sm:px-4 min-w-[125px]">
-                  <span>هامش الربح</span>
-                  <span className="text-[10px] text-stone-400 font-normal block">(نسبة مئوية %)</span>
-                </th>
-                <th className="py-4 px-3 sm:px-4 min-w-[130px]">
-                  <span className="text-emerald-900 font-black">سعر البيع المقترح</span>
-                  <span className="text-[10px] text-emerald-700 font-normal block">(محسوب تلقائياً)</span>
-                </th>
-                <th className="py-4 px-3 sm:px-4 min-w-[110px] text-center">مؤشر الاتجاه</th>
-                <th className="py-4 px-3 sm:px-4 min-w-[210px] text-center">
-                  <span>حالة المخزون والتوفر</span>
-                  <span className="text-[10px] text-stone-400 font-normal block">(المصدر الأساسي: إدارة المخزون)</span>
-                </th>
-                <th className="py-4 px-3 sm:px-4 w-20 text-center">إجراء</th>
+                <th className="py-3 px-3 min-w-[150px]">المورد</th>
+                <th className="py-3 px-3 min-w-[110px]">سعر الشراء</th>
+                <th className="py-3 px-3 min-w-[110px] text-center">الهامش (40%)</th>
+                <th className="py-3 px-3 min-w-[110px] text-center">سعر البيع</th>
+                <th className="py-3 px-3 min-w-[90px] text-center">الاتجاه</th>
+                <th className="py-3 px-3 min-w-[140px] text-center">المخزون</th>
+                <th className="py-3 px-3 w-16 text-center">حفظ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 font-medium">
@@ -823,13 +825,13 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                       }`}
                     >
                       {/* الرقم */}
-                      <td className="py-4 px-3 sm:px-4 text-center text-stone-400 font-mono text-[11px]">
+                      <td className="py-3 px-3 text-center text-stone-400 font-mono text-[11px]">
                         {(currentPage - 1) * pageSize + idx + 1}
                       </td>
 
-                      {/* اسم المنتج (Sticky Column) */}
+                      {/* اسم المنتج */}
                       <td
-                        className={`py-4 px-3 sm:px-4 sticky right-0 z-10 transition-colors ${
+                        className={`py-3 px-3 sticky right-0 z-10 transition-colors ${
                           isHighlighted ? 'bg-amber-100/90' : row.is_modified ? 'bg-amber-50/70' : 'bg-white'
                         }`}
                       >
@@ -840,18 +842,18 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                           <div>
                             <div className="font-bold text-stone-900 text-xs sm:text-sm">{row.name}</div>
                             <span className="text-[10px] text-stone-400 font-normal">
-                              {row.unit_label} • {OFFICIAL_CATEGORIES.find((c) => c.id === row.category)?.name || row.category}
+                              {row.unit_label}
                             </span>
                           </div>
                         </div>
                       </td>
 
                       {/* المورد */}
-                      <td className="py-4 px-3 sm:px-4">
+                      <td className="py-3 px-3">
                         <select
                           value={row.supplier_id}
                           onChange={(e) => handleCellChange(row.id, 'supplier_id', e.target.value)}
-                          className="w-full py-2 px-2.5 rounded-2xl border border-stone-200 bg-white text-stone-800 text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-[#163920] focus:border-[#163920] truncate transition-all"
+                          className="w-full py-1.5 px-2.5 rounded-xl border border-stone-200 bg-white text-stone-800 text-[11px] font-bold focus:outline-none focus:ring-1 focus:ring-[#163920] truncate transition-all"
                         >
                           {suppliers.map((sup) => (
                             <option key={sup.id} value={sup.id}>
@@ -861,8 +863,8 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                         </select>
                       </td>
 
-                      {/* سعر الشراء (حقل إدخال Minimal مع Focus Ring أخضر) */}
-                      <td className="py-4 px-3 sm:px-4">
+                      {/* سعر الشراء */}
+                      <td className="py-3 px-3">
                         <div className="relative">
                           <input
                             type="number"
@@ -872,16 +874,16 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                             onChange={(e) =>
                               handleCellChange(row.id, 'purchase_price', parseFloat(e.target.value) || 0)
                             }
-                            className="w-full py-1.5 px-2.5 pr-7 rounded-2xl border border-stone-200 bg-white text-stone-900 font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#163920] focus:border-[#163920] tabular-nums transition-all"
+                            className="w-full py-1.5 px-2.5 pr-7 rounded-xl border border-stone-200 bg-white text-stone-900 font-mono font-bold text-xs focus:outline-none focus:ring-1 focus:ring-[#163920] tabular-nums transition-all"
                           />
-                          <span className="absolute right-2.5 top-2.5 text-[10px] text-stone-400 font-bold pointer-events-none">
+                          <span className="absolute right-2 top-2 text-[10px] text-stone-400 font-bold pointer-events-none">
                             د.م
                           </span>
                         </div>
                       </td>
 
                       {/* هامش الربح % */}
-                      <td className="py-4 px-3 sm:px-4">
+                      <td className="py-3 px-3 text-center">
                         <div className="relative">
                           <input
                             type="number"
@@ -892,66 +894,61 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                             onChange={(e) =>
                               handleCellChange(row.id, 'margin_percentage', parseFloat(e.target.value) || 0)
                             }
-                            className={`w-full py-1.5 px-2.5 pr-7 rounded-2xl border font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#163920] focus:border-[#163920] tabular-nums text-center transition-all ${
+                            className={`w-full py-1.5 px-2.5 pr-6 rounded-xl border font-mono font-bold text-xs focus:outline-none focus:ring-1 focus:ring-[#163920] tabular-nums text-center transition-all ${
                               row.margin_percentage < 40
                                 ? 'border-amber-300 bg-amber-50/60 text-amber-900'
                                 : 'border-stone-200 bg-white text-stone-900'
                             }`}
                           />
-                          <span className="absolute right-2.5 top-2.5 text-[10px] text-stone-400 font-bold pointer-events-none">
+                          <span className="absolute right-2 top-2 text-[10px] text-stone-400 font-bold pointer-events-none">
                             %
                           </span>
                         </div>
-                        {row.margin_percentage < 40 ? (
+                        {row.margin_percentage < 40 && (
                           <button
                             type="button"
                             onClick={() => handleCellChange(row.id, 'margin_percentage', 40)}
                             className="text-[9px] font-black text-amber-800 hover:text-amber-950 underline block mt-1 mx-auto cursor-pointer"
                           >
-                            رفع إلى 40% 🛡️
+                            رفع لـ 40%
                           </button>
-                        ) : (
-                          <span className="text-[9px] font-bold text-emerald-800 block mt-1 text-center">
-                            هامش آمن ✓
-                          </span>
                         )}
                       </td>
 
-                      {/* سعر البيع (محسوب تلقائياً) */}
-                      <td className="py-4 px-3 sm:px-4">
-                        <div className="py-1.5 px-2.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-[#163920] font-mono font-black text-xs sm:text-sm text-center tabular-nums shadow-2xs">
+                      {/* سعر البيع */}
+                      <td className="py-3 px-3 text-center">
+                        <div className="py-1.5 px-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[#163920] font-mono font-black text-xs sm:text-sm text-center tabular-nums shadow-2xs">
                           {row.selling_price.toFixed(2)} د.م
                         </div>
                       </td>
 
                       {/* مؤشر الاتجاه */}
-                      <td className="py-4 px-3 sm:px-4 text-center">
+                      <td className="py-3 px-3 text-center">
                         {row.trend === 'up' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200">
-                            <ArrowUpRight className="w-3.5 h-3.5" />
-                            <span>ارتفع ({row.yesterday_price} د.م)</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200">
+                            <ArrowUpRight className="w-3 h-3" />
+                            <span>ارتفع</span>
                           </span>
                         )}
                         {row.trend === 'down' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            <ArrowDownRight className="w-3.5 h-3.5" />
-                            <span>انخفض ({row.yesterday_price} د.م)</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <ArrowDownRight className="w-3 h-3" />
+                            <span>انخفض</span>
                           </span>
                         )}
                         {row.trend === 'stable' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-stone-100 text-stone-600 border border-stone-200">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-stone-100 text-stone-600 border border-stone-200">
                             <Minus className="w-3 h-3 text-stone-400" />
                             <span>مستقر</span>
                           </span>
                         )}
                       </td>
 
-                      {/* ─── حالة المخزون والتوفر + زر الفتح في إدارة المخزون ─── */}
-                      <td className="py-4 px-3 sm:px-4 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
-                          {/* شارة التوفر الحالية المنقولة من المصدر الأساسي */}
+                      {/* المخزون وزر الفتح */}
+                      <td className="py-3 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           <span
-                            className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border whitespace-nowrap inline-flex items-center gap-1.5 ${
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap inline-flex items-center gap-1 ${
                               isOutOfStock
                                 ? 'bg-rose-50 text-rose-800 border-rose-200'
                                 : isLimitedStock
@@ -961,48 +958,47 @@ export const MorningPricingTable: React.FC<MorningPricingTableProps> = ({
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
-                                isOutOfStock ? 'bg-rose-600' : isLimitedStock ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'
+                                isOutOfStock ? 'bg-rose-600' : isLimitedStock ? 'bg-amber-500' : 'bg-emerald-600'
                               }`}
                             />
                             <span>
                               {isOutOfStock
-                                ? 'غير متوفر (0)'
+                                ? 'نفد (0)'
                                 : isLimitedStock
-                                ? `محدود (${currentStock} ${row.unit_label})`
-                                : `متوفر (${currentStock} ${row.unit_label})`}
+                                ? `محدود (${currentStock})`
+                                : `متوفر (${currentStock})`}
                             </span>
                           </span>
 
-                          {/* زر الانتقال المباشر لإدارة المنتجات والمخزون لهذا المنتج */}
                           <button
                             type="button"
                             onClick={() => handleGoToInventory(row.id)}
-                            className="px-2 py-0.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 text-[10px] font-black flex items-center gap-1 transition-all shadow-2xs active:scale-95 cursor-pointer"
-                            title="فتح هذا المنتج في إدارة المنتجات والمخزون لتعديل المخزون أو الحالة"
+                            className="px-2 py-0.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200 text-[10px] font-bold flex items-center gap-0.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                            title="فتح المنتج في المخزون"
                           >
                             <Package className="w-3 h-3 text-[#163920]" />
-                            <span>📦 فتح بالمخزون</span>
+                            <span>المخزون</span>
                           </button>
                         </div>
                       </td>
 
                       {/* زر اعتماد وحفظ السعر */}
-                      <td className="py-4 px-3 sm:px-4 text-center">
+                      <td className="py-3 px-3 text-center">
                         <button
                           type="button"
                           onClick={() => handleSaveSingleRow(row)}
                           disabled={isRowSaving}
-                          className={`min-h-[38px] min-w-[38px] rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
+                          className={`min-h-[34px] min-w-[34px] rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                             row.is_modified
                               ? 'bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] shadow-2xs active:scale-95'
                               : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
                           }`}
-                          title={row.is_modified ? 'اعتماد وحفظ تعديل هذا السعر في المتجر' : 'السعر معتمد ومتزامن'}
+                          title={row.is_modified ? 'حفظ السعر' : 'السعر معتمد'}
                         >
                           {isRowSaving ? (
-                            <RefreshCw className="w-4 h-4 animate-spin text-[#163920]" />
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#163920]" />
                           ) : (
-                            <Save className="w-4 h-4" />
+                            <Save className="w-3.5 h-3.5" />
                           )}
                         </button>
                       </td>

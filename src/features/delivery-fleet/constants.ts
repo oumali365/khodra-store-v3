@@ -31,52 +31,52 @@ export const STATUS_CONFIG: Record<
   { label: string; badge: string; dot: string }
 > = {
   available: {
-    label: 'متاح وجاهز',
-    badge: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+    label: 'متاح',
+    badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     dot: 'bg-emerald-500',
   },
   on_delivery: {
-    label: 'في جولة توصيل',
-    badge: 'bg-amber-100 text-amber-900 border-amber-300',
+    label: 'في جولة',
+    badge: 'bg-amber-50 text-amber-800 border-amber-200',
     dot: 'bg-amber-500',
   },
   off_duty: {
     label: 'خارج الخدمة',
-    badge: 'bg-stone-100 text-stone-700 border-stone-300',
+    badge: 'bg-stone-50 text-stone-600 border-stone-200',
     dot: 'bg-stone-400',
   },
 };
 
 export const ZONE_STYLES: Record<FezZoneId, ZoneStyle> = {
   east: {
-    border: 'border-purple-300 hover:border-purple-500',
-    bg: 'bg-purple-50/60',
-    badge: 'bg-purple-100 text-purple-900 border-purple-300',
-    headerBg: 'bg-purple-600',
+    border: 'border-purple-200 hover:border-purple-300',
+    bg: 'bg-white',
+    badge: 'bg-purple-50 text-purple-800 border-purple-200',
+    headerBg: 'bg-purple-700',
     accentText: 'text-purple-800',
     tagColor: 'text-purple-600',
   },
   central: {
-    border: 'border-amber-300 hover:border-amber-500',
-    bg: 'bg-amber-50/60',
-    badge: 'bg-amber-100 text-amber-900 border-amber-300',
+    border: 'border-amber-200 hover:border-amber-300',
+    bg: 'bg-white',
+    badge: 'bg-amber-50 text-amber-800 border-amber-200',
     headerBg: 'bg-amber-600',
     accentText: 'text-amber-800',
     tagColor: 'text-amber-600',
   },
   south: {
-    border: 'border-orange-300 hover:border-orange-500',
-    bg: 'bg-orange-50/60',
-    badge: 'bg-orange-100 text-orange-900 border-orange-300',
+    border: 'border-orange-200 hover:border-orange-300',
+    bg: 'bg-white',
+    badge: 'bg-orange-50 text-orange-800 border-orange-200',
     headerBg: 'bg-orange-600',
     accentText: 'text-orange-800',
     tagColor: 'text-orange-600',
   },
   north: {
-    border: 'border-emerald-300 hover:border-emerald-500',
-    bg: 'bg-emerald-50/60',
-    badge: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-    headerBg: 'bg-emerald-600',
+    border: 'border-emerald-200 hover:border-emerald-300',
+    bg: 'bg-white',
+    badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    headerBg: 'bg-emerald-700',
     accentText: 'text-emerald-800',
     tagColor: 'text-emerald-600',
   },
@@ -106,11 +106,11 @@ export const DEFAULT_FAST_COURIER_FORM: FastCourierFormData = {
 };
 
 export const APP_BADGES: Record<FastDeliveryApp, { label: string; style: string }> = {
-  indrive: { label: 'inDrive', style: 'bg-emerald-900 text-emerald-100 border-emerald-700' },
-  glovo: { label: 'Glovo', style: 'bg-amber-400 text-amber-950 border-amber-500 font-black' },
-  yassir: { label: 'Yassir', style: 'bg-rose-700 text-white border-rose-800 font-black' },
-  careem: { label: 'Careem', style: 'bg-emerald-600 text-white border-emerald-700' },
-  other: { label: 'تطبيق آخر', style: 'bg-stone-700 text-stone-100 border-stone-800' },
+  indrive: { label: 'inDrive', style: 'bg-emerald-50 text-emerald-800 border-emerald-200 font-bold' },
+  glovo: { label: 'Glovo', style: 'bg-amber-50 text-amber-900 border-amber-200 font-bold' },
+  yassir: { label: 'Yassir', style: 'bg-rose-50 text-rose-800 border-rose-200 font-bold' },
+  careem: { label: 'Careem', style: 'bg-emerald-50 text-emerald-800 border-emerald-200 font-bold' },
+  other: { label: 'تطبيق', style: 'bg-stone-50 text-stone-700 border-stone-200 font-bold' },
 };
 
 export const DEFAULT_FAST_COURIERS: FastAppCourier[] = [

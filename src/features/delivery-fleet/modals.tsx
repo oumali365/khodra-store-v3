@@ -165,13 +165,12 @@ export const CODDetailsModal: React.FC<CODDetailsModalProps> = ({
   );
 };
 
-// ─── 2. مودال قوالب النسخ الذكية (CopyTemplatesModal) ───
 export interface CopyTemplatesModalProps {
   isOpen: boolean;
   onClose: () => void;
   zoneKey: FezZoneId | null;
   orders: DbOrder[];
-  selectedDriver: StoreDriver | null | undefined;
+  selectedDriver: StoreDriver | FastAppCourier | null | undefined;
   onCopy: (text: string, templateKey: string) => void;
   copiedTemplate: string | null;
 }
@@ -319,7 +318,7 @@ export interface CloseTourModalProps {
   onClose: () => void;
   zoneKey: FezZoneId | null;
   orders: DbOrder[];
-  selectedDriver: StoreDriver | null | undefined;
+  selectedDriver: StoreDriver | FastAppCourier | null | undefined;
   isClosing: boolean;
   onConfirm: () => void;
 }
@@ -368,9 +367,13 @@ export const CloseTourModal: React.FC<CloseTourModalProps> = ({
             <strong className="text-emerald-800 tabular-nums">{totalCOD.toFixed(2)} د.م</strong>
           </div>
           <div className="flex justify-between">
-            <span>السائق المعين:</span>
+            <span>المندوب المعين:</span>
             <span className="font-bold text-stone-900">
-              {selectedDriver?.name || 'فريق خُضرة الداخلي'}
+              {selectedDriver
+                ? 'app' in selectedDriver
+                  ? `${selectedDriver.name} (كابتن تطبيق ${selectedDriver.app})`
+                  : `${selectedDriver.name} (سائق داخلي)`
+                : 'فريق خُضرة'}
             </span>
           </div>
         </div>
@@ -850,6 +853,7 @@ export interface FleetModalsProps {
   onCloseManifest: () => void;
   ordersByZone: Record<FezZoneId, DbOrder[]>;
   drivers: StoreDriver[];
+  fastCouriers?: FastAppCourier[];
   selectedDrivers: Record<FezZoneId, string>;
   copiedTemplate: string | null;
   onCopy: (text: string, templateKey: string) => void;
@@ -882,6 +886,7 @@ export const FleetModals: React.FC<FleetModalsProps> = ({
   onCloseManifest,
   ordersByZone,
   drivers,
+  fastCouriers = [],
   selectedDrivers,
   copiedTemplate,
   onCopy,
@@ -894,6 +899,13 @@ export const FleetModals: React.FC<FleetModalsProps> = ({
   onCloseDeleteModal,
   onConfirmDeleteModal,
 }) => {
+  const getAssignedPerson = (zoneKey: FezZoneId | null): StoreDriver | FastAppCourier | null => {
+    if (!zoneKey) return null;
+    const id = selectedDrivers[zoneKey];
+    if (!id) return null;
+    return drivers.find((d) => d.id === id) || fastCouriers.find((c) => c.id === id) || null;
+  };
+
   return (
     <>
       <CODDetailsModal
@@ -907,7 +919,7 @@ export const FleetModals: React.FC<FleetModalsProps> = ({
         onClose={onCloseCopy}
         zoneKey={copyZone}
         orders={copyZone ? ordersByZone[copyZone] : []}
-        selectedDriver={copyZone ? drivers.find((d) => d.id === selectedDrivers[copyZone]) : null}
+        selectedDriver={getAssignedPerson(copyZone)}
         onCopy={onCopy}
         copiedTemplate={copiedTemplate}
       />
@@ -916,7 +928,7 @@ export const FleetModals: React.FC<FleetModalsProps> = ({
         onClose={onCloseClose}
         zoneKey={closeZone}
         orders={closeZone ? ordersByZone[closeZone] : []}
-        selectedDriver={closeZone ? drivers.find((d) => d.id === selectedDrivers[closeZone]) : null}
+        selectedDriver={getAssignedPerson(closeZone)}
         isClosing={isClosingTour}
         onConfirm={onConfirmCloseTour}
       />
@@ -940,7 +952,7 @@ export const FleetModals: React.FC<FleetModalsProps> = ({
           onClose={onCloseManifest}
           zoneKey={manifestZone}
           orders={ordersByZone[manifestZone]}
-          selectedDriver={drivers.find((d) => d.id === selectedDrivers[manifestZone]) || null}
+          selectedDriver={getAssignedPerson(manifestZone)}
         />
       )}
     </>

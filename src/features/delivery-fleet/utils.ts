@@ -5,8 +5,10 @@
 import type {
   FezZoneId,
   StoreDriver,
+  FastAppCourier,
   DbOrder,
   SortedDriver,
+  SortedFastCourier,
   ZoneCODCalculation,
   FezZoneConfig,
 } from './types';
@@ -63,6 +65,43 @@ export function getSortedDriversForZone(zoneKey: FezZoneId, drivers: StoreDriver
 }
 
 /**
+ * فرز سائقي وتطبيقات التوصيل السريع حسب المنطقة والنطاق الجغرافي
+ */
+export function getSortedFastCouriersForZone(
+  zoneKey: FezZoneId,
+  couriers: FastAppCourier[]
+): SortedFastCourier[] {
+  return [...couriers]
+    .sort((a, b) => {
+      const aMatches = a.zone === zoneKey ? 2 : a.zone === 'all' ? 1 : 0;
+      const bMatches = b.zone === zoneKey ? 2 : b.zone === 'all' ? 1 : 0;
+      if (aMatches !== bMatches) {
+        return bMatches - aMatches;
+      }
+      return a.name.localeCompare(b.name, 'ar');
+    })
+    .map((courier) => {
+      const isPreferred = courier.zone === zoneKey;
+      const appName =
+        courier.app === 'indrive'
+          ? 'inDrive'
+          : courier.app === 'glovo'
+          ? 'Glovo'
+          : courier.app === 'yassir'
+          ? 'Yassir'
+          : courier.app === 'careem'
+          ? 'Careem'
+          : courier.appNameCustom || 'تطبيق';
+
+      return {
+        courier,
+        isPreferred,
+        appBadgeLabel: appName,
+      };
+    });
+}
+
+/**
  * حساب مبالغ التحصيل النقدي (COD) ورسوم التوصيل والمجموع لطلبات المنطقة
  */
 export function calculateZoneCOD(zoneOrders: DbOrder[]): ZoneCODCalculation {
@@ -104,23 +143,47 @@ export function generateGoogleMapsMultiStopUrl(zoneOrders: DbOrder[]): string {
 }
 
 /**
- * بناء رسالة تفاصيل الجولة والمحطات للسائق الداخلي عبر واتساب
+ * بناء رسالة تفاصيل الجولة والمحطات للسائق الداخلي أو كابتن التطبيق السريع عبر واتساب
  */
 export function buildDriverWhatsAppMessage(
   zoneKey: FezZoneId,
   orders: DbOrder[],
-  driver: StoreDriver | null | undefined,
+  driver: StoreDriver | FastAppCourier | null | undefined,
   zoneInfo: FezZoneConfig,
   hub: typeof STORE_PICKUP_HUB = STORE_PICKUP_HUB
 ): string {
   const { totalCOD } = calculateZoneCOD(orders);
   const mapsRoute = generateGoogleMapsMultiStopUrl(orders);
-  const driverName = driver ? driver.name : 'كابتن التوصيل';
+
+  const isFastCourier = Boolean(driver && 'app' in driver);
+  const fastCourier = isFastCourier ? (driver as FastAppCourier) : null;
+  const storeDriver = !isFastCourier ? (driver as StoreDriver) : null;
+
+  const appTitle = fastCourier
+    ? fastCourier.app === 'glovo'
+      ? 'Glovo 🛵'
+      : fastCourier.app === 'indrive'
+      ? 'inDrive 🚗'
+      : fastCourier.app === 'yassir'
+      ? 'Yassir 🚕'
+      : fastCourier.app === 'careem'
+      ? 'Careem 🚗'
+      : (fastCourier.appNameCustom || 'تطبيق سريع')
+    : null;
+
+  const driverName = driver
+    ? isFastCourier
+      ? `${driver.name} (كابتن ${appTitle})`
+      : driver.name
+    : 'كابتن التوصيل';
 
   let msg = `السلام عليكم كابتن *${driverName}* 🛵\n`;
-  msg += `🌿 *جولة توصيل جديدة - متجر خُضرة*\n`;
+  msg += `🌿 *جولة توصيل جديدة - متجر خُضرة فاس*\n`;
+  if (isFastCourier && appTitle) {
+    msg += `⚡ *نوع الخدمة:* توصيل سريع عبر تطبيق (${appTitle})\n`;
+  }
   msg += `🧭 *المنطقة:* ${zoneInfo.name} (${zoneInfo.targetTime})\n`;
-  msg += `📦 *عدد الطلبات:* ${orders.length} طلبيات مجهزة\n`;
+  msg += `📦 *عدد الطلبات:* ${orders.length} طلبيات مجهزة ومفروزة\n`;
   msg += `📍 *نقطة الانطلاق والتموين:* ${hub.name} (${hub.address})\n`;
   if (mapsRoute) {
     msg += `🗺️ *رابط المسار الكامل على خرائط Google:*\n${mapsRoute}\n`;
@@ -143,9 +206,14 @@ export function buildDriverWhatsAppMessage(
 
   msg += `\n════════════════════\n`;
   msg += `💰 *إجمالي مبلغ التحصيل (COD):* *${totalCOD.toFixed(2)} د.م*\n`;
-  if (driver?.commissionPerOrder) {
-    const wage = orders.length * driver.commissionPerOrder;
-    msg += `🛵 *أجرة الجولة المستحقة لك:* ${wage.toFixed(2)} د.م\n`;
+
+  const perOrderFare = isFastCourier
+    ? Number(fastCourier?.typicalFare) || 25
+    : Number(storeDriver?.commissionPerOrder) || 25;
+
+  if (driver) {
+    const wage = orders.length * perOrderFare;
+    msg += `🛵 *أجرة الجولة المستحقة لك:* ${wage.toFixed(2)} د.م (${perOrderFare} د.م/طلب)\n`;
     msg += `🏦 *الصافي لتوريده لصندوق المتجر:* ${(totalCOD - wage).toFixed(2)} د.م\n`;
   }
   msg += `\nطريق السلامة والتوفيق! 🌟🌿`;

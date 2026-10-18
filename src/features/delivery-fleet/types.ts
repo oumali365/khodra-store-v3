@@ -78,6 +78,12 @@ export interface SortedDriver {
   disabledReason?: string;
 }
 
+export interface SortedFastCourier {
+  courier: FastAppCourier;
+  isPreferred: boolean;
+  appBadgeLabel: string;
+}
+
 export interface ZoneCODCalculation {
   totalCOD: number;
   totalDeliveryFees: number;
