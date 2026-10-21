@@ -34,6 +34,7 @@ import {
   generateGoogleMapsMultiStopUrl,
 } from './utils';
 import { FEZ_DELIVERY_ZONES } from '../../data/deliveryZones';
+import { closeOrderFinancialsUnified } from '../../services/storeOperationsCore';
 
 export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
   orders,
@@ -191,6 +192,14 @@ export const AdminDeliveryFleetTab: React.FC<AdminDeliveryFleetTabProps> = ({
       const res = await closeAndDeliverZoneTour({ orders: zOrders, driver, zoneKey: closeZone });
       triggerToast(res.success ? 'success' : 'error', res.message || 'تم إغلاق الجولة');
       if (res.success) {
+        // إقفال مالي للمرحلة 5 وتثبيت الأرباح المحصنة لكل طلب في الجولة
+        for (const ord of zOrders) {
+          try {
+            await closeOrderFinancialsUnified(ord, driver ? `تسليم المندوب ${driver.name}` : 'إغلاق جولة التوصيل');
+          } catch {
+            /* ignore individual closing errors */
+          }
+        }
         fetchOrders().then((d) => setInternalOrders(d)).catch(() => {});
         onRefreshOrders?.();
       }

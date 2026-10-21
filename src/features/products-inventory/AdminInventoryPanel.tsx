@@ -27,6 +27,8 @@ import {
   Filter,
   Eye,
   EyeOff,
+  FileText,
+  PlusCircle,
 } from 'lucide-react';
 import { Product, ProductCategory } from '../../types';
 import {
@@ -998,6 +1000,26 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
 
                       <button
                         type="button"
+                        onClick={() => handleOpenMovementModal('morning_stockin', p)}
+                        className="p-1 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                        title="تسجيل توريد صباحي لهذا المنتج"
+                      >
+                        <PlusCircle className="w-3 h-3 text-emerald-700" />
+                        <span>توريد</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenLedgerModal(p.id)}
+                        className="p-1 px-2 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-[11px] font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
+                        title="سجل حركات هذا المنتج"
+                      >
+                        <FileText className="w-3 h-3 text-stone-600" />
+                        <span>سجل</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => handleOpenEditModal(p)}
                         className="p-1 px-2.5 rounded-lg bg-[#163920] hover:bg-[#0E2615] text-[#F5D76E] text-xs font-black flex items-center gap-1 cursor-pointer transition-colors shadow-2xs active:scale-95"
                       >
@@ -1192,6 +1214,22 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
                             </button>
                           )}
 
+                          <button
+                            type="button"
+                            onClick={() => handleOpenMovementModal('morning_stockin', p)}
+                            className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
+                            title="تسجيل توريد صباحي وإضافة رصيد لهذا المنتج"
+                          >
+                            <PlusCircle className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenLedgerModal(p.id)}
+                            className="p-1.5 rounded-lg text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition-colors cursor-pointer"
+                            title="عرض سجل تدقيق حركات هذا المنتج"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(p)}
@@ -1464,6 +1502,23 @@ export const AdminInventoryPanel: React.FC<AdminInventoryPanelProps> = ({
           </div>
         </div>
       )}
+
+      {/* ─── نافذة تسجيل حركة توريد صباحي وإضافة مخزون ─── */}
+      <InventoryMovementModal
+        isOpen={isMovementModalOpen}
+        onClose={() => setIsMovementModalOpen(false)}
+        products={products}
+        targetProduct={targetMovementProduct}
+        initialType={movementModalType}
+        onSaveMovement={handleSaveInventoryMovement}
+      />
+
+      {/* ─── نافذة سجل تدقيق حركات المخزون ─── */}
+      <InventoryLedgerModal
+        isOpen={isLedgerModalOpen}
+        onClose={() => setIsLedgerModalOpen(false)}
+        targetProductId={targetLedgerProductId}
+      />
     </div>
   );
 };

@@ -20,7 +20,7 @@ import { STORE_CONFIG } from '../data/config';
 import { INITIAL_PRODUCTS } from '../data/mockProducts';
 import { recordOrderSuccess, sanitizeInput } from './securityService';
 import { detectAddressZone } from '../data/deliveryZones';
-import { calculateSellingPrice } from './financialEngine';
+import { calculateSellingPrice, calculateItemsCogs } from './financialEngine';
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -618,6 +618,112 @@ export async function recordInventoryMovement(params: {
   }
 }
 
+/**
+ * ────────────────────────────────────────────────────────────
+ * مزامنة المخزون مع دورة حياة الطلبات (Order Stock Synchronization)
+ * خصم الكميات عند التأكيد/التسليم واسترجاعها تلقائياً عند الإلغاء
+ * ────────────────────────────────────────────────────────────
+ */
+const STOCK_DEDUCTED_KEY = 'khodra_stock_deducted_orders_v1';
+
+export function getDeductedOrderIds(): Set<string> {
+  if (typeof localStorage === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(STOCK_DEDUCTED_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function markOrderStockDeducted(orderCodeOrId: string | number, deducted: boolean) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const set = getDeductedOrderIds();
+    const key = String(orderCodeOrId);
+    if (deducted) {
+      set.add(key);
+    } else {
+      set.delete(key);
+    }
+    localStorage.setItem(STOCK_DEDUCTED_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+export async function syncOrderStock(
+  orderOrId: DbOrder | string | number,
+  action: 'deduct' | 'restore'
+): Promise<{ success: boolean; affectedItems: number }> {
+  let targetOrder: DbOrder | undefined;
+
+  if (typeof orderOrId === 'object' && orderOrId !== null && 'id' in orderOrId) {
+    targetOrder = orderOrId as DbOrder;
+  } else {
+    const allOrders = await fetchOrders();
+    const str = String(orderOrId);
+    targetOrder = allOrders.find(
+      (o) => String(o.id) === str || String(o.order_code) === str || o.order_code === `#${str}`
+    );
+  }
+
+  if (!targetOrder || !Array.isArray(targetOrder.items) || targetOrder.items.length === 0) {
+    return { success: true, affectedItems: 0 };
+  }
+
+  const orderKey = String(targetOrder.order_code || targetOrder.id);
+  const deductedSet = getDeductedOrderIds();
+  const isAlreadyDeducted = deductedSet.has(orderKey);
+
+  if (action === 'deduct') {
+    if (isAlreadyDeducted) {
+      return { success: true, affectedItems: 0 }; // تم الخصم مسبقاً لمنع التكرار
+    }
+
+    let affected = 0;
+    for (const item of targetOrder.items) {
+      const pid = Number(item.id || item.product_id);
+      const qty = Math.max(0, Number(item.qty || item.quantity) || 1);
+      if (pid > 0 && qty > 0) {
+        await recordInventoryMovement({
+          productId: pid,
+          movementType: 'order_deduct',
+          quantityDelta: -qty,
+          reason: `مبيعات - طلب #${targetOrder.order_code || targetOrder.id}`,
+          orderId: targetOrder.id,
+        });
+        affected++;
+      }
+    }
+
+    markOrderStockDeducted(orderKey, true);
+    return { success: true, affectedItems: affected };
+  } else {
+    // action === 'restore'
+    if (!isAlreadyDeducted) {
+      return { success: true, affectedItems: 0 }; // لم يُخصم مسبقاً فلا داعي للاسترجاع
+    }
+
+    let affected = 0;
+    for (const item of targetOrder.items) {
+      const pid = Number(item.id || item.product_id);
+      const qty = Math.max(0, Number(item.qty || item.quantity) || 1);
+      if (pid > 0 && qty > 0) {
+        await recordInventoryMovement({
+          productId: pid,
+          movementType: 'order_restore',
+          quantityDelta: qty,
+          reason: `استرجاع مخزون - إلغاء طلب #${targetOrder.order_code || targetOrder.id}`,
+          orderId: targetOrder.id,
+        });
+        affected++;
+      }
+    }
+
+    markOrderStockDeducted(orderKey, false);
+    return { success: true, affectedItems: affected };
+  }
+}
+
 export async function deleteProductFromStore(
   productId: number
 ): Promise<{ success: boolean; message?: string }> {
@@ -899,10 +1005,22 @@ export async function submitOrder(
 
     const initialSubtotal = Number(order.subtotal) || 0;
     const initialFee = Number(order.deliveryFee) || 0;
-    const estimatedCogs = Number((initialSubtotal * 0.60).toFixed(2));
+
+    // استخراج أسعار الشراء الحقيقية للأصناف وقت إنشاء الطلب وتثبيت الكلفة التاريخية
+    let dailyPricesMap: Record<number, any> = {};
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const rawPrices = localStorage.getItem('khodra_daily_prices_v1');
+        if (rawPrices) dailyPricesMap = JSON.parse(rawPrices);
+      } catch {}
+    }
+    const itemsCogs = calculateItemsCogs(cleanItems, dailyPricesMap);
+    const realCogs = itemsCogs.cogsAmount != null ? itemsCogs.cogsAmount : Number((initialSubtotal * 0.60).toFixed(2));
+    const realCogsStatus = itemsCogs.cogsStatus;
+
     const estimatedDelCost = detectedZone === 'south' ? 15 : (detectedZone === 'east' ? 25 : 20);
     const initialPackaging = 2.00;
-    const initialDirectCosts = Number((estimatedCogs + estimatedDelCost + initialPackaging).toFixed(2));
+    const initialDirectCosts = Number((realCogs + estimatedDelCost + initialPackaging).toFixed(2));
     const initialGrossRevenue = Number((initialSubtotal + initialFee).toFixed(2));
     const initialOperatingProfit = Number((initialGrossRevenue - initialDirectCosts).toFixed(2));
 
@@ -921,9 +1039,9 @@ export async function submitOrder(
       note: noteParts.length > 0 ? sanitizeInput(noteParts.join(' | ')) : null,
       maps_link: order.mapsLink ? sanitizeInput(String(order.mapsLink)) : null,
       created_at: new Date().toISOString(),
-      // ─── حقول التكلفة والربح التشغيلي المباشر ───
-      cogs_amount: estimatedCogs,
-      cogs_status: 'estimated',
+      // ─── حقول التكلفة والربح التشغيلي المباشر (التكلفة التاريخية المحصنة) ───
+      cogs_amount: realCogs,
+      cogs_status: realCogsStatus,
       actual_delivery_cost: estimatedDelCost,
       delivery_cost: estimatedDelCost,
       driver_cost: estimatedDelCost,
@@ -1282,9 +1400,12 @@ export interface DbOrder {
   address: string;
   delivery_zone?: FezZoneId;
   items: Array<{
+    id?: number | string;
+    product_id?: number | string;
     name: string;
     variantLabel?: string;
     qty: number;
+    quantity?: number;
     lineTotal: number;
     icon?: string;
   }>;
@@ -2233,22 +2354,25 @@ export async function updateOrderStatus(
     return { success: false, message: lastErrorMessage || 'تعذر تحديث حالة الطلب في الخادم' };
   }
 
-  // ─── استرجاع المخزون تلقائياً عند إلغاء الطلب ───
-  if (status === 'cancelled') {
-    try {
+  // ─── مزامنة المخزون تلقائياً عند تغيير حالة الطلب ───
+  try {
+    if (status === 'cancelled') {
+      await syncOrderStock(strId, 'restore');
       const numId = Number(strId);
-      if (!isNaN(numId) && numId > 0) {
+      if (!isNaN(numId) && numId > 0 && client) {
         await client.rpc('restore_order_inventory', {
           p_order_id: numId,
           p_reason: 'إلغاء الطلب من لوحة الإدارة',
         });
       }
-    } catch (restoreErr) {
-      console.warn('Notice: restore_order_inventory call handled gracefully:', restoreErr);
+    } else if (status === 'prepared' || status === 'delivered') {
+      await syncOrderStock(strId, 'deduct');
     }
+  } catch (stockSyncErr) {
+    console.warn('Notice: syncOrderStock handled gracefully:', stockSyncErr);
   }
 
-  return { success: true, message: 'تم تحديث حالة الطلب بنجاح' };
+  return { success: true, message: 'تم تحديث حالة الطلب ومزامنة المخزون بنجاح' };
 }
 
 export async function deleteOrder(
@@ -2978,6 +3102,13 @@ export async function closeAndDeliverZoneTour(params: {
       newlyArchivedCodes.push(ord.order_code);
     }
     newlyArchivedCodes.push(String(ord.id));
+
+    // مزامنة وخصم المخزون فورياً لكل طلب في الجولة
+    try {
+      await syncOrderStock(ord, 'deduct');
+    } catch {
+      /* ignore */
+    }
   }
 
   // 4. أرشفة الطلبات أيضاً في التخزين المحلي لضمان التوافق مع أي شاشات دون اتصال
