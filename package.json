@@ -15,7 +15,8 @@
     "test:phase6": "tsx scripts/test-phase6-integration.ts",
     "test:intelligence": "tsx scripts/test-order-intelligence.ts",
     "test:dispatch": "tsx scripts/test-unified-dispatch.ts",
-    "test:cod": "tsx scripts/test-cod-and-notifications.ts"
+    "test:cod": "tsx scripts/test-cod-and-notifications.ts",
+    "test:copilot": "tsx scripts/test-conversational-intelligence.ts"
   },
   "dependencies": {
     "@google/genai": ">=1.0.0",

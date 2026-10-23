@@ -496,6 +496,7 @@ export async function executeGetOrders(args: {
             : 'ملغي',
         items_count: itemsArr.length,
         items_summary: itemSummary || 'لا توجد تفاصيل',
+        items: itemsArr,
         created_at: o.created_at,
       };
     });
